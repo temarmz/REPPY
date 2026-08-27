@@ -60,6 +60,7 @@ export type DemoState = {
 };
 
 export const STORAGE_KEY = 'reppy-demo-v0';
+export const TRAINER_NAME = 'Евгений Ч.';
 
 export const exerciseLibrary = [
   { id: 'bench-press', name: 'Жим лёжа' },
@@ -89,11 +90,11 @@ export function createInitialState(): DemoState {
   return {
     loggedIn: false,
     role: 'trainer',
-    activeStudentId: 'richard',
+    activeStudentId: 'artem',
     students: [
-      { id: 'richard', name: 'Ричард', status: 'active', color: 'lime' },
-      { id: 'mikhail', name: 'Михаил', status: 'active', color: 'violet' },
-      { id: 'anna', name: 'Анна', status: 'active', color: 'pink' },
+      { id: 'artem', name: 'Артем А.', status: 'active', color: 'lime' },
+      { id: 'maria', name: 'Мария А.', status: 'active', color: 'violet' },
+      { id: 'anton', name: 'Антон К.', status: 'active', color: 'pink' },
     ],
     workouts: [
       {
@@ -119,14 +120,48 @@ export function createInitialState(): DemoState {
     ],
     assignments: [
       {
-        id: 'assignment-mikhail-legs',
+        id: 'assignment-maria-legs',
         workoutId: 'legs',
-        studentId: 'mikhail',
+        studentId: 'maria',
         assignedAt: now,
         status: 'assigned',
       },
     ],
     sessions: [],
+  };
+}
+
+const legacyStudentIds: Record<string, string> = {
+  richard: 'artem',
+  mikhail: 'maria',
+  anna: 'anton',
+};
+
+const demoStudentProfiles: Record<string, Pick<Student, 'name' | 'color'>> = {
+  artem: { name: 'Артем А.', color: 'lime' },
+  maria: { name: 'Мария А.', color: 'violet' },
+  anton: { name: 'Антон К.', color: 'pink' },
+};
+
+export function migrateDemoState(state: DemoState): DemoState {
+  const currentId = (id: string) => legacyStudentIds[id] ?? id;
+
+  return {
+    ...state,
+    activeStudentId: currentId(state.activeStudentId),
+    students: state.students.map((student) => {
+      const id = currentId(student.id);
+      const profile = demoStudentProfiles[id];
+      return profile ? { ...student, id, ...profile } : student;
+    }),
+    assignments: state.assignments.map((assignment) => ({
+      ...assignment,
+      studentId: currentId(assignment.studentId),
+    })),
+    sessions: state.sessions.map((session) => ({
+      ...session,
+      studentId: currentId(session.studentId),
+    })),
   };
 }
 
