@@ -308,11 +308,10 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
         </button>
         <p className="demo-note"><span>DEMO</span> Данные сохраняются только в этом браузере</p>
       </section>
-      <aside className="preview-card" aria-hidden="true">
-        <span className="preview-label">СЕГОДНЯ</span>
-        <div className="preview-orbit"><span>12</span><small>подходов</small></div>
-        <div><strong>PUSH DAY</strong><p>Ричард готов к тренировке</p></div>
-      </aside>
+      <figure className="hero-mascot">
+        <img src="logo.png" alt="Маскот REPPY — спортивный динозавр" />
+        <figcaption>TRAIN · TRACK · GROW</figcaption>
+      </figure>
     </main>
   );
 }
@@ -320,7 +319,8 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
 function Brand() {
   return (
     <button className="brand-mark brand-button" type="button" onClick={() => go('/')} aria-label="REPPY — на стартовый экран">
-      <span className="brand-icon">R</span><span className="brand-word">REPPY</span>
+      <img className="brand-logo" src="logo-full.png" alt="" />
+      <span className="brand-word">REPPY</span>
     </button>
   );
 }

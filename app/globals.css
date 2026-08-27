@@ -68,7 +68,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   padding: clamp(8px, 3vw, 32px);
 }
 
-.brand-mark { display: flex; align-items: center; gap: 12px; }
+.brand-mark { display: flex; align-items: center; gap: 10px; }
 .brand-icon {
   display: grid;
   width: 42px;
@@ -79,6 +79,13 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   color: var(--ink);
   font-weight: 950;
   transform: rotate(-7deg);
+}
+.brand-logo {
+  display: block;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 15px rgba(154, 70, 255, .16));
 }
 .brand-word { font-size: 20px; font-weight: 900; letter-spacing: -.04em; }
 
@@ -129,50 +136,77 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .demo-note { margin: 16px 0 0; color: #767d75; font-size: 12px; text-align: center; }
 .demo-note span { margin-right: 5px; color: var(--lime); font-weight: 900; }
 
-.preview-card {
-  position: absolute;
-  right: clamp(30px, 8vw, 150px);
-  bottom: 9vh;
+.hero-mascot {
+  position: relative;
   display: none;
-  width: 260px;
-  min-height: 310px;
-  flex-direction: column;
-  justify-content: space-between;
-  border-radius: 36px;
-  padding: 25px;
-  background: linear-gradient(145deg, #6f41fb, #3c19a2);
-  box-shadow: 0 30px 90px rgba(84, 42, 210, .28);
-  transform: rotate(5deg);
+  width: min(42vw, 490px);
+  height: min(82svh, 760px);
+  align-self: end;
+  justify-self: start;
+  margin: 0 0 -4vh -35px;
+  isolation: isolate;
 }
-.preview-label { font-size: 11px; font-weight: 900; letter-spacing: .16em; }
-.preview-orbit {
-  display: grid;
-  width: 128px;
-  height: 128px;
-  align-self: center;
-  place-content: center;
-  border: 13px solid rgba(255,255,255,.15);
-  border-top-color: var(--lime);
+.hero-mascot::before {
+  position: absolute;
+  right: 8%;
+  bottom: 8%;
+  z-index: -1;
+  width: 78%;
+  height: 52%;
   border-radius: 50%;
-  text-align: center;
+  background: #6f35ff;
+  content: '';
+  filter: blur(80px);
+  opacity: .22;
 }
-.preview-orbit span { font-size: 35px; font-weight: 900; line-height: 1; }
-.preview-orbit small { margin-top: 5px; color: #d8ccff; }
-.preview-card strong { font-size: 25px; letter-spacing: -.05em; }
-.preview-card p { margin: 7px 0 0; color: #d7ccff; font-size: 13px; }
+.hero-mascot img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
+.hero-mascot figcaption {
+  position: absolute;
+  right: 6%;
+  bottom: 7%;
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  transform: rotate(-4deg);
+}
 
 @media (min-width: 1080px) {
-  .welcome-screen { grid-template-columns: minmax(500px, 700px) 320px; }
+  .welcome-screen { grid-template-columns: minmax(500px, 680px) minmax(390px, 520px); padding-bottom: 0; }
   .welcome-card { justify-self: end; }
-  .preview-card { position: relative; right: auto; bottom: auto; display: flex; }
+  .hero-mascot { display: block; }
 }
 
 @media (max-width: 600px) {
   .welcome-screen { align-items: stretch; padding: 22px 18px 26px; }
   .welcome-card { display: flex; flex-direction: column; padding: 0; }
-  .welcome-copy { margin-top: auto; }
+  .welcome-card > .brand-mark { position: relative; z-index: 2; }
+  .welcome-copy { position: relative; z-index: 2; margin-top: auto; }
   .welcome-copy h1 { font-size: clamp(44px, 13vw, 61px); }
   .primary-button { margin-top: auto; }
+  .hero-mascot {
+    position: absolute;
+    top: 38px;
+    right: -72px;
+    display: block;
+    width: min(86vw, 365px);
+    height: 48svh;
+    margin: 0;
+    opacity: .78;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black 68%, transparent 100%);
+  }
+  .hero-mascot figcaption { display: none; }
+  .welcome-screen::after {
+    position: absolute;
+    inset: 35% 0 0;
+    z-index: -1;
+    background: linear-gradient(to bottom, transparent, var(--ink) 38%);
+    content: '';
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -658,7 +692,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 @media (max-width: 800px) {
   .topbar { height: 68px; padding: 0 17px; }
   .topbar .brand-word { display: none; }
-  .topbar .brand-icon { width: 38px; height: 38px; border-radius: 12px; }
+  .topbar .brand-logo { width: 48px; height: 48px; }
   .role-switch { min-height: 40px; padding-right: 10px; font-size: 0; }
   .role-switch::after { color: #b9beb6; content: 'Сменить роль'; font-size: 10px; }
   .role-switch span { padding: 6px 8px; }
