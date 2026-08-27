@@ -804,3 +804,136 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .history-list button { grid-template-columns: 74px 1fr auto; gap: 10px; }
   .result-exercises p { padding-inline: 14px; }
 }
+
+/* Mobile readability and a calmer distribution of the brand color. */
+.back-button {
+  min-height: 48px;
+  margin: -8px 0 20px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 15px;
+  padding: 0 14px;
+  background: rgba(255,255,255,.07);
+  color: #e1e4de;
+  font-size: 14px;
+  font-weight: 800;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.back-button:hover {
+  border-color: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.11);
+}
+
+.back-button:active { transform: translateY(1px); }
+
+.compact-primary,
+.empty-state button {
+  background: #e9ece6;
+  color: var(--ink);
+}
+
+.desktop-nav nav button.active,
+.bottom-nav button.active {
+  background: #ecefe9;
+  color: var(--ink);
+  box-shadow: 0 5px 18px rgba(255,255,255,.07);
+}
+
+.lime-card,
+.tone-0 {
+  background: #e8ebe5;
+  color: var(--ink);
+}
+
+.section-heading button,
+.client-card i,
+.session-row i,
+.activity-row i,
+.recent-card span,
+.profile-hero div span,
+.student-card-top b,
+.student-tip span,
+.history-date {
+  color: #d9ddd5;
+}
+
+.activity-row b {
+  background: rgba(255,255,255,.08);
+  color: #d9ddd5;
+}
+
+.add-exercise {
+  border-color: rgba(255,255,255,.16);
+  background: rgba(255,255,255,.04);
+  color: #d9ddd5;
+}
+
+.hero-mascot figcaption,
+.role-switch > span:first-child,
+.side-demo b,
+.stat-card span,
+.activity-row b,
+.recent-card span,
+.profile-hero div span,
+.workout-card-label,
+.metric-input span,
+.workout-summary-hero span,
+.student-card-top span,
+.student-card-top b,
+.student-tip span,
+.active-header div span,
+.active-exercise-title p,
+.set-number span,
+.set-card label span,
+.success-screen section span,
+.result-summary span,
+.result-exercises header span,
+.demo-stats span {
+  font-size: 11px;
+}
+
+.profile-block small,
+.activity-row small,
+.workout-row small,
+.session-row small,
+.recent-card p,
+.client-card small,
+.field-hint,
+.workout-card p,
+.assigned-note,
+.select-student-list small,
+.history-list small,
+.result-exercises p > span,
+.settings-modal > p,
+.reset-button,
+.toast {
+  font-size: 13px;
+}
+
+.completion-ring small,
+.invite-ready output,
+.exercise-plan-list article > span,
+.history-date {
+  font-size: 12px;
+}
+
+.field-label,
+.add-exercise,
+.exercise-navigation button,
+.history-link {
+  font-size: 14px;
+}
+
+.active-header div strong { font-size: 13px; }
+
+@media (max-width: 800px) {
+  .role-switch::after,
+  .bottom-nav button small { font-size: 11px; }
+  .compact-primary { font-size: 12px; }
+}
+
+@media (max-width: 470px) {
+  .page-lead { font-size: 14px; }
+  .stat-card p,
+  .sticky-actions button { font-size: 12px; }
+}
