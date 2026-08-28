@@ -1,4 +1,5 @@
 export type Role = 'trainer' | 'student';
+export type MoodRating = 'great' | 'good' | 'tired' | 'hard';
 
 export type Student = {
   id: string;
@@ -28,6 +29,7 @@ export type Assignment = {
   workoutId: string;
   studentId: string;
   assignedAt: string;
+  scheduledFor: string;
   status: 'assigned' | 'completed';
 };
 
@@ -46,6 +48,8 @@ export type WorkoutSession = {
   workoutId: string;
   startedAt: string;
   completedAt?: string;
+  mood?: MoodRating;
+  comment?: string;
   results: SetResult[];
 };
 
@@ -59,8 +63,17 @@ export type DemoState = {
   sessions: WorkoutSession[];
 };
 
+export type SharedDemoState = Pick<DemoState, 'students' | 'workouts' | 'assignments' | 'sessions'>;
+
 export const STORAGE_KEY = 'reppy-demo-v0';
 export const TRAINER_NAME = 'Евгений Ч.';
+
+export function dateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export const exerciseLibrary = [
   { id: 'bench-press', name: 'Жим лёжа' },
@@ -86,6 +99,7 @@ const workoutExercise = (
 
 export function createInitialState(): DemoState {
   const now = new Date().toISOString();
+  const today = dateKey();
 
   return {
     loggedIn: false,
@@ -124,6 +138,7 @@ export function createInitialState(): DemoState {
         workoutId: 'legs',
         studentId: 'maria',
         assignedAt: now,
+        scheduledFor: today,
         status: 'assigned',
       },
     ],
@@ -157,11 +172,21 @@ export function migrateDemoState(state: DemoState): DemoState {
     assignments: state.assignments.map((assignment) => ({
       ...assignment,
       studentId: currentId(assignment.studentId),
+      scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
     })),
     sessions: state.sessions.map((session) => ({
       ...session,
       studentId: currentId(session.studentId),
     })),
+  };
+}
+
+export function getSharedState(state: DemoState): SharedDemoState {
+  return {
+    students: state.students,
+    workouts: state.workouts,
+    assignments: state.assignments,
+    sessions: state.sessions,
   };
 }
 
@@ -178,5 +203,12 @@ export function formatDay(iso?: string) {
   const date = new Date(iso);
   const today = new Date();
   if (date.toDateString() === today.toDateString()) return 'Сегодня';
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date);
+}
+
+export function formatCalendarDay(value?: string) {
+  if (!value) return '';
+  const date = new Date(`${value}T12:00:00`);
+  if (value === dateKey()) return 'Сегодня';
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date);
 }

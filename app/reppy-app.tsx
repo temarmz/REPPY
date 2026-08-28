@@ -5,13 +5,18 @@ import {
   STORAGE_KEY,
   TRAINER_NAME,
   createInitialState,
+  dateKey,
   exerciseLibrary,
+  formatCalendarDay,
   formatDay,
+  getSharedState,
   makeId,
   migrateDemoState,
   totalSets,
   type Assignment,
   type DemoState,
+  type MoodRating,
+  type SharedDemoState,
   type SetResult,
   type Student,
   type Workout,
@@ -47,6 +52,17 @@ function findStudent(data: DemoState, id: string) {
   return data.students.find((student) => student.id === id);
 }
 
+const MOODS: Array<{ value: MoodRating; label: string; detail: string; icon: IconName }> = [
+  { value: 'great', label: 'Отлично', detail: 'Много сил', icon: 'sun' },
+  { value: 'good', label: 'Хорошо', detail: 'Рабочий темп', icon: 'check' },
+  { value: 'tired', label: 'Устал', detail: 'Нужен отдых', icon: 'minus' },
+  { value: 'hard', label: 'Тяжело', detail: 'Было непросто', icon: 'workout' },
+];
+
+function moodLabel(mood: MoodRating) {
+  return MOODS.find((item) => item.value === mood)?.label ?? '';
+}
+
 export default function ReppyApp() {
   const [data, setData] = useState<DemoState>(() => createInitialState());
   const [path, setPath] = useState('/');
@@ -55,9 +71,28 @@ export default function ReppyApp() {
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const nextData = migrateDemoState(saved ? (JSON.parse(saved) as DemoState) : createInitialState());
+    let cancelled = false;
+
+    const hydrate = async () => {
+      let nextData = createInitialState();
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        nextData = migrateDemoState(saved ? (JSON.parse(saved) as DemoState) : nextData);
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      try {
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (response.ok) {
+          const shared = await response.json() as SharedDemoState;
+          nextData = migrateDemoState({ ...nextData, ...shared });
+        }
+      } catch {
+        // Keep the local copy available if the shared store is temporarily unavailable.
+      }
+
+      if (cancelled) return;
       setData(nextData);
       const requestedPath = hashPath();
       if (requestedPath === '/' && nextData.loggedIn) {
@@ -65,21 +100,58 @@ export default function ReppyApp() {
       } else {
         setPath(requestedPath);
       }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      setData(createInitialState());
-      setPath(hashPath());
-    }
-    setHydrated(true);
+      setHydrated(true);
+    };
+
+    void hydrate();
 
     const handleHash = () => setPath(hashPath());
     window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('hashchange', handleHash);
+    };
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (!hydrated) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const timer = window.setTimeout(() => {
+      void fetch('/api/state', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(getSharedState(data)),
+      });
+    }, 350);
+    return () => window.clearTimeout(timer);
   }, [data, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const refresh = async () => {
+      try {
+        const response = await fetch('/api/state', { cache: 'no-store' });
+        if (!response.ok) return;
+        const shared = await response.json() as SharedDemoState;
+        setData((current) => JSON.stringify(getSharedState(current)) === JSON.stringify(shared)
+          ? current
+          : migrateDemoState({ ...current, ...shared }));
+      } catch {
+        // The current screen remains usable from its last synchronized copy.
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const interval = window.setInterval(() => void refresh(), 12000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [hydrated]);
 
   useEffect(() => {
     if (!toast) return;
@@ -145,7 +217,9 @@ export default function ReppyApp() {
     const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
-    if (path === '/trainer/clients') {
+    if (path === '/trainer/calendar') {
+      content = <WorkoutCalendar data={data} area="trainer" />;
+    } else if (path === '/trainer/clients') {
       content = <ClientsList data={data} />;
     } else if (path === '/trainer/clients/invite') {
       content = (
@@ -185,12 +259,13 @@ export default function ReppyApp() {
         <AssignWorkout
           workout={workout}
           students={data.students}
-          onAssign={(studentId) => {
+          onAssign={(studentId, scheduledFor) => {
             const assignment: Assignment = {
               id: makeId('assignment'),
               workoutId: workout.id,
               studentId,
               assignedAt: new Date().toISOString(),
+              scheduledFor,
               status: 'assigned',
             };
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
@@ -213,8 +288,11 @@ export default function ReppyApp() {
     const activeMatch = path.match(/^\/student\/workout\/([^/]+)$/);
     const historyMatch = path.match(/^\/student\/history\/([^/]+)$/);
     const successMatch = path.match(/^\/student\/success\/([^/]+)$/);
+    const finishMatch = path.match(/^\/student\/finish\/([^/]+)$/);
 
-    if (path === '/student/history') {
+    if (path === '/student/calendar') {
+      content = <WorkoutCalendar data={data} area="student" />;
+    } else if (path === '/student/history') {
       content = <StudentHistory data={data} />;
     } else if (activeMatch) {
       const assignment = data.assignments.find((item) => item.id === activeMatch[1]);
@@ -254,13 +332,24 @@ export default function ReppyApp() {
             const currentSession = data.sessions.find((item) => item.id === sessionId);
             const unfinished = currentSession?.results.some((result) => !result.completed);
             if (unfinished && !window.confirm('Есть незавершённые подходы. Всё равно закончить тренировку?')) return;
+            go(`/student/finish/${sessionId}`);
+          }}
+        />
+      ) : <NotFound />;
+    } else if (finishMatch) {
+      const session = data.sessions.find((item) => item.id === finishMatch[1] && !item.completedAt);
+      content = session ? (
+        <WorkoutFeedback
+          data={data}
+          session={session}
+          onComplete={(mood, comment) => {
             const completedAt = new Date().toISOString();
             setData((current) => ({
               ...current,
-              assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
-              sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt } : item),
+              assignments: current.assignments.map((item) => item.id === session.assignmentId ? { ...item, status: 'completed' } : item),
+              sessions: current.sessions.map((item) => item.id === session.id ? { ...item, completedAt, mood, comment: comment.trim() } : item),
             }));
-            go(`/student/success/${sessionId}`);
+            go(`/student/success/${session.id}`);
           }}
         />
       ) : <NotFound />;
@@ -309,7 +398,7 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
         <button className="primary-button" type="button" onClick={onLogin}>
           Войти как тренер <Icon name="arrow-up-right" />
         </button>
-        <p className="demo-note"><span>DEMO</span> Данные сохраняются только в этом браузере</p>
+        <p className="demo-note"><span>DEMO</span> Результаты синхронизируются между ролями</p>
       </section>
       <figure className="hero-mascot">
         <img src="logo.png" alt="Маскот REPPY — спортивный динозавр" />
@@ -346,17 +435,20 @@ function AppShell({
   const student = findStudent(data, data.activeStudentId);
   const trainerNav = [
     { label: 'Главная', icon: 'home' as IconName, route: '/trainer' },
+    { label: 'Календарь', icon: 'calendar' as IconName, route: '/trainer/calendar' },
     { label: 'Ученики', icon: 'users' as IconName, route: '/trainer/clients' },
     { label: 'Тренировки', icon: 'workout' as IconName, route: '/trainer/workouts' },
   ];
   const studentNav = [
     { label: 'Сегодня', icon: 'calendar' as IconName, route: '/student' },
+    { label: 'Календарь', icon: 'calendar' as IconName, route: '/student/calendar' },
     { label: 'История', icon: 'history' as IconName, route: '/student/history' },
   ];
   const nav = area === 'trainer' ? trainerNav : studentNav;
   const displayName = area === 'trainer' ? TRAINER_NAME : student?.name ?? 'Ученик';
 
   const isActive = (route: string) => {
+    if (route.endsWith('/calendar')) return path === route;
     if (route.endsWith('/clients')) return path.startsWith('/trainer/clients');
     if (route.endsWith('/workouts')) return path.startsWith('/trainer/workouts');
     if (route.endsWith('/history')) return path.startsWith('/student/history');
@@ -419,8 +511,77 @@ function PageHeader({ eyebrow, title, action, back }: { eyebrow?: string; title:
   );
 }
 
+function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
+  const today = new Date();
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDay, setSelectedDay] = useState(dateKey(today));
+  const assignments = data.assignments
+    .filter((item) => area === 'trainer' || item.studentId === data.activeStudentId)
+    .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+  const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const gridStart = new Date(firstDay);
+  gridStart.setDate(firstDay.getDate() - mondayOffset);
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(gridStart);
+    day.setDate(gridStart.getDate() + index);
+    return day;
+  });
+  const selectedAssignments = assignments.filter((item) => item.scheduledFor === selectedDay);
+  const monthTitle = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(visibleMonth);
+  const selectedTitle = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${selectedDay}T12:00:00`));
+
+  const moveMonth = (step: number) => {
+    const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + step, 1);
+    setVisibleMonth(next);
+    setSelectedDay(dateKey(next));
+  };
+
+  return (
+    <main className="content-page calendar-page">
+      <PageHeader eyebrow={area === 'trainer' ? 'Расписание команды' : 'Твой план'} title="КАЛЕНДАРЬ" />
+      <section className="calendar-card">
+        <header className="calendar-toolbar"><button type="button" onClick={() => moveMonth(-1)} aria-label="Предыдущий месяц"><Icon name="chevron-left" /></button><h2>{monthTitle}</h2><button type="button" onClick={() => moveMonth(1)} aria-label="Следующий месяц"><Icon name="chevron-right" /></button></header>
+        <div className="calendar-weekdays" aria-hidden="true">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <span key={day}>{day}</span>)}</div>
+        <div className="calendar-grid">
+          {days.map((day) => {
+            const key = dateKey(day);
+            const dayAssignments = assignments.filter((item) => item.scheduledFor === key);
+            const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
+            return (
+              <button className={`${isCurrentMonth ? '' : 'outside'} ${key === selectedDay ? 'selected' : ''} ${key === dateKey(today) ? 'today' : ''}`} key={key} type="button" onClick={() => setSelectedDay(key)} aria-label={`${day.getDate()}, тренировок: ${dayAssignments.length}`}>
+                <span>{day.getDate()}</span>{dayAssignments.length > 0 && <i>{dayAssignments.length}</i>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="calendar-agenda">
+        <div className="section-heading"><h2>{selectedTitle}</h2><span>{selectedAssignments.length ? `${selectedAssignments.length} в плане` : 'День свободен'}</span></div>
+        {selectedAssignments.length ? <div className="agenda-list">{selectedAssignments.map((assignment) => {
+          const workout = findWorkout(data, assignment.workoutId);
+          const student = findStudent(data, assignment.studentId);
+          const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+          const target = area === 'trainer'
+            ? session ? `/trainer/sessions/${session.id}` : `/trainer/clients/${assignment.studentId}`
+            : session ? `/student/history/${session.id}` : `/student/workout/${assignment.id}`;
+          return (
+            <button key={assignment.id} type="button" onClick={() => go(target)}>
+              <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
+              <div><strong>{workout?.name}</strong><small>{area === 'trainer' ? `${student?.name} · ` : ''}{totalSets(workout)} подходов</small>{session?.comment && <p>«{session.comment}»</p>}</div>
+              <b>{assignment.status === 'completed' ? session?.mood ? moodLabel(session.mood) : 'Готово' : 'В плане'}</b>
+            </button>
+          );
+        })}</div> : <EmptyState icon="calendar" title="Свободный день" text={area === 'trainer' ? 'У команды нет тренировок в этот день.' : 'На этот день тренировка не запланирована.'} />}
+      </section>
+    </main>
+  );
+}
+
 function TrainerHome({ data }: { data: DemoState }) {
   const pending = data.assignments.filter((item) => item.status === 'assigned');
+  const todayAssignments = data.assignments.filter((item) => item.scheduledFor === dateKey());
   const completed = [...data.sessions].filter((item) => item.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const recent = completed[0];
   const recentStudent = recent && findStudent(data, recent.studentId);
@@ -435,29 +596,29 @@ function TrainerHome({ data }: { data: DemoState }) {
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><h2>Сегодня</h2><button type="button" onClick={() => go('/trainer/workouts')}>Все тренировки <Icon name="arrow-right" /></button></div>
-        {pending.length ? (
+        <div className="section-heading"><h2>Сегодня</h2><button type="button" onClick={() => go('/trainer/calendar')}>Календарь <Icon name="arrow-right" /></button></div>
+        {todayAssignments.length ? (
           <div className="assignment-list">
-            {pending.slice(0, 3).map((assignment) => {
+            {todayAssignments.slice(0, 3).map((assignment) => {
               const student = findStudent(data, assignment.studentId);
               const workout = findWorkout(data, assignment.workoutId);
               return (
                 <button className="activity-row" key={assignment.id} type="button" onClick={() => go(`/trainer/clients/${student?.id}`)}>
                   <Avatar student={student} />
                   <span><strong>{student?.name}</strong><small>{workout?.name} · {totalSets(workout)} подходов</small></span>
-                  <b>Назначено</b><i><Icon name="chevron-right" /></i>
+                  <b>{assignment.status === 'completed' ? 'Готово' : 'Назначено'}</b><i><Icon name="chevron-right" /></i>
                 </button>
               );
             })}
           </div>
-        ) : <EmptyState icon="check" title="План чист" text="Нет назначенных тренировок на сегодня." />}
+        ) : <EmptyState icon="calendar" title="План чист" text="На сегодня тренировок нет." action="Открыть календарь" onAction={() => go('/trainer/calendar')} />}
       </section>
 
       <section className="section-block">
         <div className="section-heading"><h2>Последняя активность</h2></div>
         {recent ? (
           <button className="recent-card" type="button" onClick={() => go(`/trainer/sessions/${recent.id}`)}>
-            <div><span>ТРЕНИРОВКА ЗАВЕРШЕНА</span><h3>{recentWorkout?.name}</h3><p>{recentStudent?.name} · {formatDay(recent.completedAt)}</p></div>
+            <div><span>ТРЕНИРОВКА ЗАВЕРШЕНА</span><h3>{recentWorkout?.name}</h3><p>{recentStudent?.name} · {formatDay(recent.completedAt)}{recent.mood ? ` · ${moodLabel(recent.mood)}` : ''}</p></div>
             <div className="completion-ring">100<small>%</small></div>
           </button>
         ) : <EmptyState icon="arrow-up-right" title="Здесь появится прогресс" text="Когда ученик закончит первую тренировку, результат будет виден здесь." />}
@@ -523,7 +684,7 @@ function StudentProfile({ data, studentId }: { data: DemoState; studentId: strin
           return (
             <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(`/trainer/workouts/${workout.id}`)}>
               <span className="workout-number">{workout?.exercises.length ?? 0}</span>
-              <span><strong>{workout?.name}</strong><small>{totalSets(workout)} подходов · Назначено сегодня</small></span><i><Icon name="chevron-right" /></i>
+              <span><strong>{workout?.name}</strong><small>{totalSets(workout)} подходов · {formatCalendarDay(assignment.scheduledFor)}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
         }) : <EmptyState icon="plus" title="Пока пусто" text="Выбери готовую тренировку и назначь её ученику." action="Выбрать тренировку" onAction={() => go('/trainer/workouts')} />}
@@ -533,7 +694,7 @@ function StudentProfile({ data, studentId }: { data: DemoState; studentId: strin
         <div className="section-heading"><h2>Последняя активность</h2></div>
         {sessions.length ? sessions.map((session) => (
           <button className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
-            <span className="done-badge"><Icon name="check" /></span><span><strong>{findWorkout(data, session.workoutId)?.name}</strong><small>{formatDay(session.completedAt)} · Завершено</small></span><i>Результат <Icon name="arrow-right" /></i>
+            <span className="done-badge"><Icon name="check" /></span><span><strong>{findWorkout(data, session.workoutId)?.name}</strong><small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</small></span><i>Результат <Icon name="arrow-right" /></i>
           </button>
         )) : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
       </section>
@@ -578,7 +739,7 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
         <section className="invite-ready">
           <div className="success-mark"><Icon name="arrow-up-right" /></div>
           <h2>{created.name} почти в команде</h2>
-          <p>Отправь эту демо-ссылку ученику. В V0 данные связаны только внутри одного браузера.</p>
+          <p>Отправь эту демо-ссылку ученику. Его тренировки и результаты появятся у тренера автоматически.</p>
           <output>{inviteUrl}</output>
           <button className="primary-button" type="button" onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'} <Icon name={copied ? 'check' : 'copy'} /></button>
           <button className="wide-secondary" type="button" onClick={() => go('/trainer/clients')}>Готово</button>
@@ -707,8 +868,9 @@ function WorkoutDetails({ data, workout }: { data: DemoState; workout: Workout }
   );
 }
 
-function AssignWorkout({ workout, students, onAssign }: { workout: Workout; students: Student[]; onAssign: (studentId: string) => void }) {
+function AssignWorkout({ workout, students, onAssign }: { workout: Workout; students: Student[]; onAssign: (studentId: string, scheduledFor: string) => void }) {
   const [selected, setSelected] = useState(students.find((student) => student.id === 'artem')?.id ?? students[0]?.id ?? '');
+  const [scheduledFor, setScheduledFor] = useState(dateKey());
   const chosen = students.find((student) => student.id === selected);
   return (
     <main className="content-page narrow-page">
@@ -720,7 +882,8 @@ function AssignWorkout({ workout, students, onAssign }: { workout: Workout; stud
               <Avatar student={student} /><span><strong>{student.name}</strong><small>{student.status === 'active' ? 'Готов к тренировке' : 'Ожидает приглашения'}</small></span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
             </button>
           ))}
-          <button className="primary-button assign-button" type="button" onClick={() => selected && onAssign(selected)} disabled={!selected}>Назначить {chosen?.name ? chosen.name : ''}<Icon name="arrow-right" /></button>
+          <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
+          <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && onAssign(selected, scheduledFor)} disabled={!selected || !scheduledFor}>Назначить {chosen?.name ? chosen.name : ''}<Icon name="arrow-right" /></button>
         </section>
       ) : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
     </main>
@@ -729,7 +892,9 @@ function AssignWorkout({ workout, students, onAssign }: { workout: Workout; stud
 
 function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentId: string) => void }) {
   const student = findStudent(data, data.activeStudentId);
-  const assignments = data.assignments.filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned');
+  const assignments = data.assignments
+    .filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned')
+    .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
   const date = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
   return (
@@ -744,7 +909,7 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
             const progress = session ? Math.round((completedSets / Math.max(session.results.length, 1)) * 100) : 0;
             return (
               <article className={`student-workout-card ${index > 0 ? 'secondary-assignment' : ''}`} key={assignment.id}>
-                <div className="student-card-top"><span>ТВОЯ ТРЕНИРОВКА</span><b>{session ? `${progress}%` : 'READY'}</b></div>
+                <div className="student-card-top"><span>{formatCalendarDay(assignment.scheduledFor).toUpperCase()}</span><b>{session ? `${progress}%` : 'ГОТОВ'}</b></div>
                 <div><h2>{workout?.name}</h2><p>{workout?.exercises.length} упражнения · {totalSets(workout)} подходов</p></div>
                 <div className="workout-progress"><span style={{ width: `${session ? progress : 8}%` }} /></div>
                 <button type="button" onClick={() => onStart(assignment.id)}>{session ? 'Продолжить тренировку' : 'Начать тренировку'} <Icon name="arrow-right" /></button>
@@ -753,6 +918,8 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
           })}
         </section>
       ) : <EmptyState icon="sun" title="Сегодня отдых" text={COPY.emptyAssignments} />}
+
+      <button className="calendar-shortcut" type="button" onClick={() => go('/student/calendar')}><span><Icon name="calendar" /></span><div><strong>Календарь тренировок</strong><small>Посмотреть план по дням</small></div><Icon name="chevron-right" /></button>
 
       <section className="student-tip"><span>МЫСЛЬ ДНЯ</span><p>Сильный результат складывается из подходов, которые ты не пропустил.</p></section>
     </main>
@@ -822,6 +989,33 @@ function ActiveWorkout({
   );
 }
 
+function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; session: WorkoutSession; onComplete: (mood: MoodRating, comment: string) => void }) {
+  const [mood, setMood] = useState<MoodRating | null>(null);
+  const [comment, setComment] = useState('');
+  const workout = findWorkout(data, session.workoutId);
+
+  return (
+    <main className="feedback-page">
+      <PageHeader back={`/student/workout/${session.assignmentId}`} eyebrow={workout?.name} title="КАК ПРОШЛО?" />
+      <section className="feedback-card">
+        <div className="feedback-intro"><span><Icon name="success" /></span><div><h2>Тренировка почти сохранена</h2><p>Оценка и комментарий будут видны тренеру вместе с результатами подходов.</p></div></div>
+        <fieldset className="mood-fieldset">
+          <legend>Твоё настроение после тренировки</legend>
+          <div className="mood-grid">
+            {MOODS.map((item) => (
+              <button className={mood === item.value ? 'selected' : ''} key={item.value} type="button" onClick={() => setMood(item.value)} aria-pressed={mood === item.value}>
+                <span><Icon name={item.icon} /></span><strong>{item.label}</strong><small>{item.detail}</small>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
+        <button className="primary-button" type="button" disabled={!mood} onClick={() => mood && onComplete(mood, comment)}>Сохранить результат <Icon name="check" /></button>
+      </section>
+    </main>
+  );
+}
+
 function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSession }) {
   const workout = findWorkout(data, session.workoutId);
   const completed = session.results.filter((result) => result.completed).length;
@@ -830,7 +1024,7 @@ function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSe
       <div className="success-burst" aria-hidden="true"><Icon name="check" /></div>
       <p className="eyebrow">Тренировка готова</p>
       <h1>ЭТО БЫЛО<br />СИЛЬНО.</h1>
-      <section><strong>{workout?.name}</strong><div><span><b>{workout?.exercises.length}</b> упражнения</span><span><b>{completed}</b> подходов</span></div></section>
+      <section><strong>{workout?.name}</strong><div><span><b>{workout?.exercises.length}</b> упражнения</span><span><b>{completed}</b> подходов</span></div>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}</section>
       <button className="primary-button" type="button" onClick={() => go('/student')}>Готово <Icon name="arrow-right" /></button>
       <button className="history-link" type="button" onClick={() => go(`/student/history/${session.id}`)}>Посмотреть результаты</button>
     </main>
@@ -868,6 +1062,7 @@ function SessionResult({ data, session, trainerView = false }: { data: DemoState
     <main className="content-page narrow-page">
       <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} title={workout.name.toUpperCase()} />
       <section className="result-summary"><div><strong>{session.results.filter((item) => item.completed).length}</strong><span>подходов отмечено</span></div><div><strong>{workout.exercises.length}</strong><span>упражнения</span></div></section>
+      {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       <section className="result-exercises">
         {workout.exercises.map((exercise, index) => {
           const results = session.results.filter((item) => item.exerciseId === exercise.id);
@@ -914,7 +1109,7 @@ function SettingsModal({ data, onClose, onReset }: { data: DemoState; onClose: (
       <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>Настройки демо</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <div className="demo-stats"><span><b>{data.students.length}</b> учеников</span><span><b>{data.workouts.length}</b> тренировок</span><span><b>{data.sessions.filter((item) => item.completedAt).length}</b> результатов</span></div>
-        <p>Все изменения хранятся только в этом браузере и останутся после перезагрузки.</p>
+        <p>Тренировки, расписание и результаты хранятся в общем демо-пространстве и синхронизируются между ролями.</p>
         <button className="reset-button" type="button" onClick={onReset}>Сбросить демо-данные</button>
       </section>
     </div>
