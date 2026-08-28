@@ -719,7 +719,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-tip span { color: var(--lime); font-size: 9px; font-weight: 950; letter-spacing: .14em; }
 .student-tip p { margin: 12px 0 0; color: #c4c8c1; font-size: 14px; line-height: 1.55; }
 
-.active-workout-page { min-height: 100svh; padding: 0 max(18px, calc((100vw - 720px) / 2)) 130px; background: #090b09; }
+.active-workout-page { min-height: 100svh; padding: env(safe-area-inset-top, 0px) max(18px, calc((100vw - 720px) / 2)) 130px; background: #090b09; }
 .active-header { display: grid; min-height: 82px; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 13px; }
 .active-header > button { display: grid; width: 52px; height: 52px; place-items: center; border: 0; border-radius: 17px; background: var(--surface-2); cursor: pointer; font-size: 23px; }
 .active-header > button .ui-icon { width: 21px; height: 21px; }
@@ -1146,7 +1146,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .feedback-page { min-height: calc(100svh - var(--topbar-height)); padding: 35px 18px 115px; }
   .schedule-fields { grid-template-columns: 1fr; }
   .schedule-field { padding: 16px; }
-  .focus-mode .active-workout-page { min-height: 100svh; padding-bottom: max(30px, env(safe-area-inset-bottom)); }
+  .focus-mode .active-workout-page { min-height: 100svh; padding-top: env(safe-area-inset-top, 0px); padding-bottom: max(30px, env(safe-area-inset-bottom)); }
   .focus-mode .exercise-navigation { position: static; right: auto; bottom: auto; left: auto; margin-top: 24px; border-top: 0; padding: 0 0 max(12px, env(safe-area-inset-bottom)); background: transparent; backdrop-filter: none; }
   .focus-mode .exercise-navigation > button:first-child { flex: 0 0 82px; }
   .focus-mode .exercise-navigation .next-exercise,
