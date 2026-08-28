@@ -721,31 +721,32 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
         <div><span>{student.status === 'active' ? 'АКТИВНЫЙ УЧЕНИК' : 'ПРИГЛАШЕНИЕ ОТПРАВЛЕНО'}</span><p>{nextAssignment ? `Следующая: ${formatCalendarDay(nextAssignment.scheduledFor)}, ${nextAssignment.scheduledTime} · ${nextWorkout?.name}` : 'Ближайших тренировок нет'}</p></div>
       </section>
 
-      <AthleteDetails student={student} onSave={onUpdate} />
-
-      {trainerView ? <>
       <section className="section-block">
-        <div className="section-heading"><h2>План тренировок</h2><button type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить</button></div>
+        <div className="section-heading"><h2>Предстоящие тренировки</h2>{trainerView && <button type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить</button>}</div>
         {assignments.length ? assignments.map((assignment) => {
           const workout = findWorkout(data, assignment.workoutId);
           return (
-            <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(`/trainer/workouts/${workout.id}`)}>
+            <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/workouts/${workout.id}` : `/student/workout/${assignment.id}`)}>
               <span className="workout-number">{workout?.exercises.length ?? 0}</span>
               <span><strong>{workout?.name}</strong><small>{totalSets(workout)} подходов · {formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
-        }) : <EmptyState icon="plus" title="Пока пусто" text="Выбери готовую тренировку и назначь её ученику." action="Выбрать тренировку" onAction={() => go('/trainer/workouts')} />}
+        }) : trainerView
+          ? <EmptyState icon="plus" title="Пока пусто" text="Выбери готовую тренировку и назначь её ученику." action="Выбрать тренировку" onAction={() => go('/trainer/workouts')} />
+          : <EmptyState icon="calendar" title="Пока пусто" text="Тренер ещё не добавил ближайшие занятия." />}
       </section>
 
-      <section className="section-block">
+      {trainerView && <section className="section-block">
         <div className="section-heading"><h2>Последняя активность</h2></div>
         {sessions.length ? sessions.map((session) => (
           <button className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
             <span className="done-badge"><Icon name="check" /></span><span><strong>{findWorkout(data, session.workoutId)?.name}</strong><small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</small></span><i>Результат <Icon name="arrow-right" /></i>
           </button>
         )) : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
-      </section>
-      </> : <div className="profile-links"><button className="wide-secondary" type="button" onClick={() => go('/student/calendar')}><Icon name="calendar" /> Календарь тренировок</button><button className="wide-secondary" type="button" onClick={() => go('/student/history')}><Icon name="history" /> История результатов</button></div>}
+      </section>}
+      {!trainerView && <div className="profile-links"><button className="wide-secondary" type="button" onClick={() => go('/student/calendar')}><Icon name="calendar" /> Календарь тренировок</button><button className="wide-secondary" type="button" onClick={() => go('/student/history')}><Icon name="history" /> История результатов</button></div>}
+
+      <AthleteDetails student={student} onSave={onUpdate} />
     </main>
   );
 }
