@@ -517,7 +517,7 @@ function AppShell({
         <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>
       </aside>}
 
-      <div className="page-wrap">{children}</div>
+      <div className="page-wrap page-transition" key={path}>{children}</div>
 
       {!focusMode && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
@@ -627,7 +627,15 @@ function TrainerHome({ data }: { data: DemoState }) {
 
   return (
     <main className="content-page">
-      <PageHeader eyebrow={`Добрый вечер, ${TRAINER_NAME}`} title="ДЕРЖИМ ТЕМП." />
+      <PageHeader
+        eyebrow={`Добрый вечер, ${TRAINER_NAME}`}
+        title="ДЕРЖИМ ТЕМП."
+        action={(
+          <button className="compact-primary trainer-create-desktop" type="button" onClick={() => go('/trainer/workouts/new')}>
+            <Icon name="plus" /> {COPY.createWorkout}
+          </button>
+        )}
+      />
       <section className="stats-row">
         <article className="stat-card lime-card"><span>КОМАНДА</span><strong>{data.students.length}</strong><p>ученика в работе</p></article>
         <article className="stat-card violet-card"><span>БЛИЖАЙШИЕ 14 ДНЕЙ</span><strong>{upcoming.length}</strong><p>{plannedDays} дней с тренировками</p></article>

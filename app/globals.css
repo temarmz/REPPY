@@ -187,10 +187,17 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   transform: rotate(-4deg);
 }
 
-@media (min-width: 1080px) {
-  .welcome-screen { grid-template-columns: minmax(500px, 680px) minmax(390px, 520px); padding-bottom: 0; }
-  .welcome-card { justify-self: end; }
-  .hero-mascot { display: block; }
+@media (min-width: 900px) {
+  .welcome-screen {
+    grid-template-columns: minmax(0, 600px) minmax(340px, 500px);
+    justify-content: center;
+    column-gap: clamp(32px, 4vw, 58px);
+    padding: clamp(28px, 3vw, 44px) clamp(40px, 5vw, 72px) 0;
+  }
+  .welcome-card { width: 100%; max-width: 580px; justify-self: end; padding-inline: 0; }
+  .welcome-copy { margin: clamp(72px, 12vh, 120px) 0 40px; }
+  .welcome-copy h1 { font-size: clamp(52px, 4.8vw, 68px); }
+  .hero-mascot { display: block; width: 100%; max-width: 490px; margin-left: 0; }
 }
 
 @media (max-width: 600px) {
@@ -351,6 +358,25 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 .side-demo b { color: var(--lime); font-size: 9px; letter-spacing: .12em; }
 .page-wrap { min-height: calc(100svh - 76px); margin-left: 250px; }
+
+/* Animate the page content without turning the shell into a containing block
+   for fixed mobile controls. */
+.page-transition > main { animation: page-fade-in .32s cubic-bezier(.25, .46, .45, .94); }
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition > main { animation: none; }
+}
 .bottom-nav { display: none; }
 
 .content-page {
@@ -483,11 +509,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: 8px;
 }
 .floating-cta .ui-icon { width: 18px; height: 18px; }
+.trainer-create-desktop { min-width: 205px; justify-content: center; }
 .empty-state { display: grid; min-height: 220px; place-content: center; justify-items: center; border: 1px dashed rgba(255,255,255,.12); border-radius: 27px; padding: 32px; background: rgba(255,255,255,.025); text-align: center; }
 .empty-state > span { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 17px; background: rgba(198,255,61,.1); color: var(--lime); font-size: 24px; }
 .empty-state > span .ui-icon { width: 24px; height: 24px; }
@@ -763,7 +790,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .stat-card strong { font-size: 55px; }
   .section-block { margin-top: 37px; }
   .activity-row b { display: none; }
-  .floating-cta { right: 18px; bottom: 93px; min-height: 55px; }
+  .floating-cta { right: 18px; bottom: 93px; display: inline-flex; min-height: 55px; }
+  .trainer-create-desktop { display: none; }
   .client-grid { grid-template-columns: 1fr; }
   .client-card { min-height: 112px; }
   .workout-grid { grid-template-columns: 1fr; }
@@ -1005,7 +1033,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .session-feedback p { margin: 15px 0 0; border-radius: 16px; padding: 15px; background: #090b09; color: #d6dad2; font-size: 14px; line-height: 1.55; }
 
 .welcome-page { overflow: clip; background: var(--ink); }
-.landing-section, .pricing-section { width: min(100%, 1180px); margin: 0 auto; padding: clamp(80px, 11vw, 140px) clamp(22px, 6vw, 72px); }
+.landing-section, .pricing-section { width: min(100%, 1280px); margin: 0 auto; padding: clamp(80px, 11vw, 140px) clamp(22px, 5vw, 72px); }
 .landing-section > h2, .pricing-section h2 { max-width: 850px; margin: 0; font-size: clamp(45px, 8vw, 84px); line-height: .9; letter-spacing: -.075em; }
 .audience-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 52px; }
 .audience-grid article { min-height: 330px; border: 1px solid rgba(255,255,255,.08); border-radius: 32px; padding: clamp(25px, 4vw, 42px); background: var(--surface); }
@@ -1015,7 +1043,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .audience-grid .eyebrow { margin-bottom: 12px; }
 .audience-grid h3 { margin: 0; font-size: clamp(25px, 3vw, 37px); line-height: 1; letter-spacing: -.055em; }
 .audience-grid article > p:last-child { max-width: 480px; margin: 20px 0 0; color: #aeb4ac; font-size: 15px; line-height: 1.65; }
-.pricing-section { width: min(calc(100% - 32px), 1080px); margin-bottom: 40px; border-radius: 42px; background: linear-gradient(145deg, #191d19, #101310); }
+.pricing-section { width: min(calc(100% - 32px), 1280px); margin-bottom: 40px; border-radius: 42px; background: linear-gradient(145deg, #191d19, #101310); }
 .pricing-section > div:first-child > p:last-child { max-width: 650px; margin: 28px 0 0; color: #b4bab2; font-size: 16px; line-height: 1.65; }
 .pricing-grid { display: grid; grid-template-columns: .75fr 1.25fr; gap: 12px; margin-top: 50px; }
 .pricing-grid article { min-height: 235px; border-radius: 28px; padding: 28px; background: #090b09; }
