@@ -30,6 +30,7 @@ export type Assignment = {
   studentId: string;
   assignedAt: string;
   scheduledFor: string;
+  scheduledTime: string;
   status: 'assigned' | 'completed';
 };
 
@@ -139,6 +140,7 @@ export function createInitialState(): DemoState {
         studentId: 'maria',
         assignedAt: now,
         scheduledFor: today,
+        scheduledTime: '18:00',
         status: 'assigned',
       },
     ],
@@ -173,6 +175,7 @@ export function migrateDemoState(state: DemoState): DemoState {
       ...assignment,
       studentId: currentId(assignment.studentId),
       scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
+      scheduledTime: assignment.scheduledTime ?? '18:00',
     })),
     sessions: state.sessions.map((session) => ({
       ...session,

@@ -259,13 +259,14 @@ export default function ReppyApp() {
         <AssignWorkout
           workout={workout}
           students={data.students}
-          onAssign={(studentId, scheduledFor) => {
+          onAssign={(studentId, scheduledFor, scheduledTime) => {
             const assignment: Assignment = {
               id: makeId('assignment'),
               workoutId: workout.id,
               studentId,
               assignedAt: new Date().toISOString(),
               scheduledFor,
+              scheduledTime,
               status: 'assigned',
             };
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
@@ -446,6 +447,7 @@ function AppShell({
   ];
   const nav = area === 'trainer' ? trainerNav : studentNav;
   const displayName = area === 'trainer' ? TRAINER_NAME : student?.name ?? 'Ученик';
+  const focusMode = /^\/student\/(workout|finish|success)\//.test(path);
 
   const isActive = (route: string) => {
     if (route.endsWith('/calendar')) return path === route;
@@ -456,8 +458,8 @@ function AppShell({
   };
 
   return (
-    <div className={`app-shell ${area}`}>
-      <header className="topbar">
+    <div className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
+      {!focusMode && <header className="topbar">
         <Brand />
         <div className="topbar-actions">
           <button className="role-switch" type="button" onClick={onSwitchRole}>
@@ -468,9 +470,9 @@ function AppShell({
             {initials(displayName)}
           </button>
         </div>
-      </header>
+      </header>}
 
-      <aside className="desktop-nav" aria-label="Основная навигация">
+      {!focusMode && <aside className="desktop-nav" aria-label="Основная навигация">
         <div className="profile-block">
           <span className="profile-avatar">{initials(displayName)}</span>
           <div><strong>{displayName}</strong><small>{area === 'trainer' ? 'Персональный тренер' : 'Ученик'}</small></div>
@@ -483,17 +485,17 @@ function AppShell({
           ))}
         </nav>
         <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>
-      </aside>
+      </aside>}
 
       <div className="page-wrap">{children}</div>
 
-      <nav className="bottom-nav" aria-label="Основная навигация">
+      {!focusMode && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
           <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route)}>
             <span><Icon name={item.icon} /></span><small>{item.label}</small>
           </button>
         ))}
-      </nav>
+      </nav>}
     </div>
   );
 }
@@ -517,7 +519,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
   const [selectedDay, setSelectedDay] = useState(dateKey(today));
   const assignments = data.assignments
     .filter((item) => area === 'trainer' || item.studentId === data.activeStudentId)
-    .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+    .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
   const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
   const mondayOffset = (firstDay.getDay() + 6) % 7;
   const gridStart = new Date(firstDay);
@@ -569,7 +571,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
           return (
             <button key={assignment.id} type="button" onClick={() => go(target)}>
               <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
-              <div><strong>{workout?.name}</strong><small>{area === 'trainer' ? `${student?.name} · ` : ''}{totalSets(workout)} подходов</small>{session?.comment && <p>«{session.comment}»</p>}</div>
+              <div><strong>{workout?.name}</strong><small>{assignment.scheduledTime} · {area === 'trainer' ? `${student?.name} · ` : ''}{totalSets(workout)} подходов</small>{session?.comment && <p>«{session.comment}»</p>}</div>
               <b>{assignment.status === 'completed' ? session?.mood ? moodLabel(session.mood) : 'Готово' : 'В плане'}</b>
             </button>
           );
@@ -581,7 +583,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
 
 function TrainerHome({ data }: { data: DemoState }) {
   const pending = data.assignments.filter((item) => item.status === 'assigned');
-  const todayAssignments = data.assignments.filter((item) => item.scheduledFor === dateKey());
+  const todayAssignments = data.assignments.filter((item) => item.scheduledFor === dateKey()).sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
   const completed = [...data.sessions].filter((item) => item.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const recent = completed[0];
   const recentStudent = recent && findStudent(data, recent.studentId);
@@ -605,7 +607,7 @@ function TrainerHome({ data }: { data: DemoState }) {
               return (
                 <button className="activity-row" key={assignment.id} type="button" onClick={() => go(`/trainer/clients/${student?.id}`)}>
                   <Avatar student={student} />
-                  <span><strong>{student?.name}</strong><small>{workout?.name} · {totalSets(workout)} подходов</small></span>
+                  <span><strong>{student?.name}</strong><small>{assignment.scheduledTime} · {workout?.name} · {totalSets(workout)} подходов</small></span>
                   <b>{assignment.status === 'completed' ? 'Готово' : 'Назначено'}</b><i><Icon name="chevron-right" /></i>
                 </button>
               );
@@ -641,7 +643,7 @@ function ClientsList({ data }: { data: DemoState }) {
           const status = student.status === 'invited'
             ? 'Ожидает приглашения'
             : assigned
-              ? `Сегодня · ${findWorkout(data, assigned.workoutId)?.name}`
+              ? `${formatCalendarDay(assigned.scheduledFor)}, ${assigned.scheduledTime} · ${findWorkout(data, assigned.workoutId)?.name}`
               : recent
                 ? `Завершил · ${findWorkout(data, recent.workoutId)?.name}`
                 : 'Нет назначений';
@@ -684,7 +686,7 @@ function StudentProfile({ data, studentId }: { data: DemoState; studentId: strin
           return (
             <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(`/trainer/workouts/${workout.id}`)}>
               <span className="workout-number">{workout?.exercises.length ?? 0}</span>
-              <span><strong>{workout?.name}</strong><small>{totalSets(workout)} подходов · {formatCalendarDay(assignment.scheduledFor)}</small></span><i><Icon name="chevron-right" /></i>
+              <span><strong>{workout?.name}</strong><small>{totalSets(workout)} подходов · {formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
         }) : <EmptyState icon="plus" title="Пока пусто" text="Выбери готовую тренировку и назначь её ученику." action="Выбрать тренировку" onAction={() => go('/trainer/workouts')} />}
@@ -845,8 +847,31 @@ function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout:
 
 function MetricInput({ label, value, onChange, step = 1 }: { label: string; value: number; onChange: (value: number) => void; step?: number }) {
   return (
-    <label className="metric-input"><span>{label}</span><input type="number" min="0" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>
+    <label className="metric-input"><span>{label}</span><EditableNumberInput value={value} onChange={onChange} min={0} step={step} inputMode={step < 1 ? 'decimal' : 'numeric'} /></label>
   );
+}
+
+function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric' }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal' }) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => setDraft(String(value)), [value]);
+
+  const commit = () => {
+    if (!draft.trim()) {
+      setDraft(String(value));
+      return;
+    }
+    const parsed = Number(draft.replace(',', '.'));
+    if (!Number.isFinite(parsed)) {
+      setDraft(String(value));
+      return;
+    }
+    const next = Math.max(min, parsed);
+    setDraft(String(next));
+    onChange(next);
+  };
+
+  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 
 function WorkoutDetails({ data, workout }: { data: DemoState; workout: Workout }) {
@@ -868,9 +893,10 @@ function WorkoutDetails({ data, workout }: { data: DemoState; workout: Workout }
   );
 }
 
-function AssignWorkout({ workout, students, onAssign }: { workout: Workout; students: Student[]; onAssign: (studentId: string, scheduledFor: string) => void }) {
+function AssignWorkout({ workout, students, onAssign }: { workout: Workout; students: Student[]; onAssign: (studentId: string, scheduledFor: string, scheduledTime: string) => void }) {
   const [selected, setSelected] = useState(students.find((student) => student.id === 'artem')?.id ?? students[0]?.id ?? '');
   const [scheduledFor, setScheduledFor] = useState(dateKey());
+  const [scheduledTime, setScheduledTime] = useState('18:00');
   const chosen = students.find((student) => student.id === selected);
   return (
     <main className="content-page narrow-page">
@@ -882,8 +908,11 @@ function AssignWorkout({ workout, students, onAssign }: { workout: Workout; stud
               <Avatar student={student} /><span><strong>{student.name}</strong><small>{student.status === 'active' ? 'Готов к тренировке' : 'Ожидает приглашения'}</small></span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
             </button>
           ))}
-          <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
-          <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && onAssign(selected, scheduledFor)} disabled={!selected || !scheduledFor}>Назначить {chosen?.name ? chosen.name : ''}<Icon name="arrow-right" /></button>
+          <div className="schedule-fields">
+            <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
+            <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
+          </div>
+          <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}>Назначить {chosen?.name ? chosen.name : ''}<Icon name="arrow-right" /></button>
         </section>
       ) : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
     </main>
@@ -894,7 +923,7 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
   const student = findStudent(data, data.activeStudentId);
   const assignments = data.assignments
     .filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned')
-    .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+    .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
   const date = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
   return (
@@ -910,7 +939,7 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
             return (
               <article className={`student-workout-card ${index > 0 ? 'secondary-assignment' : ''}`} key={assignment.id}>
                 <div className="student-card-top"><span>{formatCalendarDay(assignment.scheduledFor).toUpperCase()}</span><b>{session ? `${progress}%` : 'ГОТОВ'}</b></div>
-                <div><h2>{workout?.name}</h2><p>{workout?.exercises.length} упражнения · {totalSets(workout)} подходов</p></div>
+                <div><h2>{workout?.name}</h2><p>Начало в {assignment.scheduledTime} · {workout?.exercises.length} упражнения · {totalSets(workout)} подходов</p></div>
                 <div className="workout-progress"><span style={{ width: `${session ? progress : 8}%` }} /></div>
                 <button type="button" onClick={() => onStart(assignment.id)}>{session ? 'Продолжить тренировку' : 'Начать тренировку'} <Icon name="arrow-right" /></button>
               </article>
@@ -971,8 +1000,8 @@ function ActiveWorkout({
         {exerciseResults.map((result) => (
           <article className={`set-card ${result.completed ? 'completed' : ''}`} key={result.setNumber}>
             <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
-            <label><span>КГ</span><input type="number" inputMode="decimal" value={result.actualWeight} step="2.5" onChange={(event) => updateResult(result.setNumber, { actualWeight: Number(event.target.value) })} /></label>
-            <label><span>ПОВТОРЫ</span><input type="number" inputMode="numeric" value={result.actualReps} onChange={(event) => updateResult(result.setNumber, { actualReps: Number(event.target.value) })} /></label>
+            <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => updateResult(result.setNumber, { actualWeight })} /></label>
+            <label><span>ПОВТОРЫ</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => updateResult(result.setNumber, { actualReps })} /></label>
             <button type="button" onClick={() => updateResult(result.setNumber, { completed: !result.completed })} aria-label={result.completed ? `Отменить подход ${result.setNumber}` : `Завершить подход ${result.setNumber}`}><Icon name={result.completed ? 'check' : 'circle'} /></button>
           </article>
         ))}
