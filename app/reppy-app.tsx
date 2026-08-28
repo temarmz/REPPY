@@ -40,6 +40,10 @@ function go(path: string) {
   window.location.hash = path;
 }
 
+function usesSharedStore() {
+  return document.querySelector<HTMLMetaElement>('meta[name="reppy-data-mode"]')?.content !== 'local';
+}
+
 function initials(name: string) {
   return name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -82,14 +86,16 @@ export default function ReppyApp() {
         localStorage.removeItem(STORAGE_KEY);
       }
 
-      try {
-        const response = await fetch('/api/state', { cache: 'no-store' });
-        if (response.ok) {
-          const shared = await response.json() as SharedDemoState;
-          nextData = migrateDemoState({ ...nextData, ...shared });
+      if (usesSharedStore()) {
+        try {
+          const response = await fetch('/api/state', { cache: 'no-store' });
+          if (response.ok) {
+            const shared = await response.json() as SharedDemoState;
+            nextData = migrateDemoState({ ...nextData, ...shared });
+          }
+        } catch {
+          // Keep the local copy available if the shared store is temporarily unavailable.
         }
-      } catch {
-        // Keep the local copy available if the shared store is temporarily unavailable.
       }
 
       if (cancelled) return;
@@ -116,6 +122,7 @@ export default function ReppyApp() {
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (!usesSharedStore()) return;
     const timer = window.setTimeout(() => {
       void fetch('/api/state', {
         method: 'PUT',
@@ -128,6 +135,7 @@ export default function ReppyApp() {
 
   useEffect(() => {
     if (!hydrated) return;
+    if (!usesSharedStore()) return;
     const refresh = async () => {
       try {
         const response = await fetch('/api/state', { cache: 'no-store' });
