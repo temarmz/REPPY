@@ -11,6 +11,9 @@
   --orange: #ff6a35;
   --app-font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   --app-font-mono: var(--font-geist-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
+  --topbar-content-height: 76px;
+  --topbar-safe-top: env(safe-area-inset-top, 0px);
+  --topbar-height: calc(var(--topbar-content-height) + var(--topbar-safe-top));
 }
 
 * { box-sizing: border-box; }
@@ -315,11 +318,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   top: 0;
   z-index: 40;
   display: flex;
-  height: 76px;
+  height: var(--topbar-height);
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(255,255,255,.07);
-  padding: 0 28px;
+  padding: var(--topbar-safe-top) 28px 0;
   background: rgba(7,9,8,.88);
   backdrop-filter: blur(18px);
 }
@@ -360,7 +363,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 .desktop-nav {
   position: fixed;
-  top: 76px;
+  top: var(--topbar-height);
   bottom: 0;
   left: 0;
   z-index: 20;
@@ -422,7 +425,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   text-align: left;
 }
 .side-demo b { color: var(--lime); font-size: 9px; letter-spacing: .12em; }
-.page-wrap { min-height: calc(100svh - 76px); margin-left: 250px; }
+.page-wrap { min-height: calc(100svh - var(--topbar-height)); margin-left: 250px; }
 
 /* Animate the page content without turning the shell into a containing block
    for fixed mobile controls. */
@@ -447,7 +450,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .content-page {
   position: relative;
   width: min(100%, 1040px);
-  min-height: calc(100svh - 76px);
+  min-height: calc(100svh - var(--topbar-height));
   margin: 0 auto;
   padding: clamp(35px, 6vw, 72px) clamp(24px, 5vw, 70px) 130px;
 }
@@ -559,26 +562,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .recent-card p { margin: 0; color: var(--muted); font-size: 12px; }
 .completion-ring { display: grid; width: 78px; height: 78px; flex: 0 0 auto; place-content: center; border: 8px solid rgba(198,255,61,.15); border-top-color: var(--lime); border-radius: 50%; font-size: 20px; font-weight: 900; text-align: center; }
 .completion-ring small { color: inherit; font-size: 10px; }
-.floating-cta {
-  position: fixed;
-  right: 32px;
-  bottom: 30px;
-  z-index: 18;
-  min-height: 58px;
-  border: 0;
-  border-radius: 19px;
-  padding: 0 22px;
-  background: var(--lime);
-  box-shadow: 0 18px 45px rgba(198,255,61,.16);
-  color: var(--ink);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 900;
-  display: none;
-  align-items: center;
-  gap: 8px;
-}
-.floating-cta .ui-icon { width: 18px; height: 18px; }
 .trainer-create-desktop { min-width: 205px; justify-content: center; }
 .empty-state { display: grid; min-height: 220px; place-content: center; justify-items: center; border: 1px dashed rgba(255,255,255,.12); border-radius: 27px; padding: 32px; background: rgba(255,255,255,.025); text-align: center; }
 .empty-state > span { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 17px; background: rgba(198,255,61,.1); color: var(--lime); font-size: 24px; }
@@ -827,11 +810,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .demo-stats b { color: white; font-size: 22px; }
 .settings-modal > p { margin: 20px 2px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .reset-button { width: 100%; min-height: 55px; border: 1px solid rgba(255,93,72,.26); border-radius: 17px; background: rgba(255,93,72,.06); color: #ff887a; cursor: pointer; font-size: 12px; font-weight: 850; }
-.toast { position: fixed; top: 91px; left: calc(50% + 125px); z-index: 200; display: flex; min-height: 48px; align-items: center; gap: 7px; transform: translateX(-50%); border: 1px solid rgba(198,255,61,.25); border-radius: 16px; padding: 15px 18px; background: #1d241a; box-shadow: 0 18px 50px rgba(0,0,0,.35); color: var(--lime); font-size: 12px; font-weight: 800; }
+.toast { position: fixed; top: calc(var(--topbar-height) + 15px); left: calc(50% + 125px); z-index: 200; display: flex; min-height: 48px; align-items: center; gap: 7px; transform: translateX(-50%); border: 1px solid rgba(198,255,61,.25); border-radius: 16px; padding: 15px 18px; background: #1d241a; box-shadow: 0 18px 50px rgba(0,0,0,.35); color: var(--lime); font-size: 12px; font-weight: 800; }
 .toast .ui-icon { width: 15px; height: 15px; }
 
 @media (max-width: 800px) {
-  .topbar { height: 68px; padding: 0 17px; }
+  :root { --topbar-content-height: 68px; }
+  .topbar { padding-right: 17px; padding-left: 17px; }
   .topbar .brand-word { display: none; }
   .topbar .brand-logo { width: 48px; height: 48px; }
   .role-switch { min-height: 40px; padding-right: 10px; font-size: 0; }
@@ -839,14 +823,14 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .role-switch > span:first-child { padding: 6px 8px; }
   .avatar-button { width: 40px; height: 40px; border-radius: 13px; }
   .desktop-nav { display: none; }
-  .page-wrap { min-height: calc(100svh - 68px); margin-left: 0; }
+  .page-wrap { min-height: calc(100svh - var(--topbar-height)); margin-left: 0; }
   .bottom-nav { position: fixed; right: 12px; bottom: max(10px, env(safe-area-inset-bottom)); left: 12px; z-index: 60; display: flex; min-height: 70px; align-items: center; justify-content: space-around; border: 1px solid rgba(255,255,255,.1); border-radius: 24px; padding: 6px; background: rgba(21,25,21,.94); box-shadow: 0 20px 50px rgba(0,0,0,.45); backdrop-filter: blur(18px); }
   .bottom-nav button { display: grid; min-width: 74px; min-height: 56px; place-content: center; justify-items: center; gap: 4px; border: 0; border-radius: 18px; background: transparent; color: #7e847c; cursor: pointer; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: 19px; height: 19px; }
   .bottom-nav button small { font-size: 9px; font-weight: 800; }
   .bottom-nav button.active { background: var(--lime); color: var(--ink); }
-  .content-page { min-height: calc(100svh - 68px); padding: 35px 18px 115px; }
+  .content-page { min-height: calc(100svh - var(--topbar-height)); padding: 35px 18px 115px; }
   .page-header { margin-bottom: 29px; }
   .page-header h1 { font-size: clamp(39px, 12vw, 55px); }
   .compact-primary { min-height: 47px; padding: 0 13px; font-size: 10px; }
@@ -855,7 +839,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .stat-card strong { font-size: 55px; }
   .section-block { margin-top: 37px; }
   .activity-row b { display: none; }
-  .floating-cta { right: 18px; bottom: 93px; display: inline-flex; min-height: 55px; }
   .trainer-create-desktop { display: none; }
   .client-grid { grid-template-columns: 1fr; }
   .client-card { min-height: 112px; }
@@ -1065,7 +1048,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .calendar-shortcut small { color: var(--muted); font-size: 13px; }
 .calendar-shortcut > .ui-icon { width: 17px; height: 17px; color: var(--muted); }
 
-.feedback-page { width: min(100%, 760px); min-height: calc(100svh - 76px); margin: 0 auto; padding: 42px 24px 120px; }
+.feedback-page { width: min(100%, 760px); min-height: calc(100svh - var(--topbar-height)); margin: 0 auto; padding: 42px 24px 120px; }
 .feedback-card { border-radius: 30px; padding: clamp(22px, 5vw, 36px); background: var(--surface); }
 .feedback-intro { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px; margin-bottom: 30px; }
 .feedback-intro > span { display: grid; width: 58px; height: 58px; place-items: center; border-radius: 18px; background: rgba(198,255,61,.12); color: var(--lime); }
@@ -1167,7 +1150,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .calendar-grid button i { right: 4px; bottom: 3px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 9px; }
   .agenda-list > button { grid-template-columns: auto minmax(0,1fr); }
   .agenda-list > button > b { grid-column: 2; width: fit-content; }
-  .feedback-page { min-height: calc(100svh - 68px); padding: 35px 18px 115px; }
+  .feedback-page { min-height: calc(100svh - var(--topbar-height)); padding: 35px 18px 115px; }
   .schedule-fields { grid-template-columns: 1fr; }
   .schedule-field { padding: 16px; }
   .focus-mode .active-workout-page { min-height: 100svh; padding-bottom: max(30px, env(safe-area-inset-bottom)); }

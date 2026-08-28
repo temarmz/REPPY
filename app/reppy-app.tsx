@@ -726,7 +726,6 @@ function TrainerHome({ data }: { data: DemoState }) {
         ) : <EmptyState icon="arrow-up-right" title="Здесь появится прогресс" text="Когда ученик закончит первую тренировку, результат будет виден здесь." />}
       </section>
 
-      <button className="floating-cta" type="button" onClick={() => go('/trainer/workouts/new')}><Icon name="plus" /> {COPY.createWorkout}</button>
     </main>
   );
 }
