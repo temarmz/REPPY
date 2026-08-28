@@ -23,7 +23,7 @@ import {
   type WorkoutExercise,
   type WorkoutSession,
 } from './reppy-data';
-import Icon, { type IconName } from './ui-icon';
+import Icon, { iconAssetPaths, type IconName } from './ui-icon';
 
 const COPY = {
   createWorkout: 'Создать тренировку',
@@ -63,16 +63,57 @@ const MOODS: Array<{ value: MoodRating; label: string; detail: string; icon: Ico
   { value: 'hard', label: 'Тяжело', detail: 'Было непросто', icon: 'workout' },
 ];
 
+const APP_ASSETS = [
+  'logo.png',
+  'logo-full.png',
+  'favicon-32.png',
+  'icon-192.png',
+  'icon-512.png',
+  'apple-touch-icon.png',
+  ...iconAssetPaths,
+];
+
+const ASSET_PRELOAD_TIMEOUT = 5500;
+
 function moodLabel(mood: MoodRating) {
   return MOODS.find((item) => item.value === mood)?.label ?? '';
+}
+
+function preloadAsset(path: string) {
+  return new Promise<void>((resolve) => {
+    const timeout = window.setTimeout(resolve, ASSET_PRELOAD_TIMEOUT);
+    const image = new Image();
+    const done = () => {
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    image.onload = done;
+    image.onerror = done;
+    image.decoding = 'async';
+    image.src = new URL(path, document.baseURI).toString();
+    if (image.complete) done();
+  });
 }
 
 export default function ReppyApp() {
   const [data, setData] = useState<DemoState>(() => createInitialState());
   const [path, setPath] = useState('/');
   const [hydrated, setHydrated] = useState(false);
+  const [assetsReady, setAssetsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const ready = Promise.all(APP_ASSETS.map(preloadAsset));
+    const fallback = new Promise<void>((resolve) => window.setTimeout(resolve, ASSET_PRELOAD_TIMEOUT));
+    void Promise.race([ready.then(() => undefined), fallback]).then(() => {
+      if (!cancelled) setAssetsReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,8 +230,15 @@ export default function ReppyApp() {
     go('/');
   };
 
-  if (!hydrated) {
-    return <main className="loading-screen"><span className="brand-icon">R</span><p>Загружаем REPPY…</p></main>;
+  if (!hydrated || !assetsReady) {
+    return (
+      <main className="loading-screen" aria-busy="true">
+        <span className="brand-icon">R</span>
+        <span className="loading-title">REPPY</span>
+        <span className="loading-bar" aria-hidden="true"><i /></span>
+        <p>Готовим тренировочный кабинет…</p>
+      </main>
+    );
   }
 
   const inviteMatch = path.match(/^\/invite\/([^/]+)$/);

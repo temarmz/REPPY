@@ -39,6 +39,8 @@ const iconFiles: Record<IconName, string> = {
   success: 'icon-success.svg',
 };
 
+export const iconAssetPaths = Object.values(iconFiles).map((file) => `icons/${file}`);
+
 export default function Icon({ name, className = '' }: { name: IconName; className?: string }) {
   const url = `url("icons/${iconFiles[name]}")`;
   return (
