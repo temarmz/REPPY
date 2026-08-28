@@ -23,7 +23,7 @@ body {
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
 
-button, input, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { color: inherit; }
 button:disabled { cursor: not-allowed; opacity: .45; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
@@ -931,6 +931,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .schedule-field span { color: #d3d7d0; font-size: 14px; font-weight: 800; }
 .schedule-field input { display: block; width: 100%; min-width: 0; height: 60px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 0 14px; appearance: none; -webkit-appearance: none; background: #090b09; color: white; color-scheme: dark; font-size: 16px; font-weight: 750; line-height: 60px; }
 .schedule-field input::-webkit-date-and-time-value { min-width: 0; text-align: left; }
+.schedule-capacity { margin: 12px 3px 0; color: var(--muted); font-size: 13px; }
+.schedule-capacity.full { color: #ff9184; }
 
 .focus-mode .page-wrap { min-height: 100svh; margin-left: 0; }
 
@@ -1002,6 +1004,61 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .session-feedback strong .ui-icon { width: 20px; height: 20px; color: var(--lime); }
 .session-feedback p { margin: 15px 0 0; border-radius: 16px; padding: 15px; background: #090b09; color: #d6dad2; font-size: 14px; line-height: 1.55; }
 
+.welcome-page { overflow: clip; background: var(--ink); }
+.landing-section, .pricing-section { width: min(100%, 1180px); margin: 0 auto; padding: clamp(80px, 11vw, 140px) clamp(22px, 6vw, 72px); }
+.landing-section > h2, .pricing-section h2 { max-width: 850px; margin: 0; font-size: clamp(45px, 8vw, 84px); line-height: .9; letter-spacing: -.075em; }
+.audience-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 52px; }
+.audience-grid article { min-height: 330px; border: 1px solid rgba(255,255,255,.08); border-radius: 32px; padding: clamp(25px, 4vw, 42px); background: var(--surface); }
+.audience-grid article > span { display: grid; width: 58px; height: 58px; margin-bottom: 42px; place-items: center; border-radius: 19px; background: rgba(122,76,255,.17); color: #b59eff; }
+.audience-grid article:nth-child(2) > span { background: rgba(198,255,61,.12); color: var(--lime); }
+.audience-grid article > span .ui-icon { width: 25px; height: 25px; }
+.audience-grid .eyebrow { margin-bottom: 12px; }
+.audience-grid h3 { margin: 0; font-size: clamp(25px, 3vw, 37px); line-height: 1; letter-spacing: -.055em; }
+.audience-grid article > p:last-child { max-width: 480px; margin: 20px 0 0; color: #aeb4ac; font-size: 15px; line-height: 1.65; }
+.pricing-section { width: min(calc(100% - 32px), 1080px); margin-bottom: 40px; border-radius: 42px; background: linear-gradient(145deg, #191d19, #101310); }
+.pricing-section > div:first-child > p:last-child { max-width: 650px; margin: 28px 0 0; color: #b4bab2; font-size: 16px; line-height: 1.65; }
+.pricing-grid { display: grid; grid-template-columns: .75fr 1.25fr; gap: 12px; margin-top: 50px; }
+.pricing-grid article { min-height: 235px; border-radius: 28px; padding: 28px; background: #090b09; }
+.pricing-grid article.featured { background: #ecefe9; color: var(--ink); }
+.pricing-grid article > span { font-size: 11px; font-weight: 950; letter-spacing: .14em; }
+.pricing-grid strong { display: block; margin: 38px 0 10px; font-size: clamp(42px, 7vw, 70px); line-height: .9; letter-spacing: -.075em; }
+.pricing-grid strong small { margin-left: 5px; font-size: 15px; letter-spacing: -.02em; }
+.pricing-grid p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.pricing-grid .featured p { color: #565d55; }
+.pricing-section > .primary-button { width: min(100%, 430px); margin: 22px 0 0 auto; }
+
+.athlete-details { margin-top: 28px; }
+.athlete-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.athlete-summary > div, .athlete-summary article { border-radius: 22px; padding: 19px; background: var(--surface); }
+.athlete-summary > div { display: grid; min-height: 112px; align-content: center; gap: 9px; }
+.athlete-summary span { color: var(--muted); font-size: 12px; font-weight: 750; }
+.athlete-summary strong { font-size: 19px; }
+.athlete-summary article { grid-column: 1 / -1; }
+.athlete-summary article p { margin: 11px 0 0; color: #d4d8d1; font-size: 14px; line-height: 1.6; }
+.athlete-form { display: grid; gap: 14px; border-radius: 26px; padding: 22px; background: var(--surface); }
+.athlete-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.athlete-form label { display: grid; gap: 8px; }
+.athlete-form label > span { color: #d4d8d1; font-size: 13px; font-weight: 800; }
+.athlete-form input, .athlete-form select, .athlete-form textarea { width: 100%; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 0 16px; background: #090b09; color: white; font-size: 16px; }
+.athlete-form input, .athlete-form select { height: 58px; }
+.athlete-form select { color-scheme: dark; }
+.athlete-form textarea { min-height: 150px; resize: vertical; padding-block: 15px; line-height: 1.5; }
+.athlete-form label > small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.athlete-form .primary-button { margin-top: 5px; }
+.profile-links { display: grid; gap: 10px; margin-top: 25px; }
+.student-plan-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.student-plan-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.04em; }
+.student-plan-heading span { color: var(--muted); font-size: 12px; text-align: right; }
+
+.workout-assignments { display: grid; gap: 8px; margin-top: 18px; border-radius: 25px; padding: 18px; background: var(--surface); }
+.workout-assignments h2 { margin: 0 0 5px; font-size: 18px; }
+.workout-assignments > div { display: grid; min-height: 68px; grid-template-columns: auto 1fr; align-items: center; gap: 13px; border-radius: 18px; padding: 10px 12px; background: #090b09; }
+.workout-assignments > div > span:not(.person-avatar) { display: grid; gap: 4px; }
+.workout-assignments strong { font-size: 14px; }
+.workout-assignments small { color: var(--muted); font-size: 12px; }
+.workouts-page { overflow-x: clip; }
+.workouts-page .page-header, .workouts-page .page-header > div { min-width: 0; }
+
 @media (max-width: 800px) {
   .role-switch::after,
   .bottom-nav button small { font-size: 11px; }
@@ -1022,10 +1079,25 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .focus-mode .exercise-navigation > button:first-child { flex: 0 0 82px; }
   .focus-mode .exercise-navigation .next-exercise,
   .focus-mode .exercise-navigation .finish-workout { min-width: 0; }
+  .audience-grid, .pricing-grid { grid-template-columns: 1fr; }
+  .audience-grid article { min-height: 285px; }
+  .pricing-section { border-radius: 30px; }
+  .pricing-section > .primary-button { width: 100%; }
+  .athlete-summary { grid-template-columns: 1fr 1fr; }
+  .athlete-summary > div:last-of-type { grid-column: 1 / -1; }
+  .student-plan-heading { display: grid; align-items: start; }
+  .student-plan-heading span { text-align: left; }
 }
 
 @media (max-width: 470px) {
   .page-lead { font-size: 14px; }
   .stat-card p,
   .sticky-actions button { font-size: 12px; }
+  .workouts-page .page-header { display: grid; grid-template-columns: minmax(0,1fr); gap: 15px; }
+  .workouts-page .page-header .compact-primary { width: 100%; max-width: none; justify-content: center; }
+  .audience-grid { margin-top: 35px; }
+  .audience-grid article { min-height: 0; }
+  .landing-section, .pricing-section { padding-block: 72px; }
+  .athlete-form-grid, .athlete-summary { grid-template-columns: 1fr; }
+  .athlete-summary > div:last-of-type { grid-column: auto; }
 }
