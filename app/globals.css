@@ -264,18 +264,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   filter: blur(96px);
   transform: translateX(-50%);
 }
-.loading-screen .brand-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  font-size: 18px;
-}
-.loading-title {
-  margin-top: 7px;
-  color: var(--paper);
-  font-size: 23px;
-  font-weight: 950;
-  letter-spacing: -.04em;
+.loading-logo {
+  display: block;
+  width: min(168px, 52vw);
+  height: auto;
+  filter: drop-shadow(0 12px 28px rgba(154, 70, 255, .22));
 }
 .loading-bar {
   position: relative;

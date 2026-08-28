@@ -233,8 +233,7 @@ export default function ReppyApp() {
   if (!hydrated || !assetsReady) {
     return (
       <main className="loading-screen" aria-busy="true">
-        <span className="brand-icon">R</span>
-        <span className="loading-title">REPPY</span>
+        <img className="loading-logo" src="logo-full.png" alt="REPPY" />
         <span className="loading-bar" aria-hidden="true"><i /></span>
         <p>Готовим тренировочный кабинет…</p>
       </main>
@@ -1156,7 +1155,7 @@ function ActiveWorkout({
     }
   }, [session, onStart]);
 
-  if (!session) return <main className="loading-screen"><span className="brand-icon">R</span><p>Готовим тренировку…</p></main>;
+  if (!session) return <main className="loading-screen"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Готовим тренировку…</p></main>;
 
   const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
   const completed = session.results.filter((result) => result.completed).length;
