@@ -967,10 +967,27 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 .back-button:active { transform: translateY(1px); }
 
-.compact-primary,
-.empty-state button {
+.compact-primary {
   background: #e9ece6;
   color: var(--ink);
+}
+
+.empty-state button {
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 15px;
+  padding: 0 16px;
+  background: rgba(255,255,255,.07);
+  color: #e1e4de;
+  font-size: 14px;
+}
+
+.screen-date {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: capitalize;
 }
 
 .desktop-nav nav button.active,

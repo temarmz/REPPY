@@ -102,6 +102,62 @@ const workoutExercise = (
   targetWeight: number,
 ): WorkoutExercise => ({ id, exerciseId, name, sets, targetReps, targetWeight });
 
+function createDemoWorkouts(now: string): Workout[] {
+  return [
+    {
+      id: 'push-day',
+      name: 'Push Day',
+      createdAt: now,
+      exercises: [
+        workoutExercise('push-bench', 'bench-press', 'Жим лёжа', 4, 8, 80),
+        workoutExercise('push-incline', 'incline-dumbbell', 'Жим гантелей на наклонной скамье', 3, 10, 24),
+        workoutExercise('push-raise', 'lateral-raise', 'Разведение гантелей в стороны', 3, 15, 10),
+      ],
+    },
+    {
+      id: 'legs',
+      name: 'Legs',
+      createdAt: now,
+      exercises: [
+        workoutExercise('legs-squat', 'squat', 'Приседания', 4, 8, 70),
+        workoutExercise('legs-press', 'leg-press', 'Жим ногами', 4, 12, 120),
+        workoutExercise('legs-deadlift', 'deadlift', 'Становая тяга', 3, 8, 80),
+      ],
+    },
+    {
+      id: 'pull-day',
+      name: 'Pull Day',
+      createdAt: now,
+      exercises: [
+        workoutExercise('pull-ups-main', 'pull-ups', 'Подтягивания', 4, 8, 0),
+        workoutExercise('pull-lat', 'lat-pulldown', 'Тяга верхнего блока', 4, 10, 55),
+        workoutExercise('pull-curl', 'dumbbell-curl', 'Сгибание рук с гантелями', 3, 12, 14),
+      ],
+    },
+    {
+      id: 'upper-body',
+      name: 'Upper Body',
+      createdAt: now,
+      exercises: [
+        workoutExercise('upper-bench', 'bench-press', 'Жим лёжа', 3, 10, 70),
+        workoutExercise('upper-pull-ups', 'pull-ups', 'Подтягивания', 3, 8, 0),
+        workoutExercise('upper-incline', 'incline-dumbbell', 'Жим гантелей на наклонной скамье', 3, 10, 22),
+        workoutExercise('upper-raise', 'lateral-raise', 'Разведение гантелей в стороны', 3, 15, 8),
+      ],
+    },
+    {
+      id: 'arms',
+      name: 'Arms',
+      createdAt: now,
+      exercises: [
+        workoutExercise('arms-curl', 'dumbbell-curl', 'Сгибание рук с гантелями', 4, 10, 14),
+        workoutExercise('arms-triceps', 'triceps-pushdown', 'Разгибание рук на блоке', 4, 12, 30),
+        workoutExercise('arms-raise', 'lateral-raise', 'Разведение гантелей в стороны', 3, 15, 8),
+      ],
+    },
+  ];
+}
+
 function createDemoAssignments(now: string): Assignment[] {
   const after = (days: number) => {
     const date = new Date();
@@ -133,28 +189,7 @@ export function createInitialState(): DemoState {
       { id: 'maria', name: 'Мария А.', status: 'active', color: 'violet', height: 168, weight: 61, gender: 'female', contraindications: '' },
       { id: 'anton', name: 'Антон К.', status: 'active', color: 'pink', height: 176, weight: 74, gender: 'male', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
     ],
-    workouts: [
-      {
-        id: 'push-day',
-        name: 'Push Day',
-        createdAt: now,
-        exercises: [
-          workoutExercise('push-bench', 'bench-press', 'Жим лёжа', 4, 8, 80),
-          workoutExercise('push-incline', 'incline-dumbbell', 'Жим гантелей на наклонной скамье', 3, 10, 24),
-          workoutExercise('push-raise', 'lateral-raise', 'Разведение гантелей в стороны', 3, 15, 10),
-        ],
-      },
-      {
-        id: 'legs',
-        name: 'Legs',
-        createdAt: now,
-        exercises: [
-          workoutExercise('legs-squat', 'squat', 'Приседания', 4, 8, 70),
-          workoutExercise('legs-press', 'leg-press', 'Жим ногами', 4, 12, 120),
-          workoutExercise('legs-deadlift', 'deadlift', 'Становая тяга', 3, 8, 80),
-        ],
-      },
-    ],
+    workouts: createDemoWorkouts(now),
     assignments: createDemoAssignments(now),
     sessions: [],
   };
@@ -180,6 +215,8 @@ const demoHealthDefaults: Record<string, Pick<Student, 'height' | 'weight' | 'ge
 
 export function migrateDemoState(state: DemoState): DemoState {
   const currentId = (id: string) => legacyStudentIds[id] ?? id;
+  const missingDemoWorkouts = createDemoWorkouts(new Date().toISOString())
+    .filter((workout) => !state.workouts.some((item) => item.id === workout.id));
   const migratedAssignments = state.assignments.map((assignment) => ({
     ...assignment,
     studentId: currentId(assignment.studentId),
@@ -204,6 +241,7 @@ export function migrateDemoState(state: DemoState): DemoState {
       } : student;
     }),
     assignments: migratedAssignments,
+    workouts: [...state.workouts, ...missingDemoWorkouts],
     sessions: state.sessions.map((session) => ({
       ...session,
       studentId: currentId(session.studentId),

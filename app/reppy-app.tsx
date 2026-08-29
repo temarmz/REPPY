@@ -248,19 +248,23 @@ export default function ReppyApp() {
     );
   }
 
-  const inviteMatch = path.match(/^\/invite\/([^/]+)$/);
+  const inviteMatch = path.match(/^\/invite\/([^/]+)(?:\/([^/]+))?$/);
   if (inviteMatch) {
     return (
       <InvitationScreen
         token={decodeURIComponent(inviteMatch[1])}
+        inviteName={inviteMatch[2] ? decodeURIComponent(inviteMatch[2]) : ''}
         data={data}
-        onAccept={(studentId) => {
+        onAccept={(acceptedStudent) => {
+          const activeStudent: Student = { ...acceptedStudent, status: 'active' };
           setData((current) => ({
             ...current,
             loggedIn: true,
             role: 'student',
-            activeStudentId: studentId,
-            students: current.students.map((student) => student.id === studentId ? { ...student, status: 'active' } : student),
+            activeStudentId: activeStudent.id,
+            students: current.students.some((student) => student.id === activeStudent.id)
+              ? current.students.map((student) => student.id === activeStudent.id ? { ...student, ...activeStudent } : student)
+              : [...current.students, activeStudent],
           }));
           go('/student');
         }}
@@ -271,11 +275,12 @@ export default function ReppyApp() {
   if (!data.loggedIn || path === '/') return <WelcomeScreen onLogin={login} />;
 
   let content: ReactNode;
-  let area: 'trainer' | 'student' = path.startsWith('/student') ? 'student' : 'trainer';
+  const area: 'trainer' | 'student' = path.startsWith('/student') ? 'student' : 'trainer';
 
   if (area === 'trainer') {
     const clientMatch = path.match(/^\/trainer\/clients\/([^/]+)$/);
     const assignmentEditMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/edit$/);
+    const assignmentMatch = path.match(/^\/trainer\/assignments\/([^/]+)$/);
     const workoutEditMatch = path.match(/^\/trainer\/workouts\/([^/]+)\/edit$/);
     const workoutAssignMatch = path.match(/^\/trainer\/workouts\/([^/]+)\/assign$/);
     const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
@@ -320,7 +325,7 @@ export default function ReppyApp() {
               assignments: current.assignments.map((item) => item.id === updated.id ? updated : item),
             }));
             showToast('Дата и время обновлены');
-            go(`/trainer/clients/${updated.studentId}`);
+            go(`/trainer/assignments/${updated.id}`);
           }}
           onDelete={(deleted) => {
             setData((current) => ({
@@ -333,6 +338,9 @@ export default function ReppyApp() {
           }}
         />
       ) : <NotFound />;
+    } else if (assignmentMatch) {
+      const assignment = data.assignments.find((item) => item.id === assignmentMatch[1]);
+      content = assignment ? <AssignmentDetails data={data} assignment={assignment} /> : <NotFound />;
     } else if (workoutEditMatch) {
       const workout = findWorkout(data, workoutEditMatch[1]);
       content = workout ? (
@@ -370,7 +378,7 @@ export default function ReppyApp() {
       ) : <NotFound />;
     } else if (workoutMatch) {
       const workout = findWorkout(data, workoutMatch[1]);
-      content = workout ? <WorkoutDetails data={data} workout={workout} /> : <NotFound />;
+      content = workout ? <WorkoutDetails workout={workout} /> : <NotFound />;
     } else if (sessionMatch) {
       const session = data.sessions.find((item) => item.id === sessionMatch[1]);
       content = session ? <SessionResult data={data} session={session} trainerView /> : <NotFound />;
@@ -658,7 +666,6 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
 
   return (
     <main className="content-page calendar-page">
-      <PageHeader title="КАЛЕНДАРЬ" />
       <section className="calendar-card">
         <header className="calendar-toolbar"><button type="button" onClick={() => moveMonth(-1)} aria-label="Предыдущий месяц"><Icon name="chevron-left" /></button><h2>{monthTitle}</h2><button type="button" onClick={() => moveMonth(1)} aria-label="Следующий месяц"><Icon name="chevron-right" /></button></header>
         <div className="calendar-weekdays" aria-hidden="true">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <span key={day}>{day}</span>)}</div>
@@ -683,7 +690,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
           const student = findStudent(data, assignment.studentId);
           const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
           const target = area === 'trainer'
-            ? session ? `/trainer/sessions/${session.id}` : `/trainer/assignments/${assignment.id}/edit`
+            ? session ? `/trainer/sessions/${session.id}` : `/trainer/assignments/${assignment.id}`
             : session ? `/student/history/${session.id}` : `/student/workout/${assignment.id}`;
           return (
             <button key={assignment.id} type="button" onClick={() => go(target)}>
@@ -714,7 +721,7 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
   const completed = assignment.status === 'completed' || Boolean(session);
   const target = completed
     ? session ? `/trainer/sessions/${session.id}` : `/trainer/clients/${assignment.studentId}`
-    : `/trainer/assignments/${assignment.id}/edit`;
+    : `/trainer/assignments/${assignment.id}`;
 
   return (
     <button className="plan-session-row" type="button" onClick={() => go(target)}>
@@ -741,10 +748,6 @@ function TrainerHome({ data }: { data: DemoState }) {
 
   return (
     <main className="content-page trainer-home-page">
-      <header className="trainer-plan-header">
-        <h1>ПЛАН НА 14 ДНЕЙ</h1>
-      </header>
-
       <section className="today-schedule">
         <header>
           <div><h2>СЕГОДНЯ</h2><p>{todayParts.weekday}, {todayParts.day} {todayParts.month}</p></div>
@@ -774,7 +777,6 @@ function TrainerHome({ data }: { data: DemoState }) {
 function ClientsList({ data }: { data: DemoState }) {
   return (
     <main className="content-page">
-      <PageHeader title="УЧЕНИКИ" />
       <button className="list-primary-action" type="button" onClick={() => go('/trainer/clients/invite')}><Icon name="plus" /> Пригласить ученика</button>
       <section className="client-grid">
         {data.students.map((student) => {
@@ -815,14 +817,14 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   const sessions = [...data.sessions].filter((item) => item.studentId === studentId && item.completedAt).reverse();
   return (
     <main className="content-page">
-      <PageHeader back={trainerView ? '/trainer/clients' : undefined} title={trainerView ? student.name.toUpperCase() : 'ПРОФИЛЬ'} />
+      {trainerView && <PageHeader back="/trainer/clients" title={student.name.toUpperCase()} />}
       <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
         {trainerView && <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить тренировку</button>}
         {assignments.length ? assignments.map((assignment) => {
           const workout = findWorkout(data, assignment.workoutId);
           return (
-            <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}/edit` : `/student/workout/${assignment.id}`)}>
+            <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/workout/${assignment.id}`)}>
               <span><strong>{workout?.name}</strong><small>{formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
@@ -853,14 +855,6 @@ function AthleteDetails({ student, onSave }: { student: Student; onSave: (studen
   const [gender, setGender] = useState<Student['gender']>(student.gender ?? 'not-specified');
   const [contraindications, setContraindications] = useState(student.contraindications ?? '');
   const genderLabel = gender === 'male' ? 'Мужской' : gender === 'female' ? 'Женский' : 'Не указан';
-
-  useEffect(() => {
-    if (editing) return;
-    setHeight(student.height ? String(student.height) : '');
-    setWeight(student.weight ? String(student.weight) : '');
-    setGender(student.gender ?? 'not-specified');
-    setContraindications(student.contraindications ?? '');
-  }, [student, editing]);
 
   const save = () => {
     const parsedHeight = Number(height);
@@ -900,7 +894,7 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
   const [name, setName] = useState('');
   const [created, setCreated] = useState<Student | null>(null);
   const [copied, setCopied] = useState(false);
-  const inviteUrl = created && typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/invite/${created.id}` : '';
+  const inviteUrl = created && typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/invite/${created.id}/${encodeURIComponent(created.name)}` : '';
 
   const create = () => {
     const clean = name.trim();
@@ -933,7 +927,7 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
         <section className="invite-ready">
           <div className="success-mark"><Icon name="arrow-up-right" /></div>
           <h2>{created.name} почти в команде</h2>
-          <p>Отправь эту демо-ссылку ученику. Его тренировки и результаты появятся у тренера автоматически.</p>
+          <p>Отправь эту демо-ссылку ученику. На его устройстве откроется персональный кабинет для проверки интерфейса.</p>
           <output>{inviteUrl}</output>
           <button className="primary-button" type="button" onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'} <Icon name={copied ? 'check' : 'copy'} /></button>
           <button className="wide-secondary" type="button" onClick={() => go('/trainer/clients')}>Готово</button>
@@ -946,7 +940,6 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
 function WorkoutsList({ data }: { data: DemoState }) {
   return (
     <main className="content-page workouts-page">
-      <PageHeader title="ТРЕНИРОВКИ" />
       <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts/new')}><Icon name="plus" /> {COPY.createWorkout}</button>
       <section className="workout-template-list">
         {data.workouts.map((workout) => (
@@ -1039,30 +1032,28 @@ function MetricInput({ label, value, onChange, step = 1 }: { label: string; valu
 }
 
 function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric' }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal' }) {
-  const [draft, setDraft] = useState(String(value));
-
-  useEffect(() => setDraft(String(value)), [value]);
+  const [draft, setDraft] = useState<string | null>(null);
 
   const commit = () => {
-    if (!draft.trim()) {
-      setDraft(String(value));
+    const nextDraft = draft ?? String(value);
+    if (!nextDraft.trim()) {
+      setDraft(null);
       return;
     }
-    const parsed = Number(draft.replace(',', '.'));
+    const parsed = Number(nextDraft.replace(',', '.'));
     if (!Number.isFinite(parsed)) {
-      setDraft(String(value));
+      setDraft(null);
       return;
     }
     const next = Math.max(min, parsed);
-    setDraft(String(next));
+    setDraft(null);
     onChange(next);
   };
 
-  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
+  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 
-function WorkoutDetails({ data, workout }: { data: DemoState; workout: Workout }) {
-  const assignments = data.assignments.filter((item) => item.workoutId === workout.id && item.status === 'assigned');
+function WorkoutDetails({ workout }: { workout: Workout }) {
   return (
     <main className="content-page narrow-page">
       <PageHeader back="/trainer/workouts" eyebrow="Шаблон тренировки" title={workout.name.toUpperCase()} />
@@ -1073,9 +1064,25 @@ function WorkoutDetails({ data, workout }: { data: DemoState; workout: Workout }
           <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</p></div></article>
         ))}
       </section>
-      {assignments.length > 0 && <section className="workout-assignments"><h2>Ближайшие назначения</h2>{assignments
-        .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`))
-        .map((item) => <button key={item.id} type="button" onClick={() => go(`/trainer/assignments/${item.id}/edit`)}><Avatar student={findStudent(data, item.studentId)} /><span><strong>{findStudent(data, item.studentId)?.name}</strong><small>{formatCalendarDay(item.scheduledFor)}, {item.scheduledTime}</small></span><Icon name="chevron-right" /></button>)}</section>}
+    </main>
+  );
+}
+
+function AssignmentDetails({ data, assignment }: { data: DemoState; assignment: Assignment }) {
+  const student = findStudent(data, assignment.studentId);
+  const workout = findWorkout(data, assignment.workoutId);
+  if (!student || !workout) return <NotFound />;
+
+  return (
+    <main className="content-page narrow-page">
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)}, ${assignment.scheduledTime}`} title={workout.name.toUpperCase()} />
+      {assignment.status === 'assigned' && <button className="list-primary-action assignment-edit-button" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="change" /> Редактировать назначение</button>}
+      <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
+      <section className="exercise-plan-list">
+        {workout.exercises.map((exercise, index) => (
+          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</p></div></article>
+        ))}
+      </section>
     </main>
   );
 }
@@ -1118,7 +1125,7 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
 
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${assignment.studentId}`} eyebrow="Назначенная тренировка" title="ИЗМЕНИТЬ ЗАНЯТИЕ" />
+      <PageHeader back={`/trainer/assignments/${assignment.id}`} eyebrow={`${student?.name} · ${workout?.name}`} title="ИЗМЕНИТЬ ЗАНЯТИЕ" />
       <section className="assignment-edit-card">
         <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student?.name}</strong><p>{workout?.name} · {exercisePreview(workout)}</p></div></div>
         <div className="schedule-fields">
@@ -1150,7 +1157,7 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
 
   return (
     <main className="content-page student-page">
-      <PageHeader eyebrow={date} title="СЕГОДНЯ" />
+      <p className="screen-date">{date}</p>
       {mainAssignment ? (
         <section className="student-focus-card">
           <div className="student-card-top"><span>{mainAssignment.scheduledFor === dateKey() ? mainAssignment.scheduledTime : `${formatCalendarDay(mainAssignment.scheduledFor).toUpperCase()} · ${mainAssignment.scheduledTime}`}</span>{mainSession && <b>{mainProgress}%</b>}</div>
@@ -1277,7 +1284,6 @@ function StudentHistory({ data }: { data: DemoState }) {
   const sessions = [...data.sessions].filter((item) => item.studentId === data.activeStudentId && item.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   return (
     <main className="content-page student-page">
-      <PageHeader title="ИСТОРИЯ" />
       {sessions.length ? (
         <section className="history-list">
           {sessions.map((session) => {
@@ -1319,8 +1325,8 @@ function SessionResult({ data, session, trainerView = false }: { data: DemoState
   );
 }
 
-function InvitationScreen({ token, data, onAccept }: { token: string; data: DemoState; onAccept: (studentId: string) => void }) {
-  const student = findStudent(data, token);
+function InvitationScreen({ token, inviteName, data, onAccept }: { token: string; inviteName: string; data: DemoState; onAccept: (student: Student) => void }) {
+  const student = findStudent(data, token) ?? (inviteName ? { id: token, name: inviteName, status: 'invited' as const, color: 'orange' as const } : undefined);
   if (!student) {
     return <main className="invitation-screen"><Brand /><EmptyState icon="close" title="Ссылка не работает" text="Попроси тренера создать новое приглашение." action="На главную" onAction={() => go('/')} /></main>;
   }
@@ -1328,11 +1334,11 @@ function InvitationScreen({ token, data, onAccept }: { token: string; data: Demo
     <main className="invitation-screen">
       <Brand />
       <section className="invitation-card">
-        <span className="invite-avatar">А</span>
+        <span className="invite-avatar">{initials(student.name)}</span>
         <p className="eyebrow">Приглашение в REPPY</p>
         <h1>{TRAINER_NAME.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</h1>
         <p>Привет, {student.name}! Здесь ты будешь получать тренировки и отмечать результаты прямо в зале.</p>
-        <button className="primary-button" type="button" onClick={() => onAccept(student.id)}>Принять приглашение <Icon name="arrow-right" /></button>
+        <button className="primary-button" type="button" onClick={() => onAccept(student)}>Принять приглашение <Icon name="arrow-right" /></button>
       </section>
     </main>
   );
