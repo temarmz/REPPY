@@ -18,11 +18,12 @@
 
 * { box-sizing: border-box; }
 
-html { background: var(--ink); }
+html { min-height: 100%; background: var(--ink); }
 
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100%;
   background: var(--ink);
   color: var(--paper);
   font-family: var(--app-font-sans);
@@ -880,6 +881,20 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 @media (max-width: 800px) {
   :root { --topbar-content-height: 68px; }
+  #root { min-height: 100%; }
+  .app-shell:not(.focus-mode) {
+    display: grid;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: var(--topbar-height) minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+  .app-shell:not(.focus-mode) .topbar {
+    position: relative;
+    top: auto;
+  }
   .topbar { padding-right: 17px; padding-left: 17px; }
   .topbar .brand-word { display: none; }
   .topbar .brand-logo { width: 48px; height: 48px; }
@@ -889,13 +904,20 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .avatar-button { width: 40px; height: 40px; border-radius: 13px; }
   .desktop-nav { display: none; }
   .page-wrap { min-height: calc(100svh - var(--topbar-height)); margin-left: 0; }
-  .bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 60; display: flex; min-height: calc(70px + env(safe-area-inset-bottom, 0px)); align-items: flex-start; justify-content: space-around; border: 1px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 7px 12px max(7px, env(safe-area-inset-bottom, 0px)); background: rgba(21,25,21,.97); box-shadow: 0 -12px 38px rgba(0,0,0,.34); backdrop-filter: blur(18px); transform: translateZ(0); }
+  .app-shell:not(.focus-mode) .page-wrap {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bottom-nav { position: relative; z-index: 60; display: flex; width: 100%; min-height: calc(70px + env(safe-area-inset-bottom, 0px)); flex-shrink: 0; align-items: flex-start; justify-content: space-around; border: 1px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 7px 12px max(7px, env(safe-area-inset-bottom, 0px)); background: rgba(21,25,21,.97); box-shadow: 0 -12px 38px rgba(0,0,0,.34); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
   .bottom-nav button { display: grid; min-width: 74px; min-height: 56px; place-content: center; justify-items: center; gap: 4px; border: 0; border-radius: 18px; background: transparent; color: #7e847c; cursor: pointer; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: 19px; height: 19px; }
   .bottom-nav button small { font-size: 9px; font-weight: 800; }
   .bottom-nav button.active { background: var(--lime); color: var(--ink); }
-  .content-page { min-height: calc(100svh - var(--topbar-height)); padding: 35px 18px calc(105px + env(safe-area-inset-bottom, 0px)); }
+  .app-shell:not(.focus-mode) .content-page { min-height: 100%; padding: 35px 18px max(32px, env(safe-area-inset-bottom, 0px)); }
   .page-header { margin-bottom: 29px; }
   .page-header h1 { font-size: clamp(39px, 12vw, 55px); }
   .compact-primary { min-height: 47px; padding: 0 13px; font-size: 10px; }
