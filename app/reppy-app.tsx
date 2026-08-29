@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   STORAGE_KEY,
@@ -9,13 +7,11 @@ import {
   exerciseLibrary,
   formatCalendarDay,
   formatDay,
-  getSharedState,
   makeId,
   migrateDemoState,
   type Assignment,
   type DemoState,
   type MoodRating,
-  type SharedDemoState,
   type SetResult,
   type Student,
   type Workout,
@@ -37,10 +33,6 @@ function hashPath() {
 
 function go(path: string) {
   window.location.hash = path;
-}
-
-function usesSharedStore() {
-  return document.querySelector<HTMLMetaElement>('meta[name="reppy-data-mode"]')?.content !== 'local';
 }
 
 function initials(name: string) {
@@ -126,25 +118,13 @@ export default function ReppyApp() {
   useEffect(() => {
     let cancelled = false;
 
-    const hydrate = async () => {
+    const hydrate = () => {
       let nextData = createInitialState();
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         nextData = migrateDemoState(saved ? (JSON.parse(saved) as DemoState) : nextData);
       } catch {
         localStorage.removeItem(STORAGE_KEY);
-      }
-
-      if (usesSharedStore()) {
-        try {
-          const response = await fetch('/api/state', { cache: 'no-store' });
-          if (response.ok) {
-            const shared = await response.json() as SharedDemoState;
-            nextData = migrateDemoState({ ...nextData, ...shared });
-          }
-        } catch {
-          // Keep the local copy available if the shared store is temporarily unavailable.
-        }
       }
 
       if (cancelled) return;
@@ -158,7 +138,7 @@ export default function ReppyApp() {
       setHydrated(true);
     };
 
-    void hydrate();
+    hydrate();
 
     const handleHash = () => setPath(hashPath());
     window.addEventListener('hashchange', handleHash);
@@ -171,44 +151,7 @@ export default function ReppyApp() {
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    if (!usesSharedStore()) return;
-    const timer = window.setTimeout(() => {
-      void fetch('/api/state', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(getSharedState(data)),
-      });
-    }, 350);
-    return () => window.clearTimeout(timer);
   }, [data, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!usesSharedStore()) return;
-    const refresh = async () => {
-      try {
-        const response = await fetch('/api/state', { cache: 'no-store' });
-        if (!response.ok) return;
-        const shared = await response.json() as SharedDemoState;
-        setData((current) => JSON.stringify(getSharedState(current)) === JSON.stringify(shared)
-          ? current
-          : migrateDemoState({ ...current, ...shared }));
-      } catch {
-        // The current screen remains usable from its last synchronized copy.
-      }
-    };
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') void refresh();
-    };
-    const interval = window.setInterval(() => void refresh(), 12000);
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [hydrated]);
 
   useEffect(() => {
     if (!toast) return;
@@ -406,7 +349,6 @@ export default function ReppyApp() {
       const session = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
       content = assignment && workout ? (
         <ActiveWorkout
-          assignment={assignment}
           workout={workout}
           session={session}
           onStart={() => {
@@ -1179,14 +1121,12 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
 }
 
 function ActiveWorkout({
-  assignment,
   workout,
   session,
   onStart,
   onUpdate,
   onFinish,
 }: {
-  assignment: Assignment;
   workout: Workout;
   session?: WorkoutSession;
   onStart: () => void;

@@ -68,8 +68,6 @@ export type DemoState = {
   sessions: WorkoutSession[];
 };
 
-export type SharedDemoState = Pick<DemoState, 'students' | 'workouts' | 'assignments' | 'sessions'>;
-
 export const STORAGE_KEY = 'reppy-demo-v0';
 export const TRAINER_NAME = 'Евгений Ч.';
 
@@ -246,15 +244,6 @@ export function migrateDemoState(state: DemoState): DemoState {
       ...session,
       studentId: currentId(session.studentId),
     })),
-  };
-}
-
-export function getSharedState(state: DemoState): SharedDemoState {
-  return {
-    students: state.students,
-    workouts: state.workouts,
-    assignments: state.assignments,
-    sessions: state.sessions,
   };
 }
 

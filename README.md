@@ -11,10 +11,10 @@ npm install
 npm run dev
 ```
 
-Сборка для проверки и публикации:
+Единственная production-сборка для проверки и публикации на GitHub Pages:
 
 ```bash
-npm run build
+npm run build:pages
 ```
 
 Статическая GitHub Pages-версия создаётся в `pages-dist`. Hash-маршруты работают после прямого reload, а workflow `.github/workflows/deploy-pages.yml` публикует папку автоматически из ветки `main`.
