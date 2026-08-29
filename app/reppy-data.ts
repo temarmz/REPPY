@@ -186,9 +186,6 @@ export function migrateDemoState(state: DemoState): DemoState {
     scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
     scheduledTime: assignment.scheduledTime ?? '18:00',
   }));
-  const missingDemoAssignments = createDemoAssignments(new Date().toISOString())
-    .filter((assignment) => !migratedAssignments.some((item) => item.id === assignment.id));
-
   return {
     ...state,
     activeStudentId: currentId(state.activeStudentId),
@@ -206,7 +203,7 @@ export function migrateDemoState(state: DemoState): DemoState {
         contraindications: student.contraindications ?? health?.contraindications ?? '',
       } : student;
     }),
-    assignments: [...migratedAssignments, ...missingDemoAssignments],
+    assignments: migratedAssignments,
     sessions: state.sessions.map((session) => ({
       ...session,
       studentId: currentId(session.studentId),
