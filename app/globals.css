@@ -815,13 +815,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-upcoming-row > .ui-icon { width: 17px; height: 17px; color: var(--muted); }
 
 .active-workout-page { min-height: 100svh; padding: env(safe-area-inset-top, 0px) max(18px, calc((100vw - 720px) / 2)) 130px; background: #090b09; }
-.active-header { display: grid; min-height: 82px; grid-template-columns: 52px 1fr 52px; align-items: center; gap: 13px; }
+.active-header { display: grid; min-height: 82px; grid-template-columns: 52px minmax(0,1fr) 72px; align-items: center; gap: 13px; }
 .active-header > button { display: grid; width: 52px; height: 52px; place-items: center; border: 0; border-radius: 17px; background: var(--surface-2); cursor: pointer; font-size: 23px; }
 .active-header > button .ui-icon { width: 21px; height: 21px; }
-.active-header div { display: grid; justify-items: center; gap: 4px; }
-.active-header div span { color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
-.active-header div strong { font-size: 12px; }
-.active-header > b { color: var(--lime); font-size: 13px; text-align: right; }
+.active-header-copy { display: grid; min-width: 0; justify-items: center; gap: 4px; }
+.active-header-copy span { overflow: hidden; max-width: 100%; color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.active-header-copy strong { font-size: 12px; }
+.active-timing { display: grid; justify-items: end; gap: 3px; }
+.active-timing time { color: #eef1eb; font-size: 14px; font-weight: 900; }
+.active-timing b { color: var(--lime); font-size: 11px; }
 .active-progress { height: 4px; margin: 0 calc(-1 * max(18px, calc((100vw - 720px) / 2))); background: #1d211d; }
 .active-progress span { display: block; height: 100%; background: #ecefe9; transition: width .2s ease; }
 .active-exercise-title { padding: 43px 0 27px; }
@@ -839,7 +841,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .set-card.completed input { background: rgba(0,0,0,.2); }
 .set-card > button { display: grid; width: 58px; height: 58px; place-items: center; border: 2px solid #3d433c; border-radius: 20px; background: #0b0d0b; color: #697068; cursor: pointer; font-size: 31px; font-weight: 900; }
 .set-card > button .ui-icon { width: 27px; height: 27px; }
-.set-card.completed > button { border-color: #ecefe9; background: #ecefe9; color: var(--ink); }
+.set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
 .exercise-navigation { position: fixed; right: 0; bottom: 0; left: 0; z-index: 50; display: flex; justify-content: center; gap: 10px; border-top: 1px solid rgba(255,255,255,.07); padding: 12px max(18px, calc((100vw - 720px) / 2)) max(12px, env(safe-area-inset-bottom)); background: rgba(9,11,9,.94); backdrop-filter: blur(18px); }
 .exercise-navigation button { display: inline-flex; min-height: 60px; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 18px; padding: 0 17px; background: var(--surface-2); cursor: pointer; font-size: 12px; font-weight: 850; }
 .exercise-navigation button .ui-icon { width: 17px; height: 17px; }
@@ -1081,7 +1083,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-card-top span,
 .student-card-top b,
 .student-tip span,
-.active-header div span,
+.active-header-copy span,
 .active-exercise-title p,
 .set-number span,
 .set-card label span,
@@ -1124,7 +1126,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   font-size: 14px;
 }
 
-.active-header div strong { font-size: 13px; }
+.active-header-copy strong { font-size: 13px; }
 
 .schedule-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .schedule-field { display: grid; min-width: 0; gap: 9px; border-radius: 22px; padding: 18px; background: var(--surface); }
@@ -1328,7 +1330,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-card-top time small,
 .student-card-top b,
 .student-upcoming-row time small,
-.active-header > b,
+.active-timing time,
+.active-timing b,
 .set-number strong,
 .set-card input,
 .success-screen section b,

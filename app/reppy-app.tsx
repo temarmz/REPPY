@@ -92,6 +92,19 @@ function moodLabel(mood: MoodRating) {
   return MOODS.find((item) => item.value === mood)?.label ?? '';
 }
 
+function formatElapsedTime(startedAt: string, currentTime: number) {
+  const elapsedSeconds = Math.max(0, Math.floor((currentTime - new Date(startedAt).getTime()) / 1000));
+  const hours = Math.floor(elapsedSeconds / 3600);
+  const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+  const seconds = elapsedSeconds % 60;
+  return {
+    elapsedSeconds,
+    label: hours > 0
+      ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+  };
+}
+
 function preloadAsset(path: string) {
   return new Promise<void>((resolve) => {
     const timeout = window.setTimeout(resolve, ASSET_PRELOAD_TIMEOUT);
@@ -408,7 +421,10 @@ export default function ReppyApp() {
       const assignment = data.assignments.find((item) => item.id === activeMatch[1]);
       const workout = assignment && findWorkout(data, assignment.workoutId);
       const session = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
-      content = assignment && workout ? (
+      const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+      content = assignment && workout && assignment.status === 'completed' && completedSession ? (
+        <WorkoutSuccess data={data} session={completedSession} />
+      ) : assignment && workout ? (
         <ActiveWorkout
           workout={workout}
           session={session}
@@ -441,22 +457,27 @@ export default function ReppyApp() {
             const currentSession = data.sessions.find((item) => item.id === sessionId);
             const unfinished = currentSession?.results.some((result) => !result.completed);
             if (unfinished && !window.confirm('Есть незавершённые подходы. Всё равно закончить тренировку?')) return;
+            const completedAt = new Date().toISOString();
+            setData((current) => ({
+              ...current,
+              assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
+              sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt } : item),
+            }));
             go(`/student/finish/${sessionId}`);
           }}
         />
       ) : <NotFound />;
     } else if (finishMatch) {
-      const session = data.sessions.find((item) => item.id === finishMatch[1] && !item.completedAt);
+      const session = data.sessions.find((item) => item.id === finishMatch[1]);
       content = session ? (
         <WorkoutFeedback
           data={data}
           session={session}
           onComplete={(mood, comment) => {
-            const completedAt = new Date().toISOString();
             setData((current) => ({
               ...current,
               assignments: current.assignments.map((item) => item.id === session.assignmentId ? { ...item, status: 'completed' } : item),
-              sessions: current.sessions.map((item) => item.id === session.id ? { ...item, completedAt, mood, comment: comment.trim() } : item),
+              sessions: current.sessions.map((item) => item.id === session.id ? { ...item, completedAt: item.completedAt ?? new Date().toISOString(), mood, comment: comment.trim() } : item),
             }));
             go(`/student/success/${session.id}`);
           }}
@@ -1283,8 +1304,10 @@ function ActiveWorkout({
   onFinish: (sessionId: string) => void;
 }) {
   const [exerciseIndex, setExerciseIndex] = useState(0);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const startRequested = useRef(false);
   const exercise = workout.exercises[exerciseIndex];
+  const startedAt = session?.startedAt;
 
   useEffect(() => {
     if (!session && !startRequested.current) {
@@ -1293,11 +1316,18 @@ function ActiveWorkout({
     }
   }, [session, onStart]);
 
+  useEffect(() => {
+    if (!startedAt) return;
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+
   if (!session) return <main className="loading-screen"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Готовим тренировку…</p></main>;
 
   const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
   const completed = session.results.filter((result) => result.completed).length;
   const progress = Math.round((completed / Math.max(session.results.length, 1)) * 100);
+  const elapsed = formatElapsedTime(session.startedAt, currentTime);
 
   const updateResult = (setNumber: number, patch: Partial<SetResult>) => {
     onUpdate(session.id, session.results.map((result) => result.exerciseId === exercise.id && result.setNumber === setNumber ? { ...result, ...patch } : result));
@@ -1305,7 +1335,7 @@ function ActiveWorkout({
 
   return (
     <main className="active-workout-page">
-      <header className="active-header"><button type="button" onClick={() => goBack('/student')} aria-label="Закрыть тренировку"><Icon name="close" /></button><div><span>{workout.name}</span><strong>{exerciseIndex + 1} из {workout.exercises.length}</strong></div><b>{progress}%</b></header>
+      <header className="active-header"><button type="button" onClick={() => goBack('/student')} aria-label="Закрыть тренировку"><Icon name="close" /></button><div className="active-header-copy"><span>{workout.name}</span><strong>{exerciseIndex + 1} из {workout.exercises.length}</strong></div><div className="active-timing"><time dateTime={`PT${elapsed.elapsedSeconds}S`} aria-label={`Прошло ${elapsed.label}`}>{elapsed.label}</time><b>{progress}%</b></div></header>
       <div className="active-progress"><span style={{ width: `${progress}%` }} /></div>
       <section className="active-exercise-title"><p>УПРАЖНЕНИЕ {String(exerciseIndex + 1).padStart(2, '0')}</p><h1>{exercise.name}</h1><span>Цель: {exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</span></section>
       <section className="set-list">
@@ -1337,7 +1367,7 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
 
   return (
     <main className="feedback-page">
-      <PageHeader back={`/student/workout/${session.assignmentId}`} eyebrow={workout?.name} title="КАК ПРОШЛО?" />
+      <PageHeader back="/student" eyebrow={workout?.name} title="КАК ПРОШЛО?" />
       <section className="feedback-card">
         <fieldset className="mood-fieldset">
           <legend>Твоё настроение после тренировки</legend>
