@@ -851,8 +851,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .exercise-navigation .finish-workout { background: #ecefe9; }
 
 .success-screen { display: grid; width: min(100%, 650px); min-height: calc(100svh - 76px); margin: 0 auto; align-content: center; padding: 35px 24px 110px; text-align: center; }
-.success-burst { display: grid; width: 76px; height: 76px; margin: 0 auto 24px; place-items: center; border-radius: 25px; background: #ecefe9; color: var(--ink); font-size: 38px; font-weight: 950; transform: rotate(-5deg); }
-.success-burst .ui-icon { width: 36px; height: 36px; }
+.success-illustration { display: block; width: min(100%, 320px); height: auto; margin: 0 auto 20px; object-fit: contain; }
 .success-screen h1 { margin: 0; font-size: clamp(44px, 9vw, 64px); line-height: .9; letter-spacing: -.075em; }
 .success-screen section { margin: 25px 0 20px; border-radius: 24px; padding: 20px; background: var(--surface); }
 .success-screen section > strong { display: block; margin-bottom: 18px; font-size: 22px; }

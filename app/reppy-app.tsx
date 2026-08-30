@@ -83,6 +83,7 @@ const APP_ASSETS = [
   'icon-192.png',
   'icon-512.png',
   'apple-touch-icon.png',
+  'good-sm.png',
   ...iconAssetPaths,
 ];
 
@@ -1390,7 +1391,7 @@ function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSe
   const workout = findWorkout(data, session.workoutId);
   return (
     <main className="success-screen">
-      <div className="success-burst" aria-hidden="true"><Icon name="check" /></div>
+      <img className="success-illustration" src="good-sm.png" alt="" />
       <p className="eyebrow">Результат сохранён</p>
       <h1>ТРЕНИРОВКА<br />ЗАВЕРШЕНА</h1>
       <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}</section>
