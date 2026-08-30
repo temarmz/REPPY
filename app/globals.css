@@ -604,17 +604,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .plan-day-card > header time > strong { min-width: 48px; color: #e8ebe5; font-size: 36px; line-height: 1; letter-spacing: -.06em; }
 .plan-day-card > header time > span { display: grid; gap: 3px; color: #d6dad3; font-size: 15px; font-weight: 800; }
 .plan-day-card > header time small { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: lowercase; }
-.plan-session-row { display: grid; width: 100%; min-height: 76px; grid-template-columns: 58px auto minmax(0,1fr) 18px; align-items: center; gap: 13px; border: 0; border-bottom: 1px solid rgba(255,255,255,.055); padding: 11px 17px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.plan-session-row { display: grid; width: 100%; min-height: 76px; grid-template-columns: 58px auto minmax(0,1fr) auto; align-items: center; gap: 13px; border: 0; border-bottom: 1px solid rgba(255,255,255,.055); padding: 11px 17px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .plan-session-row:last-child { border-bottom: 0; }
 .plan-session-row > time { color: #dce0d9; font-size: 15px; font-weight: 850; }
 .plan-session-row > span:not(.person-avatar) { display: grid; min-width: 0; gap: 4px; }
 .plan-session-row strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .plan-session-row small { overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.plan-session-row > .ui-icon { width: 17px; height: 17px; color: #777e76; }
+.plan-session-status { display: flex !important; min-width: auto !important; align-items: center; justify-content: flex-end; gap: 8px !important; }
+.plan-session-status .ui-icon { width: 17px; height: 17px; color: #777e76; }
+.plan-session-status .ui-icon:first-child:not(:last-child) { color: #5f7f18; }
 .today-schedule .plan-session-row { border-bottom-color: rgba(7,9,8,.075); }
 .today-schedule .plan-session-row > time { color: #5f7f18; }
 .today-schedule .plan-session-row small { color: #666d65; }
-.today-schedule .plan-session-row > .ui-icon { color: #6d746c; }
+.today-schedule .plan-session-status .ui-icon:last-child { color: #6d746c; }
 .today-schedule .person-avatar.lime { border-color: rgba(92,123,30,.16); background: rgba(139,180,61,.16); color: #52612f; }
 .today-schedule .person-avatar.violet { border-color: rgba(102,77,158,.16); background: rgba(122,76,255,.12); color: #5b4b7d; }
 .today-schedule .person-avatar.pink { border-color: rgba(158,72,133,.15); background: rgba(255,79,216,.1); color: #76536e; }
@@ -1232,6 +1234,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .pricing-section > .primary-button { width: min(100%, 430px); margin: 22px 0 0 auto; }
 
 .athlete-details { margin-top: 58px; border-top: 1px solid rgba(255,255,255,.07); padding-top: 24px; }
+.athlete-details.always-expanded { margin-top: 0; border-top: 0; padding-top: 0; }
 .athlete-details .section-heading { margin-bottom: 12px; }
 .athlete-details .section-heading h2 { color: #b9beb7; font-size: 17px; }
 .athlete-details .section-heading button { min-height: 38px; font-size: 12px; }
@@ -1252,7 +1255,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .athlete-form textarea { min-height: 150px; resize: vertical; padding-block: 15px; line-height: 1.5; }
 .athlete-form label > small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .athlete-form .primary-button { margin-top: 5px; }
-.details-edit-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 7px; margin: 0 0 10px; border: 0; padding: 0; background: transparent; color: #c8ccc5; cursor: pointer; font-size: 13px; font-weight: 800; text-align: center; }
+.details-edit-button { display: inline-flex; width: 100%; min-height: 52px; align-items: center; justify-content: center; gap: 7px; margin: 0 0 12px; border: 1px solid rgba(255,255,255,.11); border-radius: 17px; padding: 0 16px; background: rgba(255,255,255,.055); color: #dfe3dc; cursor: pointer; font-size: 13px; font-weight: 800; text-align: center; }
 .details-edit-button .ui-icon { width: 16px; height: 16px; }
 .profile-links { display: grid; gap: 10px; margin-top: 25px; }
 .student-plan-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }

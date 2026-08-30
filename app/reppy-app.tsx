@@ -755,11 +755,11 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
     : `/trainer/assignments/${assignment.id}`;
 
   return (
-    <button className="plan-session-row" type="button" onClick={() => go(target)}>
+    <button className="plan-session-row" type="button" onClick={() => go(target)} aria-label={`${student?.name}, ${assignment.scheduledTime}, ${workout?.name}${completed ? ', тренировка завершена' : ''}`}>
       <time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}>{assignment.scheduledTime}</time>
       <Avatar student={student} />
       <span><strong>{student?.name}</strong><small>{workout?.name}</small></span>
-      <Icon name="chevron-right" />
+      <span className="plan-session-status">{completed && <Icon name="check" />}<Icon name="chevron-right" /></span>
     </button>
   );
 }
@@ -918,7 +918,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false }: { student: 
   };
 
   return (
-    <section className="athlete-details section-block">
+    <section className={`athlete-details section-block ${alwaysExpanded ? 'always-expanded' : ''}`}>
       <div className="section-heading"><h2>Данные и ограничения</h2>{!alwaysExpanded && <button type="button" onClick={() => { setExpanded((current) => !current); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>
       {expanded && (editing ? <div className="athlete-form">
         <div className="athlete-form-grid">
