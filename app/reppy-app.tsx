@@ -26,13 +26,26 @@ const COPY = {
   emptyHistory: 'Завершённые тренировки появятся здесь.',
 };
 
+const NAVIGATION_EVENT = 'reppy:navigate';
+
 function hashPath() {
   if (typeof window === 'undefined') return '/';
   return window.location.hash.replace(/^#/, '') || '/';
 }
 
 function go(path: string) {
-  window.location.hash = path;
+  if (hashPath() === path) return;
+  const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
+  window.history.pushState({ ...previousState, reppyEntry: true }, '', `#${path}`);
+  window.dispatchEvent(new Event(NAVIGATION_EVENT));
+}
+
+function goBack(fallback: string) {
+  if (window.history.state?.reppyEntry) {
+    window.history.back();
+    return;
+  }
+  go(fallback);
 }
 
 function initials(name: string) {
@@ -131,7 +144,9 @@ export default function ReppyApp() {
       setData(nextData);
       const requestedPath = hashPath();
       if (requestedPath === '/' && nextData.loggedIn) {
-        go(nextData.role === 'trainer' ? '/trainer' : '/student');
+        const homePath = nextData.role === 'trainer' ? '/trainer' : '/student';
+        window.history.replaceState({ reppyEntry: false }, '', `#${homePath}`);
+        setPath(homePath);
       } else {
         setPath(requestedPath);
       }
@@ -140,11 +155,15 @@ export default function ReppyApp() {
 
     hydrate();
 
-    const handleHash = () => setPath(hashPath());
-    window.addEventListener('hashchange', handleHash);
+    const handleNavigation = () => setPath(hashPath());
+    window.addEventListener('hashchange', handleNavigation);
+    window.addEventListener('popstate', handleNavigation);
+    window.addEventListener(NAVIGATION_EVENT, handleNavigation);
     return () => {
       cancelled = true;
-      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('hashchange', handleNavigation);
+      window.removeEventListener('popstate', handleNavigation);
+      window.removeEventListener(NAVIGATION_EVENT, handleNavigation);
     };
   }, []);
 
@@ -445,7 +464,7 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
             <p className="welcome-description">REPPY связывает тренера и ученика: план на две недели, результаты каждого подхода и обратная связь находятся в одном месте.</p>
           </div>
           <button className="primary-button" type="button" onClick={onLogin}>
-            Попробовать REPPY <Icon name="arrow-up-right" />
+            <Icon name="arrow-right" /> Попробовать REPPY
           </button>
           <p className="demo-note"><span>DEMO</span> Результаты синхронизируются между ролями</p>
         </section>
@@ -571,7 +590,7 @@ function PageHeader({ eyebrow, title, action, back }: { eyebrow?: string; title:
   return (
     <header className="page-header">
       <div>
-        {back && <button className="back-button" type="button" onClick={() => go(back)}><Icon name="chevron-left" /> Назад</button>}
+        {back && <button className="back-button" type="button" onClick={() => goBack(back)}><Icon name="chevron-left" /> Назад</button>}
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
       </div>
@@ -638,7 +657,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
             <button key={assignment.id} type="button" onClick={() => go(target)}>
               <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
               <div><strong>{area === 'trainer' ? student?.name : workout?.name}</strong><small>{assignment.scheduledTime} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</small>{session?.comment && <p>«{session.comment}»</p>}</div>
-              {assignment.status === 'completed' && <b>{session?.mood ? moodLabel(session.mood) : 'Готово'}</b>}
+              <span className="agenda-tail">{assignment.status === 'completed' && <b>{session?.mood ? moodLabel(session.mood) : 'Готово'}</b>}<Icon name="chevron-right" /></span>
             </button>
           );
         })}</div> : <EmptyState icon="calendar" title="Свободный день" text={area === 'trainer' ? 'У команды нет тренировок в этот день.' : 'На этот день тренировка не запланирована.'} />}
@@ -670,7 +689,7 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
       <time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}>{assignment.scheduledTime}</time>
       <Avatar student={student} />
       <span><strong>{student?.name}</strong><small>{workout?.name}</small></span>
-      <Icon name={completed ? 'check' : 'chevron-right'} />
+      <Icon name="chevron-right" />
     </button>
   );
 }
@@ -737,7 +756,7 @@ function ClientsList({ data }: { data: DemoState }) {
             <button className="client-card" key={student.id} type="button" onClick={() => go(`/trainer/clients/${student.id}`)}>
               <Avatar student={student} />
               <span><strong>{student.name}</strong><small>{status}</small></span>
-              <i><Icon name="arrow-up-right" /></i>
+              <i><Icon name="chevron-right" /></i>
             </button>
           );
         })}
@@ -779,7 +798,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
         <div className="section-heading"><h2>Последняя активность</h2></div>
         {sessions.length ? <div className="connected-list">{sessions.slice(0, 3).map((session) => (
           <button className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
-            <span className="done-badge"><Icon name="check" /></span><span><strong>{findWorkout(data, session.workoutId)?.name}</strong><small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</small></span><i>Результат <Icon name="arrow-right" /></i>
+            <span className="done-badge"><Icon name="check" /></span><span><strong>{findWorkout(data, session.workoutId)?.name}</strong><small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</small></span><i><Icon name="chevron-right" /></i>
           </button>
         ))}</div> : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
       </section>}
@@ -821,8 +840,8 @@ function AthleteDetails({ student, onSave }: { student: Student; onSave: (studen
         </div>
         <label><span>Пол</span><select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><option value="not-specified">Не указан</option><option value="male">Мужской</option><option value="female">Женский</option></select></label>
         <label><span>Противопоказания и особенности</span><textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><small>Опиши всё, что тренеру важно учитывать при составлении плана.</small></label>
-        <button className="primary-button" type="button" onClick={save}>Сохранить данные <Icon name="check" /></button>
-      </div> : <><button className="details-edit-button" type="button" onClick={() => setEditing(true)}>Редактировать данные</button><div className="athlete-summary">
+        <button className="primary-button" type="button" onClick={save}><Icon name="check" /> Сохранить данные</button>
+      </div> : <><button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="change" /> Редактировать данные</button><div className="athlete-summary">
         <div><span>Рост</span><strong>{student.height ? `${student.height} см` : 'Не указан'}</strong></div>
         <div><span>Вес</span><strong>{student.weight ? `${student.weight} кг` : 'Не указан'}</strong></div>
         <div><span>Пол</span><strong>{genderLabel}</strong></div>
@@ -863,7 +882,7 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
           <label className="field-label" htmlFor="student-name">Имя ученика</label>
           <input id="student-name" className="text-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
           <p className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</p>
-          <button className="primary-button" type="button" disabled={!name.trim()} onClick={create}>Продолжить <Icon name="arrow-right" /></button>
+          <button className="primary-button" type="button" disabled={!name.trim()} onClick={create}><Icon name="arrow-right" /> Продолжить</button>
         </section>
       ) : (
         <section className="invite-ready">
@@ -871,8 +890,8 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
           <h2>{created.name} почти в команде</h2>
           <p>Отправь эту демо-ссылку ученику. На его устройстве откроется персональный кабинет для проверки интерфейса.</p>
           <output>{inviteUrl}</output>
-          <button className="primary-button" type="button" onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'} <Icon name={copied ? 'check' : 'copy'} /></button>
-          <button className="wide-secondary" type="button" onClick={() => go('/trainer/clients')}>Готово</button>
+          <button className="primary-button" type="button" onClick={copy}><Icon name={copied ? 'check' : 'copy'} /> {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</button>
+          <button className="wide-secondary" type="button" onClick={() => go('/trainer/clients')}><Icon name="check" /> Готово</button>
         </section>
       )}
     </main>
@@ -950,7 +969,7 @@ function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout:
           ))}
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="primary-button save-workout" type="button" onClick={save}>Сохранить тренировку <Icon name="arrow-right" /></button>
+        <button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button>
       </section>
 
       {pickerOpen && (
@@ -1000,7 +1019,7 @@ function WorkoutDetails({ workout }: { workout: Workout }) {
   return (
     <main className="content-page narrow-page">
       <PageHeader back="/trainer/workouts" eyebrow="Шаблон тренировки" title={workout.name.toUpperCase()} />
-      <div className="workout-detail-actions"><button className="wide-secondary" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/edit`)}>Редактировать</button><button className="primary-button" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/assign`)}>Назначить <Icon name="arrow-right" /></button></div>
+      <div className="workout-detail-actions"><button className="wide-secondary" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/edit`)}><Icon name="change" /> Редактировать</button><button className="primary-button" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/assign`)}><Icon name="plus" /> Назначить</button></div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (
@@ -1049,7 +1068,7 @@ function AssignWorkout({ workout, students, onAssign }: { workout: Workout; stud
             <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
             <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
           </div>
-          <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}>Назначить {chosen?.name ? chosen.name : ''}<Icon name="arrow-right" /></button>
+          <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}><Icon name="plus" /> Назначить {chosen?.name ? chosen.name : ''}</button>
         </section>
       ) : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
     </main>
@@ -1077,7 +1096,7 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
         </div>
         <div className="assignment-edit-actions">
           <button className="danger-button" type="button" onClick={remove}><Icon name="close" /> Удалить назначение</button>
-          <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={() => onSave({ ...assignment, scheduledFor, scheduledTime })}>Сохранить <Icon name="check" /></button>
+          <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={() => onSave({ ...assignment, scheduledFor, scheduledTime })}><Icon name="check" /> Сохранить</button>
         </div>
       </section>
     </main>
@@ -1106,7 +1125,7 @@ function StudentHome({ data, onStart }: { data: DemoState; onStart: (assignmentI
           <div className="student-card-top"><span>{mainAssignment.scheduledFor === dateKey() ? mainAssignment.scheduledTime : `${formatCalendarDay(mainAssignment.scheduledFor).toUpperCase()} · ${mainAssignment.scheduledTime}`}</span>{mainSession && <b>{mainProgress}%</b>}</div>
           <div><h2>{mainWorkout?.name}</h2><p>{exercisePreview(mainWorkout)}</p></div>
           {mainSession && <div className="workout-progress"><span style={{ width: `${mainProgress}%` }} /></div>}
-          <button type="button" onClick={() => onStart(mainAssignment.id)}>{mainSession ? 'Продолжить тренировку' : 'Начать тренировку'} <Icon name="arrow-right" /></button>
+          <button type="button" onClick={() => onStart(mainAssignment.id)}><Icon name="workout" /> {mainSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>
         </section>
       ) : <EmptyState icon="sun" title="Две недели свободны" text={COPY.emptyAssignments} />}
 
@@ -1157,7 +1176,7 @@ function ActiveWorkout({
 
   return (
     <main className="active-workout-page">
-      <header className="active-header"><button type="button" onClick={() => go('/student')} aria-label="Закрыть тренировку"><Icon name="close" /></button><div><span>{workout.name}</span><strong>{exerciseIndex + 1} из {workout.exercises.length}</strong></div><b>{progress}%</b></header>
+      <header className="active-header"><button type="button" onClick={() => goBack('/student')} aria-label="Закрыть тренировку"><Icon name="close" /></button><div><span>{workout.name}</span><strong>{exerciseIndex + 1} из {workout.exercises.length}</strong></div><b>{progress}%</b></header>
       <div className="active-progress"><span style={{ width: `${progress}%` }} /></div>
       <section className="active-exercise-title"><p>УПРАЖНЕНИЕ {String(exerciseIndex + 1).padStart(2, '0')}</p><h1>{exercise.name}</h1><span>Цель: {exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</span></section>
       <section className="set-list">
@@ -1173,9 +1192,9 @@ function ActiveWorkout({
       <footer className="exercise-navigation">
         <button type="button" disabled={exerciseIndex === 0} onClick={() => setExerciseIndex((current) => current - 1)}><Icon name="chevron-left" /> Назад</button>
         {exerciseIndex < workout.exercises.length - 1 ? (
-          <button className="next-exercise" type="button" onClick={() => setExerciseIndex((current) => current + 1)}>Следующее упражнение <Icon name="arrow-right" /></button>
+          <button className="next-exercise" type="button" onClick={() => setExerciseIndex((current) => current + 1)}><Icon name="arrow-right" /> Следующее упражнение</button>
         ) : (
-          <button className="finish-workout" type="button" onClick={() => onFinish(session.id)}>Завершить тренировку <Icon name="check" /></button>
+          <button className="finish-workout" type="button" onClick={() => onFinish(session.id)}><Icon name="check" /> Завершить тренировку</button>
         )}
       </footer>
     </main>
@@ -1202,7 +1221,7 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
           </div>
         </fieldset>
         <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
-        <button className="primary-button" type="button" disabled={!mood} onClick={() => mood && onComplete(mood, comment)}>Сохранить результат <Icon name="check" /></button>
+        <button className="primary-button" type="button" disabled={!mood} onClick={() => mood && onComplete(mood, comment)}><Icon name="check" /> Сохранить результат</button>
       </section>
     </main>
   );
@@ -1216,7 +1235,7 @@ function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSe
       <p className="eyebrow">Результат сохранён</p>
       <h1>ТРЕНИРОВКА<br />ЗАВЕРШЕНА</h1>
       <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}</section>
-      <button className="primary-button" type="button" onClick={() => go('/student')}>Готово <Icon name="arrow-right" /></button>
+      <button className="primary-button" type="button" onClick={() => go('/student')}><Icon name="check" /> Готово</button>
     </main>
   );
 }
@@ -1233,7 +1252,7 @@ function StudentHistory({ data }: { data: DemoState }) {
               <button key={session.id} type="button" onClick={() => go(`/student/history/${session.id}`)}>
                 <span className="history-date">{formatDay(session.completedAt)}</span>
                 <div><strong>{workout?.name}</strong><small>{session.mood ? moodLabel(session.mood) : 'Результат сохранён'}</small></div>
-                <i><Icon name="check" /></i>
+                <i><Icon name="chevron-right" /></i>
               </button>
             );
           })}
@@ -1279,7 +1298,7 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
         <p className="eyebrow">Приглашение в REPPY</p>
         <h1>{TRAINER_NAME.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</h1>
         <p>Привет, {student.name}! Здесь ты будешь получать тренировки и отмечать результаты прямо в зале.</p>
-        <button className="primary-button" type="button" onClick={() => onAccept(student)}>Принять приглашение <Icon name="arrow-right" /></button>
+        <button className="primary-button" type="button" onClick={() => onAccept(student)}><Icon name="check" /> Принять приглашение</button>
       </section>
     </main>
   );
@@ -1287,7 +1306,7 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
 
 function EmptyState({ icon, title, text, action, onAction }: { icon: IconName; title: string; text: string; action?: string; onAction?: () => void }) {
   return (
-    <div className="empty-state"><span><Icon name={icon} /></span><h3>{title}</h3><p>{text}</p>{action && <button type="button" onClick={onAction}>{action} <Icon name="arrow-right" /></button>}</div>
+    <div className="empty-state"><span><Icon name={icon} /></span><h3>{title}</h3><p>{text}</p>{action && <button type="button" onClick={onAction}><Icon name="arrow-right" /> {action}</button>}</div>
   );
 }
 
@@ -1297,7 +1316,7 @@ function SettingsModal({ onClose, onReset }: { onClose: () => void; onReset: () 
       <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>Настройки демо</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <p>Сброс вернёт исходных учеников, тренировки и расписание.</p>
-        <button className="reset-button" type="button" onClick={onReset}>Сбросить демо-данные</button>
+        <button className="reset-button" type="button" onClick={onReset}><Icon name="close" /> Сбросить демо-данные</button>
       </section>
     </div>
   );

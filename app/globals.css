@@ -48,6 +48,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   -webkit-mask-size: contain;
   mask-size: contain;
 }
+.ui-chevron { color: var(--muted) !important; }
 
 .welcome-screen {
   position: relative;
@@ -139,7 +140,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   width: 100%;
   min-height: 64px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 9px;
   border: 0;
   border-radius: 20px;
   padding: 0 22px;
@@ -648,7 +650,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .client-card > span:not(.person-avatar) { display: grid; min-width: 0; gap: 7px; }
 .client-card strong { font-size: 17px; letter-spacing: -.035em; }
 .client-card small { color: var(--muted); font-size: 11px; line-height: 1.35; }
-.client-card i { display: grid; align-self: start; color: var(--lime); font-size: 18px; font-style: normal; }
+.client-card i { display: grid; align-self: center; color: var(--muted); font-size: 18px; font-style: normal; }
 .client-card i .ui-icon { width: 18px; height: 18px; }
 .wide-secondary {
   display: flex;
@@ -677,8 +679,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .done-badge { display: grid; width: 47px; height: 47px; place-items: center; border-radius: 16px; background: rgba(198,255,61,.12); color: var(--lime); font-size: 19px; font-weight: 900; }
 .done-badge .ui-icon { width: 19px; height: 19px; }
 .session-row { grid-template-columns: auto minmax(0,1fr) auto; }
-.session-row i { display: inline-flex; align-items: center; gap: 5px; color: var(--lime); font-size: 11px; font-style: normal; font-weight: 800; }
-.session-row i .ui-icon { width: 13px; height: 13px; }
+.session-row i { display: grid; color: var(--muted); font-style: normal; }
+.session-row i .ui-icon { width: 18px; height: 18px; }
 
 .form-card { border-radius: 30px; padding: clamp(22px, 5vw, 38px); background: var(--surface); }
 .field-label { display: block; margin: 0 0 10px; color: #c6cac4; font-size: 12px; font-weight: 800; }
@@ -784,7 +786,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workout-progress span { display: block; height: 100%; border-radius: inherit; background: var(--lime); transition: width .2s ease; }
 .student-focus-card .workout-progress { background: rgba(7,9,8,.1); }
 .student-focus-card .workout-progress span { background: #6f9518; }
-.student-focus-card > button { display: flex; width: 100%; min-height: 62px; align-items: center; justify-content: space-between; margin-top: 25px; border: 0; border-radius: 18px; padding: 0 20px; background: var(--lime); color: var(--ink); cursor: pointer; font-size: 14px; font-weight: 900; }
+.student-focus-card > button { display: flex; width: 100%; min-height: 62px; align-items: center; justify-content: center; gap: 9px; margin-top: 25px; border: 0; border-radius: 18px; padding: 0 20px; background: var(--lime); color: var(--ink); cursor: pointer; font-size: 14px; font-weight: 900; text-align: center; }
 .student-focus-card > button .ui-icon { width: 22px; height: 22px; }
 .student-upcoming { margin-top: 38px; }
 .student-upcoming .section-heading > span { display: grid; min-width: 30px; height: 30px; place-items: center; border-radius: 10px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 12px; font-weight: 850; }
@@ -846,7 +848,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .history-list div { display: grid; gap: 6px; }
 .history-list strong { font-size: 17px; }
 .history-list small { color: var(--muted); font-size: 11px; }
-.history-list i { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 14px; background: rgba(255,255,255,.07); color: #d7dbd4; font-style: normal; }
+.history-list i { display: grid; width: 18px; height: 40px; place-items: center; color: var(--muted); font-style: normal; }
 .history-list i .ui-icon { width: 18px; height: 18px; }
 .result-overview { margin: -12px 0 22px; color: var(--muted); font-size: 14px; font-weight: 750; }
 .result-exercises { display: grid; gap: 13px; }
@@ -877,7 +879,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .demo-stats span { display: grid; min-height: 80px; place-content: center; justify-items: center; border-radius: 17px; background: #0b0d0b; color: var(--muted); font-size: 9px; }
 .demo-stats b { color: white; font-size: 22px; }
 .settings-modal > p { margin: 20px 2px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.reset-button { width: 100%; min-height: 55px; border: 1px solid rgba(255,93,72,.26); border-radius: 17px; background: rgba(255,93,72,.06); color: #ff887a; cursor: pointer; font-size: 12px; font-weight: 850; }
+.reset-button { display: inline-flex; width: 100%; min-height: 55px; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(255,93,72,.26); border-radius: 17px; background: rgba(255,93,72,.06); color: #ff887a; cursor: pointer; font-size: 12px; font-weight: 850; text-align: center; }
+.reset-button .ui-icon { width: 16px; height: 16px; }
 .toast { position: fixed; top: calc(var(--topbar-height) + 15px); left: calc(50% + 125px); z-index: 200; display: flex; min-height: 48px; align-items: center; gap: 7px; transform: translateX(-50%); border: 1px solid rgba(198,255,61,.25); border-radius: 16px; padding: 15px 18px; background: #1d241a; box-shadow: 0 18px 50px rgba(0,0,0,.35); color: var(--lime); font-size: 12px; font-weight: 800; }
 .toast .ui-icon { width: 15px; height: 15px; }
 
@@ -1130,8 +1133,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .calendar-grid button.outside { color: #555b54; }
 .calendar-grid button.today { border-color: rgba(255,255,255,.42); color: white; }
 .calendar-grid button.selected { background: #ecefe9; color: var(--ink); }
-.calendar-grid button i { position: absolute; right: 50%; bottom: 7px; width: 8px; min-width: 0; height: 8px; border-radius: 999px; padding: 0; background: var(--lime); box-shadow: 0 0 0 3px rgba(198,255,61,.1); content: ''; transform: translateX(50%); }
-.calendar-grid button.selected i { background: #6b8a21; box-shadow: none; }
+.calendar-grid button i { position: absolute; right: 50%; bottom: 7px; width: 8px; min-width: 0; height: 8px; border: 0; border-radius: 50%; padding: 0; background: var(--lime); box-shadow: none; content: ''; transform: translateX(50%); }
+.calendar-grid button.selected i { background: #6b8a21; }
 .calendar-agenda { margin-top: 30px; }
 .calendar-agenda .section-heading > span { color: var(--muted); font-size: 13px; font-weight: 750; }
 .calendar-agenda .section-heading h2 { text-transform: capitalize; }
@@ -1144,7 +1147,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .agenda-list strong { font-size: 16px; }
 .agenda-list small { color: var(--muted); font-size: 13px; }
 .agenda-list p { overflow: hidden; margin: 2px 0 0; color: #c8ccc5; font-size: 12px; font-style: italic; text-overflow: ellipsis; white-space: nowrap; }
-.agenda-list b { border-radius: 999px; padding: 8px 10px; background: rgba(255,255,255,.06); color: #d9ddd5; font-size: 11px; white-space: nowrap; }
+.agenda-tail { display: flex; align-items: center; justify-content: flex-end; gap: 9px; }
+.agenda-tail b { border-radius: 999px; padding: 8px 10px; background: rgba(255,255,255,.06); color: #d9ddd5; font-size: 11px; white-space: nowrap; }
+.agenda-tail > .ui-icon { width: 17px; height: 17px; }
 
 .calendar-shortcut { display: grid; width: 100%; min-height: 84px; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin-top: 16px; border: 1px solid rgba(255,255,255,.08); border-radius: 23px; padding: 14px 17px; background: var(--surface); cursor: pointer; text-align: left; }
 .calendar-shortcut > span { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 15px; background: rgba(122,76,255,.16); color: #b59eff; }
@@ -1230,7 +1235,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .athlete-form textarea { min-height: 150px; resize: vertical; padding-block: 15px; line-height: 1.5; }
 .athlete-form label > small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .athlete-form .primary-button { margin-top: 5px; }
-.details-edit-button { min-height: 42px; margin: 0 0 10px; border: 0; padding: 0; background: transparent; color: #c8ccc5; cursor: pointer; font-size: 13px; font-weight: 800; }
+.details-edit-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 7px; margin: 0 0 10px; border: 0; padding: 0; background: transparent; color: #c8ccc5; cursor: pointer; font-size: 13px; font-weight: 800; text-align: center; }
+.details-edit-button .ui-icon { width: 16px; height: 16px; }
 .profile-links { display: grid; gap: 10px; margin-top: 25px; }
 .student-plan-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .student-plan-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.04em; }
@@ -1269,18 +1275,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workouts-page .page-header, .workouts-page .page-header > div { min-width: 0; }
 
 /* One quiet surface system with small, repeatable brand accents. */
-.client-card i,
-.session-row i,
-.workout-row i,
-.workout-template-row > .ui-icon,
-.history-date {
-  color: var(--lime);
-}
-
-.history-list i {
-  background: var(--brand-soft);
-  color: var(--lime);
-}
+.history-date { color: var(--lime); }
 
 .student-card-top b {
   background: rgba(95,127,24,.12);
@@ -1303,8 +1298,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .calendar-grid, .calendar-weekdays { gap: 4px; }
   .calendar-grid button { min-height: 49px; border-radius: 14px; }
   .calendar-grid button i { right: 50%; bottom: 4px; width: 7px; min-width: 0; height: 7px; padding: 0; }
-  .agenda-list > button { grid-template-columns: auto minmax(0,1fr); }
-  .agenda-list > button > b { grid-column: 2; width: fit-content; }
+  .agenda-list > button { grid-template-columns: auto minmax(0,1fr) auto; }
+  .agenda-tail { align-self: stretch; flex-direction: column; justify-content: center; }
+  .agenda-tail b { display: none; }
   .feedback-page { min-height: calc(100svh - var(--topbar-height)); padding: 35px 18px 115px; }
   .schedule-fields { grid-template-columns: 1fr; }
   .schedule-field { padding: 16px; }

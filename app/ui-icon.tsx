@@ -43,9 +43,10 @@ export const iconAssetPaths = Object.values(iconFiles).map((file) => `icons/${fi
 
 export default function Icon({ name, className = '' }: { name: IconName; className?: string }) {
   const url = `url("icons/${iconFiles[name]}")`;
+  const semanticClass = name.startsWith('chevron-') ? 'ui-chevron' : '';
   return (
     <span
-      className={`ui-icon ${className}`}
+      className={`ui-icon ${semanticClass} ${className}`.trim()}
       aria-hidden="true"
       style={{ WebkitMaskImage: url, maskImage: url }}
     />
