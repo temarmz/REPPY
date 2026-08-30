@@ -9,6 +9,7 @@ export type Student = {
   height?: number;
   weight?: number;
   gender?: 'male' | 'female' | 'not-specified';
+  phone?: string;
   contraindications?: string;
 };
 
@@ -36,6 +37,11 @@ export type Assignment = {
   scheduledFor: string;
   scheduledTime: string;
   status: 'assigned' | 'completed';
+  rescheduleRequest?: {
+    scheduledFor: string;
+    scheduledTime: string;
+    requestedAt: string;
+  };
 };
 
 export type SetResult = {
@@ -199,9 +205,9 @@ export function createInitialState(): DemoState {
     role: 'trainer',
     activeStudentId: 'artem',
     students: [
-      { id: 'artem', name: 'Артем А.', status: 'active', color: 'lime', height: 182, weight: 86, gender: 'male', contraindications: 'Иногда болит левое запястье при жимовых упражнениях.' },
-      { id: 'maria', name: 'Мария А.', status: 'active', color: 'violet', height: 168, weight: 61, gender: 'female', contraindications: '' },
-      { id: 'anton', name: 'Антон К.', status: 'active', color: 'pink', height: 176, weight: 74, gender: 'male', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
+      { id: 'artem', name: 'Артем А.', status: 'active', color: 'lime', height: 182, weight: 86, gender: 'male', phone: '+7 916 482-17-35', contraindications: 'Иногда болит левое запястье при жимовых упражнениях.' },
+      { id: 'maria', name: 'Мария А.', status: 'active', color: 'violet', height: 168, weight: 61, gender: 'female', phone: '+7 903 754-26-81', contraindications: '' },
+      { id: 'anton', name: 'Антон К.', status: 'active', color: 'pink', height: 176, weight: 74, gender: 'male', phone: '+7 925 318-64-09', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
     ],
     workouts: createDemoWorkouts(now),
     assignments: createDemoAssignments(now),
@@ -221,10 +227,10 @@ const demoStudentProfiles: Record<string, Pick<Student, 'name' | 'color'>> = {
   anton: { name: 'Антон К.', color: 'pink' },
 };
 
-const demoHealthDefaults: Record<string, Pick<Student, 'height' | 'weight' | 'gender' | 'contraindications'>> = {
-  artem: { height: 182, weight: 86, gender: 'male', contraindications: 'Иногда болит левое запястье при жимовых упражнениях.' },
-  maria: { height: 168, weight: 61, gender: 'female', contraindications: '' },
-  anton: { height: 176, weight: 74, gender: 'male', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
+const demoHealthDefaults: Record<string, Pick<Student, 'height' | 'weight' | 'gender' | 'phone' | 'contraindications'>> = {
+  artem: { height: 182, weight: 86, gender: 'male', phone: '+7 916 482-17-35', contraindications: 'Иногда болит левое запястье при жимовых упражнениях.' },
+  maria: { height: 168, weight: 61, gender: 'female', phone: '+7 903 754-26-81', contraindications: '' },
+  anton: { height: 176, weight: 74, gender: 'male', phone: '+7 925 318-64-09', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
 };
 
 export function migrateDemoState(state: DemoState): DemoState {
@@ -256,6 +262,7 @@ export function migrateDemoState(state: DemoState): DemoState {
         height: student.height ?? health?.height,
         weight: student.weight ?? health?.weight,
         gender: student.gender ?? health?.gender ?? 'not-specified',
+        phone: student.phone ?? health?.phone ?? '',
         contraindications: student.contraindications ?? health?.contraindications ?? '',
       } : student;
     }),

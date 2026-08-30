@@ -584,6 +584,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .today-empty strong { font-size: 16px; }
 
 .future-schedule { margin-top: 42px; }
+.trainer-upcoming-list { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 24px; background: var(--surface); }
+.trainer-upcoming-row { grid-template-columns: 105px minmax(0,1fr) auto; }
+.trainer-upcoming-row time strong { color: #dfe3dc; }
+.reschedule-inbox { margin-bottom: 22px; }
+.reschedule-inbox .section-heading { margin-bottom: 12px; }
+.reschedule-notification-row { display: grid; width: 100%; min-height: 82px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 14px; border: 0; border-bottom: 1px solid rgba(255,255,255,.06); padding: 13px 16px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.reschedule-notification-row:last-child { border-bottom: 0; }
+.reschedule-notification-row > span { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 14px; background: var(--brand-soft); color: var(--lime); }
+.reschedule-notification-row > span .ui-icon { width: 20px; height: 20px; }
+.reschedule-notification-row > div { display: grid; min-width: 0; gap: 5px; }
+.reschedule-notification-row strong { font-size: 15px; }
+.reschedule-notification-row small { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.reschedule-notification-row > .ui-icon { width: 17px; height: 17px; }
 .plan-day-list { display: grid; gap: 12px; }
 .plan-day-card { overflow: hidden; border: 1px solid rgba(255,255,255,.075); border-radius: 26px; background: var(--surface); }
 .plan-day-card > header { display: flex; min-height: 82px; align-items: center; gap: 16px; border-bottom: 1px solid rgba(255,255,255,.065); padding: 14px 18px; background: rgba(255,255,255,.025); }
@@ -776,8 +789,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 .student-page { width: min(100%, 760px); }
 .student-focus-card { min-height: 330px; border: 1px solid rgba(255,255,255,.08); border-radius: 30px; padding: clamp(22px, 5vw, 30px); background: #ecefe9; color: var(--ink); }
-.student-card-top { display: flex; justify-content: space-between; align-items: center; }
-.student-card-top span { color: #5f7f18; font-size: 10px; font-weight: 950; letter-spacing: .15em; }
+.student-card-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.student-card-top time { display: flex; min-width: 0; align-items: baseline; gap: 7px; color: #5f7f18; }
+.student-card-top time strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.student-card-top time small { font-size: 12px; font-weight: 900; }
 .student-card-top b { border-radius: 999px; padding: 8px 10px; background: rgba(7,9,8,.07); color: #596058; font-size: 9px; letter-spacing: .08em; }
 .student-focus-card > div:nth-child(2) { margin: 72px 0 28px; }
 .student-focus-card h2 { margin: 0; font-size: clamp(44px, 9vw, 68px); line-height: .9; letter-spacing: -.075em; }
@@ -1218,7 +1233,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .athlete-details .section-heading { margin-bottom: 12px; }
 .athlete-details .section-heading h2 { color: #b9beb7; font-size: 17px; }
 .athlete-details .section-heading button { min-height: 38px; font-size: 12px; }
-.athlete-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.athlete-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .athlete-summary > div, .athlete-summary article { border-radius: 17px; padding: 14px; background: rgba(255,255,255,.035); }
 .athlete-summary > div { display: grid; min-height: 76px; align-content: center; gap: 6px; }
 .athlete-summary span { color: #777e76; font-size: 11px; font-weight: 750; }
@@ -1261,6 +1276,30 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workout-detail-actions .primary-button, .workout-detail-actions .wide-secondary { min-height: 58px; }
 .workout-plan-heading { margin-bottom: 14px; }
 .assignment-edit-button { margin-bottom: 22px; }
+.reschedule-request-card { display: grid; gap: 20px; margin-bottom: 16px; border: 1px solid rgba(198,255,61,.16); border-radius: 26px; padding: 22px; background: var(--brand-soft); }
+.reschedule-request-card > div:first-child { display: grid; gap: 8px; }
+.reschedule-request-card span { color: var(--lime); font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.reschedule-request-card h2 { margin: 0; font-size: 20px; letter-spacing: -.035em; }
+.reschedule-request-card p { display: flex; align-items: baseline; gap: 8px; margin: 3px 0 0; color: #dce0d8; font-size: 14px; }
+.reschedule-request-card time { color: var(--lime); font-weight: 900; }
+.reschedule-request-actions { display: grid; grid-template-columns: 1fr 1.15fr; gap: 9px; }
+.student-assignment-schedule { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 16px; border: 1px solid var(--ui-outline); border-radius: 25px; padding: 18px; background: var(--surface); }
+.student-assignment-schedule > span { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 17px; background: var(--brand-soft); color: var(--lime); }
+.student-assignment-schedule > span .ui-icon { width: 23px; height: 23px; }
+.student-assignment-schedule > div { display: grid; min-width: 0; gap: 5px; }
+.student-assignment-schedule small { color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.student-assignment-schedule strong { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.student-assignment-schedule time { color: var(--lime); font-size: 14px; font-weight: 900; }
+.student-reschedule-button, .student-start-button { margin-top: 12px; }
+.student-reschedule-form { display: grid; gap: 12px; margin-top: 12px; border: 1px solid var(--ui-outline); border-radius: 26px; padding: 16px; background: var(--surface); }
+.student-reschedule-form .schedule-fields { margin-top: 0; }
+.student-request-status { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 12px; margin-top: 12px; border: 1px solid rgba(198,255,61,.14); border-radius: 22px; padding: 16px; background: var(--brand-soft); }
+.student-request-status > .ui-icon { width: 20px; height: 20px; color: var(--lime); }
+.student-request-status > div { display: grid; gap: 5px; }
+.student-request-status strong { font-size: 14px; }
+.student-request-status p { margin: 0; color: #dce0d8; font-size: 13px; }
+.student-request-status small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.student-assignment-page .workout-plan-heading { margin-top: 34px; }
 .profile-schedule .workout-row { grid-template-columns: minmax(0,1fr) auto; }
 .assignment-edit-card { border-radius: 30px; padding: clamp(22px, 5vw, 36px); background: var(--surface); }
 .assignment-edit-person { display: flex; align-items: center; gap: 17px; margin-bottom: 26px; }
@@ -1276,6 +1315,30 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 /* One quiet surface system with small, repeatable brand accents. */
 .history-date { color: var(--lime); }
+
+/* Functional numbers share the same compact typeface as exercise indices.
+   Prose dates and phone numbers stay in the interface font for readability. */
+.stat-card strong,
+.completion-ring,
+.plan-session-row > time,
+.calendar-grid button,
+.workout-summary-hero strong,
+.exercise-plan-list p,
+.metric-input input,
+.student-card-top time small,
+.student-card-top b,
+.student-upcoming-row time small,
+.active-header > b,
+.set-number strong,
+.set-card input,
+.success-screen section b,
+.result-exercises p strong,
+.pricing-grid strong,
+.student-assignment-schedule time,
+.reschedule-request-card time {
+  font-family: var(--app-font-mono);
+  font-variant-numeric: tabular-nums;
+}
 
 .student-card-top b {
   background: rgba(95,127,24,.12);

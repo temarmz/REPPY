@@ -15,6 +15,7 @@ export type IconName =
   | 'copy'
   | 'sun'
   | 'change'
+  | 'edit'
   | 'minus'
   | 'success';
 
@@ -35,6 +36,7 @@ const iconFiles: Record<IconName, string> = {
   copy: 'icon-copy.svg',
   sun: 'icon-sun-reppy.svg',
   change: 'icon-change.svg',
+  edit: 'icon-edit.svg',
   minus: 'icon-minus.svg',
   success: 'icon-success.svg',
 };
