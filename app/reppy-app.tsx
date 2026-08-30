@@ -763,25 +763,25 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
       <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
         {trainerView && <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить тренировку</button>}
-        {assignments.length ? assignments.map((assignment) => {
+        {assignments.length ? <div className="connected-list">{assignments.map((assignment) => {
           const workout = findWorkout(data, assignment.workoutId);
           return (
             <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/workout/${assignment.id}`)}>
               <span><strong>{workout?.name}</strong><small>{formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
-        }) : trainerView
+        })}</div> : trainerView
           ? <EmptyState icon="calendar" title="Пока пусто" text="Выбери готовую тренировку и назначь её ученику." />
           : <EmptyState icon="calendar" title="Пока пусто" text="Тренер ещё не добавил ближайшие занятия." />}
       </section>
 
       {trainerView && <section className="section-block">
         <div className="section-heading"><h2>Последняя активность</h2></div>
-        {sessions.length ? sessions.slice(0, 3).map((session) => (
+        {sessions.length ? <div className="connected-list">{sessions.slice(0, 3).map((session) => (
           <button className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
             <span className="done-badge"><Icon name="check" /></span><span><strong>{findWorkout(data, session.workoutId)?.name}</strong><small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</small></span><i>Результат <Icon name="arrow-right" /></i>
           </button>
-        )) : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
+        ))}</div> : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
       </section>}
 
       <AthleteDetails student={student} onSave={onUpdate} />
@@ -884,8 +884,9 @@ function WorkoutsList({ data }: { data: DemoState }) {
     <main className="content-page workouts-page">
       <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts/new')}><Icon name="plus" /> {COPY.createWorkout}</button>
       <section className="workout-template-list">
-        {data.workouts.map((workout) => (
+        {data.workouts.map((workout, index) => (
             <button className="workout-template-row" key={workout.id} type="button" onClick={() => go(`/trainer/workouts/${workout.id}`)}>
+              <span className="template-number">{String(index + 1).padStart(2, '0')}</span>
               <div><h2>{workout.name}</h2><p>{exercisePreview(workout, true)}</p></div>
               <Icon name="chevron-right" />
             </button>
@@ -1018,7 +1019,7 @@ function AssignmentDetails({ data, assignment }: { data: DemoState; assignment: 
   return (
     <main className="content-page narrow-page">
       <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)}, ${assignment.scheduledTime}`} title={workout.name.toUpperCase()} />
-      {assignment.status === 'assigned' && <button className="list-primary-action assignment-edit-button" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="change" /> Редактировать назначение</button>}
+      {assignment.status === 'assigned' && <button className="wide-secondary assignment-edit-button" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="change" /> Редактировать назначение</button>}
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (

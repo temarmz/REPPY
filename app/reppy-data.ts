@@ -100,11 +100,27 @@ const workoutExercise = (
   targetWeight: number,
 ): WorkoutExercise => ({ id, exerciseId, name, sets, targetReps, targetWeight });
 
+const demoWorkoutNames: Record<string, string> = {
+  'push-day': 'Грудь и плечи',
+  legs: 'Ноги',
+  'pull-day': 'Спина и бицепс',
+  'upper-body': 'Верх тела',
+  arms: 'Руки',
+};
+
+const legacyDemoWorkoutNames: Record<string, string> = {
+  'push-day': 'Push Day',
+  legs: 'Legs',
+  'pull-day': 'Pull Day',
+  'upper-body': 'Upper Body',
+  arms: 'Arms',
+};
+
 function createDemoWorkouts(now: string): Workout[] {
   return [
     {
       id: 'push-day',
-      name: 'Push Day',
+      name: demoWorkoutNames['push-day'],
       createdAt: now,
       exercises: [
         workoutExercise('push-bench', 'bench-press', 'Жим лёжа', 4, 8, 80),
@@ -114,7 +130,7 @@ function createDemoWorkouts(now: string): Workout[] {
     },
     {
       id: 'legs',
-      name: 'Legs',
+      name: demoWorkoutNames.legs,
       createdAt: now,
       exercises: [
         workoutExercise('legs-squat', 'squat', 'Приседания', 4, 8, 70),
@@ -124,7 +140,7 @@ function createDemoWorkouts(now: string): Workout[] {
     },
     {
       id: 'pull-day',
-      name: 'Pull Day',
+      name: demoWorkoutNames['pull-day'],
       createdAt: now,
       exercises: [
         workoutExercise('pull-ups-main', 'pull-ups', 'Подтягивания', 4, 8, 0),
@@ -134,7 +150,7 @@ function createDemoWorkouts(now: string): Workout[] {
     },
     {
       id: 'upper-body',
-      name: 'Upper Body',
+      name: demoWorkoutNames['upper-body'],
       createdAt: now,
       exercises: [
         workoutExercise('upper-bench', 'bench-press', 'Жим лёжа', 3, 10, 70),
@@ -145,7 +161,7 @@ function createDemoWorkouts(now: string): Workout[] {
     },
     {
       id: 'arms',
-      name: 'Arms',
+      name: demoWorkoutNames.arms,
       createdAt: now,
       exercises: [
         workoutExercise('arms-curl', 'dumbbell-curl', 'Сгибание рук с гантелями', 4, 10, 14),
@@ -213,6 +229,11 @@ const demoHealthDefaults: Record<string, Pick<Student, 'height' | 'weight' | 'ge
 
 export function migrateDemoState(state: DemoState): DemoState {
   const currentId = (id: string) => legacyStudentIds[id] ?? id;
+  const localizedWorkouts = state.workouts.map((workout) => {
+    const localizedName = demoWorkoutNames[workout.id];
+    const legacyName = legacyDemoWorkoutNames[workout.id];
+    return localizedName && workout.name === legacyName ? { ...workout, name: localizedName } : workout;
+  });
   const missingDemoWorkouts = createDemoWorkouts(new Date().toISOString())
     .filter((workout) => !state.workouts.some((item) => item.id === workout.id));
   const migratedAssignments = state.assignments.map((assignment) => ({
@@ -239,7 +260,7 @@ export function migrateDemoState(state: DemoState): DemoState {
       } : student;
     }),
     assignments: migratedAssignments,
-    workouts: [...state.workouts, ...missingDemoWorkouts],
+    workouts: [...localizedWorkouts, ...missingDemoWorkouts],
     sessions: state.sessions.map((session) => ({
       ...session,
       studentId: currentId(session.studentId),

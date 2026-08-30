@@ -9,6 +9,8 @@
   --violet: #7a4cff;
   --pink: #ff4fd8;
   --orange: #ff6a35;
+  --ui-outline: rgba(255,255,255,.085);
+  --brand-soft: rgba(198,255,61,.11);
   --app-font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   --app-font-mono: var(--font-geist-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
   --topbar-content-height: 76px;
@@ -513,7 +515,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   border: 0;
   border-radius: 18px;
   padding: 0 20px;
-  background: #ecefe9;
+  background: var(--lime);
   color: var(--ink);
   cursor: pointer;
   font-size: 14px;
@@ -534,7 +536,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .stat-card p { margin: 0; font-size: 13px; font-weight: 650; opacity: .65; }
 .lime-card { background: var(--lime); }
 .violet-card { background: linear-gradient(145deg, #8e62ff, #6438ed); color: white; }
-.assignment-list { overflow: hidden; border-radius: 24px; background: var(--surface); }
+.assignment-list, .connected-list { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 24px; background: var(--surface); }
 .activity-row, .workout-row, .session-row {
   display: grid;
   width: 100%;
@@ -595,7 +597,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .plan-session-row small { overflow: hidden; color: var(--muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .plan-session-row > .ui-icon { width: 17px; height: 17px; color: #777e76; }
 .today-schedule .plan-session-row { border-bottom-color: rgba(7,9,8,.075); }
-.today-schedule .plan-session-row > time { color: #303530; }
+.today-schedule .plan-session-row > time { color: #5f7f18; }
 .today-schedule .plan-session-row small { color: #666d65; }
 .today-schedule .plan-session-row > .ui-icon { color: #6d746c; }
 .today-schedule .person-avatar.lime { border-color: rgba(92,123,30,.16); background: rgba(139,180,61,.16); color: #52612f; }
@@ -750,7 +752,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workout-summary-hero span { font-size: 9px; font-weight: 950; letter-spacing: .14em; }
 .workout-summary-hero strong { display: block; margin-top: 28px; font-size: 92px; font-weight: 950; line-height: .8; letter-spacing: -.1em; }
 .workout-summary-hero p { margin: 12px 0 0; font-size: 13px; font-weight: 800; opacity: .62; }
-.exercise-plan-list { display: grid; margin-top: 17px; overflow: hidden; border-radius: 27px; background: var(--surface); }
+.exercise-plan-list { display: grid; margin-top: 17px; overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 27px; background: var(--surface); }
 .exercise-plan-list article { display: grid; min-height: 100px; grid-template-columns: auto 1fr; align-items: center; gap: 18px; border-bottom: 1px solid rgba(255,255,255,.07); padding: 18px 22px; }
 .exercise-plan-list article:last-child { border-bottom: 0; }
 .exercise-plan-list article > span { color: var(--lime); font-family: var(--app-font-mono); font-size: 11px; font-weight: 900; }
@@ -761,7 +763,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .sticky-actions .primary-button { min-height: 58px; }
 
 .select-student-list { display: grid; gap: 10px; }
-.select-student-list > button:not(.assign-button) { display: grid; min-height: 82px; grid-template-columns: auto 1fr auto; align-items: center; gap: 15px; border: 1px solid transparent; border-radius: 22px; padding: 14px 17px; background: var(--surface); cursor: pointer; text-align: left; }
+.select-student-list > button:not(.assign-button) { display: grid; min-height: 82px; grid-template-columns: auto 1fr auto; align-items: center; gap: 15px; border: 1px solid var(--ui-outline); border-radius: 22px; padding: 14px 17px; background: var(--surface); cursor: pointer; text-align: left; }
 .select-student-list > button.selected { border-color: var(--lime); background: rgba(198,255,61,.06); }
 .select-student-list button > span:not(.person-avatar) { display: grid; gap: 5px; }
 .select-student-list strong { font-size: 15px; }
@@ -773,7 +775,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-page { width: min(100%, 760px); }
 .student-focus-card { min-height: 330px; border: 1px solid rgba(255,255,255,.08); border-radius: 30px; padding: clamp(22px, 5vw, 30px); background: #ecefe9; color: var(--ink); }
 .student-card-top { display: flex; justify-content: space-between; align-items: center; }
-.student-card-top span { font-size: 10px; font-weight: 950; letter-spacing: .15em; }
+.student-card-top span { color: #5f7f18; font-size: 10px; font-weight: 950; letter-spacing: .15em; }
 .student-card-top b { border-radius: 999px; padding: 8px 10px; background: rgba(7,9,8,.07); color: #596058; font-size: 9px; letter-spacing: .08em; }
 .student-focus-card > div:nth-child(2) { margin: 72px 0 28px; }
 .student-focus-card h2 { margin: 0; font-size: clamp(44px, 9vw, 68px); line-height: .9; letter-spacing: -.075em; }
@@ -781,8 +783,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workout-progress { height: 5px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.15); }
 .workout-progress span { display: block; height: 100%; border-radius: inherit; background: var(--lime); transition: width .2s ease; }
 .student-focus-card .workout-progress { background: rgba(7,9,8,.1); }
-.student-focus-card .workout-progress span { background: #535b52; }
-.student-focus-card > button { display: flex; width: 100%; min-height: 62px; align-items: center; justify-content: space-between; margin-top: 25px; border: 0; border-radius: 18px; padding: 0 20px; background: #151915; color: white; cursor: pointer; font-size: 14px; font-weight: 900; }
+.student-focus-card .workout-progress span { background: #6f9518; }
+.student-focus-card > button { display: flex; width: 100%; min-height: 62px; align-items: center; justify-content: space-between; margin-top: 25px; border: 0; border-radius: 18px; padding: 0 20px; background: var(--lime); color: var(--ink); cursor: pointer; font-size: 14px; font-weight: 900; }
 .student-focus-card > button .ui-icon { width: 22px; height: 22px; }
 .student-upcoming { margin-top: 38px; }
 .student-upcoming .section-heading > span { display: grid; min-width: 30px; height: 30px; place-items: center; border-radius: 10px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 12px; font-weight: 850; }
@@ -839,7 +841,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .history-link { min-height: 48px; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 800; }
 
 .history-list { display: grid; gap: 10px; }
-.history-list button { display: grid; min-height: 100px; grid-template-columns: 95px 1fr auto; align-items: center; gap: 15px; border: 0; border-radius: 24px; padding: 17px; background: var(--surface); cursor: pointer; text-align: left; }
+.history-list button { display: grid; min-height: 100px; grid-template-columns: 95px 1fr auto; align-items: center; gap: 15px; border: 1px solid var(--ui-outline); border-radius: 24px; padding: 17px; background: var(--surface); cursor: pointer; text-align: left; }
 .history-date { color: #cbd0c9; font-size: 11px; font-weight: 850; }
 .history-list div { display: grid; gap: 6px; }
 .history-list strong { font-size: 17px; }
@@ -848,7 +850,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .history-list i .ui-icon { width: 18px; height: 18px; }
 .result-overview { margin: -12px 0 22px; color: var(--muted); font-size: 14px; font-weight: 750; }
 .result-exercises { display: grid; gap: 13px; }
-.result-exercises article { overflow: hidden; border-radius: 25px; background: var(--surface); }
+.result-exercises article { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 25px; background: var(--surface); }
 .result-exercises header { display: flex; min-height: 70px; align-items: center; gap: 13px; border-bottom: 1px solid rgba(255,255,255,.07); padding: 13px 18px; }
 .result-exercises header span { color: var(--lime); font-family: var(--app-font-mono); font-size: 10px; font-weight: 900; }
 .result-exercises h2 { margin: 0; font-size: 16px; }
@@ -911,8 +913,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
-  .bottom-nav { position: relative; z-index: 60; display: flex; width: 100%; min-height: calc(70px + env(safe-area-inset-bottom, 0px)); flex-shrink: 0; align-items: flex-start; justify-content: space-around; border: 1px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 7px 12px max(7px, env(safe-area-inset-bottom, 0px)); background: rgba(21,25,21,.97); box-shadow: 0 -12px 38px rgba(0,0,0,.34); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
-  .bottom-nav button { display: grid; min-width: 74px; min-height: 56px; place-content: center; justify-items: center; gap: 4px; border: 0; border-radius: 18px; background: transparent; color: #7e847c; cursor: pointer; }
+  .bottom-nav { position: relative; z-index: 60; display: flex; width: 100%; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; border: 1px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 5px 12px max(5px, calc(env(safe-area-inset-bottom, 0px) - 12px)); background: rgba(21,25,21,.97); box-shadow: 0 -12px 38px rgba(0,0,0,.34); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  .bottom-nav button { display: grid; min-width: 74px; min-height: 52px; place-content: center; justify-items: center; gap: 4px; border: 0; border-radius: 17px; background: transparent; color: #7e847c; cursor: pointer; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: 19px; height: 19px; }
   .bottom-nav button small { font-size: 9px; font-weight: 800; }
@@ -1128,14 +1130,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .calendar-grid button.outside { color: #555b54; }
 .calendar-grid button.today { border-color: rgba(255,255,255,.42); color: white; }
 .calendar-grid button.selected { background: #ecefe9; color: var(--ink); }
-.calendar-grid button i { position: absolute; right: 50%; bottom: 7px; width: 6px; min-width: 0; height: 6px; border-radius: 999px; padding: 0; background: #777e76; content: ''; transform: translateX(50%); }
+.calendar-grid button i { position: absolute; right: 50%; bottom: 7px; width: 8px; min-width: 0; height: 8px; border-radius: 999px; padding: 0; background: var(--lime); box-shadow: 0 0 0 3px rgba(198,255,61,.1); content: ''; transform: translateX(50%); }
+.calendar-grid button.selected i { background: #6b8a21; box-shadow: none; }
 .calendar-agenda { margin-top: 30px; }
 .calendar-agenda .section-heading > span { color: var(--muted); font-size: 13px; font-weight: 750; }
 .calendar-agenda .section-heading h2 { text-transform: capitalize; }
 .agenda-list { display: grid; gap: 10px; }
-.agenda-list > button { display: grid; min-height: 92px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 14px; border: 0; border-radius: 23px; padding: 15px 17px; background: var(--surface); cursor: pointer; text-align: left; }
-.agenda-status { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 16px; background: rgba(255,255,255,.07); color: #c4c9c2; }
-.agenda-status.completed { background: rgba(255,255,255,.1); color: #e2e6df; }
+.agenda-list > button { display: grid; min-height: 92px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 14px; border: 1px solid var(--ui-outline); border-radius: 23px; padding: 15px 17px; background: var(--surface); cursor: pointer; text-align: left; }
+.agenda-status { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 16px; background: var(--brand-soft); color: var(--lime); }
+.agenda-status.completed { background: rgba(198,255,61,.14); color: var(--lime); }
 .agenda-status .ui-icon { width: 21px; height: 21px; }
 .agenda-list div { display: grid; min-width: 0; gap: 5px; }
 .agenda-list strong { font-size: 16px; }
@@ -1241,15 +1244,17 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workout-assignments strong { font-size: 14px; }
 .workout-assignments small { color: var(--muted); font-size: 12px; }
 .workout-template-list { overflow: hidden; border: 1px solid rgba(255,255,255,.07); border-radius: 26px; background: var(--surface); }
-.workout-template-row { display: grid; width: 100%; min-height: 108px; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 15px; border: 0; border-bottom: 1px solid rgba(255,255,255,.065); padding: 18px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.workout-template-row { display: grid; width: 100%; min-height: 108px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 15px; border: 0; border-bottom: 1px solid rgba(255,255,255,.065); padding: 18px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .workout-template-row:last-child { border-bottom: 0; }
 .workout-template-row > div { display: grid; min-width: 0; gap: 6px; }
+.template-number { color: var(--lime); font-family: var(--app-font-mono); font-size: 12px; font-weight: 900; }
 .workout-template-row h2 { overflow: hidden; margin: 0; font-size: 18px; letter-spacing: -.035em; text-overflow: ellipsis; white-space: nowrap; }
 .workout-template-row p { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .workout-template-row > .ui-icon { width: 18px; height: 18px; color: var(--muted); }
 .workout-detail-actions { display: grid; grid-template-columns: .85fr 1.15fr; gap: 10px; margin-bottom: 34px; }
 .workout-detail-actions .primary-button, .workout-detail-actions .wide-secondary { min-height: 58px; }
 .workout-plan-heading { margin-bottom: 14px; }
+.assignment-edit-button { margin-bottom: 22px; }
 .profile-schedule .workout-row { grid-template-columns: minmax(0,1fr) auto; }
 .assignment-edit-card { border-radius: 30px; padding: clamp(22px, 5vw, 36px); background: var(--surface); }
 .assignment-edit-person { display: flex; align-items: center; gap: 17px; margin-bottom: 26px; }
@@ -1263,6 +1268,31 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workouts-page { overflow-x: clip; }
 .workouts-page .page-header, .workouts-page .page-header > div { min-width: 0; }
 
+/* One quiet surface system with small, repeatable brand accents. */
+.client-card i,
+.session-row i,
+.workout-row i,
+.workout-template-row > .ui-icon,
+.history-date {
+  color: var(--lime);
+}
+
+.history-list i {
+  background: var(--brand-soft);
+  color: var(--lime);
+}
+
+.student-card-top b {
+  background: rgba(95,127,24,.12);
+  color: #536f18;
+}
+
+.plan-day-card .plan-session-row > time,
+.connected-list .workout-row small,
+.student-upcoming-row time small {
+  color: var(--lime);
+}
+
 @media (max-width: 800px) {
   .role-switch::after,
   .bottom-nav button small { font-size: 11px; }
@@ -1272,7 +1302,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .calendar-toolbar { margin-bottom: 15px; }
   .calendar-grid, .calendar-weekdays { gap: 4px; }
   .calendar-grid button { min-height: 49px; border-radius: 14px; }
-  .calendar-grid button i { right: 50%; bottom: 4px; width: 5px; min-width: 0; height: 5px; padding: 0; }
+  .calendar-grid button i { right: 50%; bottom: 4px; width: 7px; min-width: 0; height: 7px; padding: 0; }
   .agenda-list > button { grid-template-columns: auto minmax(0,1fr); }
   .agenda-list > button > b { grid-column: 2; width: fit-content; }
   .feedback-page { min-height: calc(100svh - var(--topbar-height)); padding: 35px 18px 115px; }
