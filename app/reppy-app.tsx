@@ -14,6 +14,7 @@ import {
   makeId,
   migrateDemoState,
   resolveAssignmentWorkout,
+  resolveEditedAssignmentSource,
   upsertStudentWorkoutVersion,
   type Assignment,
   type DemoState,
@@ -1289,16 +1290,17 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
     if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
     if (!workout) return;
+    const exercisesChanged = JSON.stringify(exercises) !== JSON.stringify(workout.exercises);
     onSave({
       ...assignment,
       scheduledFor,
       scheduledTime,
-      workoutSnapshot: {
+      workoutSnapshot: exercisesChanged ? {
         ...cloneWorkout(workout),
         exercises: exercises.map((exercise) => ({ ...exercise })),
         updatedAt: new Date().toISOString(),
-      },
-      source: rememberForStudent ? 'student-version' : 'manual-edit',
+      } : cloneWorkout(workout),
+      source: resolveEditedAssignmentSource(assignment.source, exercisesChanged, rememberForStudent),
     }, rememberForStudent);
   };
 

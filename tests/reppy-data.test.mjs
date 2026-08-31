@@ -7,6 +7,7 @@ import {
   findSessionWorkout,
   migrateDemoState,
   resolveAssignmentWorkout,
+  resolveEditedAssignmentSource,
   upsertStudentWorkoutVersion,
 } from '../app/reppy-data.ts';
 
@@ -92,4 +93,11 @@ test('завершённая сессия читает собственный с
   assignment.workoutSnapshot.name = 'Позднее изменение назначения';
 
   assert.equal(findSessionWorkout(state, session)?.name, 'Версия на момент выполнения');
+});
+
+test('изменение только расписания сохраняет источник назначения', () => {
+  assert.equal(resolveEditedAssignmentSource('template', false, false), 'template');
+  assert.equal(resolveEditedAssignmentSource('student-version', false, false), 'student-version');
+  assert.equal(resolveEditedAssignmentSource('template', true, false), 'manual-edit');
+  assert.equal(resolveEditedAssignmentSource('manual-edit', false, true), 'student-version');
 });

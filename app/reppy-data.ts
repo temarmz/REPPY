@@ -368,6 +368,15 @@ export function resolveAssignmentWorkout(data: DemoState, studentId: string, wor
   };
 }
 
+export function resolveEditedAssignmentSource(
+  currentSource: AssignmentSource,
+  exercisesChanged: boolean,
+  rememberForStudent: boolean,
+): AssignmentSource {
+  if (rememberForStudent) return 'student-version';
+  return exercisesChanged ? 'manual-edit' : currentSource;
+}
+
 export function upsertStudentWorkoutVersion(
   versions: StudentWorkoutVersion[],
   studentId: string,
