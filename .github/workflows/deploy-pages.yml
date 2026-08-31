@@ -33,7 +33,10 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
-      - run: npm run build:pages
+      - name: Install browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: Build and run end-to-end tests
+        run: npm run test:e2e
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

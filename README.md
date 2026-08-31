@@ -23,8 +23,10 @@ npm run build:pages
 npm test
 npm run lint
 npm run typecheck
-npm run build:pages
+npm run test:e2e
 ```
+
+Для первого локального запуска E2E-тестов установи Chromium командой `npx playwright install chromium`. Команда `npm run test:e2e` сама собирает production-версию, запускает локальный preview и проверяет основные сценарии тренера и ученика.
 
 Статическая GitHub Pages-версия создаётся в `pages-dist`. Hash-маршруты работают после прямого reload, а workflow `.github/workflows/deploy-pages.yml` публикует папку автоматически из ветки `main`.
 

@@ -23,7 +23,9 @@
     "app/**/*.tsx",
     "pages-app/**/*.ts",
     "pages-app/**/*.tsx",
-    "vite.pages.config.ts"
+    "tests/e2e/**/*.ts",
+    "vite.pages.config.ts",
+    "playwright.config.ts"
   ],
   "exclude": ["node_modules", "pages-dist", "dist"]
 }
