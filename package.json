@@ -9,7 +9,8 @@
     "dev": "vite --config vite.pages.config.ts",
     "build:pages": "vite build --config vite.pages.config.ts",
     "preview": "vite preview --config vite.pages.config.ts",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "react": "19.2.6",

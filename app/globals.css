@@ -733,6 +733,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .round-arrow .ui-icon { width: 18px; height: 18px; }
 
 .workout-form { padding-bottom: 30px; }
+.template-edit-note { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 24px; border: 1px solid rgba(198,255,61,.14); border-radius: 17px; padding: 13px 14px; background: var(--brand-soft); color: #dce0d8; font-size: 12px; line-height: 1.5; }
+.template-edit-note .ui-icon { width: 18px; height: 18px; flex: 0 0 auto; color: var(--lime); }
 .form-section-heading { display: flex; align-items: center; justify-content: space-between; margin: 37px 0 15px; }
 .form-section-heading h2 { margin: 0; font-size: 19px; }
 .form-section-heading span { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 10px; background: rgba(198,255,61,.1); color: var(--lime); font-size: 12px; font-weight: 900; }
@@ -787,6 +789,13 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .select-student-list small { color: var(--muted); font-size: 11px; }
 .select-student-list i { display: grid; color: var(--lime); font-size: 22px; font-style: normal; }
 .select-student-list i .ui-icon { width: 22px; height: 22px; }
+.personal-version-note { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 12px; border: 1px solid rgba(198,255,61,.16); border-radius: 22px; padding: 16px; background: var(--brand-soft); }
+.personal-version-note > span { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 13px; background: rgba(198,255,61,.12); color: var(--lime); }
+.personal-version-note > span .ui-icon { width: 18px; height: 18px; }
+.personal-version-note > div { display: grid; gap: 6px; }
+.personal-version-note strong { font-size: 14px; }
+.personal-version-note p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.personal-version-note button { width: fit-content; border: 0; padding: 2px 0; background: transparent; color: var(--lime); cursor: pointer; font-size: 12px; font-weight: 850; text-align: left; }
 .assign-button { margin-top: 16px; }
 
 .student-page { width: min(100%, 760px); }
@@ -1306,11 +1315,22 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-assignment-page .workout-plan-heading { margin-top: 34px; }
 .profile-schedule .workout-row { grid-template-columns: minmax(0,1fr) auto; }
 .assignment-edit-card { border-radius: 30px; padding: clamp(22px, 5vw, 36px); background: var(--surface); }
+.assignment-source { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 13px; margin-bottom: 12px; border: 1px solid var(--ui-outline); border-radius: 20px; padding: 15px 17px; background: var(--surface); }
+.assignment-source > .ui-icon { width: 20px; height: 20px; color: var(--lime); }
+.assignment-source > div { display: grid; gap: 5px; }
+.assignment-source small { color: var(--muted); font-size: 9px; font-weight: 900; letter-spacing: .1em; }
+.assignment-source strong { font-size: 13px; line-height: 1.35; }
 .assignment-edit-person { display: flex; align-items: center; gap: 17px; margin-bottom: 26px; }
 .assignment-edit-person > div { display: grid; gap: 5px; }
 .assignment-edit-person span { color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .1em; }
 .assignment-edit-person strong { font-size: 23px; letter-spacing: -.04em; }
 .assignment-edit-person p { margin: 0; color: var(--muted); font-size: 13px; }
+.assignment-edit-card .form-section-heading { margin-top: 30px; }
+.remember-version-toggle { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 12px; margin-top: 20px; border: 1px solid var(--ui-outline); border-radius: 20px; padding: 16px; background: rgba(255,255,255,.025); cursor: pointer; }
+.remember-version-toggle input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--lime); }
+.remember-version-toggle > span { display: grid; gap: 6px; }
+.remember-version-toggle strong { font-size: 13px; }
+.remember-version-toggle small { color: var(--muted); font-size: 11px; line-height: 1.5; }
 .assignment-edit-actions { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; margin-top: 26px; }
 .danger-button { display: inline-flex; min-height: 60px; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(255,120,104,.2); border-radius: 19px; background: rgba(255,120,104,.055); color: #d99287; cursor: pointer; font-size: 13px; font-weight: 800; }
 .danger-button .ui-icon { width: 16px; height: 16px; }

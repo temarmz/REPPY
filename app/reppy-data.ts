@@ -27,7 +27,10 @@ export type Workout = {
   name: string;
   exercises: WorkoutExercise[];
   createdAt: string;
+  updatedAt?: string;
 };
+
+export type AssignmentSource = 'template' | 'student-version' | 'manual-edit';
 
 export type Assignment = {
   id: string;
@@ -37,11 +40,23 @@ export type Assignment = {
   scheduledFor: string;
   scheduledTime: string;
   status: 'assigned' | 'completed';
+  workoutSnapshot: Workout;
+  source: AssignmentSource;
   rescheduleRequest?: {
     scheduledFor: string;
     scheduledTime: string;
     requestedAt: string;
   };
+};
+
+export type StudentWorkoutVersion = {
+  id: string;
+  studentId: string;
+  baseWorkoutId: string;
+  name: string;
+  exercises: WorkoutExercise[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type SetResult = {
@@ -57,6 +72,7 @@ export type WorkoutSession = {
   assignmentId: string;
   studentId: string;
   workoutId: string;
+  workoutSnapshot: Workout;
   startedAt: string;
   completedAt?: string;
   mood?: MoodRating;
@@ -70,6 +86,7 @@ export type DemoState = {
   activeStudentId: string;
   students: Student[];
   workouts: Workout[];
+  studentWorkoutVersions: StudentWorkoutVersion[];
   assignments: Assignment[];
   sessions: WorkoutSession[];
 };
@@ -178,27 +195,43 @@ function createDemoWorkouts(now: string): Workout[] {
   ];
 }
 
-function createDemoAssignments(now: string): Assignment[] {
+function createDemoAssignments(now: string, workouts: Workout[]): Assignment[] {
   const after = (days: number) => {
     const date = new Date();
     date.setDate(date.getDate() + days);
     return dateKey(date);
   };
+  const assignment = (id: string, workoutId: string, studentId: string, days: number, scheduledTime: string): Assignment => {
+    const workout = workouts.find((item) => item.id === workoutId);
+    if (!workout) throw new Error(`Не найден шаблон демо-тренировки: ${workoutId}`);
+    return {
+      id,
+      workoutId,
+      studentId,
+      assignedAt: now,
+      scheduledFor: after(days),
+      scheduledTime,
+      status: 'assigned',
+      workoutSnapshot: cloneWorkout(workout),
+      source: 'template',
+    };
+  };
   return [
-    { id: 'assignment-maria-legs', workoutId: 'legs', studentId: 'maria', assignedAt: now, scheduledFor: after(0), scheduledTime: '18:00', status: 'assigned' },
-    { id: 'assignment-artem-push-today', workoutId: 'push-day', studentId: 'artem', assignedAt: now, scheduledFor: after(0), scheduledTime: '19:30', status: 'assigned' },
-    { id: 'assignment-artem-push-1', workoutId: 'push-day', studentId: 'artem', assignedAt: now, scheduledFor: after(1), scheduledTime: '19:00', status: 'assigned' },
-    { id: 'assignment-anton-push-1', workoutId: 'push-day', studentId: 'anton', assignedAt: now, scheduledFor: after(2), scheduledTime: '17:30', status: 'assigned' },
-    { id: 'assignment-maria-push-1', workoutId: 'push-day', studentId: 'maria', assignedAt: now, scheduledFor: after(3), scheduledTime: '10:00', status: 'assigned' },
-    { id: 'assignment-artem-legs-1', workoutId: 'legs', studentId: 'artem', assignedAt: now, scheduledFor: after(5), scheduledTime: '19:00', status: 'assigned' },
-    { id: 'assignment-anton-legs-1', workoutId: 'legs', studentId: 'anton', assignedAt: now, scheduledFor: after(8), scheduledTime: '17:30', status: 'assigned' },
-    { id: 'assignment-artem-push-2', workoutId: 'push-day', studentId: 'artem', assignedAt: now, scheduledFor: after(10), scheduledTime: '19:00', status: 'assigned' },
-    { id: 'assignment-maria-legs-2', workoutId: 'legs', studentId: 'maria', assignedAt: now, scheduledFor: after(12), scheduledTime: '18:00', status: 'assigned' },
+    assignment('assignment-maria-legs', 'legs', 'maria', 0, '18:00'),
+    assignment('assignment-artem-push-today', 'push-day', 'artem', 0, '19:30'),
+    assignment('assignment-artem-push-1', 'push-day', 'artem', 1, '19:00'),
+    assignment('assignment-anton-push-1', 'push-day', 'anton', 2, '17:30'),
+    assignment('assignment-maria-push-1', 'push-day', 'maria', 3, '10:00'),
+    assignment('assignment-artem-legs-1', 'legs', 'artem', 5, '19:00'),
+    assignment('assignment-anton-legs-1', 'legs', 'anton', 8, '17:30'),
+    assignment('assignment-artem-push-2', 'push-day', 'artem', 10, '19:00'),
+    assignment('assignment-maria-legs-2', 'legs', 'maria', 12, '18:00'),
   ];
 }
 
 export function createInitialState(): DemoState {
   const now = new Date().toISOString();
+  const workouts = createDemoWorkouts(now);
 
   return {
     loggedIn: false,
@@ -209,8 +242,9 @@ export function createInitialState(): DemoState {
       { id: 'maria', name: 'Мария А.', status: 'active', color: 'violet', height: 168, weight: 61, gender: 'female', phone: '+7 903 754-26-81', contraindications: '' },
       { id: 'anton', name: 'Антон К.', status: 'active', color: 'pink', height: 176, weight: 74, gender: 'male', phone: '+7 925 318-64-09', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
     ],
-    workouts: createDemoWorkouts(now),
-    assignments: createDemoAssignments(now),
+    workouts,
+    studentWorkoutVersions: [],
+    assignments: createDemoAssignments(now, workouts),
     sessions: [],
   };
 }
@@ -242,12 +276,24 @@ export function migrateDemoState(state: DemoState): DemoState {
   });
   const missingDemoWorkouts = createDemoWorkouts(new Date().toISOString())
     .filter((workout) => !state.workouts.some((item) => item.id === workout.id));
-  const migratedAssignments = state.assignments.map((assignment) => ({
-    ...assignment,
-    studentId: currentId(assignment.studentId),
-    scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
-    scheduledTime: assignment.scheduledTime ?? '18:00',
-  }));
+  const workouts = [...localizedWorkouts, ...missingDemoWorkouts];
+  const migratedAssignments = state.assignments.map((assignment) => {
+    const template = workouts.find((item) => item.id === assignment.workoutId);
+    const fallback: Workout = template ?? {
+      id: assignment.workoutId,
+      name: 'Тренировка',
+      exercises: [],
+      createdAt: assignment.assignedAt,
+    };
+    return {
+      ...assignment,
+      studentId: currentId(assignment.studentId),
+      scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
+      scheduledTime: assignment.scheduledTime ?? '18:00',
+      workoutSnapshot: cloneWorkout(assignment.workoutSnapshot ?? fallback),
+      source: assignment.source ?? 'template',
+    };
+  });
   return {
     ...state,
     activeStudentId: currentId(state.activeStudentId),
@@ -267,12 +313,81 @@ export function migrateDemoState(state: DemoState): DemoState {
       } : student;
     }),
     assignments: migratedAssignments,
-    workouts: [...localizedWorkouts, ...missingDemoWorkouts],
+    workouts,
+    studentWorkoutVersions: (state.studentWorkoutVersions ?? []).map((version) => ({
+      ...version,
+      studentId: currentId(version.studentId),
+      exercises: version.exercises.map((exercise) => ({ ...exercise })),
+    })),
     sessions: state.sessions.map((session) => ({
       ...session,
       studentId: currentId(session.studentId),
+      workoutSnapshot: cloneWorkout(
+        session.workoutSnapshot
+          ?? migratedAssignments.find((assignment) => assignment.id === session.assignmentId)?.workoutSnapshot
+          ?? workouts.find((workout) => workout.id === session.workoutId)
+          ?? { id: session.workoutId, name: 'Тренировка', exercises: [], createdAt: session.startedAt },
+      ),
     })),
   };
+}
+
+export function cloneWorkout(workout: Workout): Workout {
+  return {
+    ...workout,
+    exercises: workout.exercises.map((exercise) => ({ ...exercise })),
+  };
+}
+
+export function findAssignmentWorkout(data: DemoState, assignment: Assignment) {
+  return assignment.workoutSnapshot ?? data.workouts.find((workout) => workout.id === assignment.workoutId);
+}
+
+export function findSessionWorkout(data: DemoState, session: WorkoutSession) {
+  if (session.workoutSnapshot) return session.workoutSnapshot;
+  const assignment = data.assignments.find((item) => item.id === session.assignmentId);
+  return (assignment && findAssignmentWorkout(data, assignment))
+    ?? data.workouts.find((workout) => workout.id === session.workoutId);
+}
+
+export function findStudentWorkoutVersion(data: DemoState, studentId: string, workoutId: string) {
+  return data.studentWorkoutVersions.find((version) => version.studentId === studentId && version.baseWorkoutId === workoutId);
+}
+
+export function resolveAssignmentWorkout(data: DemoState, studentId: string, workout: Workout, useOriginalTemplate = false): Pick<Assignment, 'workoutSnapshot' | 'source'> {
+  const version = useOriginalTemplate ? undefined : findStudentWorkoutVersion(data, studentId, workout.id);
+  if (!version) return { workoutSnapshot: cloneWorkout(workout), source: 'template' };
+  return {
+    workoutSnapshot: {
+      ...cloneWorkout(workout),
+      name: version.name,
+      exercises: version.exercises.map((exercise) => ({ ...exercise })),
+      updatedAt: version.updatedAt,
+    },
+    source: 'student-version',
+  };
+}
+
+export function upsertStudentWorkoutVersion(
+  versions: StudentWorkoutVersion[],
+  studentId: string,
+  baseWorkoutId: string,
+  workout: Workout,
+  now = new Date().toISOString(),
+) {
+  const existing = versions.find((version) => version.studentId === studentId && version.baseWorkoutId === baseWorkoutId);
+  const next: StudentWorkoutVersion = {
+    id: existing?.id ?? makeId('student-workout'),
+    studentId,
+    baseWorkoutId,
+    name: workout.name,
+    exercises: workout.exercises.map((exercise) => ({ ...exercise })),
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  return existing
+    ? versions.map((version) => version.id === existing.id ? next : version)
+    : [...versions, next];
 }
 
 export function makeId(prefix: string) {
