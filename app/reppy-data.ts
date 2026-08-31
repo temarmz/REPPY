@@ -339,6 +339,19 @@ export function cloneWorkout(workout: Workout): Workout {
   };
 }
 
+export function createWorkoutTemplate(
+  source: Workout,
+  name: string,
+  now = new Date().toISOString(),
+): Workout {
+  return {
+    id: makeId('workout'),
+    name: name.trim() || `${source.name} — копия`,
+    exercises: source.exercises.map((exercise) => ({ ...exercise, id: makeId('exercise') })),
+    createdAt: now,
+  };
+}
+
 export function findAssignmentWorkout(data: DemoState, assignment: Assignment) {
   return assignment.workoutSnapshot ?? data.workouts.find((workout) => workout.id === assignment.workoutId);
 }

@@ -10,7 +10,8 @@
     "build:pages": "vite build --config vite.pages.config.ts",
     "preview": "vite preview --config vite.pages.config.ts",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test tests/*.test.mjs"
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "react": "19.2.6",

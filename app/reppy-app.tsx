@@ -4,6 +4,7 @@ import {
   TRAINER_NAME,
   cloneWorkout,
   createInitialState,
+  createWorkoutTemplate,
   dateKey,
   exerciseLibrary,
   findAssignmentWorkout,
@@ -28,7 +29,7 @@ import {
 import Icon, { iconAssetPaths, type IconName } from './ui-icon';
 
 const COPY = {
-  createWorkout: 'Создать тренировку',
+  createWorkout: 'Создать шаблон',
   emptyAssignments: 'На ближайшие две недели тренер пока ничего не назначил.',
   emptyHistory: 'Завершённые тренировки появятся здесь.',
 };
@@ -291,7 +292,7 @@ export default function ReppyApp() {
         <WorkoutForm
           onSave={(workout) => {
             setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
-            showToast('Тренировка сохранена');
+            showToast('Шаблон сохранён');
             go(`/trainer/workouts/${workout.id}`);
           }}
         />
@@ -350,6 +351,15 @@ export default function ReppyApp() {
           }));
           showToast('Запрос отклонён');
         }}
+        onCreateTemplate={() => {
+          const source = findAssignmentWorkout(data, assignment);
+          const student = findStudent(data, assignment.studentId);
+          if (!source) return;
+          const template = createWorkoutTemplate(source, `${source.name} · ${student?.name ?? 'ученик'}`);
+          setData((current) => ({ ...current, workouts: [...current.workouts, template] }));
+          showToast('Шаблон создан из назначения');
+          go(`/trainer/workouts/${template.id}/edit`);
+        }}
       /> : <NotFound />;
     } else if (workoutEditMatch) {
       const workout = findWorkout(data, workoutEditMatch[1]);
@@ -393,7 +403,12 @@ export default function ReppyApp() {
       ) : <NotFound />;
     } else if (workoutMatch) {
       const workout = findWorkout(data, workoutMatch[1]);
-      content = workout ? <WorkoutDetails workout={workout} /> : <NotFound />;
+      content = workout ? <WorkoutDetails workout={workout} onDuplicate={() => {
+        const duplicate = createWorkoutTemplate(workout, `${workout.name} — копия`);
+        setData((current) => ({ ...current, workouts: [...current.workouts, duplicate] }));
+        showToast('Копия шаблона создана');
+        go(`/trainer/workouts/${duplicate.id}/edit`);
+      }} /> : <NotFound />;
     } else if (sessionMatch) {
       const session = data.sessions.find((item) => item.id === sessionMatch[1]);
       content = session ? <SessionResult data={data} session={session} trainerView /> : <NotFound />;
@@ -1045,14 +1060,14 @@ function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout:
 
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts'} eyebrow={initial ? 'Редактирование' : 'Новая тренировка'} title={initial ? initial.name.toUpperCase() : 'СОБЕРИ ПЛАН'} />
+      <PageHeader back={initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts'} eyebrow={initial ? 'Редактирование шаблона' : 'Новый шаблон'} title={initial ? initial.name.toUpperCase() : 'СОБЕРИ ШАБЛОН'} />
       <section className="form-card workout-form">
         {initial && <p className="template-edit-note"><Icon name="edit" /> Ты редактируешь шаблон. Уже назначенные тренировки и история не изменятся.</p>}
         <label className="field-label" htmlFor="workout-name">Название тренировки</label>
         <input id="workout-name" className="text-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Грудь + плечи" />
         <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button>
+        <button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить шаблон</button>
       </section>
     </main>
   );
@@ -1140,11 +1155,11 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
   return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 
-function WorkoutDetails({ workout }: { workout: Workout }) {
+function WorkoutDetails({ workout, onDuplicate }: { workout: Workout; onDuplicate: () => void }) {
   return (
     <main className="content-page narrow-page">
       <PageHeader back="/trainer/workouts" eyebrow="Шаблон тренировки" title={workout.name.toUpperCase()} />
-      <div className="workout-detail-actions"><button className="wide-secondary" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/edit`)}><Icon name="edit" /> Редактировать</button><button className="primary-button" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/assign`)}><Icon name="plus" /> Назначить</button></div>
+      <div className="workout-detail-actions"><button className="wide-secondary" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/edit`)}><Icon name="edit" /> Редактировать</button><button className="wide-secondary" type="button" onClick={onDuplicate}><Icon name="copy" /> Дублировать</button><button className="primary-button" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/assign`)}><Icon name="plus" /> Назначить</button></div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (
@@ -1160,11 +1175,13 @@ function AssignmentDetails({
   assignment,
   onAcceptRequest,
   onDeclineRequest,
+  onCreateTemplate,
 }: {
   data: DemoState;
   assignment: Assignment;
   onAcceptRequest: () => void;
   onDeclineRequest: () => void;
+  onCreateTemplate: () => void;
 }) {
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
@@ -1184,7 +1201,10 @@ function AssignmentDetails({
         <div className="reschedule-request-actions"><button className="wide-secondary" type="button" onClick={onDeclineRequest}><Icon name="close" /> Отклонить</button><button className="primary-button" type="button" onClick={onAcceptRequest}><Icon name="check" /> Подтвердить</button></div>
       </section>}
       <section className="assignment-source"><Icon name={assignment.source === 'template' ? 'workout' : 'edit'} /><div><small>СОСТАВ ТРЕНИРОВКИ</small><strong>{sourceLabel}</strong></div></section>
-      {assignment.status === 'assigned' && <button className="wide-secondary assignment-edit-button" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="edit" /> Редактировать назначение</button>}
+      <div className="assignment-detail-actions">
+        {assignment.status === 'assigned' && <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="edit" /> Адаптировать под ученика</button>}
+        <button className="wide-secondary" type="button" onClick={onCreateTemplate}><Icon name="copy" /> Создать шаблон из назначения</button>
+      </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createInitialState,
+  createWorkoutTemplate,
   findAssignmentWorkout,
   findSessionWorkout,
   migrateDemoState,
@@ -100,4 +101,24 @@ test('изменение только расписания сохраняет и
   assert.equal(resolveEditedAssignmentSource('student-version', false, false), 'student-version');
   assert.equal(resolveEditedAssignmentSource('template', true, false), 'manual-edit');
   assert.equal(resolveEditedAssignmentSource('manual-edit', false, true), 'student-version');
+});
+
+test('новый шаблон получает независимые идентификаторы и упражнения', () => {
+  const state = createInitialState();
+  const source = state.workouts[0];
+  const originalWeight = source.exercises[0].targetWeight;
+  const copy = createWorkoutTemplate(source, `${source.name} — копия`, '2026-08-31T12:00:00.000Z');
+
+  assert.notEqual(copy.id, source.id);
+  assert.equal(copy.name, `${source.name} — копия`);
+  assert.equal(copy.createdAt, '2026-08-31T12:00:00.000Z');
+  assert.equal(copy.updatedAt, undefined);
+  assert.equal(copy.exercises.length, source.exercises.length);
+  copy.exercises.forEach((exercise, index) => {
+    assert.notEqual(exercise, source.exercises[index]);
+    assert.notEqual(exercise.id, source.exercises[index].id);
+    assert.equal(exercise.exerciseId, source.exercises[index].exerciseId);
+  });
+  source.exercises[0].targetWeight += 50;
+  assert.equal(copy.exercises[0].targetWeight, originalWeight);
 });
