@@ -77,11 +77,13 @@ test('результат ученика виден тренеру и не мен
 
   await page.getByRole('button', { name: /DEMO.*Тренер.*Ученик/ }).first().click();
   await expect(page).toHaveURL(/#\/student$/);
+  await page.getByRole('button', { name: 'Посмотреть тренировку' }).click();
+  await expect(page).toHaveURL(/#\/student\/assignments\/assignment-artem-push-today$/);
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
   await expect(page.getByRole('heading', { name: 'Жим лёжа' })).toBeVisible();
-
-  await page.getByRole('button', { name: 'Следующее упражнение' }).click();
-  await page.getByRole('button', { name: 'Следующее упражнение' }).click();
+  await expect(page.locator('.active-exercise-card')).toHaveCount(3);
+  await expect(page.getByRole('heading', { name: 'Жим гантелей на наклонной скамье' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Следующее упражнение' })).toHaveCount(0);
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
 
@@ -112,23 +114,37 @@ test('тренер ведёт занятие, правит его в момен�
 
   await page.goto('/#/trainer/assignments/assignment-maria-legs');
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
-  await expect(page.getByRole('heading', { name: 'Приседания' })).toBeVisible();
+  await expect(page.locator('.active-exercise-card')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: 'Редактировать тренировку' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Редактировать тренировку' }).click();
-  await page.locator('.coach-note-field textarea').first().fill('Колени держи по линии стоп');
-  const setsInput = page.locator('.exercise-editor').first().getByLabel('Подходы');
+  const squatCard = page.locator('.active-exercise-card').filter({ hasText: 'Приседания' });
+  await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
+  await squatCard.getByRole('button', { name: 'Добавить комментарий' }).click();
+  await squatCard.locator('.active-comment-field textarea').fill('Колени держи по линии стоп');
+
+  const setsInput = squatCard.getByLabel('Подходы');
   await setsInput.fill('5');
   await setsInput.press('Enter');
-  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  await squatCard.getByRole('button', { name: 'Как выполнять' }).click();
+  await expect(squatCard.getByText('Приседания — как выполнять')).toBeVisible();
+
+  await squatCard.getByRole('button', { name: 'Добавить ниже' }).click();
   await page.getByRole('button', { name: 'Бицепс', exact: true }).click();
   await page.getByRole('button', { name: /Молотковые сгибания/ }).click();
-  await page.getByRole('button', { name: 'Готово', exact: true }).click();
+  await expect(page.locator('.active-exercise-card')).toHaveCount(4);
+  await expect(page.locator('.active-exercise-card').nth(1)).toContainText('Молотковые сгибания');
+  await page.getByRole('button', { name: 'Опустить Молотковые сгибания ниже' }).click();
+  await expect(page.locator('.active-exercise-card').nth(2)).toContainText('Молотковые сгибания');
 
-  await expect(page.locator('.set-list .set-card')).toHaveCount(5);
-  await page.getByRole('button', { name: 'Завершить подход 1' }).click();
-  await page.getByRole('button', { name: 'Следующее упражнение' }).click();
-  await page.getByRole('button', { name: 'Следующее упражнение' }).click();
-  await page.getByRole('button', { name: 'Следующее упражнение' }).click();
+  await expect(squatCard.locator('.set-card')).toHaveCount(5);
+  await page.getByRole('button', { name: 'Завершить подход 1 — Приседания' }).click();
+  await expect(squatCard.getByRole('button', { name: 'Удалить упражнение' })).toBeDisabled();
+
+  const legPressCard = page.locator('.active-exercise-card').filter({ hasText: 'Жим ногами' });
+  await legPressCard.locator('label.exercise-complete').click();
+  await expect(legPressCard.getByRole('checkbox', { name: 'Выполнено' })).toBeChecked();
+  await expect(legPressCard.locator('.set-card.completed')).toHaveCount(4);
+
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
 
