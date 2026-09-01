@@ -91,7 +91,6 @@ export type DemoState = {
   sessions: WorkoutSession[];
 };
 
-export const STORAGE_KEY = 'reppy-demo-v0';
 export const TRAINER_NAME = 'Евгений Ч.';
 
 export function dateKey(date = new Date()) {

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  STORAGE_KEY,
   TRAINER_NAME,
   cloneWorkout,
-  createInitialState,
   createWorkoutTemplate,
   dateKey,
   exerciseLibrary,
@@ -13,7 +11,6 @@ import {
   formatCalendarDay,
   formatDay,
   makeId,
-  migrateDemoState,
   resolveAssignmentWorkout,
   resolveEditedAssignmentSource,
   upsertStudentWorkoutVersion,
@@ -27,6 +24,7 @@ import {
   type WorkoutSession,
 } from './reppy-data';
 import Icon, { iconAssetPaths, type IconName } from './ui-icon';
+import { useReppyData } from './use-reppy-data';
 
 const COPY = {
   createWorkout: 'Создать шаблон',
@@ -131,9 +129,9 @@ function preloadAsset(path: string) {
 }
 
 export default function ReppyApp() {
-  const [data, setData] = useState<DemoState>(() => createInitialState());
+  const { data, hydrated, reset: resetData, setData } = useReppyData();
   const [path, setPath] = useState('/');
-  const [hydrated, setHydrated] = useState(false);
+  const hydratedPathReady = useRef(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -151,38 +149,12 @@ export default function ReppyApp() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const hydrate = () => {
-      let nextData = createInitialState();
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        nextData = migrateDemoState(saved ? (JSON.parse(saved) as DemoState) : nextData);
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-
-      if (cancelled) return;
-      setData(nextData);
-      const requestedPath = hashPath();
-      if (requestedPath === '/' && nextData.loggedIn) {
-        const homePath = nextData.role === 'trainer' ? '/trainer' : '/student';
-        window.history.replaceState({ reppyEntry: false }, '', `#${homePath}`);
-        setPath(homePath);
-      } else {
-        setPath(requestedPath);
-      }
-      setHydrated(true);
-    };
-
-    hydrate();
-
     const handleNavigation = () => setPath(hashPath());
+    handleNavigation();
     window.addEventListener('hashchange', handleNavigation);
     window.addEventListener('popstate', handleNavigation);
     window.addEventListener(NAVIGATION_EVENT, handleNavigation);
     return () => {
-      cancelled = true;
       window.removeEventListener('hashchange', handleNavigation);
       window.removeEventListener('popstate', handleNavigation);
       window.removeEventListener(NAVIGATION_EVENT, handleNavigation);
@@ -190,9 +162,16 @@ export default function ReppyApp() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data, hydrated]);
+    if (!hydrated || hydratedPathReady.current) return;
+    hydratedPathReady.current = true;
+
+    const requestedPath = hashPath();
+    if (requestedPath === '/' && data.loggedIn) {
+      const homePath = data.role === 'trainer' ? '/trainer' : '/student';
+      window.history.replaceState({ reppyEntry: false }, '', `#${homePath}`);
+      window.dispatchEvent(new Event(NAVIGATION_EVENT));
+    }
+  }, [data.loggedIn, data.role, hydrated]);
 
   useEffect(() => {
     if (!toast) return;
@@ -215,9 +194,7 @@ export default function ReppyApp() {
 
   const resetDemo = () => {
     if (!window.confirm('Сбросить все изменения и вернуть исходные демо-данные?')) return;
-    const initial = createInitialState();
-    localStorage.removeItem(STORAGE_KEY);
-    setData(initial);
+    resetData();
     setSettingsOpen(false);
     go('/');
   };
