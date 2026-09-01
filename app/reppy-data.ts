@@ -20,6 +20,7 @@ export type WorkoutExercise = {
   sets: number;
   targetReps: number;
   targetWeight: number;
+  coachNote?: string;
 };
 
 export type Workout = {
@@ -30,7 +31,7 @@ export type Workout = {
   updatedAt?: string;
 };
 
-export type AssignmentSource = 'template' | 'student-version' | 'manual-edit';
+export type AssignmentSource = 'template' | 'student-version' | 'manual-edit' | 'repeated';
 
 export type Assignment = {
   id: string;
@@ -42,6 +43,7 @@ export type Assignment = {
   status: 'assigned' | 'completed';
   workoutSnapshot: Workout;
   source: AssignmentSource;
+  repeatedFromAssignmentId?: string;
   rescheduleRequest?: {
     scheduledFor: string;
     scheduledTime: string;
@@ -74,6 +76,7 @@ export type WorkoutSession = {
   workoutId: string;
   workoutSnapshot: Workout;
   startedAt: string;
+  recordedBy: Role;
   completedAt?: string;
   mood?: MoodRating;
   comment?: string;
@@ -100,17 +103,57 @@ export function dateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-export const exerciseLibrary = [
-  { id: 'bench-press', name: 'Жим лёжа' },
-  { id: 'incline-dumbbell', name: 'Жим гантелей на наклонной скамье' },
-  { id: 'squat', name: 'Приседания' },
-  { id: 'deadlift', name: 'Становая тяга' },
-  { id: 'pull-ups', name: 'Подтягивания' },
-  { id: 'lat-pulldown', name: 'Тяга верхнего блока' },
-  { id: 'dumbbell-curl', name: 'Сгибание рук с гантелями' },
-  { id: 'triceps-pushdown', name: 'Разгибание рук на блоке' },
-  { id: 'lateral-raise', name: 'Разведение гантелей в стороны' },
-  { id: 'leg-press', name: 'Жим ногами' },
+export const muscleGroups = [
+  'Грудь',
+  'Спина',
+  'Плечи',
+  'Бицепс',
+  'Трицепс',
+  'Квадрицепс',
+  'Ягодицы',
+  'Задняя поверхность бедра',
+  'Икры',
+  'Кор',
+] as const;
+
+export type MuscleGroup = typeof muscleGroups[number];
+
+export type ExerciseDefinition = {
+  id: string;
+  name: string;
+  primaryMuscle: MuscleGroup;
+  equipment: string;
+};
+
+export const exerciseLibrary: ExerciseDefinition[] = [
+  { id: 'bench-press', name: 'Жим лёжа', primaryMuscle: 'Грудь', equipment: 'Штанга' },
+  { id: 'incline-dumbbell', name: 'Жим гантелей на наклонной скамье', primaryMuscle: 'Грудь', equipment: 'Гантели' },
+  { id: 'push-ups', name: 'Отжимания', primaryMuscle: 'Грудь', equipment: 'Свой вес' },
+  { id: 'cable-fly', name: 'Сведение рук в кроссовере', primaryMuscle: 'Грудь', equipment: 'Блок' },
+  { id: 'pull-ups', name: 'Подтягивания', primaryMuscle: 'Спина', equipment: 'Свой вес' },
+  { id: 'lat-pulldown', name: 'Тяга верхнего блока', primaryMuscle: 'Спина', equipment: 'Блок' },
+  { id: 'barbell-row', name: 'Тяга штанги в наклоне', primaryMuscle: 'Спина', equipment: 'Штанга' },
+  { id: 'seated-row', name: 'Тяга горизонтального блока', primaryMuscle: 'Спина', equipment: 'Блок' },
+  { id: 'deadlift', name: 'Становая тяга', primaryMuscle: 'Спина', equipment: 'Штанга' },
+  { id: 'overhead-press', name: 'Жим над головой', primaryMuscle: 'Плечи', equipment: 'Штанга' },
+  { id: 'lateral-raise', name: 'Разведение гантелей в стороны', primaryMuscle: 'Плечи', equipment: 'Гантели' },
+  { id: 'rear-delt-fly', name: 'Разведение на заднюю дельту', primaryMuscle: 'Плечи', equipment: 'Гантели' },
+  { id: 'dumbbell-curl', name: 'Сгибание рук с гантелями', primaryMuscle: 'Бицепс', equipment: 'Гантели' },
+  { id: 'hammer-curl', name: 'Молотковые сгибания', primaryMuscle: 'Бицепс', equipment: 'Гантели' },
+  { id: 'triceps-pushdown', name: 'Разгибание рук на блоке', primaryMuscle: 'Трицепс', equipment: 'Блок' },
+  { id: 'overhead-triceps', name: 'Разгибание рук из-за головы', primaryMuscle: 'Трицепс', equipment: 'Гантель' },
+  { id: 'dips', name: 'Отжимания на брусьях', primaryMuscle: 'Трицепс', equipment: 'Свой вес' },
+  { id: 'squat', name: 'Приседания', primaryMuscle: 'Квадрицепс', equipment: 'Штанга' },
+  { id: 'leg-press', name: 'Жим ногами', primaryMuscle: 'Квадрицепс', equipment: 'Тренажёр' },
+  { id: 'leg-extension', name: 'Разгибание ног', primaryMuscle: 'Квадрицепс', equipment: 'Тренажёр' },
+  { id: 'hip-thrust', name: 'Ягодичный мост', primaryMuscle: 'Ягодицы', equipment: 'Штанга' },
+  { id: 'bulgarian-squat', name: 'Болгарские выпады', primaryMuscle: 'Ягодицы', equipment: 'Гантели' },
+  { id: 'romanian-deadlift', name: 'Румынская тяга', primaryMuscle: 'Задняя поверхность бедра', equipment: 'Штанга' },
+  { id: 'leg-curl', name: 'Сгибание ног', primaryMuscle: 'Задняя поверхность бедра', equipment: 'Тренажёр' },
+  { id: 'calf-raise', name: 'Подъёмы на носки', primaryMuscle: 'Икры', equipment: 'Тренажёр' },
+  { id: 'plank', name: 'Планка', primaryMuscle: 'Кор', equipment: 'Свой вес' },
+  { id: 'crunch', name: 'Скручивания', primaryMuscle: 'Кор', equipment: 'Свой вес' },
+  { id: 'dead-bug', name: 'Мёртвый жук', primaryMuscle: 'Кор', equipment: 'Свой вес' },
 ];
 
 const workoutExercise = (
@@ -321,6 +364,7 @@ export function migrateDemoState(state: DemoState): DemoState {
     sessions: state.sessions.map((session) => ({
       ...session,
       studentId: currentId(session.studentId),
+      recordedBy: session.recordedBy ?? 'student',
       workoutSnapshot: cloneWorkout(
         session.workoutSnapshot
           ?? migratedAssignments.find((assignment) => assignment.id === session.assignmentId)?.workoutSnapshot
@@ -348,6 +392,105 @@ export function createWorkoutTemplate(
     name: name.trim() || `${source.name} — копия`,
     exercises: source.exercises.map((exercise) => ({ ...exercise, id: makeId('exercise') })),
     createdAt: now,
+  };
+}
+
+export function createWorkoutSession(
+  assignment: Assignment,
+  workout: Workout,
+  recordedBy: Role,
+  now = new Date().toISOString(),
+): WorkoutSession {
+  return {
+    id: makeId('session'),
+    assignmentId: assignment.id,
+    studentId: assignment.studentId,
+    workoutId: assignment.workoutId,
+    workoutSnapshot: cloneWorkout(workout),
+    startedAt: now,
+    recordedBy,
+    results: workout.exercises.flatMap((exercise) =>
+      Array.from({ length: exercise.sets }, (_, index) => ({
+        exerciseId: exercise.id,
+        setNumber: index + 1,
+        actualReps: exercise.targetReps,
+        actualWeight: exercise.targetWeight,
+        completed: false,
+      })),
+    ),
+  };
+}
+
+export function updateSessionWorkout(session: WorkoutSession, workout: Workout): WorkoutSession {
+  const completedResults = session.results.filter((result) => result.completed);
+  const nextExerciseIds = new Set(workout.exercises.map((exercise) => exercise.id));
+  const adjustedExercises = workout.exercises.map((exercise) => {
+    const highestCompletedSet = Math.max(0, ...completedResults
+      .filter((result) => result.exerciseId === exercise.id)
+      .map((result) => result.setNumber));
+    return { ...exercise, sets: Math.max(exercise.sets, highestCompletedSet) };
+  });
+  const preservedExercises = session.workoutSnapshot.exercises
+    .filter((exercise) => !nextExerciseIds.has(exercise.id) && completedResults.some((result) => result.exerciseId === exercise.id))
+    .map((exercise) => ({
+      ...exercise,
+      sets: Math.max(exercise.sets, ...completedResults
+        .filter((result) => result.exerciseId === exercise.id)
+        .map((result) => result.setNumber)),
+    }));
+  const nextWorkout: Workout = {
+    ...cloneWorkout(workout),
+    exercises: [...adjustedExercises, ...preservedExercises],
+    updatedAt: new Date().toISOString(),
+  };
+
+  const results = nextWorkout.exercises.flatMap((exercise) => {
+    const previousExercise = session.workoutSnapshot.exercises.find((item) => item.id === exercise.id);
+    return Array.from({ length: exercise.sets }, (_, index) => {
+      const setNumber = index + 1;
+      const existing = session.results.find((result) => result.exerciseId === exercise.id && result.setNumber === setNumber);
+      if (!existing || existing.completed) {
+        return existing ?? {
+          exerciseId: exercise.id,
+          setNumber,
+          actualReps: exercise.targetReps,
+          actualWeight: exercise.targetWeight,
+          completed: false,
+        };
+      }
+      return {
+        ...existing,
+        actualReps: existing.actualReps === previousExercise?.targetReps ? exercise.targetReps : existing.actualReps,
+        actualWeight: existing.actualWeight === previousExercise?.targetWeight ? exercise.targetWeight : existing.actualWeight,
+      };
+    });
+  });
+
+  return { ...session, workoutSnapshot: nextWorkout, results };
+}
+
+export function repeatAssignment(
+  source: Assignment,
+  sourceWorkout: Workout,
+  scheduledFor: string,
+  scheduledTime: string,
+  now = new Date().toISOString(),
+): Assignment {
+  return {
+    id: makeId('assignment'),
+    workoutId: source.workoutId,
+    studentId: source.studentId,
+    assignedAt: now,
+    scheduledFor,
+    scheduledTime,
+    status: 'assigned',
+    workoutSnapshot: {
+      ...cloneWorkout(sourceWorkout),
+      exercises: sourceWorkout.exercises.map((exercise) => ({ ...exercise, id: makeId('exercise') })),
+      updatedAt: now,
+    },
+    source: 'repeated',
+    repeatedFromAssignmentId: source.id,
   };
 }
 

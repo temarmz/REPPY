@@ -3,12 +3,17 @@ import test from 'node:test';
 
 import {
   createInitialState,
+  createWorkoutSession,
   createWorkoutTemplate,
+  exerciseLibrary,
   findAssignmentWorkout,
   findSessionWorkout,
   migrateDemoState,
+  muscleGroups,
+  repeatAssignment,
   resolveAssignmentWorkout,
   resolveEditedAssignmentSource,
+  updateSessionWorkout,
   upsertStudentWorkoutVersion,
 } from '../app/reppy-data.ts';
 
@@ -54,6 +59,7 @@ test('миграция дополняет старые назначения и �
   assert.deepEqual(migrated.studentWorkoutVersions, []);
   assert.ok(session?.workoutSnapshot.exercises.length > 0);
   assert.notStrictEqual(session?.workoutSnapshot, assignment.workoutSnapshot);
+  assert.equal(session?.recordedBy, 'student');
 });
 
 test('персональная версия применяется только нужному ученику и может быть обойдена', () => {
@@ -87,6 +93,7 @@ test('завершённая сессия читает собственный с
     workoutId: assignment.workoutId,
     workoutSnapshot: sessionWorkout,
     startedAt: '2026-08-31T10:00:00.000Z',
+    recordedBy: 'student',
     completedAt: '2026-08-31T11:00:00.000Z',
     results: [],
   };
@@ -121,4 +128,66 @@ test('новый шаблон получает независимые идент
   });
   source.exercises[0].targetWeight += 50;
   assert.equal(copy.exercises[0].targetWeight, originalWeight);
+});
+test('повтор копирует тренировку тому же ученику и оставляет исходник независимым', () => {
+  const state = createInitialState();
+  const source = state.assignments[0];
+  const sourceWorkout = structuredClone(source.workoutSnapshot);
+  sourceWorkout.exercises[0].coachNote = 'Держи спину нейтрально';
+
+  const repeated = repeatAssignment(source, sourceWorkout, '2026-09-10', '19:15', '2026-09-01T12:00:00.000Z');
+
+  assert.equal(repeated.studentId, source.studentId);
+  assert.equal(repeated.workoutId, source.workoutId);
+  assert.equal(repeated.source, 'repeated');
+  assert.equal(repeated.repeatedFromAssignmentId, source.id);
+  assert.equal(repeated.scheduledFor, '2026-09-10');
+  assert.equal(repeated.scheduledTime, '19:15');
+  assert.equal(repeated.workoutSnapshot.exercises[0].coachNote, 'Держи спину нейтрально');
+  repeated.workoutSnapshot.exercises.forEach((exercise, index) => {
+    assert.notEqual(exercise.id, sourceWorkout.exercises[index].id);
+  });
+
+  repeated.workoutSnapshot.exercises[0].targetWeight += 20;
+  assert.notEqual(repeated.workoutSnapshot.exercises[0].targetWeight, sourceWorkout.exercises[0].targetWeight);
+});
+
+test('тренер может начать сессию и безопасно менять план по ходу занятия', () => {
+  const state = createInitialState();
+  const assignment = state.assignments[0];
+  const workout = structuredClone(assignment.workoutSnapshot);
+  workout.exercises[0].coachNote = 'Колени направлены по линии стоп';
+  const session = createWorkoutSession(assignment, workout, 'trainer', '2026-09-01T12:00:00.000Z');
+  const originalSets = workout.exercises[0].sets;
+  const originalWeight = workout.exercises[0].targetWeight;
+
+  session.results[0] = { ...session.results[0], completed: true, actualWeight: 72.5 };
+  const edited = structuredClone(workout);
+  edited.exercises[0].sets += 1;
+  edited.exercises[0].targetWeight += 5;
+  edited.exercises[0].coachNote = 'Не заваливай колени внутрь';
+
+  const updated = updateSessionWorkout(session, edited);
+  const firstExerciseResults = updated.results.filter((result) => result.exerciseId === edited.exercises[0].id);
+
+  assert.equal(updated.recordedBy, 'trainer');
+  assert.equal(updated.workoutSnapshot.exercises[0].coachNote, 'Не заваливай колени внутрь');
+  assert.equal(firstExerciseResults.length, originalSets + 1);
+  assert.equal(firstExerciseResults[0].completed, true);
+  assert.equal(firstExerciseResults[0].actualWeight, 72.5);
+  assert.equal(firstExerciseResults[1].actualWeight, originalWeight + 5);
+  assert.equal(firstExerciseResults.at(-1)?.completed, false);
+
+  const withoutCompletedExercise = { ...edited, exercises: edited.exercises.slice(1) };
+  const protectedUpdate = updateSessionWorkout(updated, withoutCompletedExercise);
+  assert.ok(protectedUpdate.workoutSnapshot.exercises.some((exercise) => exercise.id === edited.exercises[0].id));
+  assert.ok(protectedUpdate.results.some((result) => result.exerciseId === edited.exercises[0].id && result.completed));
+});
+
+test('библиотека упражнений покрывает основные мышечные группы', () => {
+  assert.ok(exerciseLibrary.length >= 25);
+  for (const muscle of muscleGroups) {
+    assert.ok(exerciseLibrary.some((exercise) => exercise.primaryMuscle === muscle), `Нет упражнений для категории «${muscle}»`);
+  }
+  assert.ok(exerciseLibrary.every((exercise) => exercise.equipment));
 });
