@@ -1559,12 +1559,6 @@ function ActiveWorkout({
     onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch } : result));
   };
 
-  const toggleExercise = (exerciseId: string) => {
-    const exerciseResults = session.results.filter((result) => result.exerciseId === exerciseId);
-    const shouldComplete = exerciseResults.some((result) => !result.completed);
-    onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId ? { ...result, completed: shouldComplete } : result));
-  };
-
   const moveExercise = (fromIndex: number, toIndex: number) => {
     if (toIndex < 0 || toIndex >= workout.exercises.length) return;
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
@@ -1620,7 +1614,7 @@ function ActiveWorkout({
               minimumSets={minimumSets}
               onPlanChange={(key, value) => updateExercisePlan(exercise.id, key, value)}
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
-              onToggleComplete={() => toggleExercise(exercise.id)}
+              onAddSet={() => updateExercisePlan(exercise.id, 'sets', exercise.sets + 1)}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
@@ -1647,7 +1641,7 @@ function ActiveExerciseCard({
   minimumSets,
   onPlanChange,
   onResultChange,
-  onToggleComplete,
+  onAddSet,
   onAddAfter,
   onMoveUp,
   onMoveDown,
@@ -1660,7 +1654,7 @@ function ActiveExerciseCard({
   minimumSets: number;
   onPlanChange: (key: 'sets' | 'targetReps' | 'targetWeight' | 'coachNote', value: number | string) => void;
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
-  onToggleComplete: () => void;
+  onAddSet: () => void;
   onAddAfter: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -1677,23 +1671,21 @@ function ActiveExerciseCard({
       <header className="active-exercise-card-header">
         <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
         <div><h2>{exercise.name}</h2><small>{completedSets} из {results.length} подходов выполнено</small></div>
-        <div className="exercise-order-controls">
-          <span className="order-grip" aria-hidden="true">⋮⋮</span>
-          <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
-          <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
+        <div className="active-exercise-corner-actions">
+          <button className="exercise-help" type="button" aria-expanded={instructionOpen} onClick={() => setInstructionOpen((current) => !current)} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
+          <button className="exercise-delete" type="button" disabled={!canDelete} title={!canDelete ? minimumSets > 0 ? 'Сначала отмени выполненные подходы' : 'В тренировке должно остаться хотя бы одно упражнение' : undefined} onClick={onDelete} aria-label={'Удалить упражнение — ' + exercise.name}><Icon name="trash" /></button>
         </div>
       </header>
 
-      <div className="active-plan-metrics">
-        <MetricInput label="Подходы" value={exercise.sets} min={Math.max(1, minimumSets)} onChange={(value) => onPlanChange('sets', value)} />
-        <MetricInput label="Повторы" value={exercise.targetReps} min={1} onChange={(value) => onPlanChange('targetReps', value)} />
-        <MetricInput label="Вес, кг" value={exercise.targetWeight} step={2.5} onChange={(value) => onPlanChange('targetWeight', value)} />
+      <div className="exercise-order-controls">
+          <span>ПОРЯДОК</span>
+          <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
+          <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
       </div>
 
       <div className="active-exercise-actions">
-        <label className={allCompleted ? 'exercise-complete selected' : 'exercise-complete'}><input type="checkbox" checked={allCompleted} onChange={onToggleComplete} /><span><Icon name={allCompleted ? 'check' : 'circle'} /> Выполнено</span></label>
+        <button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Добавить подход</button>
         <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button>
-        <button type="button" aria-expanded={instructionOpen} onClick={() => setInstructionOpen((current) => !current)}><Icon name="workout" /> Как выполнять</button>
         <button type="button" onClick={onAddAfter}><Icon name="plus" /> Добавить ниже</button>
       </div>
 
@@ -1717,10 +1709,6 @@ function ActiveExerciseCard({
           </article>
         ))}
       </section>
-
-      <footer className="active-exercise-danger-zone">
-        <button type="button" disabled={!canDelete} title={!canDelete ? minimumSets > 0 ? 'Сначала отмени выполненные подходы' : 'В тренировке должно остаться хотя бы одно упражнение' : undefined} onClick={onDelete}><Icon name="close" /> Удалить упражнение</button>
-      </footer>
     </article>
   );
 }

@@ -122,10 +122,10 @@ test('тренер ведёт занятие, правит его в момен�
   await squatCard.getByRole('button', { name: 'Добавить комментарий' }).click();
   await squatCard.locator('.active-comment-field textarea').fill('Колени держи по линии стоп');
 
-  const setsInput = squatCard.getByLabel('Подходы');
-  await setsInput.fill('5');
-  await setsInput.press('Enter');
-  await squatCard.getByRole('button', { name: 'Как выполнять' }).click();
+  await expect(squatCard.getByLabel('Подходы')).toHaveCount(0);
+  await expect(squatCard.getByRole('checkbox', { name: 'Выполнено' })).toHaveCount(0);
+  await squatCard.getByRole('button', { name: 'Добавить подход' }).click();
+  await squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }).click();
   await expect(squatCard.getByText('Приседания — как выполнять')).toBeVisible();
 
   await squatCard.getByRole('button', { name: 'Добавить ниже' }).click();
@@ -137,13 +137,14 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(page.locator('.active-exercise-card').nth(2)).toContainText('Молотковые сгибания');
 
   await expect(squatCard.locator('.set-card')).toHaveCount(5);
+  await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('70');
+  await expect(squatCard.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('8');
   await page.getByRole('button', { name: 'Завершить подход 1 — Приседания' }).click();
-  await expect(squatCard.getByRole('button', { name: 'Удалить упражнение' })).toBeDisabled();
+  await expect(squatCard.getByRole('button', { name: 'Удалить упражнение — Приседания' })).toBeDisabled();
 
   const legPressCard = page.locator('.active-exercise-card').filter({ hasText: 'Жим ногами' });
-  await legPressCard.locator('label.exercise-complete').click();
-  await expect(legPressCard.getByRole('checkbox', { name: 'Выполнено' })).toBeChecked();
-  await expect(legPressCard.locator('.set-card.completed')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Завершить подход 1 — Жим ногами' }).click();
+  await expect(legPressCard.locator('.set-card.completed')).toHaveCount(1);
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();

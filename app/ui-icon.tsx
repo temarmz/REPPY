@@ -17,6 +17,8 @@ export type IconName =
   | 'change'
   | 'edit'
   | 'minus'
+  | 'help'
+  | 'trash'
   | 'success';
 
 const iconFiles: Record<IconName, string> = {
@@ -38,6 +40,8 @@ const iconFiles: Record<IconName, string> = {
   change: 'icon-change.svg',
   edit: 'icon-edit.svg',
   minus: 'icon-minus.svg',
+  help: 'icon-help.svg',
+  trash: 'icon-trash.svg',
   success: 'icon-success.svg',
 };
 

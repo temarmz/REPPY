@@ -1382,21 +1382,22 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .active-exercise-card-header > div:nth-child(2) { display: grid; min-width: 0; gap: 5px; }
 .active-exercise-card-header h2 { margin: 0; font-size: clamp(19px, 4vw, 26px); letter-spacing: -.04em; }
 .active-exercise-card-header small { color: var(--muted); font-size: 11px; }
-.exercise-order-controls { display: flex; align-items: center; gap: 5px; }
-.order-grip { color: #646b63; font-size: 21px; font-weight: 900; letter-spacing: -5px; transform: rotate(90deg); }
+.active-exercise-corner-actions { display: flex; align-items: center; gap: 6px; }
+.active-exercise-corner-actions button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: rgba(255,255,255,.04); cursor: pointer; }
+.active-exercise-corner-actions button:disabled { cursor: not-allowed; opacity: .28; }
+.active-exercise-corner-actions .ui-icon { width: 17px; height: 17px; }
+.active-exercise-corner-actions .exercise-help { color: #b7a2ff; }
+.active-exercise-corner-actions .exercise-delete { color: #dc7d73; }
+.exercise-order-controls { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 10px; }
+.exercise-order-controls > span { margin-right: 3px; color: #70766e; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
 .exercise-order-controls button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(255,255,255,.08); border-radius: 11px; background: rgba(255,255,255,.04); color: #cfd4cc; cursor: pointer; }
 .exercise-order-controls button:disabled { cursor: not-allowed; opacity: .25; }
 .exercise-order-controls button .ui-icon { width: 15px; height: 15px; }
 .exercise-order-controls .move-up .ui-icon, .exercise-order-controls .move-down .ui-icon { transform: rotate(90deg); }
-.active-plan-metrics { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; margin-top: 18px; }
-.active-exercise-actions { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-top: 14px; }
-.active-exercise-actions button, .active-exercise-actions > label { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 10px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: 11px; font-weight: 800; text-align: center; }
-.active-exercise-actions > label { position: relative; }
-.active-exercise-actions > label input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.active-exercise-actions > label > span { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
-.active-exercise-actions button .ui-icon, .active-exercise-actions > label .ui-icon { width: 16px; height: 16px; flex: 0 0 auto; color: var(--lime); }
-.active-exercise-actions button.selected, .active-exercise-actions > label.selected { border-color: rgba(198,255,61,.35); background: var(--lime); color: var(--ink); }
-.active-exercise-actions button.selected .ui-icon, .active-exercise-actions > label.selected .ui-icon { color: var(--ink); }
+.active-exercise-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-top: 14px; }
+.active-exercise-actions button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 10px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: 11px; font-weight: 800; text-align: center; }
+.active-exercise-actions button .ui-icon { width: 16px; height: 16px; flex: 0 0 auto; color: var(--lime); }
+.active-exercise-actions .add-set-action { border-color: rgba(198,255,61,.26); background: var(--brand-soft); }
 .active-exercise-actions button.has-value:not(.selected) { border-color: rgba(198,255,61,.22); background: var(--brand-soft); }
 .active-comment-field { display: grid; gap: 8px; margin-top: 12px; border-radius: 18px; padding: 14px; background: #090b09; }
 .active-comment-field span { color: #dce0d8; font-size: 12px; font-weight: 800; }
@@ -1407,10 +1408,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .exercise-instruction-placeholder strong { font-size: 13px; }
 .exercise-instruction-placeholder p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .active-card-sets { display: grid; gap: 8px; margin-top: 16px; }
-.active-exercise-danger-zone { display: flex; justify-content: flex-end; margin-top: 17px; border-top: 1px solid rgba(255,255,255,.055); padding-top: 13px; }
-.active-exercise-danger-zone button { display: inline-flex; min-height: 38px; align-items: center; gap: 6px; border: 0; border-radius: 12px; padding: 0 11px; background: transparent; color: #c7766d; cursor: pointer; font-size: 10px; font-weight: 800; }
-.active-exercise-danger-zone button:disabled { cursor: not-allowed; opacity: .28; }
-.active-exercise-danger-zone .ui-icon { width: 14px; height: 14px; }
 .exercise-navigation.single-action .finish-workout { width: min(100%, 820px); max-width: 820px; }
 
 .session-recorded-by { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; border: 1px solid var(--ui-outline); border-radius: 20px; padding: 14px 16px; background: var(--surface); }
@@ -1494,10 +1491,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .active-workout-list-page .active-progress { margin-inline: -14px; }
   .active-workout-overview { padding: 32px 4px 22px; }
   .active-exercise-card { border-radius: 23px; padding: 15px; }
-  .active-exercise-card-header { grid-template-columns: auto minmax(0,1fr); }
-  .exercise-order-controls { grid-column: 2; justify-self: end; }
+  .active-exercise-card-header { grid-template-columns: auto minmax(0,1fr) auto; gap: 9px; }
+  .active-exercise-corner-actions { gap: 4px; }
+  .active-exercise-corner-actions button { width: 35px; height: 35px; }
   .active-exercise-actions { grid-template-columns: 1fr 1fr; }
-  .active-exercise-actions button, .active-exercise-actions > label { min-height: 51px; }
+  .active-exercise-actions .add-set-action { grid-column: 1 / -1; }
+  .active-exercise-actions button { min-height: 51px; }
   .audience-grid, .pricing-grid { grid-template-columns: 1fr; }
   .audience-grid article { min-height: 285px; }
   .pricing-section { border-radius: 30px; }
