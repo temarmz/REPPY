@@ -1518,6 +1518,7 @@ function ActiveWorkout({
 }) {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [pickerAfterId, setPickerAfterId] = useState<string | null>(null);
+  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const moveHighlightTimer = useRef<number | null>(null);
   const startRequested = useRef(false);
@@ -1599,12 +1600,14 @@ function ActiveWorkout({
 
   return (
     <main className="active-workout-page active-workout-list-page">
-      <header className="active-header">
-        <button type="button" onClick={() => goBack(backPath)} aria-label="Закрыть тренировку"><Icon name="close" /></button>
-        <div className="active-header-copy"><span>{workout.name}</span><strong>{workout.exercises.length} упражнений</strong></div>
-        <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
-      </header>
-      <div className="active-progress"><span style={{ width: progress + '%' }} /></div>
+      <div className="active-sticky-header">
+        <header className="active-header">
+          <button type="button" onClick={() => goBack(backPath)} aria-label="Закрыть тренировку"><Icon name="close" /></button>
+          <div className="active-header-copy"><span>{workout.name}</span><strong>{workout.exercises.length} упражнений</strong></div>
+          <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
+        </header>
+        <div className="active-progress"><span style={{ width: progress + '%' }} /></div>
+      </div>
 
       <section className="active-workout-overview">
         <h1>{workout.name}</h1>
@@ -1625,6 +1628,7 @@ function ActiveWorkout({
               recentlyMoved={recentlyMovedId === exercise.id}
               onPlanChange={(key, value) => updateExercisePlan(exercise.id, key, value)}
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
+              onShowInstruction={() => setInstructionExercise(exercise)}
               onAddSet={() => updateExercisePlan(exercise.id, 'sets', exercise.sets + 1)}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
@@ -1639,6 +1643,7 @@ function ActiveWorkout({
       </section>
 
       {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} />}
+      {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
 
       <footer className="exercise-navigation single-action">
         <button className="finish-workout" type="button" onClick={() => onFinish(session.id)}><Icon name="check" /> Завершить тренировку</button>
@@ -1656,6 +1661,7 @@ function ActiveExerciseCard({
   recentlyMoved,
   onPlanChange,
   onResultChange,
+  onShowInstruction,
   onAddSet,
   onAddAfter,
   onMoveUp,
@@ -1670,6 +1676,7 @@ function ActiveExerciseCard({
   recentlyMoved: boolean;
   onPlanChange: (key: 'sets' | 'targetReps' | 'targetWeight' | 'coachNote', value: number | string) => void;
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
+  onShowInstruction: () => void;
   onAddSet: () => void;
   onAddAfter: () => void;
   onMoveUp: () => void;
@@ -1677,7 +1684,6 @@ function ActiveExerciseCard({
   onDelete: () => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
-  const [instructionOpen, setInstructionOpen] = useState(false);
   const completedSets = results.filter((result) => result.completed).length;
   const allCompleted = results.length > 0 && completedSets === results.length;
   const canDelete = totalExercises > 1 && minimumSets === 0;
@@ -1688,29 +1694,25 @@ function ActiveExerciseCard({
         <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
         <div><h2>{exercise.name}</h2></div>
         <div className="active-exercise-corner-actions">
-          <button className="exercise-help" type="button" aria-expanded={instructionOpen} onClick={() => setInstructionOpen((current) => !current)} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
+          <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
           <button className="exercise-delete" type="button" disabled={!canDelete} title={!canDelete ? minimumSets > 0 ? 'Сначала отмени выполненные подходы' : 'В тренировке должно остаться хотя бы одно упражнение' : undefined} onClick={onDelete} aria-label={'Удалить упражнение — ' + exercise.name}><Icon name="trash" /></button>
         </div>
       </header>
 
-      <div className="exercise-order-controls">
+      <div className="exercise-toolbar">
+        <div className="active-exercise-actions">
+          <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button>
+        </div>
+        <div className="exercise-order-controls">
           <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
           <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
-      </div>
-
-      <div className="active-exercise-actions">
-        <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button>
+        </div>
       </div>
 
       {commentOpen && <label className="active-comment-field">
         <span>Комментарий к упражнению</span>
         <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onPlanChange('coachNote', event.target.value)} placeholder="Например: держи локти вдоль тела" />
       </label>}
-
-      {instructionOpen && <section className="exercise-instruction-placeholder">
-        <Icon name="workout" />
-        <div><strong>{exercise.name} — как выполнять</strong><p>Здесь появятся техника, подсказки и видео упражнения.</p></div>
-      </section>}
 
       <section className="active-card-sets">
         {results.map((result) => (
@@ -1726,10 +1728,31 @@ function ActiveExerciseCard({
       </section>
 
       <footer className="active-exercise-footer-actions">
-        <button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Добавить подход</button>
-        <button type="button" onClick={onAddAfter}><Icon name="plus" /> Добавить ещё упражнение</button>
+        <button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Ещё подход</button>
+        <button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button>
       </footer>
     </article>
+  );
+}
+
+function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExercise; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть описание"><Icon name="close" /></button></div>
+        <div className="exercise-instruction-body">
+          <div className="exercise-instruction-media"><Icon name="workout" /><span>Видео и изображения появятся здесь</span></div>
+          <h3>Как выполнять</h3>
+          <p>Займи устойчивое исходное положение и выполни движение плавно, без рывков. Сохраняй контроль корпуса и комфортную амплитуду на протяжении всего подхода.</p>
+          <ul>
+            <li>Перед рабочим весом сделай разминочный подход.</li>
+            <li>Выдыхай на усилии и не задерживай дыхание.</li>
+            <li>Остановись, если появляется резкая боль или теряется техника.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
   );
 }
 
