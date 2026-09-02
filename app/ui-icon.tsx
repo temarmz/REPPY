@@ -19,6 +19,7 @@ export type IconName =
   | 'minus'
   | 'help'
   | 'trash'
+  | 'more'
   | 'success';
 
 const iconFiles: Record<IconName, string> = {
@@ -42,6 +43,7 @@ const iconFiles: Record<IconName, string> = {
   minus: 'icon-minus.svg',
   help: 'icon-help.svg',
   trash: 'icon-trash.svg',
+  more: 'icon-more.svg',
   success: 'icon-success.svg',
 };
 

@@ -1519,6 +1519,7 @@ function ActiveWorkout({
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [pickerAfterId, setPickerAfterId] = useState<string | null>(null);
   const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
+  const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const moveHighlightTimer = useRef<number | null>(null);
   const startRequested = useRef(false);
@@ -1566,18 +1567,22 @@ function ActiveWorkout({
     onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch } : result));
   };
 
+  const focusExercise = (exerciseId: string) => {
+    setRecentlyMovedId(exerciseId);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      document.querySelector(`[data-active-exercise="${exerciseId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+    if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
+    moveHighlightTimer.current = window.setTimeout(() => setRecentlyMovedId(null), 1000);
+  };
+
   const moveExercise = (fromIndex: number, toIndex: number) => {
     if (toIndex < 0 || toIndex >= workout.exercises.length) return;
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
     updateWorkout(next);
-    setRecentlyMovedId(moved.id);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      document.querySelector(`[data-active-exercise="${moved.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }));
-    if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
-    moveHighlightTimer.current = window.setTimeout(() => setRecentlyMovedId(null), 1000);
+    focusExercise(moved.id);
   };
 
   const addExerciseAfter = (definition: { id: string; name: string }) => {
@@ -1596,7 +1601,12 @@ function ActiveWorkout({
     next.splice(afterIndex + 1, 0, nextExercise);
     updateWorkout(next);
     setPickerAfterId(null);
+    focusExercise(nextExercise.id);
   };
+
+  const actionExercise = workout.exercises.find((exercise) => exercise.id === actionExerciseId);
+  const actionResults = actionExercise ? session.results.filter((result) => result.exerciseId === actionExercise.id) : [];
+  const actionMinimumSets = Math.max(0, ...actionResults.filter((result) => result.completed).map((result) => result.setNumber));
 
   return (
     <main className="active-workout-page active-workout-list-page">
@@ -1616,7 +1626,6 @@ function ActiveWorkout({
       <section className="active-exercise-list">
         {workout.exercises.map((exercise, index) => {
           const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
-          const minimumSets = Math.max(0, ...exerciseResults.filter((result) => result.completed).map((result) => result.setNumber));
           return (
             <ActiveExerciseCard
               key={exercise.id}
@@ -1624,19 +1633,15 @@ function ActiveWorkout({
               index={index}
               totalExercises={workout.exercises.length}
               results={exerciseResults}
-              minimumSets={minimumSets}
               recentlyMoved={recentlyMovedId === exercise.id}
               onPlanChange={(key, value) => updateExercisePlan(exercise.id, key, value)}
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
               onShowInstruction={() => setInstructionExercise(exercise)}
+              onShowActions={() => setActionExerciseId(exercise.id)}
               onAddSet={() => updateExercisePlan(exercise.id, 'sets', exercise.sets + 1)}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
-              onDelete={() => {
-                if (!window.confirm(`Удалить упражнение «${exercise.name}» из этой тренировки?`)) return;
-                updateWorkout(workout.exercises.filter((item) => item.id !== exercise.id));
-              }}
             />
           );
         })}
@@ -1644,6 +1649,21 @@ function ActiveWorkout({
 
       {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} />}
       {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
+      {actionExercise && <ExerciseActionsModal
+        exercise={actionExercise}
+        canRemoveSet={actionExercise.sets > Math.max(1, actionMinimumSets)}
+        canDeleteExercise={workout.exercises.length > 1 && actionMinimumSets === 0}
+        onClose={() => setActionExerciseId(null)}
+        onRemoveSet={() => {
+          updateExercisePlan(actionExercise.id, 'sets', actionExercise.sets - 1);
+          setActionExerciseId(null);
+        }}
+        onDeleteExercise={() => {
+          setActionExerciseId(null);
+          if (!window.confirm(`Удалить упражнение «${actionExercise.name}» из этой тренировки?`)) return;
+          updateWorkout(workout.exercises.filter((item) => item.id !== actionExercise.id));
+        }}
+      />}
 
       <footer className="exercise-navigation single-action">
         <button className="finish-workout" type="button" onClick={() => onFinish(session.id)}><Icon name="check" /> Завершить тренировку</button>
@@ -1657,36 +1677,33 @@ function ActiveExerciseCard({
   index,
   totalExercises,
   results,
-  minimumSets,
   recentlyMoved,
   onPlanChange,
   onResultChange,
   onShowInstruction,
+  onShowActions,
   onAddSet,
   onAddAfter,
   onMoveUp,
   onMoveDown,
-  onDelete,
 }: {
   exercise: WorkoutExercise;
   index: number;
   totalExercises: number;
   results: SetResult[];
-  minimumSets: number;
   recentlyMoved: boolean;
   onPlanChange: (key: 'sets' | 'targetReps' | 'targetWeight' | 'coachNote', value: number | string) => void;
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
   onShowInstruction: () => void;
+  onShowActions: () => void;
   onAddSet: () => void;
   onAddAfter: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  onDelete: () => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
   const completedSets = results.filter((result) => result.completed).length;
   const allCompleted = results.length > 0 && completedSets === results.length;
-  const canDelete = totalExercises > 1 && minimumSets === 0;
 
   return (
     <article data-active-exercise={exercise.id} className={'active-exercise-card ' + (allCompleted ? 'completed ' : '') + (recentlyMoved ? 'recently-moved' : '')}>
@@ -1695,7 +1712,7 @@ function ActiveExerciseCard({
         <div><h2>{exercise.name}</h2></div>
         <div className="active-exercise-corner-actions">
           <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
-          <button className="exercise-delete" type="button" disabled={!canDelete} title={!canDelete ? minimumSets > 0 ? 'Сначала отмени выполненные подходы' : 'В тренировке должно остаться хотя бы одно упражнение' : undefined} onClick={onDelete} aria-label={'Удалить упражнение — ' + exercise.name}><Icon name="trash" /></button>
+          <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
         </div>
       </header>
 
@@ -1750,6 +1767,41 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
             <li>Выдыхай на усилии и не задерживай дыхание.</li>
             <li>Остановись, если появляется резкая боль или теряется техника.</li>
           </ul>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ExerciseActionsModal({
+  exercise,
+  canRemoveSet,
+  canDeleteExercise,
+  onClose,
+  onRemoveSet,
+  onDeleteExercise,
+}: {
+  exercise: WorkoutExercise;
+  canRemoveSet: boolean;
+  canDeleteExercise: boolean;
+  onClose: () => void;
+  onRemoveSet: () => void;
+  onDeleteExercise: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="bottom-sheet exercise-actions-sheet" role="dialog" aria-modal="true" aria-label={'Действия — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть действия"><Icon name="close" /></button></div>
+        <div className="exercise-action-list">
+          <button type="button" disabled={!canRemoveSet} onClick={onRemoveSet}>
+            <Icon name="minus" />
+            <span><strong>Удалить подход</strong><small>{canRemoveSet ? 'Будет удалён последний подход' : 'Нельзя удалить выполненный или единственный подход'}</small></span>
+          </button>
+          <button className="danger" type="button" disabled={!canDeleteExercise} onClick={onDeleteExercise}>
+            <Icon name="trash" />
+            <span><strong>Удалить упражнение</strong><small>{canDeleteExercise ? 'Упражнение исчезнет из этой тренировки' : 'Сначала отмени выполненные подходы'}</small></span>
+          </button>
         </div>
       </section>
     </div>

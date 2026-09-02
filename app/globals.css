@@ -826,7 +826,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .student-upcoming-row > .ui-icon { width: 17px; height: 17px; color: var(--muted); }
 
 .active-workout-page { min-height: 100svh; padding: env(safe-area-inset-top, 0px) max(18px, calc((100vw - 720px) / 2)) 130px; background: #090b09; }
-.active-sticky-header { position: sticky; top: 0; z-index: 80; margin-inline: calc(-1 * max(18px, calc((100vw - 720px) / 2))); padding-inline: max(18px, calc((100vw - 720px) / 2)); background: rgba(9,11,9,.94); box-shadow: 0 10px 24px rgba(0,0,0,.12); backdrop-filter: blur(18px); }
+.active-sticky-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 80; margin-inline: calc(-1 * max(18px, calc((100vw - 720px) / 2))); padding-inline: max(18px, calc((100vw - 720px) / 2)); background: rgba(9,11,9,.96); box-shadow: 0 10px 24px rgba(0,0,0,.12); backdrop-filter: blur(18px); }
 .active-header { display: grid; min-height: 82px; grid-template-columns: 52px minmax(0,1fr) 72px; align-items: center; gap: 13px; }
 .active-header > button { display: grid; width: 52px; height: 52px; place-items: center; border: 0; border-radius: 17px; background: var(--surface-2); cursor: pointer; font-size: 23px; }
 .active-header > button .ui-icon { width: 21px; height: 21px; }
@@ -859,7 +859,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .exercise-navigation button { display: inline-flex; min-height: 60px; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 18px; padding: 0 17px; background: var(--surface-2); cursor: pointer; font-size: 12px; font-weight: 850; }
 .exercise-navigation button .ui-icon { width: 17px; height: 17px; }
 .exercise-navigation .next-exercise, .exercise-navigation .finish-workout { flex: 1; max-width: 500px; background: #ecefe9; color: var(--ink); }
-.exercise-navigation .finish-workout { background: #ecefe9; }
+.exercise-navigation .finish-workout { background: var(--lime); color: var(--ink); }
 
 .success-screen { display: grid; width: min(100%, 650px); min-height: calc(100svh - 76px); margin: 0 auto; align-content: center; padding: 35px 24px 110px; text-align: center; }
 .success-illustration { display: block; width: min(100%, 320px); height: auto; margin: 0 auto 20px; object-fit: contain; }
@@ -1387,7 +1387,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .active-exercise-corner-actions button:disabled { cursor: not-allowed; opacity: .28; }
 .active-exercise-corner-actions .ui-icon { width: 21px; height: 21px; }
 .active-exercise-corner-actions .exercise-help { color: #b7a2ff; }
-.active-exercise-corner-actions .exercise-delete { color: #dc7d73; }
+.active-exercise-corner-actions .exercise-menu { color: #d7dcd4; }
 .exercise-toolbar { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: stretch; gap: 7px; margin-top: 13px; }
 .exercise-order-controls { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
 .exercise-order-controls button { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; background: rgba(255,255,255,.04); color: #cfd4cc; cursor: pointer; }
@@ -1410,6 +1410,16 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .exercise-instruction-body h3 { margin: 22px 0 9px; font-size: 20px; }
 .exercise-instruction-body p { margin: 0; color: #d6dad3; font-size: 15px; line-height: 1.6; }
 .exercise-instruction-body ul { display: grid; gap: 9px; margin: 18px 0 0; padding-left: 20px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.exercise-actions-sheet { display: grid; grid-template-rows: auto auto minmax(0,1fr); }
+.exercise-action-list { display: grid; gap: 9px; padding-bottom: 4px; }
+.exercise-action-list > button { display: grid; min-height: 70px; grid-template-columns: 42px minmax(0,1fr); align-items: center; gap: 13px; border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 10px 14px; background: rgba(255,255,255,.035); color: #e0e4dd; cursor: pointer; text-align: left; }
+.exercise-action-list > button:disabled { cursor: not-allowed; opacity: .35; }
+.exercise-action-list > button > .ui-icon { width: 21px; height: 21px; justify-self: center; color: var(--muted); }
+.exercise-action-list > button > span { display: grid; gap: 5px; }
+.exercise-action-list strong { font-size: 14px; }
+.exercise-action-list small { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.exercise-action-list > button.danger { border-color: rgba(255,120,104,.17); color: #e19187; }
+.exercise-action-list > button.danger > .ui-icon { color: #dc7d73; }
 .active-card-sets { display: grid; gap: 9px; margin-top: 16px; }
 .active-card-sets .set-card { min-height: 96px; grid-template-columns: 62px minmax(0,1fr) 62px; }
 .set-metrics { display: grid; min-width: 0; grid-template-columns: 1fr 1fr; gap: 9px; }

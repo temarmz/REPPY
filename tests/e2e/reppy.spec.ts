@@ -116,6 +116,7 @@ test('тренер ведёт занятие, правит его в момен�
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
   await expect(page.locator('.active-exercise-card')).toHaveCount(3);
   await expect(page.getByRole('button', { name: 'Редактировать тренировку' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Завершить тренировку' })).toHaveCSS('background-color', 'rgb(198, 255, 61)');
   await expect(page.locator('.active-sticky-header')).toHaveCSS('position', 'sticky');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect.poll(async () => Math.round((await page.locator('.active-sticky-header').boundingBox())?.y ?? -1)).toBe(0);
@@ -126,7 +127,7 @@ test('тренер ведёт занятие, правит его в момен�
     squatCard.getByRole('button', { name: 'Добавить комментарий' }),
     squatCard.getByRole('button', { name: 'Опустить Приседания ниже' }),
     squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }),
-    squatCard.getByRole('button', { name: 'Удалить упражнение — Приседания' }),
+    squatCard.getByRole('button', { name: 'Действия — Приседания' }),
   ].map(async (control) => (await control.boundingBox())?.height));
   expect(new Set(controlHeights).size).toBe(1);
   const footerButtonRows = await Promise.all([
@@ -154,6 +155,7 @@ test('тренер ведёт занятие, правит его в момен�
   await page.getByRole('button', { name: /Молотковые сгибания/ }).click();
   await expect(page.locator('.active-exercise-card')).toHaveCount(4);
   await expect(page.locator('.active-exercise-card').nth(1)).toContainText('Молотковые сгибания');
+  await expect(page.locator('.active-exercise-card').nth(1)).toHaveClass(/recently-moved/);
   await page.getByRole('button', { name: 'Опустить Молотковые сгибания ниже' }).click();
   await expect(page.locator('.active-exercise-card').nth(2)).toContainText('Молотковые сгибания');
   await expect(page.locator('.active-exercise-card').nth(2)).toHaveClass(/recently-moved/);
@@ -164,19 +166,33 @@ test('тренер ведёт занятие, правит его в момен�
   await page.getByRole('button', { name: 'Добавить «Тяга полотенца»' }).click();
   const customCard = page.locator('.active-exercise-card').filter({ hasText: 'Тяга полотенца' });
   await expect(customCard).toBeVisible();
+  await expect(customCard).toHaveClass(/recently-moved/);
   await expect(customCard.locator('.set-card')).toHaveCount(3);
+  await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
+  let actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
+  await actionsDialog.getByRole('button', { name: /Удалить подход/ }).click();
+  await expect(customCard.locator('.set-card')).toHaveCount(2);
+
+  await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
+  actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
   page.once('dialog', (dialog) => dialog.dismiss());
-  await customCard.getByRole('button', { name: 'Удалить упражнение — Тяга полотенца' }).click();
+  await actionsDialog.getByRole('button', { name: /Удалить упражнение/ }).click();
   await expect(customCard).toBeVisible();
+
+  await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
+  actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
   page.once('dialog', (dialog) => dialog.accept());
-  await customCard.getByRole('button', { name: 'Удалить упражнение — Тяга полотенца' }).click();
+  await actionsDialog.getByRole('button', { name: /Удалить упражнение/ }).click();
   await expect(customCard).toHaveCount(0);
 
   await expect(squatCard.locator('.set-card')).toHaveCount(5);
   await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('70');
   await expect(squatCard.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('8');
   await page.getByRole('button', { name: 'Завершить подход 1 — Приседания' }).click();
-  await expect(squatCard.getByRole('button', { name: 'Удалить упражнение — Приседания' })).toBeDisabled();
+  await squatCard.getByRole('button', { name: 'Действия — Приседания' }).click();
+  actionsDialog = page.getByRole('dialog', { name: 'Действия — Приседания' });
+  await expect(actionsDialog.getByRole('button', { name: /Удалить упражнение/ })).toBeDisabled();
+  await actionsDialog.getByRole('button', { name: 'Закрыть действия' }).click();
 
   const legPressCard = page.locator('.active-exercise-card').filter({ hasText: 'Жим ногами' });
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим ногами' }).click();
