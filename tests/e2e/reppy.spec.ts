@@ -128,13 +128,29 @@ test('тренер ведёт занятие, правит его в момен�
   await squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }).click();
   await expect(squatCard.getByText('Приседания — как выполнять')).toBeVisible();
 
-  await squatCard.getByRole('button', { name: 'Добавить ниже' }).click();
+  await squatCard.getByRole('button', { name: 'Добавить ещё упражнение' }).click();
+  await expect(page.locator('.exercise-picker-sheet .search-input')).toHaveCSS('font-size', '16px');
   await page.getByRole('button', { name: 'Бицепс', exact: true }).click();
   await page.getByRole('button', { name: /Молотковые сгибания/ }).click();
   await expect(page.locator('.active-exercise-card')).toHaveCount(4);
   await expect(page.locator('.active-exercise-card').nth(1)).toContainText('Молотковые сгибания');
   await page.getByRole('button', { name: 'Опустить Молотковые сгибания ниже' }).click();
   await expect(page.locator('.active-exercise-card').nth(2)).toContainText('Молотковые сгибания');
+  await expect(page.locator('.active-exercise-card').nth(2)).toHaveClass(/recently-moved/);
+
+  const hammerCard = page.locator('.active-exercise-card').filter({ hasText: 'Молотковые сгибания' });
+  await hammerCard.getByRole('button', { name: 'Добавить ещё упражнение' }).click();
+  await page.locator('.exercise-picker-sheet .search-input').fill('Тяга полотенца');
+  await page.getByRole('button', { name: 'Добавить «Тяга полотенца»' }).click();
+  const customCard = page.locator('.active-exercise-card').filter({ hasText: 'Тяга полотенца' });
+  await expect(customCard).toBeVisible();
+  await expect(customCard.locator('.set-card')).toHaveCount(3);
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await customCard.getByRole('button', { name: 'Удалить упражнение — Тяга полотенца' }).click();
+  await expect(customCard).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await customCard.getByRole('button', { name: 'Удалить упражнение — Тяга полотенца' }).click();
+  await expect(customCard).toHaveCount(0);
 
   await expect(squatCard.locator('.set-card')).toHaveCount(5);
   await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('70');

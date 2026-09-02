@@ -1518,6 +1518,8 @@ function ActiveWorkout({
 }) {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [pickerAfterId, setPickerAfterId] = useState<string | null>(null);
+  const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
+  const moveHighlightTimer = useRef<number | null>(null);
   const startRequested = useRef(false);
   const startedAt = session?.startedAt;
 
@@ -1533,6 +1535,10 @@ function ActiveWorkout({
     const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [startedAt]);
+
+  useEffect(() => () => {
+    if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
+  }, []);
 
   if (!session || !workout.exercises.length) {
     return <main className="loading-screen"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Готовим тренировку…</p></main>;
@@ -1565,9 +1571,15 @@ function ActiveWorkout({
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
     updateWorkout(next);
+    setRecentlyMovedId(moved.id);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      document.querySelector(`[data-active-exercise="${moved.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+    if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
+    moveHighlightTimer.current = window.setTimeout(() => setRecentlyMovedId(null), 1000);
   };
 
-  const addExerciseAfter = (definition: (typeof exerciseLibrary)[number]) => {
+  const addExerciseAfter = (definition: { id: string; name: string }) => {
     if (!pickerAfterId) return;
     const afterIndex = workout.exercises.findIndex((exercise) => exercise.id === pickerAfterId);
     const nextExercise: WorkoutExercise = {
@@ -1595,9 +1607,7 @@ function ActiveWorkout({
       <div className="active-progress"><span style={{ width: progress + '%' }} /></div>
 
       <section className="active-workout-overview">
-        <p>РАБОЧИЙ ЛИСТ</p>
         <h1>{workout.name}</h1>
-        <span>Все упражнения открыты одновременно — отмечай подходы в любом порядке.</span>
       </section>
 
       <section className="active-exercise-list">
@@ -1612,13 +1622,17 @@ function ActiveWorkout({
               totalExercises={workout.exercises.length}
               results={exerciseResults}
               minimumSets={minimumSets}
+              recentlyMoved={recentlyMovedId === exercise.id}
               onPlanChange={(key, value) => updateExercisePlan(exercise.id, key, value)}
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
               onAddSet={() => updateExercisePlan(exercise.id, 'sets', exercise.sets + 1)}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
-              onDelete={() => updateWorkout(workout.exercises.filter((item) => item.id !== exercise.id))}
+              onDelete={() => {
+                if (!window.confirm(`Удалить упражнение «${exercise.name}» из этой тренировки?`)) return;
+                updateWorkout(workout.exercises.filter((item) => item.id !== exercise.id));
+              }}
             />
           );
         })}
@@ -1639,6 +1653,7 @@ function ActiveExerciseCard({
   totalExercises,
   results,
   minimumSets,
+  recentlyMoved,
   onPlanChange,
   onResultChange,
   onAddSet,
@@ -1652,6 +1667,7 @@ function ActiveExerciseCard({
   totalExercises: number;
   results: SetResult[];
   minimumSets: number;
+  recentlyMoved: boolean;
   onPlanChange: (key: 'sets' | 'targetReps' | 'targetWeight' | 'coachNote', value: number | string) => void;
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
   onAddSet: () => void;
@@ -1667,10 +1683,10 @@ function ActiveExerciseCard({
   const canDelete = totalExercises > 1 && minimumSets === 0;
 
   return (
-    <article className={'active-exercise-card ' + (allCompleted ? 'completed' : '')}>
+    <article data-active-exercise={exercise.id} className={'active-exercise-card ' + (allCompleted ? 'completed ' : '') + (recentlyMoved ? 'recently-moved' : '')}>
       <header className="active-exercise-card-header">
         <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
-        <div><h2>{exercise.name}</h2><small>{completedSets} из {results.length} подходов выполнено</small></div>
+        <div><h2>{exercise.name}</h2></div>
         <div className="active-exercise-corner-actions">
           <button className="exercise-help" type="button" aria-expanded={instructionOpen} onClick={() => setInstructionOpen((current) => !current)} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
           <button className="exercise-delete" type="button" disabled={!canDelete} title={!canDelete ? minimumSets > 0 ? 'Сначала отмени выполненные подходы' : 'В тренировке должно остаться хотя бы одно упражнение' : undefined} onClick={onDelete} aria-label={'Удалить упражнение — ' + exercise.name}><Icon name="trash" /></button>
@@ -1678,20 +1694,17 @@ function ActiveExerciseCard({
       </header>
 
       <div className="exercise-order-controls">
-          <span>ПОРЯДОК</span>
           <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
           <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
       </div>
 
       <div className="active-exercise-actions">
-        <button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Добавить подход</button>
         <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button>
-        <button type="button" onClick={onAddAfter}><Icon name="plus" /> Добавить ниже</button>
       </div>
 
       {commentOpen && <label className="active-comment-field">
         <span>Комментарий к упражнению</span>
-        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onPlanChange('coachNote', event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus />
+        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onPlanChange('coachNote', event.target.value)} placeholder="Например: держи локти вдоль тела" />
       </label>}
 
       {instructionOpen && <section className="exercise-instruction-placeholder">
@@ -1703,12 +1716,19 @@ function ActiveExerciseCard({
         {results.map((result) => (
           <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
             <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
-            <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>
-            <label><span>ПОВТОРЫ</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
+            <div className="set-metrics">
+              <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>
+              <label><span>ПОВТОРЫ</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
+            </div>
             <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name={result.completed ? 'check' : 'circle'} /></button>
           </article>
         ))}
       </section>
+
+      <footer className="active-exercise-footer-actions">
+        <button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Добавить подход</button>
+        <button type="button" onClick={onAddAfter}><Icon name="plus" /> Добавить ещё упражнение</button>
+      </footer>
     </article>
   );
 }
@@ -1718,11 +1738,13 @@ function ActiveExercisePicker({
   onSelect,
 }: {
   onClose: () => void;
-  onSelect: (exercise: (typeof exerciseLibrary)[number]) => void;
+  onSelect: (exercise: { id: string; name: string }) => void;
 }) {
   const [search, setSearch] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
+  const customName = search.trim();
+  const canCreateCustom = customName.length >= 2 && !exerciseLibrary.some((exercise) => exercise.name.toLocaleLowerCase('ru') === normalizedSearch);
   const filtered = exerciseLibrary.filter((exercise) => {
     const matchesMuscle = selectedMuscle === 'all' || exercise.primaryMuscle === selectedMuscle;
     const haystack = (exercise.name + ' ' + exercise.primaryMuscle + ' ' + exercise.equipment).toLocaleLowerCase('ru');
@@ -1734,14 +1756,15 @@ function ActiveExercisePicker({
       <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнение после выбранного" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
         <div className="sheet-title"><h2>Добавить упражнение ниже</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-        <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" autoFocus />
+        <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
         <div className="muscle-filter" aria-label="Фильтр по основной мышце">
           <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
           {muscleGroups.map((muscle) => <button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</button>)}
         </div>
         <div className="picker-list">
+          {canCreateCustom && <button className="custom-exercise-option" type="button" onClick={() => onSelect({ id: makeId('custom-exercise'), name: customName })}><span><Icon name="plus" /></span><div><strong>Добавить «{customName}»</strong><small>Пользовательское упражнение</small></div></button>}
           {filtered.map((exercise) => <button key={exercise.id} type="button" onClick={() => onSelect(exercise)}><span><Icon name="plus" /></span><div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div></button>)}
-          {!filtered.length && <p className="picker-empty">Ничего не найдено. Попробуй другую категорию или запрос.</p>}
+          {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
         </div>
       </section>
     </div>
