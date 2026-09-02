@@ -1702,6 +1702,7 @@ function ActiveExerciseCard({
   onMoveDown: () => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
+  const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
   const completedSets = results.filter((result) => result.completed).length;
   const allCompleted = results.length > 0 && completedSets === results.length;
 
@@ -1709,7 +1710,10 @@ function ActiveExerciseCard({
     <article data-active-exercise={exercise.id} className={'active-exercise-card ' + (allCompleted ? 'completed ' : '') + (recentlyMoved ? 'recently-moved' : '')}>
       <header className="active-exercise-card-header">
         <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
-        <div><h2>{exercise.name}</h2></div>
+        <div>
+          <h2>{exercise.name}</h2>
+          <small className="active-exercise-meta">{definition ? definition.primaryMuscle + ' · ' + definition.equipment : 'Пользовательское упражнение'}</small>
+        </div>
         <div className="active-exercise-corner-actions">
           <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
           <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
@@ -1728,7 +1732,7 @@ function ActiveExerciseCard({
 
       {commentOpen && <label className="active-comment-field">
         <span>Комментарий к упражнению</span>
-        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onPlanChange('coachNote', event.target.value)} placeholder="Например: держи локти вдоль тела" />
+        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onPlanChange('coachNote', event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus />
       </label>}
 
       <section className="active-card-sets">
@@ -1739,7 +1743,7 @@ function ActiveExerciseCard({
               <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>
               <label><span>ПОВТОРЫ</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
             </div>
-            <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name={result.completed ? 'check' : 'circle'} /></button>
+            <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name="check" /></button>
           </article>
         ))}
       </section>
@@ -1753,6 +1757,8 @@ function ActiveExerciseCard({
 }
 
 function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExercise; onClose: () => void }) {
+  const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
+  const equipment = definition?.equipment && definition.equipment !== 'Свой вес' ? definition.equipment : null;
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
@@ -1760,6 +1766,7 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
         <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть описание"><Icon name="close" /></button></div>
         <div className="exercise-instruction-body">
           <div className="exercise-instruction-media"><Icon name="workout" /><span>Видео и изображения появятся здесь</span></div>
+          {equipment && <div className="exercise-equipment"><small>ОБОРУДОВАНИЕ</small><strong>{equipment}</strong></div>}
           <h3>Как выполнять</h3>
           <p>Займи устойчивое исходное положение и выполни движение плавно, без рывков. Сохраняй контроль корпуса и комфортную амплитуду на протяжении всего подхода.</p>
           <ul>

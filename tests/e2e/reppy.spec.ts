@@ -118,11 +118,21 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(page.getByRole('button', { name: 'Редактировать тренировку' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Завершить тренировку' })).toHaveCSS('background-color', 'rgb(198, 255, 61)');
   await expect(page.locator('.active-sticky-header')).toHaveCSS('position', 'sticky');
+  const safeAreaCover = await page.locator('.active-sticky-header').evaluate((element) => {
+    const style = getComputedStyle(element, '::before');
+    return { background: style.backgroundColor, content: style.content };
+  });
+  expect(safeAreaCover.background).toBe('rgb(9, 11, 9)');
+  expect(safeAreaCover.content).not.toBe('none');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect.poll(async () => Math.round((await page.locator('.active-sticky-header').boundingBox())?.y ?? -1)).toBe(0);
   await page.evaluate(() => window.scrollTo(0, 0));
 
   const squatCard = page.locator('.active-exercise-card').filter({ hasText: 'Приседания' });
+  await expect(squatCard.getByText('Квадрицепс · Штанга')).toBeVisible();
+  const firstSquatSetButton = page.getByRole('button', { name: 'Завершить подход 1 — Приседания' });
+  await expect(firstSquatSetButton).toHaveCSS('color', 'rgb(105, 112, 104)');
+  await expect(firstSquatSetButton.locator('.ui-icon')).toHaveAttribute('style', /icon-checkmark\.svg/);
   const controlHeights = await Promise.all([
     squatCard.getByRole('button', { name: 'Добавить комментарий' }),
     squatCard.getByRole('button', { name: 'Опустить Приседания ниже' }),
@@ -137,7 +147,9 @@ test('тренер ведёт занятие, правит его в момен�
   expect(new Set(footerButtonRows).size).toBe(1);
   await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
   await squatCard.getByRole('button', { name: 'Добавить комментарий' }).click();
-  await squatCard.locator('.active-comment-field textarea').fill('Колени держи по линии стоп');
+  const commentField = squatCard.locator('.active-comment-field textarea');
+  await expect(commentField).toBeFocused();
+  await commentField.fill('Колени держи по линии стоп');
 
   await expect(squatCard.getByLabel('Подходы')).toHaveCount(0);
   await expect(squatCard.getByRole('checkbox', { name: 'Выполнено' })).toHaveCount(0);
@@ -147,6 +159,8 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(instructionDialog).toBeVisible();
   await expect(instructionDialog).toContainText('Займи устойчивое исходное положение');
   await expect(instructionDialog).toContainText('Видео и изображения появятся здесь');
+  await expect(instructionDialog).toContainText('ОБОРУДОВАНИЕ');
+  await expect(instructionDialog).toContainText('Штанга');
   await instructionDialog.getByRole('button', { name: 'Закрыть описание' }).click();
 
   await squatCard.getByRole('button', { name: 'Ещё упражнение' }).click();
@@ -166,6 +180,7 @@ test('тренер ведёт занятие, правит его в момен�
   await page.getByRole('button', { name: 'Добавить «Тяга полотенца»' }).click();
   const customCard = page.locator('.active-exercise-card').filter({ hasText: 'Тяга полотенца' });
   await expect(customCard).toBeVisible();
+  await expect(customCard.getByText('Пользовательское упражнение')).toBeVisible();
   await expect(customCard).toHaveClass(/recently-moved/);
   await expect(customCard.locator('.set-card')).toHaveCount(3);
   await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
