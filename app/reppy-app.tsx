@@ -9,18 +9,15 @@ import {
   findAssignmentWorkout,
   getExerciseSetPlans,
   findSessionWorkout,
-  findStudentWorkoutVersion,
+  workoutFromSession,
   formatCalendarDay,
   formatDay,
   makeId,
   muscleGroups,
   normalizeWorkoutExercise,
   repeatAssignment,
-  resolveAssignmentWorkout,
-  resolveEditedAssignmentSource,
   updateSessionWorkout,
   withExerciseSetPlans,
-  upsertStudentWorkoutVersion,
   type Assignment,
   type DemoState,
   type MoodRating,
@@ -79,7 +76,7 @@ function exercisePreview(workout?: Workout, withPlan = false) {
   if (!workout?.exercises.length) return 'Упражнения не добавлены';
   const preview = workout.exercises
     .slice(0, 3)
-    .map((exercise) => withPlan ? `${exercise.name} ${getExerciseSetPlans(exercise).length}×${getExerciseSetPlans(exercise)[0]?.targetReps ?? 0}` : exercise.name)
+    .map((exercise) => withPlan ? exercise.name + ' · ' + getExerciseSetPlans(exercise).length + ' подх.' : exercise.name)
     .join(' · ');
   return workout.exercises.length > 3 ? `${preview} · …` : preview;
 }
@@ -183,6 +180,13 @@ export default function ReppyApp() {
   }, [data.loggedIn, data.role, hydrated]);
 
   useEffect(() => {
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('.page-wrap')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+  }, [path]);
+
+  useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(''), 2600);
     return () => window.clearTimeout(timer);
@@ -280,7 +284,7 @@ export default function ReppyApp() {
         <WorkoutForm
           onSave={(workout) => {
             setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
-            showToast('Шаблон сохранён');
+            showToast('Тренировка сохранена');
             go(`/trainer/workouts/${workout.id}`);
           }}
         />
@@ -291,15 +295,12 @@ export default function ReppyApp() {
         <EditAssignment
           data={data}
           assignment={assignment}
-          onSave={(updated, rememberForStudent) => {
+          onSave={(updated) => {
             setData((current) => ({
               ...current,
               assignments: current.assignments.map((item) => item.id === updated.id ? updated : item),
-              studentWorkoutVersions: rememberForStudent
-                ? upsertStudentWorkoutVersion(current.studentWorkoutVersions, updated.studentId, updated.workoutId, updated.workoutSnapshot)
-                : current.studentWorkoutVersions,
             }));
-            showToast(rememberForStudent ? 'Назначение и версия ученика сохранены' : 'Назначение сохранено');
+            showToast('Назначение сохранено');
             go(`/trainer/assignments/${updated.id}`);
           }}
           onDelete={(deleted) => {
@@ -317,7 +318,7 @@ export default function ReppyApp() {
       const assignment = data.assignments.find((item) => item.id === assignmentRepeatMatch[1]);
       const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
       const sourceWorkout = assignment && (completedSession
-        ? findSessionWorkout(data, completedSession)
+        ? workoutFromSession(completedSession)
         : findAssignmentWorkout(data, assignment));
       content = assignment && sourceWorkout ? (
         <RepeatAssignment
@@ -414,10 +415,9 @@ export default function ReppyApp() {
         <AssignWorkout
           data={data}
           workout={workout}
-          onAssign={(studentId, scheduledFor, scheduledTime, useOriginalTemplate) => {
+          onAssign={(studentId, scheduledFor, scheduledTime) => {
             setData((current) => {
               const currentWorkout = findWorkout(current, workout.id) ?? workout;
-              const resolved = resolveAssignmentWorkout(current, studentId, currentWorkout, useOriginalTemplate);
               const assignment: Assignment = {
                 id: makeId('assignment'),
                 workoutId: currentWorkout.id,
@@ -426,7 +426,8 @@ export default function ReppyApp() {
                 scheduledFor,
                 scheduledTime,
                 status: 'assigned',
-                ...resolved,
+                workoutSnapshot: cloneWorkout(currentWorkout),
+                source: 'template',
               };
               return { ...current, assignments: [...current.assignments, assignment] };
             });
@@ -441,7 +442,7 @@ export default function ReppyApp() {
       content = workout ? <WorkoutDetails workout={workout} onDuplicate={() => {
         const duplicate = createWorkoutTemplate(workout, `${workout.name} — копия`);
         setData((current) => ({ ...current, workouts: [...current.workouts, duplicate] }));
-        showToast('Копия шаблона создана');
+        showToast('Копия тренировки создана');
         go(`/trainer/workouts/${duplicate.id}/edit`);
       }} /> : <NotFound />;
     } else if (sessionMatch) {
@@ -1105,7 +1106,7 @@ function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout:
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button>
+      <div className="plan-sticky-actions"><button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button></div>
     </main>
   );
 }
@@ -1122,12 +1123,38 @@ function exerciseMetadata(exercise: WorkoutExercise) {
   return muscle ?? equipment ?? 'Упражнение';
 }
 
-function formatExercisePlan(exercise: WorkoutExercise) {
-  return getExerciseSetPlans(exercise)
-    .map((set, index) => exercise.loadMode === 'bodyweight'
-      ? (index + 1) + ': ' + set.targetReps + ' повт. · свой вес'
-      : (index + 1) + ': ' + set.targetReps + ' повт. · ' + set.targetWeight + ' кг')
-    .join('  ·  ');
+
+function plannedSetLabel(exercise: WorkoutExercise, set: WorkoutSetPlan) {
+  if (exercise.measureType === 'duration') return set.targetReps + ' сек.';
+  if (exercise.loadMode === 'bodyweight') return set.targetReps + ' повторов';
+  return set.targetWeight + ' кг × ' + set.targetReps;
+}
+
+function actualSetLabel(exercise: WorkoutExercise, result: SetResult) {
+  if (exercise.measureType === 'duration') return result.actualReps + ' сек.';
+  if (exercise.loadMode === 'bodyweight') return result.actualReps + ' повторов';
+  return result.actualWeight + ' кг × ' + result.actualReps;
+}
+
+function ReadOnlyExerciseList({ workout }: { workout: Workout }) {
+  return (
+    <section className="readonly-exercise-list">
+      {workout.exercises.map((exercise, index) => (
+        <article className="readonly-exercise-card" key={exercise.id}>
+          <header>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <div><h2>{exercise.name}</h2><small>{exerciseMetadata(exercise)}</small></div>
+          </header>
+          <div className="readonly-set-list">
+            {getExerciseSetPlans(exercise).map((set, setIndex) => (
+              <p key={setIndex}><span>Подход {setIndex + 1}</span><strong>{plannedSetLabel(exercise, set)}</strong></p>
+            ))}
+          </div>
+          {exercise.coachNote && <p className="readonly-coach-note"><Icon name="edit" /> {exercise.coachNote}</p>}
+        </article>
+      ))}
+    </section>
+  );
 }
 
 type ExercisePickerChoice = {
@@ -1136,6 +1163,7 @@ type ExercisePickerChoice = {
   primaryMuscle?: MuscleGroup;
   equipment?: string;
   loadMode?: 'external' | 'bodyweight';
+  measureType?: 'reps' | 'duration';
 };
 
 function WorkoutExerciseEditor({
@@ -1175,10 +1203,8 @@ function WorkoutExerciseEditor({
       primaryMuscle: choice.primaryMuscle,
       equipment: choice.equipment,
       loadMode,
-      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
-      sets: 3,
-      targetReps: 10,
-      targetWeight: loadMode === 'bodyweight' ? 0 : 20,
+      measureType: choice.measureType ?? 'reps',
+      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: choice.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
       coachNote: '',
     });
     const next = exercises.map((exercise) => ({ ...exercise }));
@@ -1228,7 +1254,7 @@ function WorkoutExerciseEditor({
             })}
             onAddSet={() => updateExercise(exercise.id, (current) => {
               const plannedSets = getExerciseSetPlans(current);
-              plannedSets.push({ ...(plannedSets.at(-1) ?? { targetReps: 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) });
+              plannedSets.push({ ...(plannedSets.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) });
               return withExerciseSetPlans(current, plannedSets);
             })}
             onAddAfter={() => setPickerAfterId(exercise.id)}
@@ -1308,10 +1334,9 @@ function PlanExerciseCard({
         {getExerciseSetPlans(exercise).map((set, setIndex) => (
           <article className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
             <div className="set-number"><span>ПОДХОД</span><strong>{setIndex + 1}</strong></div>
-            <div className="set-metrics">
+            <div className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
               {!bodyweight && <label><span>КГ</span><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></label>}
-              {bodyweight && <div className="bodyweight-set-label"><span>НАГРУЗКА</span><strong>Свой вес</strong></div>}
-              <label><span>ПОВТОРЫ</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
+              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
             </div>
           </article>
         ))}
@@ -1343,17 +1368,18 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
   return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 
+
 function WorkoutDetails({ workout, onDuplicate }: { workout: Workout; onDuplicate: () => void }) {
   return (
     <main className="content-page narrow-page">
       <PageHeader back="/trainer/workouts" eyebrow="Тренировка" title={workout.name.toUpperCase()} />
-      <div className="workout-detail-actions"><button className="wide-secondary" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/edit`)}><Icon name="edit" /> Редактировать</button><button className="wide-secondary" type="button" onClick={onDuplicate}><Icon name="copy" /> Дублировать</button><button className="primary-button" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/assign`)}><Icon name="plus" /> Назначить</button></div>
+      <div className="workout-detail-actions">
+        <button className="primary-button" type="button" onClick={() => go('/trainer/workouts/' + workout.id + '/assign')}><Icon name="plus" /> Назначить</button>
+        <button className="wide-secondary" type="button" onClick={() => go('/trainer/workouts/' + workout.id + '/edit')}><Icon name="edit" /> Редактировать</button>
+        <button className="wide-secondary" type="button" onClick={onDuplicate}><Icon name="copy" /> Дублировать</button>
+      </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <section className="exercise-plan-list">
-        {workout.exercises.map((exercise, index) => (
-          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{formatExercisePlan(exercise)}</p></div></article>
-        ))}
-      </section>
+      <ReadOnlyExerciseList workout={workout} />
     </main>
   );
 }
@@ -1386,11 +1412,7 @@ function AssignmentDetails({
         <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}><Icon name="copy" /> Повторить на другую дату</button>
       </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <section className="exercise-plan-list">
-        {workout.exercises.map((exercise, index) => (
-          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{formatExercisePlan(exercise)}</p>{exercise.coachNote && <small className="exercise-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></article>
-        ))}
-      </section>
+      <ReadOnlyExerciseList workout={workout} />
     </main>
   );
 }
@@ -1435,11 +1457,7 @@ function StudentAssignmentDetails({
 
       {canStart && <button className="primary-button student-start-button" type="button" onClick={onStart}><Icon name="workout" /> {activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>}
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <section className="exercise-plan-list">
-        {workout.exercises.map((exercise, index) => (
-          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{formatExercisePlan(exercise)}</p>{exercise.coachNote && <small className="exercise-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></article>
-        ))}
-      </section>
+      <ReadOnlyExerciseList workout={workout} />
     </main>
   );
 }
@@ -1481,52 +1499,51 @@ function RepeatAssignment({
         </div>
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
-      <button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Создать копию</button>
+      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Создать копию</button></div>
     </main>
   );
 }
 
-function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: Workout; onAssign: (studentId: string, scheduledFor: string, scheduledTime: string, useOriginalTemplate: boolean) => void }) {
+
+function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: Workout; onAssign: (studentId: string, scheduledFor: string, scheduledTime: string) => void }) {
   const { students } = data;
   const [selected, setSelected] = useState(students.find((student) => student.id === 'artem')?.id ?? students[0]?.id ?? '');
   const [scheduledFor, setScheduledFor] = useState(dateKey());
   const [scheduledTime, setScheduledTime] = useState('18:00');
-  const [useOriginalTemplate, setUseOriginalTemplate] = useState(false);
   const chosen = students.find((student) => student.id === selected);
-  const personalVersion = selected ? findStudentWorkoutVersion(data, selected, workout.id) : undefined;
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/workouts/${workout.id}`} eyebrow={workout.name} title="КОМУ НАЗНАЧИТЬ?" />
+      <PageHeader back={'/trainer/workouts/' + workout.id} eyebrow={workout.name} title="КОМУ НАЗНАЧИТЬ?" />
       {students.length ? (
         <section className="select-student-list">
           {students.map((student) => (
-            <button className={selected === student.id ? 'selected' : ''} key={student.id} type="button" onClick={() => { setSelected(student.id); setUseOriginalTemplate(false); }}>
-              <Avatar student={student} /><span><strong>{student.name}</strong>{student.status === 'invited' ? <small>Ожидает приглашения</small> : findStudentWorkoutVersion(data, student.id, workout.id) && <small>Есть персональная версия</small>}</span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
+            <button className={selected === student.id ? 'selected' : ''} key={student.id} type="button" onClick={() => setSelected(student.id)}>
+              <Avatar student={student} /><span><strong>{student.name}</strong>{student.status === 'invited' && <small>Ожидает приглашения</small>}</span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
             </button>
           ))}
-          {personalVersion && <section className="personal-version-note"><span><Icon name="check" /></span><div><strong>Для {chosen?.name} есть сохранённая версия</strong><p>{useOriginalTemplate ? 'Будет назначен исходный шаблон.' : 'По умолчанию назначаем персональные упражнения и нагрузки.'}</p><button type="button" onClick={() => setUseOriginalTemplate((current) => !current)}>{useOriginalTemplate ? 'Использовать персональную версию' : 'Назначить исходный шаблон'}</button></div></section>}
           <div className="schedule-fields">
             <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
             <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
           </div>
-          <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime, useOriginalTemplate)} disabled={!selected || !scheduledFor || !scheduledTime}><Icon name="plus" /> Назначить {chosen?.name ? chosen.name : ''}</button>
+          <div className="plan-sticky-actions">
+            <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}><Icon name="plus" /> Назначить {chosen?.name ? chosen.name : ''}</button>
+          </div>
         </section>
       ) : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
     </main>
   );
 }
 
-function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoState; assignment: Assignment; onSave: (assignment: Assignment, rememberForStudent: boolean) => void; onDelete: (assignment: Assignment) => void }) {
+
+function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoState; assignment: Assignment; onSave: (assignment: Assignment) => void; onDelete: (assignment: Assignment) => void }) {
   const [scheduledFor, setScheduledFor] = useState(assignment.scheduledFor);
   const [scheduledTime, setScheduledTime] = useState(assignment.scheduledTime);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => assignment.workoutSnapshot.exercises.map((exercise) => ({ ...exercise })));
-  const [rememberForStudent, setRememberForStudent] = useState(false);
   const [error, setError] = useState('');
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
-  const existingVersion = findStudentWorkoutVersion(data, assignment.studentId, assignment.workoutId);
   const remove = () => {
-    if (!window.confirm(`Удалить «${workout?.name ?? 'тренировку'}» из расписания ${student?.name ?? 'ученика'}?`)) return;
+    if (!window.confirm('Удалить «' + (workout?.name ?? 'тренировку') + '» из расписания ' + (student?.name ?? 'ученика') + '?')) return;
     onDelete(assignment);
   };
   const save = () => {
@@ -1543,27 +1560,26 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
         exercises: exercises.map((exercise) => ({ ...exercise })),
         updatedAt: new Date().toISOString(),
       } : cloneWorkout(workout),
-      source: resolveEditedAssignmentSource(assignment.source, exercisesChanged, rememberForStudent),
-    }, rememberForStudent);
+      source: exercisesChanged ? 'manual-edit' : assignment.source,
+    });
   };
 
   if (!student || !workout) return <NotFound />;
 
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/assignments/${assignment.id}`} eyebrow={`${student?.name} · ${workout?.name}`} title="ИЗМЕНИТЬ ЗАНЯТИЕ" />
+      <PageHeader back={'/trainer/assignments/' + assignment.id} eyebrow={student.name + ' · ' + workout.name} title="РЕДАКТИРОВАТЬ ТРЕНИРОВКУ" />
       <section className="plan-context-card assignment-edit-card">
-        <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student?.name}</strong><p>{workout?.name}</p></div></div>
+        <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
         <div className="schedule-fields">
           <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
           <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-      <label className="remember-version-toggle"><input type="checkbox" checked={rememberForStudent} onChange={(event) => setRememberForStudent(event.target.checked)} /><span><strong>Использовать как основу для будущих тренировок {student.name}</strong><small>{existingVersion ? 'Сохранённая версия будет обновлена.' : 'Состав и нагрузки будут предложены при следующем назначении этой тренировки.'}</small></span></label>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="assignment-edit-actions">
-        <button className="danger-button" type="button" onClick={remove}><Icon name="close" /> Удалить назначение</button>
+      <button className="danger-button plan-delete-button" type="button" onClick={remove}><Icon name="close" /> Удалить назначение</button>
+      <div className="plan-sticky-actions">
         <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={save}><Icon name="check" /> Сохранить изменения</button>
       </div>
     </main>
@@ -1704,10 +1720,8 @@ function ActiveWorkout({
       primaryMuscle: definition.primaryMuscle,
       equipment: definition.equipment,
       loadMode,
-      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
-      sets: 3,
-      targetReps: 10,
-      targetWeight: loadMode === 'bodyweight' ? 0 : 20,
+      measureType: definition.measureType ?? 'reps',
+      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: definition.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
       coachNote: '',
     });
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
@@ -1751,7 +1765,7 @@ function ActiveWorkout({
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
               onShowInstruction={() => setInstructionExercise(exercise)}
               onShowActions={() => setActionExerciseId(exercise.id)}
-              onAddSet={() => updateExerciseSets(exercise.id, (plans, current) => [...plans, { ...(plans.at(-1) ?? { targetReps: 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) }])}
+              onAddSet={() => updateExerciseSets(exercise.id, (plans, current) => [...plans, { ...(plans.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) }])}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
@@ -1851,10 +1865,9 @@ function ActiveExerciseCard({
         {results.map((result) => (
           <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
             <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
-            <div className="set-metrics">
+            <div className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
               {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
-              {exercise.loadMode === 'bodyweight' && <div className="bodyweight-set-label"><span>НАГРУЗКА</span><strong>Свой вес</strong></div>}
-              <label><span>ПОВТОРЫ</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
+              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
             </div>
             <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name="check" /></button>
           </article>
@@ -1939,6 +1952,7 @@ function ActiveExercisePicker({
   const [search, setSearch] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
   const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>('external');
+  const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>('reps');
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
   const customName = search.trim();
   const canCreateCustom = customName.length >= 2 && !exerciseLibrary.some((exercise) => exercise.name.toLocaleLowerCase('ru') === normalizedSearch);
@@ -1965,7 +1979,11 @@ function ActiveExercisePicker({
               <button className={customLoadMode === 'external' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('external')} aria-pressed={customLoadMode === 'external'}>С весом</button>
               <button className={customLoadMode === 'bodyweight' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('bodyweight')} aria-pressed={customLoadMode === 'bodyweight'}>Свой вес</button>
             </div>
-            <button className="custom-exercise-option" type="button" onClick={() => onSelect({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode })}><Icon name="plus" /> Добавить «{customName}»</button>
+            <div className="custom-load-mode" aria-label="Способ измерения">
+              <button className={customMeasureType === 'reps' ? 'selected' : ''} type="button" onClick={() => setCustomMeasureType('reps')} aria-pressed={customMeasureType === 'reps'}>Повторы</button>
+              <button className={customMeasureType === 'duration' ? 'selected' : ''} type="button" onClick={() => { setCustomMeasureType('duration'); setCustomLoadMode('bodyweight'); }} aria-pressed={customMeasureType === 'duration'}>Секунды</button>
+            </div>
+            <button className="custom-exercise-option" type="button" onClick={() => onSelect({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode, measureType: customMeasureType })}><Icon name="plus" /> Добавить «{customName}»</button>
           </section>}
           {filtered.map((exercise) => <button key={exercise.id} type="button" onClick={() => onSelect(exercise)}><span><Icon name="plus" /></span><div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div></button>)}
           {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
@@ -2067,7 +2085,7 @@ function SessionResult({
           return (
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
-              <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{exercise.loadMode === 'bodyweight' ? result.actualReps + ' повторов · свой вес' : result.actualWeight + ' кг × ' + result.actualReps}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
+              <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
             </article>
           );
         })}

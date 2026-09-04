@@ -22,7 +22,13 @@ test('тренер дублирует шаблон и повторяет наз�
   await openFreshDemo(page);
 
   await page.goto('/#/trainer/workouts/push-day');
-  await page.getByRole('button', { name: 'Дублировать' }).click();
+  const assignButton = page.getByRole('button', { name: 'Назначить', exact: true });
+  const editButton = page.getByRole('button', { name: 'Редактировать', exact: true });
+  const duplicateButton = page.getByRole('button', { name: 'Дублировать' });
+  const [assignBox, editBox, duplicateBox] = await Promise.all([assignButton.boundingBox(), editButton.boundingBox(), duplicateButton.boundingBox()]);
+  expect(assignBox?.width ?? 0).toBeGreaterThan((editBox?.width ?? 0) * 1.8);
+  expect(Math.round(editBox?.y ?? -1)).toBe(Math.round(duplicateBox?.y ?? -2));
+  await duplicateButton.click();
   await expect(page.getByLabel('Название тренировки')).toHaveValue('Грудь и плечи — копия');
   await page.getByRole('button', { name: 'Сохранить тренировку' }).click();
 
@@ -43,7 +49,7 @@ test('тренер дублирует шаблон и повторяет наз�
 
   await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-/);
   await expect(page.getByText('Скопировано из предыдущей тренировки этого ученика')).toHaveCount(0);
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('1: 8 повт. · 82.5 кг');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('82.5 кг × 8');
   await expect(page.getByText('Держи лопатки сведёнными')).toBeVisible();
 });
 
@@ -51,7 +57,7 @@ test('редактирование шаблона не меняет сущест
   await openFreshDemo(page);
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('1: 8 повт. · 80 кг');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('80 кг × 8');
 
   await page.goto('/#/trainer/workouts/push-day/edit');
   await setExerciseSetWeight(page, 0, 95);
@@ -59,26 +65,27 @@ test('редактирование шаблона не меняет сущест
   await page.getByRole('button', { name: 'Сохранить тренировку' }).click();
 
   await page.goto('/#/trainer/workouts/push-day');
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('1: 8 повт. · 95 кг');
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('2: 8 повт. · 90 кг');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('95 кг × 8');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('90 кг × 8');
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('1: 8 повт. · 80 кг');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('80 кг × 8');
 });
 
-test('персональная версия предлагается для следующего назначения', async ({ page }) => {
+
+test('редактирование назначения не создаёт скрытую персональную версию', async ({ page }) => {
   await openFreshDemo(page);
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
   await setFirstExerciseWeight(page, 85);
-  await page.getByRole('checkbox').check();
+  await expect(page.getByRole('checkbox')).toHaveCount(0);
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
-  await expect(page.getByRole('status')).toContainText('Назначение и версия ученика сохранены');
+  await expect(page.getByRole('status')).toContainText('Назначение сохранено');
 
   await page.goto('/#/trainer/workouts/push-day/assign');
-  await expect(page.getByText('Для Артем А. есть сохранённая версия')).toBeVisible();
-  await expect(page.getByText('По умолчанию назначаем персональные упражнения и нагрузки.')).toBeVisible();
-});
+  await expect(page.getByText('Для Артем А. есть сохранённая версия')).toHaveCount(0);
+  await expect(page.locator('.select-student-list > button:not(.assign-button)').first()).toContainText('Артем А.');
+})
 
 test('результат ученика виден тренеру и не меняется вместе с шаблоном', async ({ page }) => {
   await openFreshDemo(page);
@@ -211,6 +218,10 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(squatCard.locator('.set-card')).toHaveCount(5);
   await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('70');
   await expect(squatCard.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('8');
+  await squatCard.getByLabel('КГ').first().fill('72.5');
+  await squatCard.getByLabel('КГ').first().press('Enter');
+  await squatCard.getByLabel('ПОВТОРЫ').first().fill('6');
+  await squatCard.getByLabel('ПОВТОРЫ').first().press('Enter');
   await page.getByRole('button', { name: 'Завершить подход 1 — Приседания' }).click();
   await squatCard.getByRole('button', { name: 'Действия — Приседания' }).click();
   actionsDialog = page.getByRole('dialog', { name: 'Действия — Приседания' });
@@ -230,7 +241,10 @@ test('тренер ведёт занятие, правит его в момен�
 
   await page.getByRole('button', { name: 'Повторить на другую дату' }).click();
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
-  await expect(page.locator('.plan-exercise-card').first().locator('.active-comment-field textarea')).toHaveValue('Колени держи по линии стоп');
+  const repeatedSquat = page.locator('.plan-exercise-card').first();
+  await expect(repeatedSquat.locator('.active-comment-field textarea')).toHaveValue('Колени держи по линии стоп');
+  await expect(repeatedSquat.getByLabel('КГ').first()).toHaveValue('72.5');
+  await expect(repeatedSquat.getByLabel('ПОВТОРЫ').first()).toHaveValue('6');
   await page.goBack();
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
 
@@ -247,7 +261,14 @@ test('упражнение со своим весом не показывает 
   const pullUpsPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Подтягивания' });
   await expect(pullUpsPlan.getByText('Спина · Свой вес')).toBeVisible();
   await expect(pullUpsPlan.getByLabel('КГ')).toHaveCount(0);
-  await expect(pullUpsPlan.getByText('Свой вес', { exact: true }).first()).toBeVisible();
+  await expect(pullUpsPlan.locator('.active-exercise-meta')).toHaveText('Спина · Свой вес');
+
+  await pullUpsPlan.getByRole('button', { name: 'Ещё упражнение' }).click();
+  await page.getByRole('button', { name: 'Кор', exact: true }).click();
+  await page.getByRole('button', { name: /Планка/ }).click();
+  const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
+  await expect(plankPlan.getByLabel('КГ')).toHaveCount(0);
+  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('30');
 });
 
 test('старое сохранённое состояние автоматически обновляется при загрузке', async ({ page }) => {
@@ -268,6 +289,6 @@ test('старое сохранённое состояние автоматич�
 
   await page.goto('/#/trainer/assignments/assignment-maria-legs');
   await expect(page.getByText('Основано на шаблоне «Ноги»')).toHaveCount(0);
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('Приседания');
-  await expect(page.locator('.exercise-plan-list article').first()).toContainText('1: 8 повт. · 70 кг');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('Приседания');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('70 кг × 8');
 });

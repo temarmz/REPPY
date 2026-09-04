@@ -20,11 +20,8 @@ export type WorkoutExercise = {
   primaryMuscle?: MuscleGroup;
   equipment?: string;
   loadMode: 'external' | 'bodyweight';
+  measureType: 'reps' | 'duration';
   plannedSets: WorkoutSetPlan[];
-  // Kept in sync so previously saved demo data can still be migrated safely.
-  sets: number;
-  targetReps: number;
-  targetWeight: number;
   coachNote?: string;
 };
 
@@ -94,6 +91,7 @@ export type WorkoutSession = {
 };
 
 export type DemoState = {
+  schemaVersion: 2;
   loggedIn: boolean;
   role: Role;
   activeStudentId: string;
@@ -133,6 +131,7 @@ export type ExerciseDefinition = {
   name: string;
   primaryMuscle: MuscleGroup;
   equipment: string;
+  measureType?: 'reps' | 'duration';
 };
 
 export const exerciseLibrary: ExerciseDefinition[] = [
@@ -161,16 +160,26 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'romanian-deadlift', name: 'Румынская тяга', primaryMuscle: 'Задняя поверхность бедра', equipment: 'Штанга' },
   { id: 'leg-curl', name: 'Сгибание ног', primaryMuscle: 'Задняя поверхность бедра', equipment: 'Тренажёр' },
   { id: 'calf-raise', name: 'Подъёмы на носки', primaryMuscle: 'Икры', equipment: 'Тренажёр' },
-  { id: 'plank', name: 'Планка', primaryMuscle: 'Кор', equipment: 'Свой вес' },
+  { id: 'plank', name: 'Планка', primaryMuscle: 'Кор', equipment: 'Свой вес', measureType: 'duration' },
   { id: 'crunch', name: 'Скручивания', primaryMuscle: 'Кор', equipment: 'Свой вес' },
   { id: 'dead-bug', name: 'Мёртвый жук', primaryMuscle: 'Кор', equipment: 'Свой вес' },
 ];
 
-export function getExerciseSetPlans(exercise: WorkoutExercise): WorkoutSetPlan[] {
+type LegacyWorkoutExercise = Omit<WorkoutExercise, 'loadMode' | 'measureType' | 'plannedSets'> & {
+  loadMode?: WorkoutExercise['loadMode'];
+  measureType?: WorkoutExercise['measureType'];
+  plannedSets?: WorkoutSetPlan[];
+  sets?: number;
+  targetReps?: number;
+  targetWeight?: number;
+};
+
+export function getExerciseSetPlans(exercise: WorkoutExercise | LegacyWorkoutExercise): WorkoutSetPlan[] {
+  const legacy = exercise as LegacyWorkoutExercise;
   const savedPlans = Array.isArray(exercise.plannedSets) ? exercise.plannedSets : [];
-  const count = Math.max(1, savedPlans.length || exercise.sets || 1);
-  const fallbackReps = Math.max(1, exercise.targetReps || 10);
-  const fallbackWeight = Math.max(0, exercise.targetWeight || 0);
+  const count = Math.max(1, savedPlans.length || legacy.sets || 1);
+  const fallbackReps = Math.max(1, legacy.targetReps || (exercise.measureType === 'duration' ? 30 : 10));
+  const fallbackWeight = Math.max(0, legacy.targetWeight || 0);
   return Array.from({ length: count }, (_, index) => ({
     targetReps: Math.max(1, savedPlans[index]?.targetReps || fallbackReps),
     targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, savedPlans[index]?.targetWeight ?? fallbackWeight),
@@ -178,29 +187,32 @@ export function getExerciseSetPlans(exercise: WorkoutExercise): WorkoutSetPlan[]
 }
 
 export function withExerciseSetPlans(exercise: WorkoutExercise, plannedSets: WorkoutSetPlan[]): WorkoutExercise {
-  const safePlans = (plannedSets.length ? plannedSets : [{ targetReps: 10, targetWeight: 0 }]).map((set) => ({
+  const safePlans = (plannedSets.length ? plannedSets : [{ targetReps: exercise.measureType === 'duration' ? 30 : 10, targetWeight: 0 }]).map((set) => ({
     targetReps: Math.max(1, set.targetReps || 1),
     targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, set.targetWeight || 0),
   }));
   return {
     ...exercise,
     plannedSets: safePlans,
-    sets: safePlans.length,
-    targetReps: safePlans[0].targetReps,
-    targetWeight: safePlans[0].targetWeight,
   };
 }
 
-export function normalizeWorkoutExercise(exercise: WorkoutExercise): WorkoutExercise {
+export function normalizeWorkoutExercise(exercise: WorkoutExercise | LegacyWorkoutExercise): WorkoutExercise {
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
   const loadMode = exercise.loadMode ?? (definition?.equipment === 'Свой вес' ? 'bodyweight' : 'external');
+  const measureType = exercise.measureType ?? definition?.measureType ?? 'reps';
   const withMetadata: WorkoutExercise = {
-    ...exercise,
+    id: exercise.id,
+    exerciseId: exercise.exerciseId,
+    name: exercise.name,
     primaryMuscle: exercise.primaryMuscle ?? definition?.primaryMuscle,
     equipment: exercise.equipment ?? definition?.equipment ?? (loadMode === 'bodyweight' ? 'Свой вес' : undefined),
     loadMode,
+    measureType,
+    plannedSets: [],
+    coachNote: exercise.coachNote,
   };
-  return withExerciseSetPlans(withMetadata, getExerciseSetPlans(withMetadata));
+  return withExerciseSetPlans(withMetadata, getExerciseSetPlans(exercise));
 }
 
 const workoutExercise = (
@@ -215,10 +227,8 @@ const workoutExercise = (
   exerciseId,
   name,
   loadMode: exerciseLibrary.find((exercise) => exercise.id === exerciseId)?.equipment === 'Свой вес' ? 'bodyweight' : 'external',
+  measureType: exerciseLibrary.find((exercise) => exercise.id === exerciseId)?.measureType ?? 'reps',
   plannedSets: Array.from({ length: sets }, () => ({ targetReps, targetWeight })),
-  sets,
-  targetReps,
-  targetWeight,
 });
 
 const demoWorkoutNames: Record<string, string> = {
@@ -332,6 +342,7 @@ export function createInitialState(): DemoState {
   const workouts = createDemoWorkouts(now);
 
   return {
+    schemaVersion: 2,
     loggedIn: false,
     role: 'trainer',
     activeStudentId: 'artem',
@@ -395,6 +406,7 @@ export function migrateDemoState(state: DemoState): DemoState {
   });
   return {
     ...state,
+    schemaVersion: 2,
     activeStudentId: currentId(state.activeStudentId),
     students: state.students.map((student) => {
       const id = currentId(student.id);
@@ -493,7 +505,7 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
   const preservedExercises = session.workoutSnapshot.exercises
     .filter((exercise) => !nextExerciseIds.has(exercise.id) && completedResults.some((result) => result.exerciseId === exercise.id))
     .map((exercise) => {
-      const highestCompletedSet = Math.max(exercise.sets, ...completedResults
+      const highestCompletedSet = Math.max(getExerciseSetPlans(exercise).length, ...completedResults
         .filter((result) => result.exerciseId === exercise.id)
         .map((result) => result.setNumber));
       const plannedSets = getExerciseSetPlans(exercise);
@@ -532,6 +544,25 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
   });
 
   return { ...session, workoutSnapshot: nextWorkout, results };
+}
+
+export function workoutFromSession(session: WorkoutSession): Workout {
+  const snapshot = cloneWorkout(session.workoutSnapshot);
+  return {
+    ...snapshot,
+    exercises: snapshot.exercises.map((exercise) => {
+      const results = session.results.filter((result) => result.exerciseId === exercise.id);
+      const plans = getExerciseSetPlans(exercise).map((plan, index) => {
+        const result = results.find((item) => item.setNumber === index + 1);
+        if (!result?.completed) return plan;
+        return {
+          targetReps: result.actualReps,
+          targetWeight: exercise.loadMode === 'bodyweight' ? 0 : result.actualWeight,
+        };
+      });
+      return withExerciseSetPlans(exercise, plans);
+    }),
+  };
 }
 
 export function repeatAssignment(

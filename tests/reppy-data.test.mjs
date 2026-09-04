@@ -8,13 +8,12 @@ import {
   exerciseLibrary,
   findAssignmentWorkout,
   findSessionWorkout,
+  getExerciseSetPlans,
   migrateDemoState,
   muscleGroups,
   repeatAssignment,
-  resolveAssignmentWorkout,
-  resolveEditedAssignmentSource,
   updateSessionWorkout,
-  upsertStudentWorkoutVersion,
+  workoutFromSession,
 } from '../app/reppy-data.ts';
 
 test('назначения хранят независимый снимок шаблона', () => {
@@ -27,12 +26,12 @@ test('назначения хранят независимый снимок ша
   assert.notStrictEqual(assignment.workoutSnapshot.exercises, template.exercises);
 
   const originalName = assignment.workoutSnapshot.name;
-  const originalWeight = assignment.workoutSnapshot.exercises[0].targetWeight;
+  const originalWeight = getExerciseSetPlans(assignment.workoutSnapshot.exercises[0])[0].targetWeight;
   template.name = 'Изменённый шаблон';
-  template.exercises[0].targetWeight += 50;
+  template.exercises[0].plannedSets[0].targetWeight += 50;
 
   assert.equal(findAssignmentWorkout(state, assignment)?.name, originalName);
-  assert.equal(findAssignmentWorkout(state, assignment)?.exercises[0].targetWeight, originalWeight);
+  assert.equal(getExerciseSetPlans(findAssignmentWorkout(state, assignment).exercises[0])[0].targetWeight, originalWeight);
 });
 
 test('миграция дополняет старые назначения и сессии снимками', () => {
@@ -62,25 +61,19 @@ test('миграция дополняет старые назначения и �
   assert.equal(session?.recordedBy, 'student');
 });
 
-test('персональная версия применяется только нужному ученику и может быть обойдена', () => {
+
+test('состояние использует явную версию схемы и единый массив подходов', () => {
   const state = createInitialState();
-  const template = state.workouts[0];
-  const adapted = structuredClone(template);
-  adapted.name = `${template.name} · Артем`;
-  adapted.exercises[0].plannedSets = adapted.exercises[0].plannedSets.map((set) => ({ ...set, targetWeight: 37.5 }));
-  adapted.exercises[0].targetWeight = 37.5;
-  state.studentWorkoutVersions = upsertStudentWorkoutVersion([], 'artem', template.id, adapted, '2026-08-31T10:00:00.000Z');
-
-  const personal = resolveAssignmentWorkout(state, 'artem', template);
-  const anotherStudent = resolveAssignmentWorkout(state, 'maria', template);
-  const original = resolveAssignmentWorkout(state, 'artem', template, true);
-
-  assert.equal(personal.source, 'student-version');
-  assert.equal(personal.workoutSnapshot.exercises[0].targetWeight, 37.5);
-  assert.equal(anotherStudent.source, 'template');
-  assert.equal(original.source, 'template');
-  assert.equal(original.workoutSnapshot.exercises[0].targetWeight, template.exercises[0].targetWeight);
-});
+  assert.equal(state.schemaVersion, 2);
+  for (const workout of state.workouts) {
+    for (const exercise of workout.exercises) {
+      assert.ok(Array.isArray(exercise.plannedSets));
+      assert.equal('sets' in exercise, false);
+      assert.equal('targetReps' in exercise, false);
+      assert.equal('targetWeight' in exercise, false);
+    }
+  }
+})
 
 test('завершённая сессия читает собственный снимок, а не новое назначение', () => {
   const state = createInitialState();
@@ -104,17 +97,31 @@ test('завершённая сессия читает собственный с
   assert.equal(findSessionWorkout(state, session)?.name, 'Версия на момент выполнения');
 });
 
-test('изменение только расписания сохраняет источник назначения', () => {
-  assert.equal(resolveEditedAssignmentSource('template', false, false), 'template');
-  assert.equal(resolveEditedAssignmentSource('student-version', false, false), 'student-version');
-  assert.equal(resolveEditedAssignmentSource('template', true, false), 'manual-edit');
-  assert.equal(resolveEditedAssignmentSource('manual-edit', false, true), 'student-version');
-});
+
+test('миграция удаляет агрегатные поля упражнения и сохраняет подходы', () => {
+  const legacy = structuredClone(createInitialState());
+  const exercise = legacy.workouts[0].exercises[0];
+  exercise.sets = 2;
+  exercise.targetReps = 7;
+  exercise.targetWeight = 42.5;
+  delete exercise.plannedSets;
+  delete legacy.schemaVersion;
+
+  const migrated = migrateDemoState(legacy);
+  const migratedExercise = migrated.workouts[0].exercises[0];
+
+  assert.equal(migrated.schemaVersion, 2);
+  assert.deepEqual(getExerciseSetPlans(migratedExercise), [
+    { targetReps: 7, targetWeight: 42.5 },
+    { targetReps: 7, targetWeight: 42.5 },
+  ]);
+  assert.equal('sets' in migratedExercise, false);
+})
 
 test('новый шаблон получает независимые идентификаторы и упражнения', () => {
   const state = createInitialState();
   const source = state.workouts[0];
-  const originalWeight = source.exercises[0].targetWeight;
+  const originalWeight = getExerciseSetPlans(source.exercises[0])[0].targetWeight;
   const copy = createWorkoutTemplate(source, `${source.name} — копия`, '2026-08-31T12:00:00.000Z');
 
   assert.notEqual(copy.id, source.id);
@@ -127,8 +134,8 @@ test('новый шаблон получает независимые идент
     assert.notEqual(exercise.id, source.exercises[index].id);
     assert.equal(exercise.exerciseId, source.exercises[index].exerciseId);
   });
-  source.exercises[0].targetWeight += 50;
-  assert.equal(copy.exercises[0].targetWeight, originalWeight);
+  source.exercises[0].plannedSets[0].targetWeight += 50;
+  assert.equal(getExerciseSetPlans(copy.exercises[0])[0].targetWeight, originalWeight);
 });
 test('повтор копирует тренировку тому же ученику и оставляет исходник независимым', () => {
   const state = createInitialState();
@@ -149,9 +156,29 @@ test('повтор копирует тренировку тому же учен�
     assert.notEqual(exercise.id, sourceWorkout.exercises[index].id);
   });
 
-  repeated.workoutSnapshot.exercises[0].targetWeight += 20;
-  assert.notEqual(repeated.workoutSnapshot.exercises[0].targetWeight, sourceWorkout.exercises[0].targetWeight);
+  repeated.workoutSnapshot.exercises[0].plannedSets[0].targetWeight += 20;
+  assert.notEqual(getExerciseSetPlans(repeated.workoutSnapshot.exercises[0])[0].targetWeight, getExerciseSetPlans(sourceWorkout.exercises[0])[0].targetWeight);
 });
+
+test('повтор завершённой тренировки берёт факт выполненных подходов и план остальных', () => {
+  const state = createInitialState();
+  const assignment = state.assignments[0];
+  const session = createWorkoutSession(assignment, assignment.workoutSnapshot, 'trainer');
+  const exercise = assignment.workoutSnapshot.exercises[0];
+  const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
+  exerciseResults[0].completed = true;
+  exerciseResults[0].actualReps = 6;
+  exerciseResults[0].actualWeight = 77.5;
+  exerciseResults[1].actualReps = 99;
+  exerciseResults[1].actualWeight = 999;
+
+  const repeatedSource = workoutFromSession(session);
+  const plans = getExerciseSetPlans(repeatedSource.exercises[0]);
+
+  assert.deepEqual(plans[0], { targetReps: 6, targetWeight: 77.5 });
+  assert.deepEqual(plans[1], getExerciseSetPlans(exercise)[1]);
+  assert.notStrictEqual(repeatedSource, session.workoutSnapshot);
+})
 
 test('тренер может начать сессию и безопасно менять план по ходу занятия', () => {
   const state = createInitialState();
