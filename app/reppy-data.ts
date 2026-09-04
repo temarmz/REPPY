@@ -17,10 +17,20 @@ export type WorkoutExercise = {
   id: string;
   exerciseId: string;
   name: string;
+  primaryMuscle?: MuscleGroup;
+  equipment?: string;
+  loadMode: 'external' | 'bodyweight';
+  plannedSets: WorkoutSetPlan[];
+  // Kept in sync so previously saved demo data can still be migrated safely.
   sets: number;
   targetReps: number;
   targetWeight: number;
   coachNote?: string;
+};
+
+export type WorkoutSetPlan = {
+  targetReps: number;
+  targetWeight: number;
 };
 
 export type Workout = {
@@ -156,6 +166,43 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'dead-bug', name: 'Мёртвый жук', primaryMuscle: 'Кор', equipment: 'Свой вес' },
 ];
 
+export function getExerciseSetPlans(exercise: WorkoutExercise): WorkoutSetPlan[] {
+  const savedPlans = Array.isArray(exercise.plannedSets) ? exercise.plannedSets : [];
+  const count = Math.max(1, savedPlans.length || exercise.sets || 1);
+  const fallbackReps = Math.max(1, exercise.targetReps || 10);
+  const fallbackWeight = Math.max(0, exercise.targetWeight || 0);
+  return Array.from({ length: count }, (_, index) => ({
+    targetReps: Math.max(1, savedPlans[index]?.targetReps || fallbackReps),
+    targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, savedPlans[index]?.targetWeight ?? fallbackWeight),
+  }));
+}
+
+export function withExerciseSetPlans(exercise: WorkoutExercise, plannedSets: WorkoutSetPlan[]): WorkoutExercise {
+  const safePlans = (plannedSets.length ? plannedSets : [{ targetReps: 10, targetWeight: 0 }]).map((set) => ({
+    targetReps: Math.max(1, set.targetReps || 1),
+    targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, set.targetWeight || 0),
+  }));
+  return {
+    ...exercise,
+    plannedSets: safePlans,
+    sets: safePlans.length,
+    targetReps: safePlans[0].targetReps,
+    targetWeight: safePlans[0].targetWeight,
+  };
+}
+
+export function normalizeWorkoutExercise(exercise: WorkoutExercise): WorkoutExercise {
+  const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
+  const loadMode = exercise.loadMode ?? (definition?.equipment === 'Свой вес' ? 'bodyweight' : 'external');
+  const withMetadata: WorkoutExercise = {
+    ...exercise,
+    primaryMuscle: exercise.primaryMuscle ?? definition?.primaryMuscle,
+    equipment: exercise.equipment ?? definition?.equipment ?? (loadMode === 'bodyweight' ? 'Свой вес' : undefined),
+    loadMode,
+  };
+  return withExerciseSetPlans(withMetadata, getExerciseSetPlans(withMetadata));
+}
+
 const workoutExercise = (
   id: string,
   exerciseId: string,
@@ -163,7 +210,16 @@ const workoutExercise = (
   sets: number,
   targetReps: number,
   targetWeight: number,
-): WorkoutExercise => ({ id, exerciseId, name, sets, targetReps, targetWeight });
+): WorkoutExercise => normalizeWorkoutExercise({
+  id,
+  exerciseId,
+  name,
+  loadMode: exerciseLibrary.find((exercise) => exercise.id === exerciseId)?.equipment === 'Свой вес' ? 'bodyweight' : 'external',
+  plannedSets: Array.from({ length: sets }, () => ({ targetReps, targetWeight })),
+  sets,
+  targetReps,
+  targetWeight,
+});
 
 const demoWorkoutNames: Record<string, string> = {
   'push-day': 'Грудь и плечи',
@@ -314,7 +370,8 @@ export function migrateDemoState(state: DemoState): DemoState {
   const localizedWorkouts = state.workouts.map((workout) => {
     const localizedName = demoWorkoutNames[workout.id];
     const legacyName = legacyDemoWorkoutNames[workout.id];
-    return localizedName && workout.name === legacyName ? { ...workout, name: localizedName } : workout;
+    const normalized = { ...workout, exercises: workout.exercises.map(normalizeWorkoutExercise) };
+    return localizedName && workout.name === legacyName ? { ...normalized, name: localizedName } : normalized;
   });
   const missingDemoWorkouts = createDemoWorkouts(new Date().toISOString())
     .filter((workout) => !state.workouts.some((item) => item.id === workout.id));
@@ -359,7 +416,7 @@ export function migrateDemoState(state: DemoState): DemoState {
     studentWorkoutVersions: (state.studentWorkoutVersions ?? []).map((version) => ({
       ...version,
       studentId: currentId(version.studentId),
-      exercises: version.exercises.map((exercise) => ({ ...exercise })),
+      exercises: version.exercises.map(normalizeWorkoutExercise),
     })),
     sessions: state.sessions.map((session) => ({
       ...session,
@@ -378,7 +435,7 @@ export function migrateDemoState(state: DemoState): DemoState {
 export function cloneWorkout(workout: Workout): Workout {
   return {
     ...workout,
-    exercises: workout.exercises.map((exercise) => ({ ...exercise })),
+    exercises: workout.exercises.map(normalizeWorkoutExercise),
   };
 }
 
@@ -390,7 +447,7 @@ export function createWorkoutTemplate(
   return {
     id: makeId('workout'),
     name: name.trim() || `${source.name} — копия`,
-    exercises: source.exercises.map((exercise) => ({ ...exercise, id: makeId('exercise') })),
+    exercises: source.exercises.map((exercise) => normalizeWorkoutExercise({ ...exercise, id: makeId('exercise') })),
     createdAt: now,
   };
 }
@@ -410,11 +467,11 @@ export function createWorkoutSession(
     startedAt: now,
     recordedBy,
     results: workout.exercises.flatMap((exercise) =>
-      Array.from({ length: exercise.sets }, (_, index) => ({
+      getExerciseSetPlans(exercise).map((set, index) => ({
         exerciseId: exercise.id,
         setNumber: index + 1,
-        actualReps: exercise.targetReps,
-        actualWeight: exercise.targetWeight,
+        actualReps: set.targetReps,
+        actualWeight: exercise.loadMode === 'bodyweight' ? 0 : set.targetWeight,
         completed: false,
       })),
     ),
@@ -428,16 +485,22 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
     const highestCompletedSet = Math.max(0, ...completedResults
       .filter((result) => result.exerciseId === exercise.id)
       .map((result) => result.setNumber));
-    return { ...exercise, sets: Math.max(exercise.sets, highestCompletedSet) };
+    const plannedSets = getExerciseSetPlans(exercise);
+    const fallback = plannedSets.at(-1) ?? { targetReps: 10, targetWeight: 0 };
+    while (plannedSets.length < highestCompletedSet) plannedSets.push({ ...fallback });
+    return withExerciseSetPlans(exercise, plannedSets);
   });
   const preservedExercises = session.workoutSnapshot.exercises
     .filter((exercise) => !nextExerciseIds.has(exercise.id) && completedResults.some((result) => result.exerciseId === exercise.id))
-    .map((exercise) => ({
-      ...exercise,
-      sets: Math.max(exercise.sets, ...completedResults
+    .map((exercise) => {
+      const highestCompletedSet = Math.max(exercise.sets, ...completedResults
         .filter((result) => result.exerciseId === exercise.id)
-        .map((result) => result.setNumber)),
-    }));
+        .map((result) => result.setNumber));
+      const plannedSets = getExerciseSetPlans(exercise);
+      const fallback = plannedSets.at(-1) ?? { targetReps: 10, targetWeight: 0 };
+      while (plannedSets.length < highestCompletedSet) plannedSets.push({ ...fallback });
+      return withExerciseSetPlans(exercise, plannedSets);
+    });
   const nextWorkout: Workout = {
     ...cloneWorkout(workout),
     exercises: [...adjustedExercises, ...preservedExercises],
@@ -446,22 +509,24 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
 
   const results = nextWorkout.exercises.flatMap((exercise) => {
     const previousExercise = session.workoutSnapshot.exercises.find((item) => item.id === exercise.id);
-    return Array.from({ length: exercise.sets }, (_, index) => {
+    const previousPlans = previousExercise ? getExerciseSetPlans(previousExercise) : [];
+    return getExerciseSetPlans(exercise).map((plan, index) => {
       const setNumber = index + 1;
+      const previousPlan = previousPlans[index];
       const existing = session.results.find((result) => result.exerciseId === exercise.id && result.setNumber === setNumber);
       if (!existing || existing.completed) {
         return existing ?? {
           exerciseId: exercise.id,
           setNumber,
-          actualReps: exercise.targetReps,
-          actualWeight: exercise.targetWeight,
+          actualReps: plan.targetReps,
+          actualWeight: exercise.loadMode === 'bodyweight' ? 0 : plan.targetWeight,
           completed: false,
         };
       }
       return {
         ...existing,
-        actualReps: existing.actualReps === previousExercise?.targetReps ? exercise.targetReps : existing.actualReps,
-        actualWeight: existing.actualWeight === previousExercise?.targetWeight ? exercise.targetWeight : existing.actualWeight,
+        actualReps: existing.actualReps === previousPlan?.targetReps ? plan.targetReps : existing.actualReps,
+        actualWeight: existing.actualWeight === previousPlan?.targetWeight ? plan.targetWeight : existing.actualWeight,
       };
     });
   });
@@ -486,7 +551,7 @@ export function repeatAssignment(
     status: 'assigned',
     workoutSnapshot: {
       ...cloneWorkout(sourceWorkout),
-      exercises: sourceWorkout.exercises.map((exercise) => ({ ...exercise, id: makeId('exercise') })),
+      exercises: sourceWorkout.exercises.map((exercise) => normalizeWorkoutExercise({ ...exercise, id: makeId('exercise') })),
       updatedAt: now,
     },
     source: 'repeated',
@@ -516,7 +581,7 @@ export function resolveAssignmentWorkout(data: DemoState, studentId: string, wor
     workoutSnapshot: {
       ...cloneWorkout(workout),
       name: version.name,
-      exercises: version.exercises.map((exercise) => ({ ...exercise })),
+      exercises: version.exercises.map(normalizeWorkoutExercise),
       updatedAt: version.updatedAt,
     },
     source: 'student-version',
@@ -559,7 +624,7 @@ export function makeId(prefix: string) {
 }
 
 export function totalSets(workout?: Workout) {
-  return workout?.exercises.reduce((sum, exercise) => sum + exercise.sets, 0) ?? 0;
+  return workout?.exercises.reduce((sum, exercise) => sum + getExerciseSetPlans(exercise).length, 0) ?? 0;
 }
 
 export function formatDay(iso?: string) {

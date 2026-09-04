@@ -1435,6 +1435,33 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .picker-list .custom-exercise-option { border: 1px solid rgba(198,255,61,.2); border-radius: 16px; padding: 9px 11px; background: rgba(198,255,61,.06); }
 .exercise-navigation.single-action .finish-workout { width: min(100%, 820px); max-width: 820px; }
 
+.plan-context-card { margin-bottom: 24px; border: 1px solid var(--ui-outline); border-radius: 27px; padding: clamp(19px, 4vw, 28px); background: var(--surface); }
+.workout-name-card { display: grid; gap: 9px; }
+.plan-editor-hint { margin: 2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.workout-plan-editor { margin-top: 26px; }
+.workout-plan-editor .form-section-heading { margin: 0 0 15px; }
+.plan-exercise-list { gap: 18px; }
+.plan-exercise-card { background: #121512; }
+.plan-card-sets .plan-set-card { min-height: 96px; grid-template-columns: 62px minmax(0,1fr); }
+.plan-card-sets .set-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.bodyweight-set-label { display: grid; min-width: 0; place-items: center; align-content: center; gap: 8px; border-radius: 13px; background: #080a08; text-align: center; }
+.bodyweight-set-label span { color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .08em; }
+.bodyweight-set-label strong { color: var(--lime); font-size: 14px; }
+.empty-plan-action { margin-top: 0; }
+.plan-submit-button { margin-top: 22px; }
+.assignment-edit-card.plan-context-card { padding: clamp(19px, 4vw, 28px); }
+.plan-context-card .assignment-edit-person { margin-bottom: 22px; }
+.custom-exercise-builder { display: grid; gap: 10px; margin: 10px 0 14px; border: 1px solid rgba(198,255,61,.2); border-radius: 19px; padding: 14px; background: rgba(198,255,61,.045); }
+.custom-exercise-builder > div:first-child { display: grid; gap: 4px; }
+.custom-exercise-builder > div:first-child strong { font-size: 14px; }
+.custom-exercise-builder > div:first-child small { color: var(--muted); font-size: 11px; }
+.picker-list .custom-load-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.picker-list .custom-load-mode button { min-height: 42px; justify-content: center; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; padding: 0 10px; background: rgba(255,255,255,.035); color: var(--muted); font-size: 12px; text-align: center; }
+.picker-list .custom-load-mode button.selected { border-color: rgba(198,255,61,.42); background: rgba(198,255,61,.12); color: var(--lime); }
+.picker-list .custom-exercise-builder .custom-exercise-option { min-height: 48px; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 0 12px; background: var(--lime); color: var(--ink); font-size: 13px; font-weight: 900; text-align: center; }
+.picker-list .custom-exercise-builder .custom-exercise-option .ui-icon { width: 18px; height: 18px; }
+.exercise-plan-list p { line-height: 1.55; }
+
 .session-recorded-by { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; border: 1px solid var(--ui-outline); border-radius: 20px; padding: 14px 16px; background: var(--surface); }
 .session-recorded-by > .ui-icon { width: 20px; height: 20px; color: var(--lime); }
 .session-recorded-by > span { display: grid; gap: 4px; }
@@ -1521,6 +1548,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .active-exercise-corner-actions { gap: 4px; }
   .active-exercise-corner-actions button { width: 48px; height: 48px; }
   .active-card-sets .set-card { min-height: 90px; grid-template-columns: 45px minmax(0,1fr) 56px; gap: 7px; }
+  .plan-card-sets .plan-set-card { grid-template-columns: 45px minmax(0,1fr); }
   .set-metrics { gap: 6px; }
   .active-exercise-footer-actions { grid-template-columns: 1fr 1fr; }
   .audience-grid, .pricing-grid { grid-template-columns: 1fr; }

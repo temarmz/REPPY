@@ -67,6 +67,7 @@ test('персональная версия применяется только 
   const template = state.workouts[0];
   const adapted = structuredClone(template);
   adapted.name = `${template.name} · Артем`;
+  adapted.exercises[0].plannedSets = adapted.exercises[0].plannedSets.map((set) => ({ ...set, targetWeight: 37.5 }));
   adapted.exercises[0].targetWeight = 37.5;
   state.studentWorkoutVersions = upsertStudentWorkoutVersion([], 'artem', template.id, adapted, '2026-08-31T10:00:00.000Z');
 
@@ -158,13 +159,13 @@ test('тренер может начать сессию и безопасно м
   const workout = structuredClone(assignment.workoutSnapshot);
   workout.exercises[0].coachNote = 'Колени направлены по линии стоп';
   const session = createWorkoutSession(assignment, workout, 'trainer', '2026-09-01T12:00:00.000Z');
-  const originalSets = workout.exercises[0].sets;
-  const originalWeight = workout.exercises[0].targetWeight;
+  const originalSets = workout.exercises[0].plannedSets.length;
+  const originalWeight = workout.exercises[0].plannedSets[0].targetWeight;
 
   session.results[0] = { ...session.results[0], completed: true, actualWeight: 72.5 };
   const edited = structuredClone(workout);
-  edited.exercises[0].sets += 1;
-  edited.exercises[0].targetWeight += 5;
+  edited.exercises[0].plannedSets = edited.exercises[0].plannedSets.map((set) => ({ ...set, targetWeight: set.targetWeight + 5 }));
+  edited.exercises[0].plannedSets.push({ ...edited.exercises[0].plannedSets.at(-1) });
   edited.exercises[0].coachNote = 'Не заваливай колени внутрь';
 
   const updated = updateSessionWorkout(session, edited);
@@ -182,6 +183,40 @@ test('тренер может начать сессию и безопасно м
   const protectedUpdate = updateSessionWorkout(updated, withoutCompletedExercise);
   assert.ok(protectedUpdate.workoutSnapshot.exercises.some((exercise) => exercise.id === edited.exercises[0].id));
   assert.ok(protectedUpdate.results.some((result) => result.exerciseId === edited.exercises[0].id && result.completed));
+});
+
+test('каждый плановый подход задаёт собственные повторы и вес в новой сессии', () => {
+  const state = createInitialState();
+  const assignment = state.assignments[0];
+  const workout = structuredClone(assignment.workoutSnapshot);
+  workout.exercises[0].plannedSets = [
+    { targetReps: 12, targetWeight: 40 },
+    { targetReps: 10, targetWeight: 45 },
+    { targetReps: 8, targetWeight: 50 },
+  ];
+
+  const session = createWorkoutSession(assignment, workout, 'trainer');
+  const results = session.results.filter((result) => result.exerciseId === workout.exercises[0].id);
+
+  assert.deepEqual(results.map(({ actualReps, actualWeight }) => ({ actualReps, actualWeight })), [
+    { actualReps: 12, actualWeight: 40 },
+    { actualReps: 10, actualWeight: 45 },
+    { actualReps: 8, actualWeight: 50 },
+  ]);
+});
+
+test('миграция распознаёт упражнения со своим весом и не создаёт для них килограммы', () => {
+  const legacy = structuredClone(createInitialState());
+  const pullUps = legacy.workouts.find((workout) => workout.id === 'pull-day').exercises[0];
+  delete pullUps.loadMode;
+  delete pullUps.plannedSets;
+  pullUps.targetWeight = 25;
+
+  const migrated = migrateDemoState(legacy);
+  const migratedPullUps = migrated.workouts.find((workout) => workout.id === 'pull-day').exercises[0];
+
+  assert.equal(migratedPullUps.loadMode, 'bodyweight');
+  assert.ok(migratedPullUps.plannedSets.every((set) => set.targetWeight === 0));
 });
 
 test('библиотека упражнений покрывает основные мышечные группы', () => {

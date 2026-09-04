@@ -7,16 +7,19 @@ import {
   dateKey,
   exerciseLibrary,
   findAssignmentWorkout,
+  getExerciseSetPlans,
   findSessionWorkout,
   findStudentWorkoutVersion,
   formatCalendarDay,
   formatDay,
   makeId,
   muscleGroups,
+  normalizeWorkoutExercise,
   repeatAssignment,
   resolveAssignmentWorkout,
   resolveEditedAssignmentSource,
   updateSessionWorkout,
+  withExerciseSetPlans,
   upsertStudentWorkoutVersion,
   type Assignment,
   type DemoState,
@@ -26,13 +29,14 @@ import {
   type Student,
   type Workout,
   type WorkoutExercise,
+  type WorkoutSetPlan,
   type WorkoutSession,
 } from './reppy-data';
 import Icon, { iconAssetPaths, type IconName } from './ui-icon';
 import { useReppyData } from './use-reppy-data';
 
 const COPY = {
-  createWorkout: 'Создать шаблон',
+  createWorkout: 'Создать тренировку',
   emptyAssignments: 'На ближайшие две недели тренер пока ничего не назначил.',
   emptyHistory: 'Завершённые тренировки появятся здесь.',
 };
@@ -75,7 +79,7 @@ function exercisePreview(workout?: Workout, withPlan = false) {
   if (!workout?.exercises.length) return 'Упражнения не добавлены';
   const preview = workout.exercises
     .slice(0, 3)
-    .map((exercise) => withPlan ? `${exercise.name} ${exercise.sets}×${exercise.targetReps}` : exercise.name)
+    .map((exercise) => withPlan ? `${exercise.name} ${getExerciseSetPlans(exercise).length}×${getExerciseSetPlans(exercise)[0]?.targetReps ?? 0}` : exercise.name)
     .join(' · ');
   return workout.exercises.length > 3 ? `${preview} · …` : preview;
 }
@@ -1093,18 +1097,46 @@ function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout:
 
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts'} eyebrow={initial ? 'Редактирование шаблона' : 'Новый шаблон'} title={initial ? initial.name.toUpperCase() : 'СОБЕРИ ШАБЛОН'} />
-      <section className="form-card workout-form">
-        {initial && <p className="template-edit-note"><Icon name="edit" /> Ты редактируешь шаблон. Уже назначенные тренировки и история не изменятся.</p>}
+      <PageHeader back={initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts'} eyebrow={initial ? 'Редактирование тренировки' : 'Новая тренировка'} title={initial ? initial.name.toUpperCase() : 'СОЗДАТЬ ТРЕНИРОВКУ'} />
+      <section className="plan-context-card workout-name-card">
         <label className="field-label" htmlFor="workout-name">Название тренировки</label>
         <input id="workout-name" className="text-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Грудь + плечи" />
-        <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить шаблон</button>
+        {initial && <p className="plan-editor-hint">Изменения применятся только к будущим назначениям.</p>}
       </section>
+      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button>
     </main>
   );
 }
+
+function exerciseMetadata(exercise: WorkoutExercise) {
+  const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
+  const muscle = exercise.primaryMuscle ?? definition?.primaryMuscle;
+  const equipment = exercise.equipment ?? definition?.equipment ?? (exercise.loadMode === 'bodyweight' ? 'Свой вес' : undefined);
+  if (!definition) {
+    const details = [muscle, equipment].filter(Boolean).join(' · ');
+    return details ? 'Пользовательское упражнение · ' + details : 'Пользовательское упражнение';
+  }
+  if (muscle && equipment) return muscle + ' · ' + equipment;
+  return muscle ?? equipment ?? 'Упражнение';
+}
+
+function formatExercisePlan(exercise: WorkoutExercise) {
+  return getExerciseSetPlans(exercise)
+    .map((set, index) => exercise.loadMode === 'bodyweight'
+      ? (index + 1) + ': ' + set.targetReps + ' повт. · свой вес'
+      : (index + 1) + ': ' + set.targetReps + ' повт. · ' + set.targetWeight + ' кг')
+    .join('  ·  ');
+}
+
+type ExercisePickerChoice = {
+  id: string;
+  name: string;
+  primaryMuscle?: MuscleGroup;
+  equipment?: string;
+  loadMode?: 'external' | 'bodyweight';
+};
 
 function WorkoutExerciseEditor({
   exercises,
@@ -1115,90 +1147,177 @@ function WorkoutExerciseEditor({
   onChange: (exercises: WorkoutExercise[]) => void;
   minSetsByExerciseId?: Record<string, number>;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
-  const normalizedSearch = search.trim().toLocaleLowerCase('ru');
-  const filtered = exerciseLibrary.filter((exercise) => {
-    const matchesMuscle = selectedMuscle === 'all' || exercise.primaryMuscle === selectedMuscle;
-    const haystack = `${exercise.name} ${exercise.primaryMuscle} ${exercise.equipment}`.toLocaleLowerCase('ru');
-    return matchesMuscle && haystack.includes(normalizedSearch);
-  });
+  const [pickerAfterId, setPickerAfterId] = useState<string | 'start' | null>(null);
+  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
+  const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
+  const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
+  const highlightTimer = useRef<number | null>(null);
 
-  const addExercise = (exercise: (typeof exerciseLibrary)[number]) => {
-    onChange([...exercises, {
+  useEffect(() => () => {
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+  }, []);
+
+  const focusExercise = (exerciseId: string) => {
+    setRecentlyMovedId(exerciseId);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      document.querySelector(`[data-plan-exercise="${exerciseId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => setRecentlyMovedId(null), 1000);
+  };
+
+  const addExercise = (choice: ExercisePickerChoice) => {
+    const loadMode = choice.loadMode ?? (choice.equipment === 'Свой вес' ? 'bodyweight' : 'external');
+    const nextExercise = normalizeWorkoutExercise({
       id: makeId('exercise'),
-      exerciseId: exercise.id,
-      name: exercise.name,
+      exerciseId: choice.id,
+      name: choice.name,
+      primaryMuscle: choice.primaryMuscle,
+      equipment: choice.equipment,
+      loadMode,
+      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
       sets: 3,
       targetReps: 10,
-      targetWeight: 20,
+      targetWeight: loadMode === 'bodyweight' ? 0 : 20,
       coachNote: '',
-    }]);
-    setPickerOpen(false);
-    setSearch('');
+    });
+    const next = exercises.map((exercise) => ({ ...exercise }));
+    const afterIndex = pickerAfterId === 'start' ? -1 : next.findIndex((exercise) => exercise.id === pickerAfterId);
+    next.splice(afterIndex + 1, 0, nextExercise);
+    onChange(next);
+    setPickerAfterId(null);
+    focusExercise(nextExercise.id);
   };
 
-  const updateExercise = (id: string, key: 'sets' | 'targetReps' | 'targetWeight', value: number) => {
-    const minimum = key === 'sets' ? Math.max(1, minSetsByExerciseId[id] ?? 0) : key === 'targetWeight' ? 0 : 1;
-    onChange(exercises.map((exercise) => exercise.id === id ? { ...exercise, [key]: Math.max(minimum, value || 0) } : exercise));
+  const updateExercise = (id: string, update: (exercise: WorkoutExercise) => WorkoutExercise) => {
+    onChange(exercises.map((exercise) => exercise.id === id ? update(exercise) : exercise));
   };
 
-  const updateCoachNote = (id: string, coachNote: string) => {
-    onChange(exercises.map((exercise) => exercise.id === id ? { ...exercise, coachNote } : exercise));
+  const moveExercise = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= exercises.length) return;
+    const next = exercises.map((exercise) => ({ ...exercise }));
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    onChange(next);
+    focusExercise(moved.id);
   };
+
+  const actionExercise = exercises.find((exercise) => exercise.id === actionExerciseId);
+  const actionMinimumSets = actionExercise ? Math.max(1, minSetsByExerciseId[actionExercise.id] ?? 1) : 1;
 
   return (
-    <>
+    <section className="workout-plan-editor">
       <div className="form-section-heading"><h2>Упражнения</h2></div>
-      <button className="add-exercise" type="button" onClick={() => setPickerOpen(true)}><Icon name="plus" /> Добавить упражнение</button>
-      <div className="exercise-editor-list">
-        {exercises.map((exercise, index) => {
-          const lockedSets = minSetsByExerciseId[exercise.id] ?? 0;
-          return (
-            <article className="exercise-editor" key={exercise.id}>
-              <div className="exercise-editor-head">
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <h3>{exercise.name}</h3>
-                <button type="button" disabled={lockedSets > 0} title={lockedSets > 0 ? 'Сначала отмени выполненные подходы' : undefined} onClick={() => onChange(exercises.filter((item) => item.id !== exercise.id))} aria-label={`Удалить ${exercise.name}`}><Icon name="close" /></button>
-              </div>
-              <div className="metric-grid">
-                <MetricInput label="Подходы" value={exercise.sets} min={Math.max(1, lockedSets)} onChange={(value) => updateExercise(exercise.id, 'sets', value)} />
-                <MetricInput label="Повторы" value={exercise.targetReps} min={1} onChange={(value) => updateExercise(exercise.id, 'targetReps', value)} />
-                <MetricInput label="Вес, кг" value={exercise.targetWeight} onChange={(value) => updateExercise(exercise.id, 'targetWeight', value)} step={2.5} />
-              </div>
-              <label className="coach-note-field">
-                <span>Подсказка по технике <small>необязательно</small></span>
-                <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => updateCoachNote(exercise.id, event.target.value)} placeholder="Например: держи локти вдоль тела" />
-              </label>
-            </article>
-          );
-        })}
+      {!exercises.length && <button className="add-exercise empty-plan-action" type="button" onClick={() => setPickerAfterId('start')}><Icon name="plus" /> Добавить упражнение</button>}
+      <div className="active-exercise-list plan-exercise-list">
+        {exercises.map((exercise, index) => (
+          <PlanExerciseCard
+            key={exercise.id}
+            exercise={exercise}
+            index={index}
+            totalExercises={exercises.length}
+            recentlyMoved={recentlyMovedId === exercise.id}
+            onShowInstruction={() => setInstructionExercise(exercise)}
+            onShowActions={() => setActionExerciseId(exercise.id)}
+            onMoveUp={() => moveExercise(index, index - 1)}
+            onMoveDown={() => moveExercise(index, index + 1)}
+            onNoteChange={(coachNote) => updateExercise(exercise.id, (current) => ({ ...current, coachNote }))}
+            onSetChange={(setIndex, patch) => updateExercise(exercise.id, (current) => {
+              const plannedSets = getExerciseSetPlans(current).map((set, currentIndex) => currentIndex === setIndex ? { ...set, ...patch } : set);
+              return withExerciseSetPlans(current, plannedSets);
+            })}
+            onAddSet={() => updateExercise(exercise.id, (current) => {
+              const plannedSets = getExerciseSetPlans(current);
+              plannedSets.push({ ...(plannedSets.at(-1) ?? { targetReps: 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) });
+              return withExerciseSetPlans(current, plannedSets);
+            })}
+            onAddAfter={() => setPickerAfterId(exercise.id)}
+          />
+        ))}
       </div>
 
-      {pickerOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setPickerOpen(false)}>
-          <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Выбрать упражнение" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="sheet-handle" /><div className="sheet-title"><h2>Выбрать упражнение</h2><button type="button" onClick={() => setPickerOpen(false)} aria-label="Закрыть"><Icon name="close" /></button></div>
-            <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" autoFocus />
-            <div className="muscle-filter" aria-label="Фильтр по основной мышце">
-              <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
-              {muscleGroups.map((muscle) => <button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</button>)}
-            </div>
-            <div className="picker-list">
-              {filtered.map((exercise) => <button key={exercise.id} type="button" onClick={() => addExercise(exercise)}><span><Icon name="plus" /></span><div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div></button>)}
-              {!filtered.length && <p className="picker-empty">Ничего не найдено. Попробуй другую категорию или запрос.</p>}
-            </div>
-          </section>
-        </div>
-      )}
-    </>
+      {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExercise} />}
+      {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
+      {actionExercise && <ExerciseActionsModal
+        exercise={actionExercise}
+        canRemoveSet={getExerciseSetPlans(actionExercise).length > actionMinimumSets}
+        canDeleteExercise={exercises.length > 1 && (minSetsByExerciseId[actionExercise.id] ?? 0) === 0}
+        onClose={() => setActionExerciseId(null)}
+        onRemoveSet={() => {
+          updateExercise(actionExercise.id, (current) => withExerciseSetPlans(current, getExerciseSetPlans(current).slice(0, -1)));
+          setActionExerciseId(null);
+        }}
+        onDeleteExercise={() => {
+          setActionExerciseId(null);
+          if (!window.confirm(`Удалить упражнение «${actionExercise.name}» из этой тренировки?`)) return;
+          onChange(exercises.filter((item) => item.id !== actionExercise.id));
+        }}
+      />}
+    </section>
   );
 }
 
-function MetricInput({ label, value, onChange, min = 0, step = 1 }: { label: string; value: number; onChange: (value: number) => void; min?: number; step?: number }) {
+function PlanExerciseCard({
+  exercise,
+  index,
+  totalExercises,
+  recentlyMoved,
+  onShowInstruction,
+  onShowActions,
+  onMoveUp,
+  onMoveDown,
+  onNoteChange,
+  onSetChange,
+  onAddSet,
+  onAddAfter,
+}: {
+  exercise: WorkoutExercise;
+  index: number;
+  totalExercises: number;
+  recentlyMoved: boolean;
+  onShowInstruction: () => void;
+  onShowActions: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onNoteChange: (note: string) => void;
+  onSetChange: (index: number, patch: Partial<WorkoutSetPlan>) => void;
+  onAddSet: () => void;
+  onAddAfter: () => void;
+}) {
+  const [commentOpen, setCommentOpen] = useState(Boolean(exercise.coachNote));
+  const bodyweight = exercise.loadMode === 'bodyweight';
   return (
-    <label className="metric-input"><span>{label}</span><EditableNumberInput value={value} onChange={onChange} min={min} step={step} inputMode={step < 1 ? 'decimal' : 'numeric'} /></label>
+    <article data-plan-exercise={exercise.id} className={'active-exercise-card plan-exercise-card ' + (recentlyMoved ? 'recently-moved' : '')}>
+      <header className="active-exercise-card-header">
+        <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
+        <div><h2>{exercise.name}</h2><small className="active-exercise-meta">{exerciseMetadata(exercise)}</small></div>
+        <div className="active-exercise-corner-actions">
+          <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
+          <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
+        </div>
+      </header>
+      <div className="exercise-toolbar">
+        <div className="active-exercise-actions"><button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button></div>
+        <div className="exercise-order-controls">
+          <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
+          <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
+        </div>
+      </div>
+      {commentOpen && <label className="active-comment-field"><span>Комментарий к упражнению</span><textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></label>}
+      <section className="active-card-sets plan-card-sets">
+        {getExerciseSetPlans(exercise).map((set, setIndex) => (
+          <article className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
+            <div className="set-number"><span>ПОДХОД</span><strong>{setIndex + 1}</strong></div>
+            <div className="set-metrics">
+              {!bodyweight && <label><span>КГ</span><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></label>}
+              {bodyweight && <div className="bodyweight-set-label"><span>НАГРУЗКА</span><strong>Свой вес</strong></div>}
+              <label><span>ПОВТОРЫ</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
+            </div>
+          </article>
+        ))}
+      </section>
+      <footer className="active-exercise-footer-actions"><button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Ещё подход</button><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>
+    </article>
   );
 }
 
@@ -1227,12 +1346,12 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
 function WorkoutDetails({ workout, onDuplicate }: { workout: Workout; onDuplicate: () => void }) {
   return (
     <main className="content-page narrow-page">
-      <PageHeader back="/trainer/workouts" eyebrow="Шаблон тренировки" title={workout.name.toUpperCase()} />
+      <PageHeader back="/trainer/workouts" eyebrow="Тренировка" title={workout.name.toUpperCase()} />
       <div className="workout-detail-actions"><button className="wide-secondary" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/edit`)}><Icon name="edit" /> Редактировать</button><button className="wide-secondary" type="button" onClick={onDuplicate}><Icon name="copy" /> Дублировать</button><button className="primary-button" type="button" onClick={() => go(`/trainer/workouts/${workout.id}/assign`)}><Icon name="plus" /> Назначить</button></div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (
-          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</p></div></article>
+          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{formatExercisePlan(exercise)}</p></div></article>
         ))}
       </section>
     </main>
@@ -1252,17 +1371,8 @@ function AssignmentDetails({
 }) {
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
-  const template = findWorkout(data, assignment.workoutId);
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
   if (!student || !workout) return <NotFound />;
-  const sourceLabel = assignment.source === 'student-version'
-    ? `Персональная версия для ${student.name}`
-    : assignment.source === 'manual-edit'
-      ? 'Адаптировано только для этого назначения'
-      : assignment.source === 'repeated'
-        ? 'Скопировано из предыдущей тренировки этого ученика'
-        : `Основано на шаблоне «${template?.name ?? workout.name}»`;
-
   return (
     <main className="content-page narrow-page">
       <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)}, ${assignment.scheduledTime}`} title={workout.name.toUpperCase()} />
@@ -1270,7 +1380,6 @@ function AssignmentDetails({
         <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
         <div className="reschedule-request-actions"><button className="wide-secondary" type="button" onClick={onDeclineRequest}><Icon name="close" /> Отклонить</button><button className="primary-button" type="button" onClick={onAcceptRequest}><Icon name="check" /> Подтвердить</button></div>
       </section>}
-      <section className="assignment-source"><Icon name={assignment.source === 'template' ? 'workout' : assignment.source === 'repeated' ? 'copy' : 'edit'} /><div><small>СОСТАВ ТРЕНИРОВКИ</small><strong>{sourceLabel}</strong></div></section>
       <div className="assignment-detail-actions">
         {assignment.status === 'assigned' && <button className="primary-button assignment-start-button" type="button" onClick={() => go(`/trainer/workout/${assignment.id}`)}><Icon name="workout" /> {activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>}
         {assignment.status === 'assigned' && <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="edit" /> Редактировать</button>}
@@ -1279,7 +1388,7 @@ function AssignmentDetails({
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (
-          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</p>{exercise.coachNote && <small className="exercise-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></article>
+          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{formatExercisePlan(exercise)}</p>{exercise.coachNote && <small className="exercise-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></article>
         ))}
       </section>
     </main>
@@ -1328,7 +1437,7 @@ function StudentAssignmentDetails({
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <section className="exercise-plan-list">
         {workout.exercises.map((exercise, index) => (
-          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{exercise.sets} × {exercise.targetReps} · {exercise.targetWeight} кг</p>{exercise.coachNote && <small className="exercise-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></article>
+          <article key={exercise.id}><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><p>{formatExercisePlan(exercise)}</p>{exercise.coachNote && <small className="exercise-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></article>
         ))}
       </section>
     </main>
@@ -1364,18 +1473,15 @@ function RepeatAssignment({
   return (
     <main className="content-page narrow-page">
       <PageHeader back={`/trainer/assignments/${assignment.id}`} eyebrow={student.name} title="ПОВТОРИТЬ ТРЕНИРОВКУ" />
-      <section className="assignment-source repeat-source">
-        <Icon name="copy" />
-        <div><small>КОПИЯ ДЛЯ ТОГО ЖЕ УЧЕНИКА</small><strong>{sourceWorkout.name}</strong><p>Состав и нагрузки уже перенесены. При необходимости поправь их до сохранения.</p></div>
-      </section>
-      <section className="form-card repeat-assignment-form">
+      <section className="plan-context-card repeat-assignment-form">
+        <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{sourceWorkout.name}</p></div></div>
         <div className="schedule-fields">
           <label className="schedule-field"><span>Новая дата</span><input type="date" value={scheduledFor} min={dateKey()} onChange={(event) => setScheduledFor(event.target.value)} /></label>
           <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
-        <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
-        <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Скопировать тренировку</button>
       </section>
+      <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
+      <button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Создать копию</button>
     </main>
   );
 }
@@ -1446,20 +1552,20 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
   return (
     <main className="content-page narrow-page">
       <PageHeader back={`/trainer/assignments/${assignment.id}`} eyebrow={`${student?.name} · ${workout?.name}`} title="ИЗМЕНИТЬ ЗАНЯТИЕ" />
-      <section className="assignment-edit-card">
-        <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student?.name}</strong><p>{workout?.name} · {exercisePreview(workout)}</p></div></div>
+      <section className="plan-context-card assignment-edit-card">
+        <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student?.name}</strong><p>{workout?.name}</p></div></div>
         <div className="schedule-fields">
           <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
           <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
-        <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-        <label className="remember-version-toggle"><input type="checkbox" checked={rememberForStudent} onChange={(event) => setRememberForStudent(event.target.checked)} /><span><strong>Запомнить как версию для {student.name}</strong><small>{existingVersion ? 'Сохранённая персональная версия будет обновлена и применится к будущим назначениям.' : 'Эти упражнения и нагрузки будут автоматически подставляться в будущие назначения этого шаблона.'}</small></span></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="assignment-edit-actions">
-          <button className="danger-button" type="button" onClick={remove}><Icon name="close" /> Удалить назначение</button>
-          <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={save}><Icon name="check" /> Сохранить</button>
-        </div>
       </section>
+      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
+      <label className="remember-version-toggle"><input type="checkbox" checked={rememberForStudent} onChange={(event) => setRememberForStudent(event.target.checked)} /><span><strong>Использовать как основу для будущих тренировок {student.name}</strong><small>{existingVersion ? 'Сохранённая версия будет обновлена.' : 'Состав и нагрузки будут предложены при следующем назначении этой тренировки.'}</small></span></label>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="assignment-edit-actions">
+        <button className="danger-button" type="button" onClick={remove}><Icon name="close" /> Удалить назначение</button>
+        <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={save}><Icon name="check" /> Сохранить изменения</button>
+      </div>
     </main>
   );
 }
@@ -1555,12 +1661,14 @@ function ActiveWorkout({
     onWorkoutUpdate(session.id, { ...cloneWorkout(workout), exercises });
   };
 
-  const updateExercisePlan = (
-    exerciseId: string,
-    key: 'sets' | 'targetReps' | 'targetWeight' | 'coachNote',
-    value: number | string,
-  ) => {
-    updateWorkout(workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, [key]: value } : exercise));
+  const updateExerciseNote = (exerciseId: string, coachNote: string) => {
+    updateWorkout(workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, coachNote } : exercise));
+  };
+
+  const updateExerciseSets = (exerciseId: string, update: (plans: WorkoutSetPlan[], exercise: WorkoutExercise) => WorkoutSetPlan[]) => {
+    updateWorkout(workout.exercises.map((exercise) => exercise.id === exerciseId
+      ? withExerciseSetPlans(exercise, update(getExerciseSetPlans(exercise), exercise))
+      : exercise));
   };
 
   const updateResult = (exerciseId: string, setNumber: number, patch: Partial<SetResult>) => {
@@ -1585,18 +1693,23 @@ function ActiveWorkout({
     focusExercise(moved.id);
   };
 
-  const addExerciseAfter = (definition: { id: string; name: string }) => {
+  const addExerciseAfter = (definition: ExercisePickerChoice) => {
     if (!pickerAfterId) return;
     const afterIndex = workout.exercises.findIndex((exercise) => exercise.id === pickerAfterId);
-    const nextExercise: WorkoutExercise = {
+    const loadMode = definition.loadMode ?? (definition.equipment === 'Свой вес' ? 'bodyweight' : 'external');
+    const nextExercise = normalizeWorkoutExercise({
       id: makeId('exercise'),
       exerciseId: definition.id,
       name: definition.name,
+      primaryMuscle: definition.primaryMuscle,
+      equipment: definition.equipment,
+      loadMode,
+      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
       sets: 3,
       targetReps: 10,
-      targetWeight: 20,
+      targetWeight: loadMode === 'bodyweight' ? 0 : 20,
       coachNote: '',
-    };
+    });
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
     next.splice(afterIndex + 1, 0, nextExercise);
     updateWorkout(next);
@@ -1634,11 +1747,11 @@ function ActiveWorkout({
               totalExercises={workout.exercises.length}
               results={exerciseResults}
               recentlyMoved={recentlyMovedId === exercise.id}
-              onPlanChange={(key, value) => updateExercisePlan(exercise.id, key, value)}
+              onNoteChange={(coachNote) => updateExerciseNote(exercise.id, coachNote)}
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
               onShowInstruction={() => setInstructionExercise(exercise)}
               onShowActions={() => setActionExerciseId(exercise.id)}
-              onAddSet={() => updateExercisePlan(exercise.id, 'sets', exercise.sets + 1)}
+              onAddSet={() => updateExerciseSets(exercise.id, (plans, current) => [...plans, { ...(plans.at(-1) ?? { targetReps: 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) }])}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
@@ -1651,11 +1764,11 @@ function ActiveWorkout({
       {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
-        canRemoveSet={actionExercise.sets > Math.max(1, actionMinimumSets)}
+        canRemoveSet={getExerciseSetPlans(actionExercise).length > Math.max(1, actionMinimumSets)}
         canDeleteExercise={workout.exercises.length > 1 && actionMinimumSets === 0}
         onClose={() => setActionExerciseId(null)}
         onRemoveSet={() => {
-          updateExercisePlan(actionExercise.id, 'sets', actionExercise.sets - 1);
+          updateExerciseSets(actionExercise.id, (plans) => plans.slice(0, -1));
           setActionExerciseId(null);
         }}
         onDeleteExercise={() => {
@@ -1678,7 +1791,7 @@ function ActiveExerciseCard({
   totalExercises,
   results,
   recentlyMoved,
-  onPlanChange,
+  onNoteChange,
   onResultChange,
   onShowInstruction,
   onShowActions,
@@ -1692,7 +1805,7 @@ function ActiveExerciseCard({
   totalExercises: number;
   results: SetResult[];
   recentlyMoved: boolean;
-  onPlanChange: (key: 'sets' | 'targetReps' | 'targetWeight' | 'coachNote', value: number | string) => void;
+  onNoteChange: (coachNote: string) => void;
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
   onShowInstruction: () => void;
   onShowActions: () => void;
@@ -1702,7 +1815,6 @@ function ActiveExerciseCard({
   onMoveDown: () => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
-  const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
   const completedSets = results.filter((result) => result.completed).length;
   const allCompleted = results.length > 0 && completedSets === results.length;
 
@@ -1712,7 +1824,7 @@ function ActiveExerciseCard({
         <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
         <div>
           <h2>{exercise.name}</h2>
-          <small className="active-exercise-meta">{definition ? definition.primaryMuscle + ' · ' + definition.equipment : 'Пользовательское упражнение'}</small>
+          <small className="active-exercise-meta">{exerciseMetadata(exercise)}</small>
         </div>
         <div className="active-exercise-corner-actions">
           <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
@@ -1732,7 +1844,7 @@ function ActiveExerciseCard({
 
       {commentOpen && <label className="active-comment-field">
         <span>Комментарий к упражнению</span>
-        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onPlanChange('coachNote', event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus />
+        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus />
       </label>}
 
       <section className="active-card-sets">
@@ -1740,7 +1852,8 @@ function ActiveExerciseCard({
           <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
             <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
             <div className="set-metrics">
-              <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>
+              {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
+              {exercise.loadMode === 'bodyweight' && <div className="bodyweight-set-label"><span>НАГРУЗКА</span><strong>Свой вес</strong></div>}
               <label><span>ПОВТОРЫ</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
             </div>
             <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name="check" /></button>
@@ -1758,7 +1871,8 @@ function ActiveExerciseCard({
 
 function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExercise; onClose: () => void }) {
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
-  const equipment = definition?.equipment && definition.equipment !== 'Свой вес' ? definition.equipment : null;
+  const resolvedEquipment = exercise.equipment ?? definition?.equipment;
+  const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
@@ -1820,10 +1934,11 @@ function ActiveExercisePicker({
   onSelect,
 }: {
   onClose: () => void;
-  onSelect: (exercise: { id: string; name: string }) => void;
+  onSelect: (exercise: ExercisePickerChoice) => void;
 }) {
   const [search, setSearch] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
+  const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>('external');
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
   const customName = search.trim();
   const canCreateCustom = customName.length >= 2 && !exerciseLibrary.some((exercise) => exercise.name.toLocaleLowerCase('ru') === normalizedSearch);
@@ -1837,14 +1952,21 @@ function ActiveExercisePicker({
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнение после выбранного" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
-        <div className="sheet-title"><h2>Добавить упражнение ниже</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
+        <div className="sheet-title"><h2>Добавить упражнение</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
         <div className="muscle-filter" aria-label="Фильтр по основной мышце">
           <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
           {muscleGroups.map((muscle) => <button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</button>)}
         </div>
         <div className="picker-list">
-          {canCreateCustom && <button className="custom-exercise-option" type="button" onClick={() => onSelect({ id: makeId('custom-exercise'), name: customName })}><span><Icon name="plus" /></span><div><strong>Добавить «{customName}»</strong><small>Пользовательское упражнение</small></div></button>}
+          {canCreateCustom && <section className="custom-exercise-builder">
+            <div><strong>Новое упражнение «{customName}»</strong><small>{selectedMuscle === 'all' ? 'Пользовательское упражнение' : selectedMuscle}</small></div>
+            <div className="custom-load-mode" aria-label="Тип нагрузки">
+              <button className={customLoadMode === 'external' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('external')} aria-pressed={customLoadMode === 'external'}>С весом</button>
+              <button className={customLoadMode === 'bodyweight' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('bodyweight')} aria-pressed={customLoadMode === 'bodyweight'}>Свой вес</button>
+            </div>
+            <button className="custom-exercise-option" type="button" onClick={() => onSelect({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode })}><Icon name="plus" /> Добавить «{customName}»</button>
+          </section>}
           {filtered.map((exercise) => <button key={exercise.id} type="button" onClick={() => onSelect(exercise)}><span><Icon name="plus" /></span><div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div></button>)}
           {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
         </div>
@@ -1945,7 +2067,7 @@ function SessionResult({
           return (
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
-              <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{result.actualWeight} кг × {result.actualReps}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
+              <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{exercise.loadMode === 'bodyweight' ? result.actualReps + ' повторов · свой вес' : result.actualWeight + ' кг × ' + result.actualReps}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
             </article>
           );
         })}
