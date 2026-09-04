@@ -469,7 +469,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .page-header .eyebrow { margin-bottom: 10px; }
 .page-header h1 {
   margin: 0;
-  font-size: clamp(40px, 6vw, 70px);
+  font-size: clamp(34px, 5vw, 54px);
   font-weight: 950;
   line-height: .92;
   letter-spacing: normal;
@@ -954,7 +954,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .bottom-nav button.active { background: var(--lime); color: var(--ink); }
   .app-shell:not(.focus-mode) .content-page { min-height: 100%; padding: 35px 18px max(32px, env(safe-area-inset-bottom, 0px)); }
   .page-header { margin-bottom: 29px; }
-  .page-header h1 { font-size: clamp(39px, 12vw, 55px); }
+  .page-header h1 { font-size: clamp(30px, 8.5vw, 38px); }
   .compact-primary { min-height: 47px; padding: 0 13px; font-size: 10px; }
   .stats-row { gap: 10px; }
   .stat-card { min-height: 150px; border-radius: 24px; padding: 19px; }
@@ -1150,7 +1150,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 .calendar-page { width: min(100%, 920px); }
 .calendar-page .page-header { margin-bottom: 24px; }
-.calendar-page .page-header h1 { font-size: clamp(38px, 5vw, 58px); }
+.calendar-page .page-header h1 { font-size: clamp(32px, 4vw, 46px); }
 .calendar-card { overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 27px; padding: 18px; background: var(--surface); }
 .calendar-toolbar { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; gap: 12px; margin-bottom: 20px; }
 .calendar-toolbar h2 { margin: 0; font-size: 22px; letter-spacing: normal; text-align: center; text-transform: capitalize; }
@@ -1599,7 +1599,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 
 @media (max-width: 470px) {
-  .page-header h1 { font-size: clamp(32px, 9vw, 38px); }
+  .page-header h1 { font-size: clamp(28px, 7.8vw, 34px); }
 }
 
 /* Shared workout detail and planning patterns */

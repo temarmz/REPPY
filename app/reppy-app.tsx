@@ -1275,7 +1275,6 @@ function WorkoutExerciseEditor({
         }}
         onDeleteExercise={() => {
           setActionExerciseId(null);
-          if (!window.confirm(`Удалить упражнение «${actionExercise.name}» из этой тренировки?`)) return;
           onChange(exercises.filter((item) => item.id !== actionExercise.id));
         }}
       />}
@@ -1323,7 +1322,7 @@ function PlanExerciseCard({
         </div>
       </header>
       <div className="exercise-toolbar">
-        <div className="active-exercise-actions"><button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button></div>
+        <div className="active-exercise-actions"><button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {commentOpen ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button></div>
         <div className="exercise-order-controls">
           <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
           <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
@@ -1474,11 +1473,7 @@ function RepeatAssignment({
   onSave: (scheduledFor: string, scheduledTime: string, workout: Workout) => void;
 }) {
   const student = findStudent(data, assignment.studentId);
-  const [scheduledFor, setScheduledFor] = useState(() => {
-    const nextDate = new Date(`${assignment.scheduledFor}T12:00:00`);
-    nextDate.setDate(nextDate.getDate() + 7);
-    return dateKey(nextDate) < dateKey() ? dateKey() : dateKey(nextDate);
-  });
+  const [scheduledFor, setScheduledFor] = useState(dateKey());
   const [scheduledTime, setScheduledTime] = useState(assignment.scheduledTime);
   const [exercises, setExercises] = useState(() => sourceWorkout.exercises.map((exercise) => ({ ...exercise })));
   if (!student) return <NotFound />;
@@ -1787,7 +1782,6 @@ function ActiveWorkout({
         }}
         onDeleteExercise={() => {
           setActionExerciseId(null);
-          if (!window.confirm(`Удалить упражнение «${actionExercise.name}» из этой тренировки?`)) return;
           updateWorkout(workout.exercises.filter((item) => item.id !== actionExercise.id));
         }}
       />}
@@ -1848,7 +1842,7 @@ function ActiveExerciseCard({
 
       <div className="exercise-toolbar">
         <div className="active-exercise-actions">
-          <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {exercise.coachNote ? 'Комментарий' : 'Добавить комментарий'}</button>
+          <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {commentOpen ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button>
         </div>
         <div className="exercise-order-controls">
           <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>

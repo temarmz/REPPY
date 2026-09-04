@@ -39,6 +39,11 @@ test('тренер дублирует шаблон и повторяет наз�
   await expect(page.getByRole('button', { name: 'Создать шаблон из назначения' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Повторить на другую дату' }).click();
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
+  const today = await page.evaluate(() => {
+    const date = new Date();
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  });
+  await expect(page.getByLabel('Новая дата')).toHaveValue(today);
   await expect(page.getByText('КОПИЯ ДЛЯ ТОГО ЖЕ УЧЕНИКА')).toHaveCount(0);
 
   await setFirstExerciseWeight(page, 82.5);
@@ -165,6 +170,10 @@ test('тренер ведёт занятие, правит его в момен�
   const commentField = squatCard.locator('.active-comment-field textarea');
   await expect(commentField).toBeFocused();
   await commentField.fill('Колени держи по линии стоп');
+  await expect(squatCard.getByRole('button', { name: 'Скрыть комментарий' })).toBeVisible();
+  await squatCard.getByRole('button', { name: 'Скрыть комментарий' }).click();
+  await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
+  await expect(squatCard.getByRole('button', { name: 'Показать комментарий' })).toBeVisible();
 
   await expect(squatCard.getByLabel('Подходы')).toHaveCount(0);
   await expect(squatCard.getByRole('checkbox', { name: 'Выполнено' })).toHaveCount(0);
@@ -205,13 +214,6 @@ test('тренер ведёт занятие, правит его в момен�
 
   await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
   actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
-  page.once('dialog', (dialog) => dialog.dismiss());
-  await actionsDialog.getByRole('button', { name: /Удалить упражнение/ }).click();
-  await expect(customCard).toBeVisible();
-
-  await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
-  actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
-  page.once('dialog', (dialog) => dialog.accept());
   await actionsDialog.getByRole('button', { name: /Удалить упражнение/ }).click();
   await expect(customCard).toHaveCount(0);
 
