@@ -32,10 +32,11 @@ test('сводка, фильтры, таблица, график и возвра
   await expect(page.getByLabel('Поиск упражнения')).toBeFocused();
   await expect(page.getByLabel('Поиск упражнения')).toHaveValue('ЖиМ');
   await page.locator('.progress-overview-row').click();
-  await expect(page.getByRole('heading', { name: 'Жим лёжа', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Упражнение', { exact: true })).toContainText('Жим лёжа');
   await expect(page.locator('.progress-history-entry')).toHaveCount(3);
   await expect(page.locator('.progress-history-entry').first()).toContainText('2 из 4');
-  await expect(page.locator('.progress-history-entry').first()).toContainText('Не выполнен');
+  await expect(page.locator('.progress-history-entry').first().locator('.progress-sets')).toHaveText(/80 кг × 8 \/ 7 повт.*Выполнено 2 из 4/);
+  await expect(page.locator('.progress-history-entry').first().getByText('Факт: Не выполнен').first()).not.toBeVisible();
   await page.locator('.progress-history-entry').first().locator('summary').click();
   await expect(page.getByText('Комментарий к тренировке: Контрольный комментарий к тренировке').first()).toBeVisible();
   await page.getByRole('button', { name: 'График', exact: true }).click();
@@ -44,12 +45,12 @@ test('сводка, фильтры, таблица, график и возвра
   await points.first().focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('.progress-selected h3')).toContainText('75 кг');
-  await page.getByLabel('Показатель').selectOption('sum');
+  await page.getByRole('button', { name: 'Всего повторов', exact: true }).click();
   await expect(page.locator('.progress-selected h3')).toContainText('15 повт.');
   await page.reload();
-  await expect(page.getByLabel('Показатель')).toHaveValue('sum');
+  await expect(page.getByRole('button', { name: 'Всего повторов', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Таблица', exact: true }).click();
-  await page.locator('.progress-history-entry').first().getByRole('button', { name: 'Открыть тренировку', exact: true }).click();
+  await page.locator('.progress-date-link').first().click();
   await expect(page).toHaveURL(/trainer\/sessions\/progress-0/);
   await page.goBack();
   await expect(page.getByRole('button', { name: 'Таблица', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -70,7 +71,7 @@ test('поиск, пагинация и мобильный/широкий экр
   await page.getByRole('button', { name: 'Всё время', exact: true }).click();
   await page.locator('.progress-overview-row').click();
   await expect(page.locator('.progress-history-entry')).toHaveCount(20);
-  await expect(page.getByText('Занятий за период: 25')).toBeVisible();
+  await expect(page.getByText('25 занятий', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Показать ещё', exact: true }).click();
   await expect(page.locator('.progress-history-entry')).toHaveCount(25);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -127,4 +128,37 @@ test('пустой период и неизвестные прямые ссыл�
   await expect(page.getByText('Ученик не найден')).toBeVisible();
   await page.getByRole('button', { name: 'Вернуться к ученикам' }).click();
   await expect(page).toHaveURL(/#\/trainer\/clients$/);
+});
+
+test('упражнение переключается на месте, сохраняя график, метрику и период', async ({ page }) => {
+  await seedProgress(page);
+  await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
+    for (const session of state.sessions) {
+      const secondExercise = session.workoutSnapshot.exercises[1];
+      const result = session.results.find((item: { exerciseId: string; setNumber: number }) => item.exerciseId === secondExercise.id && item.setNumber === 1);
+      result.completed = true;
+    }
+    localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
+  });
+  await page.goto('/#/trainer/clients/artem/progress');
+  await page.reload();
+  await page.locator('.progress-overview-row').filter({ hasText: 'Жим лёжа' }).click();
+  await page.getByRole('button', { name: 'График', exact: true }).click();
+  await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
+  await page.getByRole('button', { name: 'Предыдущее занятие' }).click();
+  await expect(page.locator('.progress-selected h3')).toContainText('77,5 кг');
+  await page.getByRole('button', { name: 'Следующее занятие' }).click();
+  await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
+  await page.getByRole('button', { name: 'Всего повторов', exact: true }).click();
+  await page.getByRole('button', { name: '30 дней', exact: true }).click();
+  await page.getByLabel('Упражнение', { exact: true }).selectOption({ label: 'Жим гантелей на наклонной скамье' });
+  await expect(page).toHaveURL(/progress\/incline-dumbbell\?/);
+  await expect(page.getByRole('button', { name: 'График', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Всего повторов', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '30 дней', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.progress-selected h3')).toContainText('10 повт.');
+  await expect(page.locator('.progress-selected .progress-entry-details')).not.toBeVisible();
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page.locator('.progress-overview-row')).toHaveCount(2);
 });
