@@ -31,6 +31,8 @@ import {
 } from './reppy-data';
 import Icon, { iconAssetPaths, type IconName } from './ui-icon';
 import { useReppyData } from './use-reppy-data';
+import ExerciseProgressView from './exercise-progress-view';
+import { collectExerciseProgress, progressHref } from './exercise-progress';
 
 const COPY = {
   createWorkout: 'Создать тренировку',
@@ -179,12 +181,13 @@ export default function ReppyApp() {
     }
   }, [data.loggedIn, data.role, hydrated]);
 
+  const screenPath = path.split('?')[0];
   useEffect(() => {
     window.requestAnimationFrame(() => {
       document.querySelector<HTMLElement>('.page-wrap')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     });
-  }, [path]);
+  }, [screenPath]);
 
   useEffect(() => {
     if (!toast) return;
@@ -252,6 +255,8 @@ export default function ReppyApp() {
   const area: 'trainer' | 'student' = path.startsWith('/student') ? 'student' : 'trainer';
 
   if (area === 'trainer') {
+    const [progressPath, progressSearch = ''] = path.split('?');
+    const progressMatch = progressPath.match(/^\/trainer\/clients\/([^/]+)\/progress(?:\/([^/]+))?$/);
     const clientMatch = path.match(/^\/trainer\/clients\/([^/]+)$/);
     const assignmentEditMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/edit$/);
     const assignmentRepeatMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/repeat$/);
@@ -262,7 +267,9 @@ export default function ReppyApp() {
     const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
-    if (path === '/trainer/calendar') {
+    if (progressMatch) {
+      content = <ExerciseProgressView key={`${progressPath}:${new URLSearchParams(progressSearch).get('period')}`} data={data} studentId={progressMatch[1]} exerciseId={progressMatch[2]} search={progressSearch} go={go} back={goBack} />;
+    } else if (path === '/trainer/calendar') {
       content = <WorkoutCalendar data={data} area="trainer" />;
     } else if (path === '/trainer/clients') {
       content = <ClientsList data={data} />;
@@ -711,7 +718,7 @@ function AppShell({
         <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>
       </aside>}
 
-      <div className="page-wrap page-transition" key={path}>{children}</div>
+      <div className="page-wrap page-transition" key={path.split('?')[0]}>{children}</div>
 
       {!focusMode && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
@@ -938,6 +945,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   return (
     <main className="content-page">
       {trainerView && <PageHeader back="/trainer/clients" title={student.name.toUpperCase()} />}
+      {trainerView && <button className="progress-profile-link" onClick={() => go(progressHref(studentId))}><Icon name="history" /><span><strong>Прогресс по упражнениям</strong><small>Упражнений с результатами: {collectExerciseProgress(data.sessions, studentId).length}</small></span><Icon name="chevron-right" /></button>}
       {trainerView && <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
         {trainerView && <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить тренировку</button>}
@@ -2079,6 +2087,7 @@ function SessionResult({
           return (
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
+              {trainerView && <button className="progress-session-link" onClick={() => go(progressHref(session.studentId, exercise))}>История упражнения <Icon name="arrow-right" /></button>}
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
             </article>
           );
