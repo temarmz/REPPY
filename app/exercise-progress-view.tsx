@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DemoState, WorkoutExercise } from './reppy-data';
-import { collectExerciseProgress, filterProgressPeriod, progressHref, progressMetric, progressNumber, progressSetLabel, type ProgressEntry } from './exercise-progress';
+import { collectExerciseProgress, compareProgress, filterProgressPeriod, progressHref, progressMetric, progressNumber, progressSetLabel, type ProgressEntry } from './exercise-progress';
 import Icon from './ui-icon';
 import PageHeader from './page-header';
 
@@ -10,13 +10,10 @@ const timeLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleTi
 const modeLabel = (exercise: WorkoutExercise) => `${exercise.equipment ?? ''} · ${exercise.loadMode === 'bodyweight' ? 'Свой вес' : 'Внешний вес'} · ${exercise.measureType === 'duration' ? 'Время' : 'Повторения'}`;
 const sessionCount = (count: number) => `${count} ${{ one: 'занятие', two: 'занятия', few: 'занятия', many: 'занятий', zero: 'занятий', other: 'занятий' }[new Intl.PluralRules('ru').select(count)]}`;
 const entryDate = (entry: ProgressEntry, entries: ProgressEntry[]) => `${dateLabel(entry)}${entries.filter((item) => dateLabel(item) === dateLabel(entry)).length > 1 ? ` · ${timeLabel(entry)}` : ''}`;
-function ResultSets({ entry, compact = false }: { entry: ProgressEntry; compact?: boolean }) {
-  const completed = entry.blocks.flatMap((block) => block.sets.filter((set) => set.valid));
-  const shown = compact ? Math.min(3, completed.length) : completed.length;
+function ResultSets({ entry }: { entry: ProgressEntry }) {
   return <div className="progress-sets">
     {entry.blocks.map((block, index) => {
-      const sets = block.sets.filter((set) => set.valid);
-      const visible = compact ? sets.filter((set) => completed.indexOf(set) < 3) : sets;
+      const visible = block.sets.filter((set) => set.valid);
       if (!visible.length) return null;
 
       return <div key={block.exercise.id}>
@@ -24,7 +21,6 @@ function ResultSets({ entry, compact = false }: { entry: ProgressEntry; compact?
         {visible.map((set) => <span className="progress-set" key={set.number}><span className="progress-set-number">{set.number}.</span> {progressSetLabel(block.exercise, set.result!)}</span>)}
       </div>;
     })}
-    {compact && completed.length > shown && <small>ещё {completed.length - shown}</small>}
     {entry.completed < entry.total && <small className="progress-muted">Выполнено {entry.completed} из {entry.total}</small>}
   </div>;
 }
@@ -82,13 +78,19 @@ export function StudentExerciseProgress({ data, studentId, go }: Pick<Props, 'da
   return <section className="section-block student-exercise-progress" aria-label="Прогресс по упражнениям">
     <div className="section-heading"><h2>Прогресс по упражнениям</h2></div>
     {groups.length ? <div className="connected-list">
-      {groups.map((group) => <button className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise))}>
+      {groups.map((group) => {
+        const comparison = compareProgress(group.entries)!;
+        return <button className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise))}>
         <span><strong>{group.exercise.name}</strong>
           {groups.filter((item) => item.exercise.exerciseId === group.exercise.exerciseId).length > 1 && <small>{modeLabel(group.exercise)}</small>}
-          <small className="progress-last-date">Последнее выполнение · {dateLabel(group.entries[0])}</small>
-          <ResultSets entry={group.entries[0]} compact />
+          <span className="progress-comparison-values">
+            {comparison.previous && <span>Было: {progressSetLabel(group.exercise, comparison.previous)} <span aria-hidden="true">→</span></span>}
+            <span>{comparison.previous ? 'Стало: ' : ''}{progressSetLabel(group.exercise, comparison.latest)}</span>
+          </span>
+          <span className="progress-comparison-change">{comparison.label}</span>
+          <small className="progress-comparison-caption">{comparison.previous ? 'Лучшие подходы двух последних занятий' : 'Лучший подход первого занятия'}</small>
         </span><i><Icon name="chevron-right" /></i>
-      </button>)}
+      </button>; })}
     </div> : <p className="progress-muted">Здесь появятся результаты выполненных упражнений.</p>}
   </section>;
 }

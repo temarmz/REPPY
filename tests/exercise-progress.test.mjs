@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { collectExerciseProgress, filterProgressPeriod, progressMetric, progressSetLabel } from '../app/exercise-progress.ts';
+import { collectExerciseProgress, compareProgress, bestProgressSet, filterProgressPeriod, progressMetric, progressSetLabel } from '../app/exercise-progress.ts';
 const exercise = (overrides = {}) => ({ id: 'instance', exerciseId: 'bench', name: 'Жим', loadMode: 'external', measureType: 'reps', plannedSets: Array.from({ length: 3 }, () => ({ targetWeight: 80, targetReps: 8 })), ...overrides });
 const session = (overrides = {}) => ({ id: 'session', studentId: 'a', completedAt: '2026-09-08T10:00:00Z', workoutSnapshot: { name: 'Тренировка', exercises: [exercise()] }, results: [{ exerciseId: 'instance', setNumber: 1, completed: true, actualReps: 8, actualWeight: 80 }, { exerciseId: 'instance', setNumber: 2, completed: false, actualReps: 8, actualWeight: 100 }], ...overrides });
 
@@ -79,4 +79,36 @@ test('последний снимок задаёт имя; удаление се
   assert.equal(group.exercise.name, 'Новое название');
   assert.equal(group.entries[0].session.id, 'newer');
   assert.equal(collectExerciseProgress([older], 'a')[0].entries.length, 1);
+});
+
+
+test('сравнение лучших подходов показывает точные изменения без оценки прогресса', () => {
+  const compare = (beforeWeight, beforeReps, afterWeight, afterReps, mode = {}) => {
+    const make = (id, weight, reps, date) => session({ id, completedAt: date, workoutSnapshot: { exercises: [exercise(mode)] }, results: [{ exerciseId: 'instance', setNumber: 1, completed: true, actualWeight: weight, actualReps: reps }] });
+    const group = collectExerciseProgress([make('old', beforeWeight, beforeReps, '2026-09-01T10:00:00Z'), make('new', afterWeight, afterReps, '2026-09-08T10:00:00Z')], 'a')[0];
+    return compareProgress(group.entries);
+  };
+  assert.equal(compare(80, 8, 82.5, 8).label, '+2,5 кг при тех же повторах');
+  assert.equal(compare(80, 8, 80, 10).label, '+2 повт.');
+  assert.equal(compare(80, 8, 85, 5).label, '+5 кг, −3 повт.');
+  assert.equal(compare(80, 8, 80, 8).label, 'Без изменений');
+  assert.equal(compare(80, 8, 75, 6).label, '−5 кг, −2 повт.');
+  assert.equal(compare(0, 8, 0, 10, { loadMode: 'bodyweight' }).label, '+2 повт.');
+  assert.equal(compare(0, 30, 0, 45, { loadMode: 'bodyweight', measureType: 'duration' }).label, '+15 сек.');
+  const entries = collectExerciseProgress([session()], 'a')[0].entries;
+  assert.equal(compareProgress(entries).label, 'Первый результат');
+  assert.equal(compareProgress([]), undefined);
+});
+
+test('лучший подход выбирается целиком: сначала вес, затем повторы', () => {
+  const original = session();
+  original.results = [
+    { exerciseId: 'instance', setNumber: 1, completed: true, actualWeight: 80, actualReps: 15 },
+    { exerciseId: 'instance', setNumber: 2, completed: true, actualWeight: 85, actualReps: 5 },
+    { exerciseId: 'instance', setNumber: 3, completed: true, actualWeight: 85, actualReps: 7 },
+  ];
+  const best = bestProgressSet(collectExerciseProgress([original], 'a')[0].entries[0]);
+  assert.equal(best.actualWeight, 85);
+  assert.equal(best.actualReps, 7);
+  assert.equal(best.setNumber, 3);
 });

@@ -31,8 +31,9 @@ test('прогресс встроен внизу профиля, упражне�
   const section = progressSection(page);
   await expect(section.locator('.workout-row')).toHaveCount(1);
   expect(await section.evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
-  await expect(section.locator('.progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 80 кг × 7 повт.']);
-  await expect(section).toContainText('Последнее выполнение ·');
+  await expect(section).toContainText('Было: 77,5 кг × 8 повт.');
+  await expect(section).toContainText('Стало: 80 кг × 8 повт.');
+  await expect(section).toContainText('+2,5 кг при тех же повторах');
   const backStyle = await page.locator('.back-button').evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.backgroundColor, css.color, css.borderRadius, css.minHeight];
@@ -105,6 +106,7 @@ test('результат нового занятия появляется в п�
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
   await page.goto('/#/trainer/clients/artem');
+  await expect(progressSection(page)).toContainText('Первый результат');
   await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(1);
   await expect(page.getByText('Для динамики нужно ещё одно занятие.')).toBeVisible();
@@ -159,7 +161,8 @@ test('при смене веса формат каждого подхода ос
   });
   await page.reload();
   const section = progressSection(page);
-  await expect(section.locator('.progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 82,5 кг × 7 повт.']);
+  await expect(section).toContainText('Стало: 82,5 кг × 7 повт.');
+  await expect(section).toContainText('+5 кг, −1 повт.');
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page.locator('.progress-selected .progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 82,5 кг × 7 повт.']);
 });

@@ -1790,6 +1790,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .athlete-inline-summary p { margin: 0 0 5px; font-size: 13px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
 .athlete-inline-summary .athlete-edit-icon { width: 40px; min-height: 40px; padding: 0; flex: 0 0 auto; }
 .athlete-details-compact .athlete-form { margin-top: 18px; }
-.student-exercise-progress .workout-row .progress-last-date { color: var(--muted); white-space: normal; }
 .progress-set-number { color: var(--muted); }
 .progress-sets .progress-set { white-space: nowrap; }
+.progress-comparison-values { display: flex; flex-wrap: wrap; gap: 4px 6px; font-size: 13px; line-height: 1.5; }
+.progress-comparison-values > span { white-space: nowrap; }
+.progress-comparison-change { font-size: 14px; font-weight: 650; color: var(--paper); }
+.student-exercise-progress .workout-row .progress-comparison-caption { color: var(--muted); white-space: normal; font-size: 11px; }

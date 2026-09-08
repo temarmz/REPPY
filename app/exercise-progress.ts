@@ -61,3 +61,28 @@ export function progressHref(studentId: string, exercise?: WorkoutExercise): str
   const params = new URLSearchParams({ loadMode: exercise.loadMode, measureType: exercise.measureType });
   return `${base}/progress/${encodeURIComponent(exercise.exerciseId)}?${params}`;
 }
+
+/** Compare actual sets, never combine the weight of one set with reps of another. */
+export function bestProgressSet(entry: ProgressEntry): SetResult | undefined {
+  const exercise = entry.blocks[0].exercise;
+  return entry.blocks.flatMap((block) => block.sets.filter((set) => set.valid).map((set) => set.result!))
+    .sort((a, b) => exercise.measureType === 'reps' && exercise.loadMode === 'external'
+      ? b.actualWeight - a.actualWeight || b.actualReps - a.actualReps || a.setNumber - b.setNumber
+      : b.actualReps - a.actualReps || (exercise.loadMode === 'external' ? b.actualWeight - a.actualWeight : 0) || a.setNumber - b.setNumber)[0];
+}
+
+export function compareProgress(entries: ProgressEntry[]) {
+  const latest = entries[0] && bestProgressSet(entries[0]);
+  const previous = entries[1] && bestProgressSet(entries[1]);
+  if (!latest) return undefined;
+  if (!previous) return { latest, previous, label: 'Первый результат' };
+  const exercise = entries[0].blocks[0].exercise;
+  const weight = exercise.loadMode === 'external' ? Number((latest.actualWeight - previous.actualWeight).toFixed(3)) : 0;
+  const amount = Number((latest.actualReps - previous.actualReps).toFixed(3));
+  const signed = (value: number) => `${value > 0 ? '+' : '−'}${progressNumber(Math.abs(value))}`;
+  const unit = exercise.measureType === 'duration' ? 'сек.' : 'повт.';
+  const label = !weight && !amount ? 'Без изменений'
+    : weight && !amount ? `${signed(weight)} кг при ${exercise.measureType === 'duration' ? 'том же времени' : 'тех же повторах'}`
+    : [weight ? `${signed(weight)} кг` : '', amount ? `${signed(amount)} ${unit}` : ''].filter(Boolean).join(', ');
+  return { latest, previous, label };
+}
