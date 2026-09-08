@@ -31,8 +31,9 @@ import {
 } from './reppy-data';
 import Icon, { iconAssetPaths, type IconName } from './ui-icon';
 import { useReppyData } from './use-reppy-data';
-import ExerciseProgressView from './exercise-progress-view';
-import { collectExerciseProgress, progressHref } from './exercise-progress';
+import ExerciseProgressView, { StudentExerciseProgress } from './exercise-progress-view';
+import SharedPageHeader from './page-header';
+import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 
 const COPY = {
   createWorkout: 'Создать тренировку',
@@ -182,10 +183,14 @@ export default function ReppyApp() {
   }, [data.loggedIn, data.role, hydrated]);
 
   const screenPath = path.split('?')[0];
+  const previousScreenPath = useRef(screenPath);
   useEffect(() => {
+    const returningFromProgress = previousScreenPath.current.includes('/progress/');
+    previousScreenPath.current = screenPath;
     window.requestAnimationFrame(() => {
       document.querySelector<HTMLElement>('.page-wrap')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      if (returningFromProgress) document.querySelector('.student-exercise-progress')?.scrollIntoView({ block: 'start' });
     });
   }, [screenPath]);
 
@@ -267,8 +272,8 @@ export default function ReppyApp() {
     const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
-    if (progressMatch) {
-      content = <ExerciseProgressView key={`${progressPath}:${new URLSearchParams(progressSearch).get('period')}`} data={data} studentId={progressMatch[1]} exerciseId={progressMatch[2]} search={progressSearch} go={go} back={goBack} />;
+    if (progressMatch?.[2]) {
+      content = <ExerciseProgressView key={progressPath} data={data} studentId={progressMatch[1]} exerciseId={progressMatch[2]} search={progressSearch} go={go} back={goBack} />;
     } else if (path === '/trainer/calendar') {
       content = <WorkoutCalendar data={data} area="trainer" />;
     } else if (path === '/trainer/clients') {
@@ -279,8 +284,8 @@ export default function ReppyApp() {
           onCreate={(student) => setData((current) => ({ ...current, students: [...current.students, student] }))}
         />
       );
-    } else if (clientMatch) {
-      content = <StudentProfile data={data} studentId={clientMatch[1]} trainerView onUpdate={(updated) => {
+    } else if (clientMatch || progressMatch) {
+      content = <StudentProfile data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView onUpdate={(updated) => {
         setData((current) => ({ ...current, students: current.students.map((item) => item.id === updated.id ? updated : item) }));
         showToast('Профиль ученика сохранён');
       }} />;
@@ -732,16 +737,7 @@ function AppShell({
 }
 
 function PageHeader({ eyebrow, title, action, back }: { eyebrow?: string; title: string; action?: ReactNode; back?: string }) {
-  return (
-    <header className="page-header">
-      <div>
-        {back && <button className="back-button" type="button" onClick={() => goBack(back)}><Icon name="chevron-left" /> Назад</button>}
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1>{title}</h1>
-      </div>
-      {action}
-    </header>
-  );
+  return <SharedPageHeader eyebrow={eyebrow} title={title} action={action} onBack={back ? () => goBack(back) : undefined} />;
 }
 
 function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
@@ -945,7 +941,6 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   return (
     <main className="content-page">
       {trainerView && <PageHeader back="/trainer/clients" title={student.name.toUpperCase()} />}
-      {trainerView && <button className="progress-profile-link" onClick={() => go(progressHref(studentId))}><Icon name="history" /><span><strong>Прогресс по упражнениям</strong><small>Упражнений с результатами: {collectExerciseProgress(data.sessions, studentId).length}</small></span><Icon name="chevron-right" /></button>}
       {trainerView && <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
         {trainerView && <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить тренировку</button>}
@@ -971,6 +966,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
       </section>}
 
       <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded={!trainerView} />
+      {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
     </main>
   );
 }
@@ -1144,7 +1140,7 @@ function actualSetLabel(exercise: WorkoutExercise, result: SetResult) {
   return result.actualWeight + ' кг × ' + result.actualReps;
 }
 
-function ReadOnlyExerciseList({ workout }: { workout: Workout }) {
+function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onProgress?: (exercise: WorkoutExercise) => (() => void) | undefined }) {
   return (
     <section className="readonly-exercise-list">
       {workout.exercises.map((exercise, index) => (
@@ -1159,6 +1155,7 @@ function ReadOnlyExerciseList({ workout }: { workout: Workout }) {
             ))}
           </div>
           {exercise.coachNote && <p className="readonly-coach-note"><Icon name="edit" /> {exercise.coachNote}</p>}
+          {onProgress?.(exercise) && <button type="button" className="wide-secondary" onClick={onProgress(exercise)}><Icon name="history" /> Прогресс упражнения</button>}
         </article>
       ))}
     </section>
@@ -1404,6 +1401,7 @@ function AssignmentDetails({
 }) {
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
+  const progress = collectExerciseProgress(data.sessions, assignment.studentId);
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
   if (!student || !workout) return <NotFound />;
   return (
@@ -1419,7 +1417,7 @@ function AssignmentDetails({
         <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}><Icon name="copy" /> Повторить на другую дату</button>
       </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <ReadOnlyExerciseList workout={workout} />
+      <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => progress.some((group) => group.key === progressKey(exercise)) ? () => go(progressHref(student.id, exercise)) : undefined} />
     </main>
   );
 }
@@ -2071,6 +2069,7 @@ function SessionResult({
 }) {
   const workout = findSessionWorkout(data, session);
   const student = findStudent(data, session.studentId);
+  const progress = trainerView ? collectExerciseProgress(data.sessions, session.studentId) : [];
   if (!workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
@@ -2087,7 +2086,7 @@ function SessionResult({
           return (
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
-              {trainerView && <button className="progress-session-link" onClick={() => go(progressHref(session.studentId, exercise))}>История упражнения <Icon name="arrow-right" /></button>}
+              {trainerView && progress.some((group) => group.key === progressKey(exercise)) && <button type="button" className="wide-secondary" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения <Icon name="arrow-right" /></button>}
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
             </article>
           );
