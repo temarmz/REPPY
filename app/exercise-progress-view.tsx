@@ -18,13 +18,10 @@ function ResultSets({ entry, compact = false }: { entry: ProgressEntry; compact?
       const sets = block.sets.filter((set) => set.valid);
       const visible = compact ? sets.filter((set) => completed.indexOf(set) < 3) : sets;
       if (!visible.length) return null;
-      const sameWeight = visible.every((set) => set.result!.actualWeight === visible[0].result!.actualWeight);
+
       return <div key={block.exercise.id}>
         {entry.blocks.length > 1 && <small>Блок {index + 1}</small>}
-        {sameWeight ? <span className="progress-set">
-          {block.exercise.loadMode === 'external' && <>{progressNumber(visible[0].result!.actualWeight)} кг × </>}
-          {visible.map((set) => progressNumber(set.result!.actualReps)).join(' / ')} {block.exercise.measureType === 'duration' ? 'сек.' : 'повт.'}
-        </span> : visible.map((set) => <span className="progress-set" key={set.number}>{progressSetLabel(block.exercise, set.result!)}</span>)}
+        {visible.map((set) => <span className="progress-set" key={set.number}><span className="progress-set-number">{set.number}.</span> {progressSetLabel(block.exercise, set.result!)}</span>)}
       </div>;
     })}
     {compact && completed.length > shown && <small>ещё {completed.length - shown}</small>}
@@ -88,7 +85,7 @@ export function StudentExerciseProgress({ data, studentId, go }: Pick<Props, 'da
       {groups.map((group) => <button className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise))}>
         <span><strong>{group.exercise.name}</strong>
           {groups.filter((item) => item.exercise.exerciseId === group.exercise.exerciseId).length > 1 && <small>{modeLabel(group.exercise)}</small>}
-          <small>{dateLabel(group.entries[0])}</small>
+          <small className="progress-last-date">Последнее выполнение · {dateLabel(group.entries[0])}</small>
           <ResultSets entry={group.entries[0]} compact />
         </span><i><Icon name="chevron-right" /></i>
       </button>)}

@@ -31,7 +31,8 @@ test('прогресс встроен внизу профиля, упражне�
   const section = progressSection(page);
   await expect(section.locator('.workout-row')).toHaveCount(1);
   expect(await section.evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
-  await expect(section).toContainText('80 кг × 8 / 7 повт.');
+  await expect(section.locator('.progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 80 кг × 7 повт.']);
+  await expect(section).toContainText('Последнее выполнение ·');
   const backStyle = await page.locator('.back-button').evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.backgroundColor, css.color, css.borderRadius, css.minHeight];
@@ -122,4 +123,43 @@ test('мобильный и широкий экран используют об�
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({ path: 'test-results/progress-desktop-chart.png', animations: 'disabled' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('данные ученика под именем редактируются карандашом и сохраняются', async ({ page }) => {
+  await seedProgress(page);
+  await page.setViewportSize({ width: 360, height: 800 });
+  const intro = page.locator('.student-profile-intro');
+  await expect(intro.getByRole('button', { name: 'Редактировать данные ученика' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Данные и ограничения' })).toHaveCount(0);
+  await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
+  await page.getByLabel('Рост, см').fill('181');
+  await page.getByLabel('Вес, кг').fill('82.5');
+  await page.getByLabel('Противопоказания и особенности', { exact: false }).fill('Беречь левое колено');
+  await page.getByRole('button', { name: 'Сохранить данные' }).click();
+  await expect(intro).toContainText('181 см · 82.5 кг');
+  await expect(intro).toContainText('Ограничения: Беречь левое колено');
+  await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
+  await page.getByLabel('Рост, см').fill('199');
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
+  await expect(page.getByLabel('Рост, см')).toHaveValue('181');
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await page.reload();
+  await expect(intro).toContainText('Ограничения: Беречь левое колено');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/student-profile-intro.png', animations: 'disabled' });
+});
+
+test('при смене веса формат каждого подхода остаётся одинаковым', async ({ page }) => {
+  await seedProgress(page);
+  await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
+    state.sessions[0].results[1].actualWeight = 82.5;
+    localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
+  });
+  await page.reload();
+  const section = progressSection(page);
+  await expect(section.locator('.progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 82,5 кг × 7 повт.']);
+  await section.getByRole('button', { name: /Жим лёжа/ }).click();
+  await expect(page.locator('.progress-selected .progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 82,5 кг × 7 повт.']);
 });

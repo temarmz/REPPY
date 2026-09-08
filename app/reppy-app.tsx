@@ -940,7 +940,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   const sessions = [...data.sessions].filter((item) => item.studentId === studentId && item.completedAt).reverse();
   return (
     <main className="content-page">
-      {trainerView && <PageHeader back="/trainer/clients" title={student.name.toUpperCase()} />}
+      {trainerView && <div className="student-profile-intro"><PageHeader back="/trainer/clients" title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></div>}
       {trainerView && <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
         {trainerView && <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить тренировку</button>}
@@ -965,13 +965,13 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
         ))}</div> : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
       </section>}
 
-      <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded={!trainerView} />
+      {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
       {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
     </main>
   );
 }
 
-function AthleteDetails({ student, onSave, alwaysExpanded = false }: { student: Student; onSave: (student: Student) => void; alwaysExpanded?: boolean }) {
+function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = false }: { student: Student; onSave: (student: Student) => void; alwaysExpanded?: boolean; compact?: boolean }) {
   const [expanded, setExpanded] = useState(alwaysExpanded);
   const [editing, setEditing] = useState(false);
   const [height, setHeight] = useState(student.height ? String(student.height) : '');
@@ -996,9 +996,9 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false }: { student: 
   };
 
   return (
-    <section className={`athlete-details section-block ${alwaysExpanded ? 'always-expanded' : ''}`}>
-      <div className="section-heading"><h2>Данные и ограничения</h2>{!alwaysExpanded && <button type="button" onClick={() => { setExpanded((current) => !current); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>
-      {expanded && (editing ? <div className="athlete-form">
+    <section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
+      {compact ? <div className="athlete-inline-summary"><div><p>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</p><p>Ограничения: {student.contraindications || 'не указаны'}</p></div><button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></button></div> : <div className="section-heading"><h2>Данные и ограничения</h2>{!alwaysExpanded && <button type="button" onClick={() => { setExpanded((current) => !current); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>}
+      {(compact ? editing : expanded) && (editing ? <div className="athlete-form">
         <div className="athlete-form-grid">
           <label><span>Рост, см</span><input type="number" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></label>
           <label><span>Вес, кг</span><input type="number" inputMode="decimal" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="86" /></label>
@@ -1007,6 +1007,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false }: { student: 
         <label><span>Мобильный телефон</span><input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></label>
         <label><span>Противопоказания и особенности</span><textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><small>Опиши всё, что тренеру важно учитывать при составлении плана.</small></label>
         <button className="primary-button" type="button" onClick={save}><Icon name="check" /> Сохранить данные</button>
+        {compact && <button type="button" className="wide-secondary" onClick={() => setEditing(false)}>Отмена</button>}
       </div> : <><button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</button><div className="athlete-summary">
         <div><span>Рост</span><strong>{student.height ? `${student.height} см` : 'Не указан'}</strong></div>
         <div><span>Вес</span><strong>{student.weight ? `${student.weight} кг` : 'Не указан'}</strong></div>

@@ -1782,3 +1782,14 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .progress-chart { padding: 16px; }
   .progress-selection-heading h3 { font-size: 14px; }
 }
+
+.student-profile-intro .page-header { margin-bottom: 12px; }
+.student-profile-intro .athlete-details-compact { margin: 0 0 32px; padding: 0; border: 0; }
+.athlete-inline-summary { display: flex; align-items: flex-start; gap: 12px; }
+.athlete-inline-summary > div { min-width: 0; }
+.athlete-inline-summary p { margin: 0 0 5px; font-size: 13px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
+.athlete-inline-summary .athlete-edit-icon { width: 40px; min-height: 40px; padding: 0; flex: 0 0 auto; }
+.athlete-details-compact .athlete-form { margin-top: 18px; }
+.student-exercise-progress .workout-row .progress-last-date { color: var(--muted); white-space: normal; }
+.progress-set-number { color: var(--muted); }
+.progress-sets .progress-set { white-space: nowrap; }
