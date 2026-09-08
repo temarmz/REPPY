@@ -96,7 +96,12 @@ test('сравнение лучших подходов показывает то
   assert.equal(compare(0, 8, 0, 10, { loadMode: 'bodyweight' }).label, '+2 повт.');
   assert.equal(compare(0, 30, 0, 45, { loadMode: 'bodyweight', measureType: 'duration' }).label, '+15 сек.');
   const entries = collectExerciseProgress([session()], 'a')[0].entries;
-  assert.equal(compareProgress(entries).label, 'Первый результат');
+  assert.equal(compareProgress(entries).label, '');
+  assert.equal(compareProgress(entries).trend, 'none');
+  assert.equal(compare(80, 8, 82.5, 8).trend, 'up');
+  assert.equal(compare(80, 8, 85, 5).trend, 'mixed');
+  assert.equal(compare(80, 8, 80, 8).trend, 'flat');
+  assert.equal(compare(80, 8, 75, 6).trend, 'down');
   assert.equal(compareProgress([]), undefined);
 });
 

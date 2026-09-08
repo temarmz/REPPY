@@ -75,7 +75,7 @@ export function compareProgress(entries: ProgressEntry[]) {
   const latest = entries[0] && bestProgressSet(entries[0]);
   const previous = entries[1] && bestProgressSet(entries[1]);
   if (!latest) return undefined;
-  if (!previous) return { latest, previous, label: 'Первый результат' };
+  if (!previous) return { latest, previous, label: '', trend: 'none' as const };
   const exercise = entries[0].blocks[0].exercise;
   const weight = exercise.loadMode === 'external' ? Number((latest.actualWeight - previous.actualWeight).toFixed(3)) : 0;
   const amount = Number((latest.actualReps - previous.actualReps).toFixed(3));
@@ -84,5 +84,6 @@ export function compareProgress(entries: ProgressEntry[]) {
   const label = !weight && !amount ? 'Без изменений'
     : weight && !amount ? `${signed(weight)} кг при ${exercise.measureType === 'duration' ? 'том же времени' : 'тех же повторах'}`
     : [weight ? `${signed(weight)} кг` : '', amount ? `${signed(amount)} ${unit}` : ''].filter(Boolean).join(', ');
-  return { latest, previous, label };
+  const trend = !weight && !amount ? 'flat' : weight >= 0 && amount >= 0 ? 'up' : weight <= 0 && amount <= 0 ? 'down' : 'mixed';
+  return { latest, previous, label, trend };
 }

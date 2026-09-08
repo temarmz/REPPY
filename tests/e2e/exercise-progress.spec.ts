@@ -106,7 +106,8 @@ test('результат нового занятия появляется в п�
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
   await page.goto('/#/trainer/clients/artem');
-  await expect(progressSection(page)).toContainText('Первый результат');
+  await expect(progressSection(page)).not.toContainText('Первый результат');
+  await expect(progressSection(page).locator('.progress-trend')).toHaveCount(0);
   await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(1);
   await expect(page.getByText('Для динамики нужно ещё одно занятие.')).toBeVisible();
@@ -165,4 +166,30 @@ test('при смене веса формат каждого подхода ос
   await expect(section).toContainText('+5 кг, −1 повт.');
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page.locator('.progress-selected .progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 82,5 кг × 7 повт.']);
+});
+
+test('цвет и индикатор различают рост, спад, отсутствие и смешанную динамику', async ({ page }) => {
+  await seedProgress(page);
+  const section = progressSection(page);
+  await expect(section.locator('.progress-trend')).toHaveAttribute('aria-label', 'Рост');
+  await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', 'rgb(198, 255, 61)');
+  await expect(section).not.toContainText('Лучшие подходы');
+  for (const scenario of [
+    { weight: 77.5, reps: 8, trend: 'Без изменений', color: 'rgb(151, 157, 149)' },
+    { weight: 70, reps: 6, trend: 'Спад', color: 'rgb(255, 106, 53)' },
+    { weight: 85, reps: 5, trend: 'Смешанная динамика', color: 'rgb(151, 157, 149)' },
+  ]) {
+    await page.evaluate(({ weight, reps }) => {
+      const state = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
+      state.sessions[0].results[0].actualWeight = weight;
+      state.sessions[0].results[0].actualReps = reps;
+      state.sessions[0].results[1].actualWeight = weight;
+      state.sessions[0].results[1].actualReps = reps - 1;
+      localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
+    }, scenario);
+    await page.reload();
+    await expect(section.locator('.progress-trend')).toHaveAttribute('aria-label', scenario.trend);
+    await expect(section.locator('.progress-trend')).toHaveCSS('color', scenario.color);
+    await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', scenario.color);
+  }
 });
