@@ -1796,8 +1796,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .progress-comparison-values > span { white-space: nowrap; }
 .progress-comparison-change { font-size: 14px; font-weight: 650; color: var(--paper); }
 
-.student-exercise-progress .progress-row-indicators { display: flex; align-items: center; gap: 12px; }
-.progress-trend { font-size: 26px; line-height: 1; font-weight: 650; }
 .trend-up { color: var(--lime); }
 .trend-down { color: var(--orange); }
 .trend-flat, .trend-mixed { color: var(--muted); }

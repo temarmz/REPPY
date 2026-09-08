@@ -84,12 +84,11 @@ export function StudentExerciseProgress({ data, studentId, go }: Pick<Props, 'da
         <span><strong>{group.exercise.name}</strong>
           {groups.filter((item) => item.exercise.exerciseId === group.exercise.exerciseId).length > 1 && <small>{modeLabel(group.exercise)}</small>}
           <span className="progress-comparison-values">
-            {comparison.previous && <span>Было: {progressSetLabel(group.exercise, comparison.previous)} <span aria-hidden="true">→</span></span>}
+            {comparison.previous && <span>Было: {progressSetLabel(group.exercise, comparison.previous)}</span>}
             <span>{comparison.previous ? 'Стало: ' : ''}{progressSetLabel(group.exercise, comparison.latest)}</span>
           </span>
           {comparison.label && <span className={`progress-comparison-change trend-${comparison.trend}`}>{comparison.label}</span>}
-        </span><i className="progress-row-indicators">
-          {comparison.trend !== 'none' && <span className={`progress-trend trend-${comparison.trend}`} role="img" aria-label={{ up: 'Рост', down: 'Спад', flat: 'Без изменений', mixed: 'Смешанная динамика' }[comparison.trend as 'up' | 'down' | 'flat' | 'mixed']}>{comparison.trend === 'up' ? '↑' : comparison.trend === 'down' ? '↓' : comparison.trend === 'mixed' ? '↕' : '−'}</span>}
+        </span><i>
           <Icon name="chevron-right" />
         </i>
       </button>; })}

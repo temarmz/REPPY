@@ -168,10 +168,10 @@ test('при смене веса формат каждого подхода ос
   await expect(page.locator('.progress-selected .progress-set')).toHaveText(['1. 80 кг × 8 повт.', '2. 82,5 кг × 7 повт.']);
 });
 
-test('цвет и индикатор различают рост, спад, отсутствие и смешанную динамику', async ({ page }) => {
+test('цвет текста различает динамику без дополнительных стрелок', async ({ page }) => {
   await seedProgress(page);
   const section = progressSection(page);
-  await expect(section.locator('.progress-trend')).toHaveAttribute('aria-label', 'Рост');
+  await expect(section.locator('.progress-trend')).toHaveCount(0);
   await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', 'rgb(198, 255, 61)');
   await expect(section).not.toContainText('Лучшие подходы');
   for (const scenario of [
@@ -188,8 +188,7 @@ test('цвет и индикатор различают рост, спад, от
       localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
     }, scenario);
     await page.reload();
-    await expect(section.locator('.progress-trend')).toHaveAttribute('aria-label', scenario.trend);
-    await expect(section.locator('.progress-trend')).toHaveCSS('color', scenario.color);
+    await expect(section.locator('.progress-trend')).toHaveCount(0);
     await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', scenario.color);
   }
 });
