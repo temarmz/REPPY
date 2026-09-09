@@ -969,7 +969,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   .workout-card { min-height: 205px; }
   .workout-card h2 { font-size: 36px; }
   .form-card { margin: 0 -3px; }
-  .modal-backdrop { padding: 8px; }
+  .modal-backdrop { padding: 8px 8px max(8px, env(safe-area-inset-bottom, 0px)); }
   .bottom-sheet { border-radius: 27px 27px 16px 16px; }
   .sticky-actions { position: sticky; bottom: 91px; z-index: 15; padding: 8px; border-radius: 22px; background: rgba(7,9,8,.9); backdrop-filter: blur(12px); }
   .student-workout-card { min-height: 360px; padding: 23px; }

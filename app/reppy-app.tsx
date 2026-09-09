@@ -592,6 +592,7 @@ export default function ReppyApp() {
         area={area}
         path={path}
         data={data}
+        hideBottomNav={settingsOpen}
         onSwitchRole={switchRole}
         onSettings={() => setSettingsOpen(true)}
       >
@@ -659,6 +660,7 @@ function AppShell({
   area,
   path,
   data,
+  hideBottomNav,
   onSwitchRole,
   onSettings,
   children,
@@ -666,6 +668,7 @@ function AppShell({
   area: 'trainer' | 'student';
   path: string;
   data: DemoState;
+  hideBottomNav: boolean;
   onSwitchRole: () => void;
   onSettings: () => void;
   children: ReactNode;
@@ -727,7 +730,7 @@ function AppShell({
 
       <div className="page-wrap page-transition" key={path.split('?')[0]}>{children}</div>
 
-      {!focusMode && <nav className="bottom-nav" aria-label="Основная навигация">
+      {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
           <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route)}>
             <span><Icon name={item.icon} /></span><small>{item.label}</small>

@@ -27,6 +27,7 @@ test('настройки демо остаются поверх нижнего �
   const resetButton = page.getByRole('button', { name: 'Сбросить демо-данные' });
   await expect(dialog).toBeVisible();
   await expect(resetButton).toBeVisible();
+  await expect(page.locator('.bottom-nav')).toHaveCount(0);
   const isButtonOnTop = await resetButton.evaluate((element) => {
     const box = element.getBoundingClientRect();
     return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest('button') === element;
@@ -34,6 +35,8 @@ test('настройки демо остаются поверх нижнего �
   expect(isButtonOnTop).toBe(true);
   const resetBox = await resetButton.boundingBox();
   expect(resetBox!.y + resetBox!.height).toBeLessThanOrEqual(520);
+  await page.getByRole('button', { name: 'Закрыть' }).click();
+  await expect(page.locator('.bottom-nav')).toBeVisible();
 });
 
 test('тренер дублирует шаблон и повторяет назначение тому же ученику', async ({ page }) => {
