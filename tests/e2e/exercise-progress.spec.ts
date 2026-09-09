@@ -143,9 +143,15 @@ test('данные ученика под именем редактируются
   await expect(intro).toContainText('Ограничения: Беречь левое колено');
   await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
   await page.getByLabel('Рост, см').fill('199');
-  await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
+  await expect(page.getByLabel('Рост, см')).toHaveCount(0);
+  await expect(intro.getByRole('button', { name: 'Редактировать данные ученика' })).toHaveAttribute('aria-expanded', 'false');
   await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
   await expect(page.getByLabel('Рост, см')).toHaveValue('181');
+  await expect(page.getByRole('button', { name: 'Сохранить данные' })).toHaveCSS('font-size', '14px');
+  await expect(page.getByRole('button', { name: 'Отмена', exact: true })).toHaveCSS('font-size', '14px');
+  await page.getByRole('button', { name: 'Отмена', exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/profile-edit-buttons.png', animations: 'disabled' });
   await page.getByRole('button', { name: 'Отмена', exact: true }).click();
   await page.reload();
   await expect(intro).toContainText('Ограничения: Беречь левое колено');
@@ -190,5 +196,21 @@ test('цвет текста различает динамику без допо�
     await page.reload();
     await expect(section.locator('.progress-trend')).toHaveCount(0);
     await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', scenario.color);
+  }
+});
+
+test('размер подписей кнопок одинаков на основных экранах и ширинах', async ({ page }) => {
+  await seedProgress(page);
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/workouts/push-day', '/trainer/workouts/push-day/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student/profile']) {
+      const previousPage = await page.locator('.page-wrap main').elementHandle();
+      await page.goto('/#' + route);
+      if (previousPage) await page.waitForFunction((element) => !element.isConnected, previousPage);
+      await expect(page.locator('.page-wrap main')).toBeVisible();
+      const inconsistent = await page.locator('.primary-button, .wide-secondary, .back-button, .compact-primary, .list-primary-action, .danger-button, .details-edit-button, .section-heading button, .bottom-nav button small, .desktop-nav nav button, .add-exercise').evaluateAll((elements) => elements.filter((element) => element.getBoundingClientRect().width > 0 && getComputedStyle(element).fontSize !== '14px').map((element) => ({ text: element.textContent, size: getComputedStyle(element).fontSize })));
+      expect(inconsistent, `${width}px ${route}`).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px ${route}`).toBe(true);
+    }
   }
 });
