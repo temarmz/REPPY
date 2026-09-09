@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   TRAINER_NAME,
   cloneWorkout,
@@ -22,8 +23,10 @@ import {
   type DemoState,
   type MoodRating,
   type MuscleGroup,
+  type PaymentMethod,
   type SetResult,
   type Student,
+  type SubscriptionEntry,
   type Workout,
   type WorkoutExercise,
   type WorkoutSetPlan,
@@ -33,7 +36,20 @@ import Icon, { iconAssetPaths, type IconName } from './ui-icon';
 import { useReppyData } from './use-reppy-data';
 import ExerciseProgressView, { StudentExerciseProgress } from './exercise-progress-view';
 import SharedPageHeader from './page-header';
+import EmptyState from './empty-state';
+import MonthDatePicker from './month-date-picker';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
+import {
+  chargeSubscriptionForSession,
+  createSubscriptionPayment,
+  isSessionCharged,
+  recentSubscriptionPayments,
+  refundSubscriptionForSession,
+  subscriptionBalance,
+  subscriptionEntriesFor,
+  updateSubscriptionPayment,
+  type PaymentInput,
+} from './subscription-ledger';
 
 const COPY = {
   createWorkout: 'Создать тренировку',
@@ -42,6 +58,8 @@ const COPY = {
 };
 
 const NAVIGATION_EVENT = 'reppy:navigate';
+const MODAL_LAYER_EVENT = 'reppy:modal-layer';
+let openModalLayers = 0;
 
 function hashPath() {
   if (typeof window === 'undefined') return '/';
@@ -122,6 +140,37 @@ function formatElapsedTime(startedAt: string, currentTime: number) {
   };
 }
 
+function lessonWord(count: number) {
+  return { zero: 'занятий', one: 'занятие', two: 'занятия', few: 'занятия', many: 'занятий', other: 'занятий' }[new Intl.PluralRules('ru').select(Math.abs(count))];
+}
+
+function subscriptionBalanceLabel(balance: number, hasEntries = true) {
+  if (!hasEntries) return 'Абонемент не добавлен';
+  if (balance > 0) return `Осталось ${balance} ${lessonWord(balance)}`;
+  if (balance === 0) return 'Абонемент закончился';
+  return `${Math.abs(balance)} ${lessonWord(balance)} в долг`;
+}
+
+function subscriptionTone(balance: number, hasEntries = true) {
+  if (!hasEntries) return 'empty';
+  if (balance <= 0) return 'debt';
+  if (balance <= 2) return 'low';
+  return 'active';
+}
+
+function formatRubles(amount = 0) {
+  return new Intl.NumberFormat('ru-RU').format(amount) + ' ₽';
+}
+
+function paymentMethodLabel(method?: PaymentMethod) {
+  return method === 'transfer' ? 'перевод' : 'наличные';
+}
+
+function formatSubscriptionDate(value: string) {
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+}
+
 function preloadAsset(path: string) {
   return new Promise<void>((resolve) => {
     const timeout = window.setTimeout(resolve, ASSET_PRELOAD_TIMEOUT);
@@ -144,6 +193,7 @@ export default function ReppyApp() {
   const hydratedPathReady = useRef(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [modalLayerOpen, setModalLayerOpen] = useState(false);
   const [toast, setToast] = useState('');
 
   useEffect(() => {
@@ -169,6 +219,12 @@ export default function ReppyApp() {
       window.removeEventListener('popstate', handleNavigation);
       window.removeEventListener(NAVIGATION_EVENT, handleNavigation);
     };
+  }, []);
+
+  useEffect(() => {
+    const handleModalLayer = (event: Event) => setModalLayerOpen((event as CustomEvent<boolean>).detail);
+    window.addEventListener(MODAL_LAYER_EVENT, handleModalLayer);
+    return () => window.removeEventListener(MODAL_LAYER_EVENT, handleModalLayer);
   }, []);
 
   useEffect(() => {
@@ -263,6 +319,10 @@ export default function ReppyApp() {
   if (area === 'trainer') {
     const [progressPath, progressSearch = ''] = path.split('?');
     const progressMatch = progressPath.match(/^\/trainer\/clients\/([^/]+)\/progress(?:\/([^/]+))?$/);
+    const subscriptionPaymentMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription\/payments\/([^/]+)$/);
+    const subscriptionNewMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription\/new$/);
+    const subscriptionMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription$/);
+    const clientAssignMatch = path.match(/^\/trainer\/clients\/([^/]+)\/assign(?:\/([^/]+))?$/);
     const clientMatch = path.match(/^\/trainer\/clients\/([^/]+)$/);
     const assignmentEditMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/edit$/);
     const assignmentRepeatMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/repeat$/);
@@ -285,6 +345,97 @@ export default function ReppyApp() {
           onCreate={(student) => setData((current) => ({ ...current, students: [...current.students, student] }))}
         />
       );
+    } else if (subscriptionPaymentMatch) {
+      const student = findStudent(data, subscriptionPaymentMatch[1]);
+      const payment = data.subscriptionEntries.find((entry) => (
+        entry.id === subscriptionPaymentMatch[2]
+        && entry.studentId === subscriptionPaymentMatch[1]
+        && entry.kind === 'payment'
+      ));
+      content = student && payment ? (
+        <SubscriptionPaymentForm
+          student={student}
+          initial={payment}
+          onSave={(input) => {
+            setData((current) => ({
+              ...current,
+              subscriptionEntries: current.subscriptionEntries.map((entry) => (
+                entry.id === payment.id ? updateSubscriptionPayment(entry, input) : entry
+              )),
+            }));
+            showToast('Пополнение исправлено');
+            go(`/trainer/clients/${student.id}/subscription`);
+          }}
+        />
+      ) : <NotFound />;
+    } else if (subscriptionNewMatch) {
+      const student = findStudent(data, subscriptionNewMatch[1]);
+      const lastPayment = student ? recentSubscriptionPayments(data.subscriptionEntries, student.id, 1)[0] : undefined;
+      content = student ? (
+        <SubscriptionPaymentForm
+          student={student}
+          defaults={lastPayment}
+          onSave={(input) => {
+            setData((current) => ({
+              ...current,
+              subscriptionEntries: [...current.subscriptionEntries, createSubscriptionPayment(student.id, input)],
+            }));
+            showToast(`Абонемент пополнен на ${input.lessons} ${lessonWord(input.lessons)}`);
+            go(`/trainer/clients/${student.id}`);
+          }}
+        />
+      ) : <NotFound />;
+    } else if (subscriptionMatch) {
+      const student = findStudent(data, subscriptionMatch[1]);
+      content = student ? <SubscriptionHistory data={data} student={student} /> : <NotFound />;
+    } else if (clientAssignMatch?.[2] === 'new') {
+      const student = findStudent(data, clientAssignMatch[1]);
+      content = student ? (
+        <WorkoutForm
+          backPath={`/trainer/clients/${student.id}/assign`}
+          onSave={(workout) => {
+            setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
+            showToast('Шаблон сохранён — подстрой его под ученика');
+            go(`/trainer/clients/${student.id}/assign/${workout.id}`);
+          }}
+        />
+      ) : <NotFound />;
+    } else if (clientAssignMatch?.[2]) {
+      const student = findStudent(data, clientAssignMatch[1]);
+      const workout = findWorkout(data, clientAssignMatch[2]);
+      content = student && workout ? (
+        <AssignWorkoutToStudent
+          student={student}
+          workout={workout}
+          onAssign={(scheduledFor, scheduledTime, workoutSnapshot) => {
+            setData((current) => {
+              const currentWorkout = findWorkout(current, workout.id) ?? workout;
+              const customizedWorkout = {
+                ...cloneWorkout(currentWorkout),
+                exercises: workoutSnapshot.exercises.map((exercise) => ({ ...exercise })),
+                updatedAt: new Date().toISOString(),
+              };
+              const assignment: Assignment = {
+                id: makeId('assignment'),
+                workoutId: currentWorkout.id,
+                studentId: student.id,
+                assignedAt: new Date().toISOString(),
+                scheduledFor,
+                scheduledTime,
+                status: 'assigned',
+                workoutSnapshot: customizedWorkout,
+                source: JSON.stringify(customizedWorkout.exercises) === JSON.stringify(currentWorkout.exercises) ? 'template' : 'manual-edit',
+              };
+              return { ...current, assignments: [...current.assignments, assignment] };
+            });
+            showToast(`Тренировка назначена: ${student.name}`);
+            go(`/trainer/clients/${student.id}`);
+          }}
+        />
+      ) : <NotFound />;
+    } else if (clientAssignMatch) {
+      const student = findStudent(data, clientAssignMatch[1]);
+      content = student ? <StudentWorkoutTemplates data={data} student={student} /> : <NotFound />;
     } else if (clientMatch || progressMatch) {
       content = <StudentProfile data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView onUpdate={(updated) => {
         setData((current) => ({ ...current, students: current.students.map((item) => item.id === updated.id ? updated : item) }));
@@ -382,6 +533,8 @@ export default function ReppyApp() {
           workout={workout}
           session={session}
           backPath={`/trainer/assignments/${assignment.id}`}
+          trainerCanWaiveCharge
+          balance={subscriptionBalance(data.subscriptionEntries, assignment.studentId)}
           onStart={() => {
             if (session) return;
             const nextSession = createWorkoutSession(assignment, workout, 'trainer');
@@ -395,17 +548,23 @@ export default function ReppyApp() {
             ...current,
             sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
           }))}
-          onFinish={(sessionId) => {
+          onFinish={(sessionId, chargeSubscription) => {
             const currentSession = data.sessions.find((item) => item.id === sessionId);
             const unfinished = currentSession?.results.some((result) => !result.completed);
             if (unfinished && !window.confirm('Есть незавершённые подходы. Всё равно закончить тренировку?')) return;
             const completedAt = new Date().toISOString();
-            setData((current) => ({
-              ...current,
-              assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
-              sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt } : item),
-            }));
-            showToast('Результат тренировки сохранён');
+            setData((current) => {
+              const savedSession = current.sessions.find((item) => item.id === sessionId);
+              return {
+                ...current,
+                assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
+                sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt, subscriptionChargeStatus: chargeSubscription ? 'charged' : 'waived' } : item),
+                subscriptionEntries: chargeSubscription && savedSession
+                  ? chargeSubscriptionForSession(current.subscriptionEntries, savedSession, workout.name, completedAt)
+                  : current.subscriptionEntries,
+              };
+            });
+            showToast(chargeSubscription ? 'Тренировка завершена, занятие списано' : 'Тренировка завершена без списания');
             go(`/trainer/sessions/${sessionId}`);
           }}
         />
@@ -471,6 +630,7 @@ export default function ReppyApp() {
             ...current,
             assignments: current.assignments.filter((item) => item.id !== session.assignmentId),
             sessions: current.sessions.filter((item) => item.assignmentId !== session.assignmentId),
+            subscriptionEntries: refundSubscriptionForSession(current.subscriptionEntries, session, session.workoutSnapshot.name),
           }));
           showToast('Завершённая тренировка удалена');
           go(`/trainer/clients/${session.studentId}`);
@@ -546,11 +706,17 @@ export default function ReppyApp() {
             const unfinished = currentSession?.results.some((result) => !result.completed);
             if (unfinished && !window.confirm('Есть незавершённые подходы. Всё равно закончить тренировку?')) return;
             const completedAt = new Date().toISOString();
-            setData((current) => ({
-              ...current,
-              assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
-              sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt } : item),
-            }));
+            setData((current) => {
+              const savedSession = current.sessions.find((item) => item.id === sessionId);
+              return {
+                ...current,
+                assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
+                sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt, subscriptionChargeStatus: 'charged' } : item),
+                subscriptionEntries: savedSession
+                  ? chargeSubscriptionForSession(current.subscriptionEntries, savedSession, workout.name, completedAt)
+                  : current.subscriptionEntries,
+              };
+            });
             go(`/student/finish/${sessionId}`);
           }}
         />
@@ -593,7 +759,7 @@ export default function ReppyApp() {
         area={area}
         path={path}
         data={data}
-        hideBottomNav={settingsOpen}
+        hideBottomNav={settingsOpen || modalLayerOpen}
         onSwitchRole={switchRole}
         onSettings={() => setSettingsOpen(true)}
       >
@@ -678,7 +844,6 @@ function AppShell({
     { label: 'Главная', icon: 'home' as IconName, route: '/trainer' },
     { label: 'Календарь', icon: 'calendar' as IconName, route: '/trainer/calendar' },
     { label: 'Ученики', icon: 'users' as IconName, route: '/trainer/clients' },
-    { label: 'Тренировки', icon: 'workout' as IconName, route: '/trainer/workouts' },
   ];
   const studentNav = [
     { label: 'Сегодня', icon: 'calendar' as IconName, route: '/student' },
@@ -692,7 +857,7 @@ function AppShell({
 
   const isActive = (route: string) => {
     if (route.endsWith('/calendar')) return path === route;
-    if (route.endsWith('/clients')) return path.startsWith('/trainer/clients');
+    if (route.endsWith('/clients')) return path.startsWith('/trainer/clients') || path.startsWith('/trainer/workouts');
     if (route.endsWith('/workouts')) return path.startsWith('/trainer/workouts');
     if (route.endsWith('/history')) return path.startsWith('/student/history');
     return path === route || (route === '/student' && /^\/student\/(workout|assignments)\//.test(path));
@@ -741,54 +906,32 @@ function AppShell({
   );
 }
 
-function PageHeader({ eyebrow, title, action, back }: { eyebrow?: string; title: string; action?: ReactNode; back?: string }) {
-  return <SharedPageHeader eyebrow={eyebrow} title={title} action={action} onBack={back ? () => goBack(back) : undefined} />;
+function PageHeader({ eyebrow, title, action, back, directBack = false }: { eyebrow?: string; title: string; action?: ReactNode; back?: string; directBack?: boolean }) {
+  return <SharedPageHeader eyebrow={eyebrow} title={title} action={action} onBack={back ? () => directBack ? go(back) : goBack(back) : undefined} />;
 }
 
 function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
   const today = new Date();
-  const [visibleMonth, setVisibleMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState(dateKey(today));
   const assignments = data.assignments
     .filter((item) => area === 'trainer' || item.studentId === data.activeStudentId)
     .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
-  const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
-  const mondayOffset = (firstDay.getDay() + 6) % 7;
-  const gridStart = new Date(firstDay);
-  gridStart.setDate(firstDay.getDate() - mondayOffset);
-  const days = Array.from({ length: 42 }, (_, index) => {
-    const day = new Date(gridStart);
-    day.setDate(gridStart.getDate() + index);
-    return day;
-  });
+  const assignmentCounts = assignments.reduce((counts, assignment) => {
+    counts.set(assignment.scheduledFor, (counts.get(assignment.scheduledFor) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
   const selectedAssignments = assignments.filter((item) => item.scheduledFor === selectedDay);
-  const monthTitle = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(visibleMonth).replace(/\s*г\.$/, '');
   const selectedTitle = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${selectedDay}T12:00:00`));
-
-  const moveMonth = (step: number) => {
-    const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + step, 1);
-    setVisibleMonth(next);
-    setSelectedDay(dateKey(next));
-  };
 
   return (
     <main className="content-page calendar-page">
-      <section className="calendar-card">
-        <header className="calendar-toolbar"><button type="button" onClick={() => moveMonth(-1)} aria-label="Предыдущий месяц"><Icon name="chevron-left" /></button><h2>{monthTitle}</h2><button type="button" onClick={() => moveMonth(1)} aria-label="Следующий месяц"><Icon name="chevron-right" /></button></header>
-        <div className="calendar-weekdays" aria-hidden="true">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <span key={day}>{day}</span>)}</div>
-        <div className="calendar-grid">
-          {days.map((day) => {
-            const key = dateKey(day);
-            const dayAssignments = assignments.filter((item) => item.scheduledFor === key);
-            const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
-            return (
-              <button className={`${isCurrentMonth ? '' : 'outside'} ${key === selectedDay ? 'selected' : ''} ${key === dateKey(today) ? 'today' : ''}`} key={key} type="button" onClick={() => setSelectedDay(key)} aria-label={`${day.getDate()}, тренировок: ${dayAssignments.length}`}>
-                <span>{day.getDate()}</span>{dayAssignments.length > 0 && <i aria-hidden="true" />}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <MonthDatePicker
+        value={selectedDay}
+        onChange={setSelectedDay}
+        markedDates={assignmentCounts}
+        selectFirstDayOnMonthChange
+        dateAriaLabel={(day, count) => `${day.getDate()}, тренировок: ${count}`}
+      />
 
       <section className="calendar-agenda">
         <div className="section-heading"><h2>{selectedTitle}</h2></div>
@@ -908,6 +1051,8 @@ function ClientsList({ data }: { data: DemoState }) {
       <button className="list-primary-action" type="button" onClick={() => go('/trainer/clients/invite')}><Icon name="plus" /> Пригласить ученика</button>
       <section className="client-grid">
         {data.students.map((student) => {
+          const subscriptionEntries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
+          const balance = subscriptionBalance(data.subscriptionEntries, student.id);
           const assigned = data.assignments
             .filter((item) => item.studentId === student.id && item.status === 'assigned')
             .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`))[0];
@@ -922,7 +1067,7 @@ function ClientsList({ data }: { data: DemoState }) {
           return (
             <button className="client-card" key={student.id} type="button" onClick={() => go(`/trainer/clients/${student.id}`)}>
               <Avatar student={student} />
-              <span><strong>{student.name}</strong><small>{status}</small></span>
+              <span><strong>{student.name}</strong><small>{status}</small><b className={`client-subscription ${subscriptionTone(balance, subscriptionEntries.length > 0)}`}>{subscriptionBalanceLabel(balance, subscriptionEntries.length > 0)}</b></span>
               <i><Icon name="chevron-right" /></i>
             </button>
           );
@@ -946,9 +1091,10 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   return (
     <main className="content-page">
       {trainerView && <div className="student-profile-intro"><PageHeader back="/trainer/clients" title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></div>}
+      <SubscriptionCard data={data} student={student} trainerView={trainerView} />
       {trainerView && <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
-        {trainerView && <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts')}><Icon name="plus" /> Назначить тренировку</button>}
+        {trainerView && <button className="list-primary-action" type="button" onClick={() => go(`/trainer/clients/${student.id}/assign`)}><Icon name="plus" /> Назначить тренировку</button>}
         {assignments.length ? <div className="connected-list">{assignments.map((assignment) => {
           const workout = findAssignmentWorkout(data, assignment);
           return (
@@ -957,7 +1103,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
             </button>
           );
         })}</div> : trainerView
-          ? <EmptyState icon="calendar" title="Пока пусто" text="Выбери готовую тренировку и назначь её ученику." />
+          ? <EmptyState icon="calendar" title="Пока пусто" text="Назначь тренировку прямо из профиля ученика и подстрой план под него." />
           : <EmptyState icon="calendar" title="Пока пусто" text="Тренер ещё не добавил ближайшие занятия." />}
       </section>}
 
@@ -972,6 +1118,157 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
 
       {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
       {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
+    </main>
+  );
+}
+
+function SubscriptionCard({ data, student, trainerView }: { data: DemoState; student: Student; trainerView: boolean }) {
+  const entries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
+  const payments = recentSubscriptionPayments(data.subscriptionEntries, student.id, trainerView ? 1 : 3);
+  const balance = subscriptionBalance(data.subscriptionEntries, student.id);
+  const hasEntries = entries.length > 0;
+  return (
+    <section className={`subscription-card ${subscriptionTone(balance, hasEntries)}`} aria-label="Абонемент">
+      <header><span>АБОНЕМЕНТ</span><small>Без срока действия</small></header>
+      <div className="subscription-balance">
+        <strong>{subscriptionBalanceLabel(balance, hasEntries)}</strong>
+        {balance <= 0 && hasEntries && <p>{balance < 0 ? 'Новые занятия будут добавляться к долгу.' : 'Следующую тренировку можно провести в долг.'}</p>}
+        {!hasEntries && <p>{trainerView ? 'Добавь первое пополнение, чтобы начать учёт занятий.' : 'Тренер ещё не добавил пополнение.'}</p>}
+      </div>
+      {payments.length > 0 && <div className="recent-payments" aria-label="Последние пополнения">
+        <span>{trainerView ? 'ПОСЛЕДНЕЕ ПОПОЛНЕНИЕ' : 'ПОСЛЕДНИЕ ПОПОЛНЕНИЯ'}</span>
+        {payments.map((payment) => (
+          <div key={payment.id}>
+            <strong>+{payment.lessonDelta} {lessonWord(payment.lessonDelta)}</strong>
+            <small>{formatRubles(payment.amountRub)} · {paymentMethodLabel(payment.paymentMethod)} · {formatSubscriptionDate(payment.occurredAt)}</small>
+          </div>
+        ))}
+      </div>}
+      {trainerView && <div className="subscription-actions">
+        <button className="primary-button" type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}><Icon name="plus" /> {payments.length ? 'Продлить' : 'Добавить абонемент'}</button>
+        <button className="wide-secondary" type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription`)}><Icon name="history" /> История</button>
+      </div>}
+    </section>
+  );
+}
+
+function SubscriptionHistory({ data, student }: { data: DemoState; student: Student }) {
+  const entries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
+  const balance = subscriptionBalance(data.subscriptionEntries, student.id);
+  const hasEntries = entries.length > 0;
+  const balanceAfter = new Map<string, number>();
+  let runningBalance = 0;
+  [...entries].reverse().forEach((entry) => {
+    runningBalance += entry.lessonDelta;
+    balanceAfter.set(entry.id, runningBalance);
+  });
+  return (
+    <main className="content-page narrow-page subscription-history-page">
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={student.name} title="ИСТОРИЯ АБОНЕМЕНТА" />
+      <section className={`subscription-history-summary ${subscriptionTone(balance, hasEntries)}`}>
+        <span>ТЕКУЩИЙ БАЛАНС</span>
+        <strong>{subscriptionBalanceLabel(balance, hasEntries)}</strong>
+        <button className="primary-button" type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}><Icon name="plus" /> Добавить пополнение</button>
+      </section>
+      {entries.length ? <section className="subscription-entry-list" aria-label="Операции абонемента">
+        {entries.map((entry) => {
+          const isPayment = entry.kind === 'payment';
+          const title = isPayment
+            ? `Пополнение на ${entry.lessonDelta} ${lessonWord(entry.lessonDelta)}`
+            : entry.kind === 'session-refund'
+              ? 'Возврат занятия'
+              : 'Занятие списано';
+          const detail = isPayment
+            ? `${formatRubles(entry.amountRub)} · ${paymentMethodLabel(entry.paymentMethod)}`
+            : entry.workoutName ?? 'Тренировка';
+          const content = <>
+            <span className={`subscription-entry-delta ${entry.lessonDelta > 0 ? 'positive' : 'negative'}`}>{entry.lessonDelta > 0 ? '+' : ''}{entry.lessonDelta}</span>
+            <div><strong>{title}</strong><small>{detail} · {formatSubscriptionDate(entry.occurredAt)}</small>{entry.comment && <p>{entry.comment}</p>}<i>Баланс после операции: {balanceAfter.get(entry.id)}</i></div>
+            {isPayment && <Icon name="edit" />}
+          </>;
+          return isPayment
+            ? <button key={entry.id} type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/payments/${entry.id}`)}>{content}</button>
+            : <article key={entry.id}>{content}</article>;
+        })}
+      </section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
+    </main>
+  );
+}
+
+function DatePickerSheet({ title, value, min, onChange, onClose }: { title: string; value: string; min?: string; onChange: (value: string) => void; onClose: () => void }) {
+  const [selectedDate, setSelectedDate] = useState(value);
+  return (
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet date-picker-sheet" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+          <div className="sheet-handle" />
+          <div className="sheet-title"><h2>{title}</h2><button type="button" onClick={onClose} aria-label="Закрыть выбор даты"><Icon name="close" /></button></div>
+          <MonthDatePicker value={selectedDate} min={min} onChange={setSelectedDate} className="calendar-picker-card" />
+          <button className="primary-button" type="button" onClick={() => { onChange(selectedDate); onClose(); }}><Icon name="check" /> Выбрать дату</button>
+        </section>
+      </div>
+    </ModalLayer>
+  );
+}
+
+function DatePickerField({ label, value, min, className = '', formatValue = formatSubscriptionDate, onChange }: { label: string; value: string; min?: string; className?: string; formatValue?: (value: string) => string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const displayValue = formatValue(value);
+  return <>
+    <div className={`date-picker-field ${className}`.trim()}>
+      <span>{label}</span>
+      <button type="button" aria-label={`${label}: ${displayValue}`} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></button>
+    </div>
+    {open && <DatePickerSheet title={label} value={value} min={min} onChange={onChange} onClose={() => setOpen(false)} />}
+  </>;
+}
+
+function SubscriptionPaymentForm({
+  student,
+  initial,
+  defaults,
+  onSave,
+}: {
+  student: Student;
+  initial?: SubscriptionEntry;
+  defaults?: SubscriptionEntry;
+  onSave: (input: PaymentInput) => void;
+}) {
+  const source = initial ?? defaults;
+  const [lessons, setLessons] = useState(String(source?.lessonDelta ?? 8));
+  const [amountRub, setAmountRub] = useState(String(source?.amountRub ?? 11400));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(source?.paymentMethod ?? 'cash');
+  const [occurredAt, setOccurredAt] = useState(initial?.occurredAt.slice(0, 10) ?? dateKey());
+  const [comment, setComment] = useState(initial?.comment ?? '');
+  const [error, setError] = useState('');
+  const save = () => {
+    const parsedLessons = Number(lessons);
+    const parsedAmount = Number(amountRub);
+    if (!Number.isInteger(parsedLessons) || parsedLessons <= 0) return setError('Укажи целое количество занятий больше нуля.');
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) return setError('Укажи корректную стоимость.');
+    if (!occurredAt) return setError('Укажи дату оплаты.');
+    onSave({ lessons: parsedLessons, amountRub: parsedAmount, paymentMethod, occurredAt, comment });
+  };
+  return (
+    <main className="content-page narrow-page subscription-payment-page">
+      <PageHeader back={initial ? `/trainer/clients/${student.id}/subscription` : `/trainer/clients/${student.id}`} eyebrow={student.name} title={initial ? 'ИСПРАВИТЬ ПОПОЛНЕНИЕ' : 'ДОБАВИТЬ АБОНЕМЕНТ'} />
+      <section className="subscription-payment-form">
+        <div className="subscription-form-grid">
+          <label><span>Количество занятий</span><input type="number" min="1" step="1" inputMode="numeric" value={lessons} onChange={(event) => { setLessons(event.target.value); setError(''); }} /></label>
+          <label><span>Стоимость, ₽</span><input type="number" min="0" step="1" inputMode="numeric" value={amountRub} onChange={(event) => { setAmountRub(event.target.value); setError(''); }} /></label>
+        </div>
+        <fieldset className="payment-method-field">
+          <legend>Способ оплаты</legend>
+          <div>
+            <button type="button" className={paymentMethod === 'cash' ? 'selected' : ''} aria-pressed={paymentMethod === 'cash'} onClick={() => setPaymentMethod('cash')}><Icon name={paymentMethod === 'cash' ? 'check' : 'circle'} /> Наличные</button>
+            <button type="button" className={paymentMethod === 'transfer' ? 'selected' : ''} aria-pressed={paymentMethod === 'transfer'} onClick={() => setPaymentMethod('transfer')}><Icon name={paymentMethod === 'transfer' ? 'check' : 'circle'} /> Перевод</button>
+          </div>
+        </fieldset>
+        <DatePickerField label="Дата оплаты" value={occurredAt} onChange={(value) => { setOccurredAt(value); setError(''); }} />
+        <label><span>Комментарий <small>необязательно</small></span><textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><i>{comment.length}/240</i></label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <button className="primary-button" type="button" onClick={save}><Icon name="check" /> {initial ? 'Сохранить изменения' : 'Добавить пополнение'}</button>
+      </section>
     </main>
   );
 }
@@ -1088,7 +1385,68 @@ function WorkoutsList({ data }: { data: DemoState }) {
   );
 }
 
-function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout: Workout) => void }) {
+function StudentWorkoutTemplates({ data, student }: { data: DemoState; student: Student }) {
+  return (
+    <main className="content-page workouts-page">
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={student.name} title="ВЫБРАТЬ ТРЕНИРОВКУ" />
+      <button className="list-primary-action" type="button" onClick={() => go(`/trainer/clients/${student.id}/assign/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
+      {data.workouts.length ? (
+        <section className="workout-template-list">
+          {data.workouts.map((workout, index) => (
+            <button className="workout-template-row" key={workout.id} type="button" onClick={() => go(`/trainer/clients/${student.id}/assign/${workout.id}`)}>
+              <span className="template-number">{String(index + 1).padStart(2, '0')}</span>
+              <div><h2>{workout.name}</h2><p>{exercisePreview(workout, true)}</p></div>
+              <Icon name="chevron-right" />
+            </button>
+          ))}
+        </section>
+      ) : <EmptyState icon="workout" title="Шаблонов пока нет" text="Создай тренировку-шаблон, а затем назначь её ученику." />}
+    </main>
+  );
+}
+
+function AssignWorkoutToStudent({
+  student,
+  workout,
+  onAssign,
+}: {
+  student: Student;
+  workout: Workout;
+  onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
+}) {
+  const [scheduledFor, setScheduledFor] = useState(dateKey());
+  const [scheduledTime, setScheduledTime] = useState('18:00');
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => workout.exercises.map((exercise) => ({ ...exercise })));
+  const [error, setError] = useState('');
+
+  const assign = () => {
+    if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
+    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
+    onAssign(scheduledFor, scheduledTime, {
+      ...cloneWorkout(workout),
+      exercises: exercises.map((exercise) => ({ ...exercise })),
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  return (
+    <main className="content-page narrow-page">
+      <PageHeader back={`/trainer/clients/${student.id}/assign`} eyebrow={student.name} title="НАЗНАЧИТЬ ТРЕНИРОВКУ" />
+      <section className="plan-context-card assignment-edit-card">
+        <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
+        <div className="schedule-fields">
+          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={(value) => { setScheduledFor(value); setError(''); }} />
+          <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => { setScheduledTime(event.target.value); setError(''); }} /></label>
+        </div>
+      </section>
+      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name="plus" /> Назначить {student.name}</button></div>
+    </main>
+  );
+}
+
+function WorkoutForm({ initial, onSave, backPath }: { initial?: Workout; onSave: (workout: Workout) => void; backPath?: string }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initial?.exercises.map((exercise) => ({ ...exercise })) ?? []);
   const [error, setError] = useState('');
@@ -1108,7 +1466,7 @@ function WorkoutForm({ initial, onSave }: { initial?: Workout; onSave: (workout:
 
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts'} eyebrow={initial ? 'Редактирование тренировки' : 'Новая тренировка'} title={initial ? initial.name.toUpperCase() : 'СОЗДАТЬ ТРЕНИРОВКУ'} />
+      <PageHeader back={backPath ?? (initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts')} eyebrow={initial ? 'Редактирование тренировки' : 'Новая тренировка'} title={initial ? initial.name.toUpperCase() : 'СОЗДАТЬ ТРЕНИРОВКУ'} />
       <section className="plan-context-card workout-name-card">
         <label className="field-label" htmlFor="workout-name">Название тренировки</label>
         <input id="workout-name" className="text-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Грудь + плечи" />
@@ -1409,6 +1767,8 @@ function AssignmentDetails({
   const workout = findAssignmentWorkout(data, assignment);
   const progress = collectExerciseProgress(data.sessions, assignment.studentId);
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
+  const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
+  const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
   if (!student || !workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
@@ -1416,6 +1776,11 @@ function AssignmentDetails({
       {assignment.rescheduleRequest && <section className="reschedule-request-card">
         <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
         <div className="reschedule-request-actions"><button className="wide-secondary" type="button" onClick={onDeclineRequest}><Icon name="close" /> Отклонить</button><button className="primary-button" type="button" onClick={onAcceptRequest}><Icon name="check" /> Подтвердить</button></div>
+      </section>}
+      {(balance <= 2 || !hasSubscription) && <section className={`subscription-warning ${subscriptionTone(balance, hasSubscription)}`}>
+        <Icon name={balance <= 0 || !hasSubscription ? 'minus' : 'history'} />
+        <div><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong><small>Тренировку можно провести без ограничения.</small></div>
+        <button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</button>
       </section>}
       <div className="assignment-detail-actions">
         {assignment.status === 'assigned' && <button className="primary-button assignment-start-button" type="button" onClick={() => go(`/trainer/workout/${assignment.id}`)}><Icon name="workout" /> {activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>}
@@ -1447,6 +1812,8 @@ function StudentAssignmentDetails({
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
   const canStart = Boolean(activeSession) || assignment.scheduledFor === dateKey();
   const scheduleUnchanged = scheduledFor === assignment.scheduledFor && scheduledTime === assignment.scheduledTime;
+  const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
+  const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
 
   return (
     <main className="content-page narrow-page student-assignment-page">
@@ -1460,10 +1827,15 @@ function StudentAssignmentDetails({
 
       {requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
         <div className="schedule-fields">
-          <label className="schedule-field"><span>Новая дата</span><input type="date" value={scheduledFor} min={dateKey()} onChange={(event) => setScheduledFor(event.target.value)} /></label>
+          <DatePickerField className="schedule-field" label="Новая дата" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
           <label className="schedule-field"><span>Новое время</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
         <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}><Icon name="check" /> Отправить тренеру</button>
+      </section>}
+
+      {balance <= 0 && <section className="subscription-warning debt student-debt-warning">
+        <Icon name="minus" />
+        <div><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong><small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</small></div>
       </section>}
 
       {canStart && <button className="primary-button student-start-button" type="button" onClick={onStart}><Icon name="workout" /> {activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>}
@@ -1501,7 +1873,7 @@ function RepeatAssignment({
       <section className="plan-context-card repeat-assignment-form">
         <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{sourceWorkout.name}</p></div></div>
         <div className="schedule-fields">
-          <label className="schedule-field"><span>Новая дата</span><input type="date" value={scheduledFor} min={dateKey()} onChange={(event) => setScheduledFor(event.target.value)} /></label>
+          <DatePickerField className="schedule-field" label="Новая дата" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
           <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
       </section>
@@ -1529,7 +1901,7 @@ function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: 
             </button>
           ))}
           <div className="schedule-fields">
-            <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
+            <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} formatValue={formatCalendarDay} onChange={setScheduledFor} />
             <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
           </div>
           <div className="plan-sticky-actions">
@@ -1579,7 +1951,7 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
       <section className="plan-context-card assignment-edit-card">
         <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
         <div className="schedule-fields">
-          <label className="schedule-field"><span>Дата тренировки</span><input type="date" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} /></label>
+          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} formatValue={formatCalendarDay} onChange={setScheduledFor} />
           <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
       </section>
@@ -1605,9 +1977,15 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const mainCompletedSets = mainSession?.results.filter((item) => item.completed).length ?? 0;
   const mainProgress = mainSession ? Math.round((mainCompletedSets / Math.max(mainSession.results.length, 1)) * 100) : 0;
   const laterAssignments = assignments.slice(1);
+  const balance = subscriptionBalance(data.subscriptionEntries, data.activeStudentId);
+  const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, data.activeStudentId).length > 0;
 
   return (
     <main className="content-page student-page">
+      <section className={`student-subscription-status ${subscriptionTone(balance, hasSubscription)}`} aria-label="Остаток абонемента">
+        <span><Icon name={balance > 0 ? 'check' : 'minus'} /></span>
+        <div><small>АБОНЕМЕНТ</small><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong></div>
+      </section>
       {mainAssignment ? (
         <section className="student-focus-card">
           <div className="student-card-top"><time dateTime={`${mainAssignment.scheduledFor}T${mainAssignment.scheduledTime}`}><strong>{formatScheduleDay(mainAssignment.scheduledFor)}</strong><small>{mainAssignment.scheduledTime}</small></time>{mainSession && <b>{mainProgress}%</b>}</div>
@@ -1636,6 +2014,8 @@ function ActiveWorkout({
   onUpdate,
   onWorkoutUpdate,
   onFinish,
+  trainerCanWaiveCharge = false,
+  balance = 0,
 }: {
   workout: Workout;
   session?: WorkoutSession;
@@ -1643,13 +2023,16 @@ function ActiveWorkout({
   onStart: () => void;
   onUpdate: (sessionId: string, results: SetResult[]) => void;
   onWorkoutUpdate: (sessionId: string, workout: Workout) => void;
-  onFinish: (sessionId: string) => void;
+  onFinish: (sessionId: string, chargeSubscription: boolean) => void;
+  trainerCanWaiveCharge?: boolean;
+  balance?: number;
 }) {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [pickerAfterId, setPickerAfterId] = useState<string | null>(null);
   const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
+  const [finishOpen, setFinishOpen] = useState(false);
   const moveHighlightTimer = useRef<number | null>(null);
   const startRequested = useRef(false);
   const startedAt = session?.startedAt;
@@ -1797,11 +2180,41 @@ function ActiveWorkout({
           updateWorkout(workout.exercises.filter((item) => item.id !== actionExercise.id));
         }}
       />}
+      {finishOpen && <FinishWorkoutModal
+        balance={balance}
+        onClose={() => setFinishOpen(false)}
+        onFinish={(chargeSubscription) => {
+          setFinishOpen(false);
+          onFinish(session.id, chargeSubscription);
+        }}
+      />}
 
       <footer className="exercise-navigation single-action">
-        <button className="finish-workout" type="button" onClick={() => onFinish(session.id)}><Icon name="check" /> Завершить тренировку</button>
+        <button className="finish-workout" type="button" onClick={() => trainerCanWaiveCharge ? setFinishOpen(true) : onFinish(session.id, true)}><Icon name="check" /> Завершить тренировку</button>
       </footer>
     </main>
+  );
+}
+
+function FinishWorkoutModal({ balance, onClose, onFinish }: { balance: number; onClose: () => void; onFinish: (chargeSubscription: boolean) => void }) {
+  return (
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet finish-workout-sheet" role="dialog" aria-modal="true" aria-label="Завершение тренировки" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="sheet-handle" />
+          <div className="sheet-title"><div><span className="eyebrow">АБОНЕМЕНТ</span><h2>Завершить тренировку</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
+          <div className={`finish-balance-preview ${subscriptionTone(balance)}`}>
+            <span>СЕЙЧАС</span><strong>{subscriptionBalanceLabel(balance)}</strong>
+            <Icon name="arrow-right" />
+            <span>ПОСЛЕ</span><strong>{subscriptionBalanceLabel(balance - 1)}</strong>
+          </div>
+          <div className="finish-subscription-actions">
+            <button className="primary-button" type="button" onClick={() => onFinish(true)}><Icon name="check" /> Завершить и списать занятие</button>
+            <button className="wide-secondary" type="button" onClick={() => onFinish(false)}><Icon name="minus" /> Не списывать занятие</button>
+          </div>
+        </section>
+      </div>
+    </ModalLayer>
   );
 }
 
@@ -1893,8 +2306,9 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
   const resolvedEquipment = exercise.equipment ?? definition?.equipment;
   const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
         <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть описание"><Icon name="close" /></button></div>
         <div className="exercise-instruction-body">
@@ -1908,8 +2322,9 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
             <li>Остановись, если появляется резкая боль или теряется техника.</li>
           </ul>
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </ModalLayer>
   );
 }
 
@@ -1929,8 +2344,9 @@ function ExerciseActionsModal({
   onDeleteExercise: () => void;
 }) {
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="bottom-sheet exercise-actions-sheet" role="dialog" aria-modal="true" aria-label={'Действия — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet exercise-actions-sheet" role="dialog" aria-modal="true" aria-label={'Действия — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
         <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть действия"><Icon name="close" /></button></div>
         <div className="exercise-action-list">
@@ -1943,8 +2359,9 @@ function ExerciseActionsModal({
             <span><strong>Удалить упражнение</strong><small>{canDeleteExercise ? 'Упражнение исчезнет из этой тренировки' : 'Сначала отмени выполненные подходы'}</small></span>
           </button>
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </ModalLayer>
   );
 }
 
@@ -1969,8 +2386,9 @@ function ActiveExercisePicker({
   });
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнение после выбранного" onMouseDown={(event) => event.stopPropagation()}>
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнение после выбранного" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
         <div className="sheet-title"><h2>Добавить упражнение</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
@@ -1994,8 +2412,9 @@ function ActiveExercisePicker({
           {filtered.map((exercise) => <button key={exercise.id} type="button" onClick={() => onSelect(exercise)}><span><Icon name="plus" /></span><div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div></button>)}
           {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </ModalLayer>
   );
 }
 
@@ -2027,12 +2446,13 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
 
 function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSession }) {
   const workout = findSessionWorkout(data, session);
+  const balance = subscriptionBalance(data.subscriptionEntries, session.studentId);
   return (
     <main className="success-screen">
       <img className="success-illustration" src="good-sm.png" alt="" />
       <p className="eyebrow">Результат сохранён</p>
       <h1>ТРЕНИРОВКА<br />ЗАВЕРШЕНА</h1>
-      <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}</section>
+      <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}<p className={`success-subscription ${subscriptionTone(balance)}`}>{subscriptionBalanceLabel(balance)}</p></section>
       <button className="primary-button" type="button" onClick={() => go('/student')}><Icon name="check" /> Готово</button>
     </main>
   );
@@ -2076,11 +2496,13 @@ function SessionResult({
   const workout = findSessionWorkout(data, session);
   const student = findStudent(data, session.studentId);
   const progress = trainerView ? collectExerciseProgress(data.sessions, session.studentId) : [];
+  const charged = isSessionCharged(data.subscriptionEntries, session.id);
+  const chargeStatus = charged ? 'charged' : session.subscriptionChargeStatus === 'waived' ? 'waived' : undefined;
   if (!workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} title={workout.name.toUpperCase()} />
-      <section className="session-recorded-by"><Icon name={session.recordedBy === 'trainer' ? 'users' : 'workout'} /><span><small>РЕЗУЛЬТАТ ЗАПОЛНИЛ</small><strong>{session.recordedBy === 'trainer' ? 'Тренер во время офлайн-занятия' : 'Ученик'}</strong></span></section>
+      <PageHeader directBack back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} title={workout.name.toUpperCase()} />
+      {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
       {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       {trainerView && <div className="session-result-actions">
         <button className="wide-secondary" type="button" onClick={onRepeat}><Icon name="copy" /> Повторить на другую дату</button>
@@ -2121,22 +2543,33 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
   );
 }
 
-function EmptyState({ icon, title, text, action, onAction }: { icon: IconName; title: string; text: string; action?: string; onAction?: () => void }) {
-  return (
-    <div className="empty-state"><span><Icon name={icon} /></span><h3>{title}</h3><p>{text}</p>{action && <button type="button" onClick={onAction}><Icon name="arrow-right" /> {action}</button>}</div>
-  );
-}
-
 function SettingsModal({ onClose, onReset }: { onClose: () => void; onReset: () => void }) {
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>Настройки демо</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <p>Сброс вернёт исходных учеников, тренировки и расписание.</p>
         <button className="reset-button" type="button" onClick={onReset}><Icon name="close" /> Сбросить демо-данные</button>
-      </section>
-    </div>
+        </section>
+      </div>
+    </ModalLayer>
   );
+}
+
+function ModalLayer({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    openModalLayers += 1;
+    document.body.classList.add('modal-open');
+    window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: true }));
+    return () => {
+      openModalLayers = Math.max(0, openModalLayers - 1);
+      document.body.classList.toggle('modal-open', openModalLayers > 0);
+      window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: openModalLayers > 0 }));
+    };
+  }, []);
+
+  return createPortal(children, document.body);
 }
 
 function NotFound() {

@@ -18,6 +18,7 @@ async function seedProgress(page: Page, count = 3) {
     return session;
   });
   await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Попробовать REPPY' })).toBeVisible();
   await page.evaluate((value) => localStorage.setItem('reppy-demo-v0', JSON.stringify(value)), state);
   await page.goto('/#/trainer/clients/artem');
   await page.reload();
@@ -89,9 +90,10 @@ test('старые ссылки показывают всю историю, чу
   await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
   await page.goto('/#/trainer/clients/maria');
   await expect(progressSection(page).locator('.workout-row')).toHaveCount(0);
-  await expect(progressSection(page)).toContainText('Здесь появятся результаты');
+  await expect(progressSection(page).locator('.empty-state')).toBeVisible();
+  await expect(progressSection(page)).toContainText('Пока нет прогресса');
   await page.goto('/#/trainer/clients/artem/progress/bench-press?loadMode=bodyweight');
-  await expect(page.getByText('Результаты не найдены.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Результаты не найдены', exact: true })).toBeVisible();
   await expect(page.locator('svg')).toHaveCount(0);
   await page.goto('/#/trainer/clients/artem/progress');
   await expect(progressSection(page).locator('.workout-row')).toHaveCount(1);
@@ -105,6 +107,7 @@ test('результат нового занятия появляется в п�
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить и списать занятие' }).click();
   await page.goto('/#/trainer/clients/artem');
   await expect(progressSection(page)).not.toContainText('Первый результат');
   await expect(progressSection(page).locator('.progress-trend')).toHaveCount(0);

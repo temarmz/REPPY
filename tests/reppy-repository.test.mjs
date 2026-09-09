@@ -38,6 +38,7 @@ test('repository создаёт исходное состояние при пу�
 test('repository мигрирует старый формат данных', async () => {
   const legacy = structuredClone(createInitialState());
   delete legacy.studentWorkoutVersions;
+  delete legacy.subscriptionEntries;
   delete legacy.assignments[0].source;
   delete legacy.assignments[0].workoutSnapshot;
   const memory = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(legacy) });
@@ -45,6 +46,7 @@ test('repository мигрирует старый формат данных', asy
   const state = await repository.load();
 
   assert.deepEqual(state.studentWorkoutVersions, []);
+  assert.deepEqual(state.subscriptionEntries, []);
   assert.equal(state.assignments[0].source, 'template');
   assert.ok(state.assignments[0].workoutSnapshot.exercises.length > 0);
 });

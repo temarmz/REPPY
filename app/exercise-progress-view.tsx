@@ -3,6 +3,7 @@ import type { DemoState, WorkoutExercise } from './reppy-data';
 import { collectExerciseProgress, compareProgress, filterProgressPeriod, progressHref, progressMetric, progressNumber, progressSetLabel, type ProgressEntry } from './exercise-progress';
 import Icon from './ui-icon';
 import PageHeader from './page-header';
+import EmptyState from './empty-state';
 
 type Props = { data: DemoState; studentId: string; exerciseId?: string; search: string; go: (path: string) => void; back: (fallback: string) => void };
 const dateLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -92,7 +93,7 @@ export function StudentExerciseProgress({ data, studentId, go }: Pick<Props, 'da
           <Icon name="chevron-right" />
         </i>
       </button>; })}
-    </div> : <p className="progress-muted">Здесь появятся результаты выполненных упражнений.</p>}
+    </div> : <EmptyState icon="history" title="Пока нет прогресса" text="Результаты упражнений появятся после первой завершённой тренировки." />}
   </section>;
 }
 
@@ -105,7 +106,7 @@ export default function ExerciseProgressView({ data, studentId, exerciseId, sear
     && (!params.has('measureType') || item.exercise.measureType === params.get('measureType')));
   return <main className="content-page narrow-page progress-page">
     <PageHeader eyebrow={student?.name ?? 'Ученик не найден'} title={group?.exercise.name.toUpperCase() ?? 'НЕТ РЕЗУЛЬТАТОВ'} onBack={() => back(`/trainer/clients/${studentId}`)} />
-    {!student || !group ? <div className="empty-state"><p>Результаты не найдены.</p><button className="wide-secondary" type="button" onClick={() => go(student ? `/trainer/clients/${studentId}` : '/trainer/clients')}>Вернуться к {student ? 'ученику' : 'ученикам'}</button></div> : <>
+    {!student || !group ? <EmptyState icon="history" title="Результаты не найдены" text={student ? 'У этого упражнения пока нет завершённых подходов.' : 'Проверь ссылку или вернись к списку учеников.'} action={`Вернуться к ${student ? 'ученику' : 'ученикам'}`} onAction={() => go(student ? `/trainer/clients/${studentId}` : '/trainer/clients')} /> : <>
       <p className="progress-muted progress-period">Всё время · {sessionCount(group.entries.length)}</p>
       <ProgressChart key={group.key} entries={group.entries} exercise={group.exercise} go={go} />
     </>}

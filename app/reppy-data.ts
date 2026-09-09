@@ -87,11 +87,30 @@ export type WorkoutSession = {
   completedAt?: string;
   mood?: MoodRating;
   comment?: string;
+  subscriptionChargeStatus?: 'charged' | 'waived';
   results: SetResult[];
 };
 
+export type PaymentMethod = 'cash' | 'transfer';
+
+export type SubscriptionEntry = {
+  id: string;
+  trainerId: string;
+  studentId: string;
+  kind: 'payment' | 'session-charge' | 'session-refund';
+  lessonDelta: number;
+  occurredAt: string;
+  createdAt: string;
+  updatedAt?: string;
+  amountRub?: number;
+  paymentMethod?: PaymentMethod;
+  comment?: string;
+  sessionId?: string;
+  workoutName?: string;
+};
+
 export type DemoState = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   loggedIn: boolean;
   role: Role;
   activeStudentId: string;
@@ -100,8 +119,10 @@ export type DemoState = {
   studentWorkoutVersions: StudentWorkoutVersion[];
   assignments: Assignment[];
   sessions: WorkoutSession[];
+  subscriptionEntries: SubscriptionEntry[];
 };
 
+export const TRAINER_ID = 'trainer-demo';
 export const TRAINER_NAME = 'Евгений Ч.';
 
 export function dateKey(date = new Date()) {
@@ -402,13 +423,53 @@ function createArtemLegHistory(workouts: Workout[]): { assignments: Assignment[]
   return { assignments, sessions };
 }
 
+function createDemoSubscriptionEntries(sessions: WorkoutSession[]): SubscriptionEntry[] {
+  const createdAt = new Date().toISOString();
+  const payments: SubscriptionEntry[] = [
+    {
+      id: 'subscription-payment-artem-1',
+      trainerId: TRAINER_ID,
+      studentId: 'artem',
+      kind: 'payment',
+      lessonDelta: 8,
+      amountRub: 11400,
+      paymentMethod: 'cash',
+      occurredAt: dateKey(demoDate(35, 12)),
+      createdAt,
+    },
+    {
+      id: 'subscription-payment-artem-2',
+      trainerId: TRAINER_ID,
+      studentId: 'artem',
+      kind: 'payment',
+      lessonDelta: 8,
+      amountRub: 11400,
+      paymentMethod: 'cash',
+      occurredAt: dateKey(demoDate(16, 12)),
+      createdAt,
+    },
+  ];
+  const charges = sessions.map((session): SubscriptionEntry => ({
+    id: `subscription-charge-${session.id}`,
+    trainerId: TRAINER_ID,
+    studentId: session.studentId,
+    kind: 'session-charge',
+    lessonDelta: -1,
+    occurredAt: session.completedAt ?? session.startedAt,
+    createdAt,
+    sessionId: session.id,
+    workoutName: session.workoutSnapshot.name,
+  }));
+  return [...payments, ...charges];
+}
+
 export function createInitialState(): DemoState {
   const now = new Date().toISOString();
   const workouts = createDemoWorkouts(now);
   const artemHistory = createArtemLegHistory(workouts);
 
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     loggedIn: false,
     role: 'trainer',
     activeStudentId: 'artem',
@@ -421,6 +482,7 @@ export function createInitialState(): DemoState {
     studentWorkoutVersions: [],
     assignments: [...createDemoAssignments(now, workouts), ...artemHistory.assignments],
     sessions: artemHistory.sessions,
+    subscriptionEntries: createDemoSubscriptionEntries(artemHistory.sessions),
   };
 }
 
@@ -487,7 +549,7 @@ export function migrateDemoState(state: DemoState): DemoState {
     : state.sessions;
   return {
     ...state,
-    schemaVersion: 3,
+    schemaVersion: 4,
     activeStudentId: currentId(state.activeStudentId),
     students: state.students.map((student) => {
       const id = currentId(student.id);
@@ -521,6 +583,11 @@ export function migrateDemoState(state: DemoState): DemoState {
           ?? workouts.find((workout) => workout.id === session.workoutId)
           ?? { id: session.workoutId, name: 'Тренировка', exercises: [], createdAt: session.startedAt },
       ),
+    })),
+    subscriptionEntries: ((state as DemoState & { subscriptionEntries?: SubscriptionEntry[] }).subscriptionEntries ?? []).map((entry) => ({
+      ...entry,
+      trainerId: entry.trainerId ?? TRAINER_ID,
+      studentId: currentId(entry.studentId),
     })),
   };
 }

@@ -41,6 +41,7 @@ npm run test:e2e
 ## Документация
 
 - [ТЗ: прогрессия ученика по упражнениям](docs/student-exercise-progress.md)
+- [ТЗ: абонементы учеников](docs/subscriptions.md)
 - [Актуальный backlog](docs/backlog.md)
 - [Архив завершённого ТЗ по модели тренировок](docs/archive/training-assignment-model.md)
 - [Архитектура данных и путь к backend](docs/data-architecture.md)

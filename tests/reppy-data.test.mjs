@@ -64,7 +64,7 @@ test('миграция дополняет старые назначения и �
 
 test('состояние использует явную версию схемы и единый массив подходов', () => {
   const state = createInitialState();
-  assert.equal(state.schemaVersion, 3);
+  assert.equal(state.schemaVersion, 4);
   for (const workout of state.workouts) {
     for (const exercise of workout.exercises) {
       assert.ok(Array.isArray(exercise.plannedSets));
@@ -110,7 +110,7 @@ test('миграция удаляет агрегатные поля упражн
   const migrated = migrateDemoState(legacy);
   const migratedExercise = migrated.workouts[0].exercises[0];
 
-  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.schemaVersion, 4);
   assert.deepEqual(getExerciseSetPlans(migratedExercise), [
     { targetReps: 7, targetWeight: 42.5 },
     { targetReps: 7, targetWeight: 42.5 },
