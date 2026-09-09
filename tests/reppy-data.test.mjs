@@ -64,7 +64,7 @@ test('миграция дополняет старые назначения и �
 
 test('состояние использует явную версию схемы и единый массив подходов', () => {
   const state = createInitialState();
-  assert.equal(state.schemaVersion, 2);
+  assert.equal(state.schemaVersion, 3);
   for (const workout of state.workouts) {
     for (const exercise of workout.exercises) {
       assert.ok(Array.isArray(exercise.plannedSets));
@@ -110,13 +110,41 @@ test('миграция удаляет агрегатные поля упражн
   const migrated = migrateDemoState(legacy);
   const migratedExercise = migrated.workouts[0].exercises[0];
 
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.deepEqual(getExerciseSetPlans(migratedExercise), [
     { targetReps: 7, targetWeight: 42.5 },
     { targetReps: 7, targetWeight: 42.5 },
   ]);
   assert.equal('sets' in migratedExercise, false);
 })
+
+test('демо Артёма содержит пять тренировок ног с прогрессией и одно активное назначение', () => {
+  const state = createInitialState();
+  const activeAssignments = state.assignments.filter((assignment) => assignment.studentId === 'artem' && assignment.status === 'assigned');
+  const completedAssignments = state.assignments.filter((assignment) => assignment.studentId === 'artem' && assignment.status === 'completed');
+  const sessions = state.sessions
+    .filter((session) => session.studentId === 'artem' && session.completedAt)
+    .sort((a, b) => a.completedAt.localeCompare(b.completedAt));
+
+  assert.equal(activeAssignments.length, 1);
+  assert.equal(activeAssignments[0].id, 'assignment-artem-push-today');
+  assert.equal(completedAssignments.length, 5);
+  assert.equal(sessions.length, 5);
+  assert.ok(sessions.every((session) => session.workoutSnapshot.name === 'Ноги'));
+  assert.ok(sessions.every((session) => session.results.every((result) => result.completed)));
+
+  for (const exerciseId of ['squat', 'leg-press', 'deadlift']) {
+    const bestSets = sessions.map((session) => {
+      const exercise = session.workoutSnapshot.exercises.find((item) => item.exerciseId === exerciseId);
+      assert.ok(exercise);
+      const results = session.results.filter((result) => result.exerciseId === exercise.id);
+      return results.sort((a, b) => b.actualWeight - a.actualWeight || b.actualReps - a.actualReps)[0];
+    });
+    assert.ok(bestSets.every((result, index) => index === 0 || result.actualWeight > bestSets[index - 1].actualWeight));
+    assert.ok(bestSets.every((result, index) => index === 0 || result.actualReps >= bestSets[index - 1].actualReps));
+    assert.ok(bestSets.at(-1).actualReps > bestSets[0].actualReps);
+  }
+});
 
 test('новый шаблон получает независимые идентификаторы и упражнения', () => {
   const state = createInitialState();
