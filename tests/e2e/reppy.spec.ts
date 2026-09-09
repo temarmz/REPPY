@@ -18,6 +18,20 @@ async function setFirstExerciseWeight(page: Page, weight: number) {
   await setExerciseSetWeight(page, 0, weight);
 }
 
+test('лендинг кратко объясняет продукт и не переполняет мобильный экран', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: 'ВЕДИ УЧЕНИКОВ. ВИДЬ ПРОГРЕСС.' })).toBeVisible();
+  await expect(page.locator('.workflow-grid > li')).toHaveCount(3);
+  await expect(page.locator('.landing-art-placeholder')).toHaveCount(2);
+  await expect(page.locator('.price-tier-grid > article')).toHaveCount(4);
+  await expect(page.getByText('Для ученика — 0 ₽')).toBeVisible();
+
+  const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(horizontalOverflow).toBeLessThanOrEqual(0);
+});
+
 test('настройки демо остаются поверх нижнего меню на коротком экране', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 520 });
   await openFreshDemo(page);
