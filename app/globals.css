@@ -105,12 +105,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 .brand-logo {
   display: block;
-  width: 52px;
-  height: 52px;
+  width: 132px;
+  height: 44px;
   object-fit: contain;
   filter: drop-shadow(0 7px 15px rgba(154, 70, 255, .16));
 }
-.brand-word { font-size: 20px; font-weight: 900; letter-spacing: normal; }
 
 .welcome-copy { margin: clamp(80px, 17vh, 160px) 0 44px; }
 .eyebrow {
@@ -932,8 +931,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
     top: auto;
   }
   .topbar { padding-right: 17px; padding-left: 17px; }
-  .topbar .brand-word { display: none; }
-  .topbar .brand-logo { width: 48px; height: 48px; }
+  .topbar .brand-logo { width: 108px; height: 36px; }
   .role-switch { min-height: 40px; padding-right: 10px; font-size: 0; }
   .role-switch::after { color: #b9beb6; content: 'Сменить роль'; font-size: var(--button-font-size); }
   .role-switch > span:first-child { padding: 6px 8px; }

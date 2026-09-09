@@ -94,6 +94,7 @@ const MOODS: Array<{ value: MoodRating; label: string; detail: string; icon: Ico
 const APP_ASSETS = [
   'logo.png',
   'logo-full.png',
+  'logo-text.png',
   'favicon-32.png',
   'icon-192.png',
   'icon-512.png',
@@ -650,8 +651,7 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
 function Brand() {
   return (
     <button className="brand-mark brand-button" type="button" onClick={() => go('/')} aria-label="REPPY — на стартовый экран">
-      <img className="brand-logo" src="logo-full.png" alt="" />
-      <span className="brand-word">REPPY</span>
+      <img className="brand-logo" src="logo-text.png" alt="" />
     </button>
   );
 }
