@@ -587,17 +587,19 @@ export default function ReppyApp() {
   }
 
   return (
-    <AppShell
-      area={area}
-      path={path}
-      data={data}
-      onSwitchRole={switchRole}
-      onSettings={() => setSettingsOpen(true)}
-    >
-      {content}
-      {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
+    <>
+      <AppShell
+        area={area}
+        path={path}
+        data={data}
+        onSwitchRole={switchRole}
+        onSettings={() => setSettingsOpen(true)}
+      >
+        {content}
+        {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
+      </AppShell>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} onReset={resetDemo} />}
-    </AppShell>
+    </>
   );
 }
 

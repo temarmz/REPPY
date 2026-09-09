@@ -902,7 +902,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .invitation-card h1 { margin: 0; font-size: clamp(39px, 8vw, 64px); line-height: .9; letter-spacing: normal; }
 .invitation-card > p:not(.eyebrow) { margin: 23px 0 31px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 
-.settings-modal { width: min(100%, 520px); border-radius: 30px; padding: 25px; background: #171b17; }
+.settings-modal { width: min(100%, 520px); max-height: calc(100dvh - 16px); overflow-y: auto; border-radius: 30px; padding: 25px; background: #171b17; }
 .settings-modal .sheet-title { align-items: flex-start; }
 .settings-modal .eyebrow { margin: 0 0 7px; }
 .settings-modal h2 { margin: 0; }

@@ -18,6 +18,24 @@ async function setFirstExerciseWeight(page: Page, weight: number) {
   await setExerciseSetWeight(page, 0, weight);
 }
 
+test('настройки демо остаются поверх нижнего меню на коротком экране', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 520 });
+  await openFreshDemo(page);
+  await page.getByRole('button', { name: 'Открыть настройки' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Настройки демо' });
+  const resetButton = page.getByRole('button', { name: 'Сбросить демо-данные' });
+  await expect(dialog).toBeVisible();
+  await expect(resetButton).toBeVisible();
+  const isButtonOnTop = await resetButton.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest('button') === element;
+  });
+  expect(isButtonOnTop).toBe(true);
+  const resetBox = await resetButton.boundingBox();
+  expect(resetBox!.y + resetBox!.height).toBeLessThanOrEqual(520);
+});
+
 test('тренер дублирует шаблон и повторяет назначение тому же ученику', async ({ page }) => {
   await openFreshDemo(page);
 
