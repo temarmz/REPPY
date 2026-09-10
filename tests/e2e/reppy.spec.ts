@@ -28,6 +28,8 @@ test('лендинг кратко объясняет продукт и не пе
   await expect(page.locator('.price-tier-grid > article')).toHaveCount(4);
   await expect(page.getByText('Для ученика — 0 ₽')).toBeVisible();
 
+  await expect(page.locator('.welcome-card > .brand-button')).toHaveCSS('margin-left', '-22px');
+
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
 });
@@ -80,6 +82,16 @@ test('тренер видит единые карточки расписания
       .find((part) => part.type === 'month')?.value ?? ''
   ));
   await expect(firstMonth).toHaveText(expectedMonth);
+
+  const occupiedDay = page.locator('.schedule-days-list .plan-day-card:not(.empty-day)').first();
+  const emptyDay = page.locator('.schedule-days-list .plan-day-card.empty-day').first();
+  const occupiedHeaderBox = await occupiedDay.locator(':scope > header').boundingBox();
+  const emptyActionBox = await emptyDay.locator(':scope > .empty-day-action').boundingBox();
+  const occupiedPlusBox = await occupiedDay.locator('.schedule-add-button').boundingBox();
+  const emptyPlusBox = await emptyDay.locator('.empty-day-plus').boundingBox();
+  expect(Math.round(occupiedHeaderBox?.height ?? 0)).toBe(Math.round(emptyActionBox?.height ?? 0));
+  expect(Math.round((occupiedPlusBox?.x ?? 0) + (occupiedPlusBox?.width ?? 0)))
+    .toBe(Math.round((emptyPlusBox?.x ?? 0) + (emptyPlusBox?.width ?? 0)));
 
   await page.reload();
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
