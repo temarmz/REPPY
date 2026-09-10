@@ -53,6 +53,43 @@ test('настройки демо остаются поверх нижнего �
   await expect(page.locator('.bottom-nav')).toBeVisible();
 });
 
+test('тренер видит все дни и назначает ученику копию прошлой тренировки на свободную дату', async ({ page }) => {
+  await openFreshDemo(page);
+
+  const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
+  await expect(allDaysToggle).toHaveAttribute('aria-checked', 'false');
+  await expect(page.locator('.all-days-list')).toHaveCount(0);
+
+  await allDaysToggle.click();
+  await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
+
+  const firstEmptyDay = page.locator('.all-days-list .plan-day-card.empty-day').first();
+  const selectedDate = await firstEmptyDay.locator('time').getAttribute('datetime');
+  expect(selectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await firstEmptyDay.getByRole('button', { name: /Назначить ученика/ }).click();
+
+  const studentDialog = page.getByRole('dialog', { name: /Кого назначить/ });
+  await expect(studentDialog).toBeVisible();
+  await expect(page.locator('.bottom-nav')).toHaveCount(0);
+  await studentDialog.getByRole('button', { name: /Мария А\./ }).click();
+
+  await expect(page).toHaveURL(new RegExp(`#\/trainer\/schedule\/${selectedDate}\/maria$`));
+  await expect(page.getByRole('heading', { name: 'ВЫБЕРИ ТРЕНИРОВКУ' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Создать новую тренировку' })).toBeVisible();
+  const previousWorkout = page.locator('.schedule-history-list > button').first();
+  await expect(previousWorkout).toContainText('Ноги');
+  await previousWorkout.click();
+
+  await expect(page.getByRole('heading', { name: 'СКОПИРОВАТЬ ТРЕНИРОВКУ' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Дата тренировки:/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Скопировать для Мария А.' }).click();
+
+  await expect(page).toHaveURL(/#\/trainer$/);
+  await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
+  await expect(page.locator(`.trainer-upcoming-row time[datetime^="${selectedDate}"]`)).toHaveCount(1);
+});
+
 test('тренер дублирует шаблон и повторяет назначение тому же ученику', async ({ page }) => {
   await openFreshDemo(page);
 

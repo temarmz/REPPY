@@ -328,6 +328,10 @@ export default function ReppyApp() {
     const assignmentRepeatMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/repeat$/);
     const assignmentMatch = path.match(/^\/trainer\/assignments\/([^/]+)$/);
     const trainerActiveMatch = path.match(/^\/trainer\/workout\/([^/]+)$/);
+    const scheduleCopyMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/copy\/([^/]+)$/);
+    const scheduleTemplateMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/template\/([^/]+)$/);
+    const scheduleNewMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/new$/);
+    const scheduleStudentMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)$/);
     const workoutEditMatch = path.match(/^\/trainer\/workouts\/([^/]+)\/edit$/);
     const workoutAssignMatch = path.match(/^\/trainer\/workouts\/([^/]+)\/assign$/);
     const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
@@ -337,6 +341,76 @@ export default function ReppyApp() {
       content = <ExerciseProgressView key={progressPath} data={data} studentId={progressMatch[1]} exerciseId={progressMatch[2]} search={progressSearch} go={go} back={goBack} />;
     } else if (path === '/trainer/calendar') {
       content = <WorkoutCalendar data={data} area="trainer" />;
+    } else if (scheduleCopyMatch) {
+      const [scheduledFor, studentId, sourceAssignmentId] = scheduleCopyMatch.slice(1);
+      const student = findStudent(data, studentId);
+      const sourceAssignment = data.assignments.find((item) => item.id === sourceAssignmentId && item.studentId === studentId);
+      const sourceWorkout = sourceAssignment && findAssignmentWorkout(data, sourceAssignment);
+      content = student && sourceAssignment && sourceWorkout && isScheduleDate(scheduledFor) ? (
+        <AssignWorkoutToStudent
+          student={student}
+          workout={sourceWorkout}
+          initialScheduledFor={scheduledFor}
+          initialScheduledTime={sourceAssignment.scheduledTime}
+          backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
+          title="СКОПИРОВАТЬ ТРЕНИРОВКУ"
+          submitLabel={`Скопировать для ${student.name}`}
+          submitIcon="copy"
+          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
+            const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
+            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            showToast(`Тренировка назначена: ${student.name}`);
+            go('/trainer');
+          }}
+        />
+      ) : <NotFound />;
+    } else if (scheduleTemplateMatch) {
+      const [scheduledFor, studentId, workoutId] = scheduleTemplateMatch.slice(1);
+      const student = findStudent(data, studentId);
+      const workout = findWorkout(data, workoutId);
+      content = student && workout && isScheduleDate(scheduledFor) ? (
+        <AssignWorkoutToStudent
+          student={student}
+          workout={workout}
+          initialScheduledFor={scheduledFor}
+          backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
+          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
+            const assignment: Assignment = {
+              id: makeId('assignment'),
+              workoutId: workout.id,
+              studentId: student.id,
+              assignedAt: new Date().toISOString(),
+              scheduledFor: nextDate,
+              scheduledTime,
+              status: 'assigned',
+              workoutSnapshot: { ...cloneWorkout(workoutSnapshot), updatedAt: new Date().toISOString() },
+              source: JSON.stringify(workoutSnapshot.exercises) === JSON.stringify(workout.exercises) ? 'template' : 'manual-edit',
+            };
+            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            showToast(`Тренировка назначена: ${student.name}`);
+            go('/trainer');
+          }}
+        />
+      ) : <NotFound />;
+    } else if (scheduleNewMatch) {
+      const [scheduledFor, studentId] = scheduleNewMatch.slice(1);
+      const student = findStudent(data, studentId);
+      content = student && isScheduleDate(scheduledFor) ? (
+        <WorkoutForm
+          backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
+          onSave={(workout) => {
+            setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
+            showToast('Тренировка сохранена — осталось выбрать время');
+            go(`/trainer/schedule/${scheduledFor}/${student.id}/template/${workout.id}`);
+          }}
+        />
+      ) : <NotFound />;
+    } else if (scheduleStudentMatch) {
+      const [scheduledFor, studentId] = scheduleStudentMatch.slice(1);
+      const student = findStudent(data, studentId);
+      content = student && isScheduleDate(scheduledFor)
+        ? <StudentWorkoutHistory data={data} student={student} scheduledFor={scheduledFor} />
+        : <NotFound />;
     } else if (path === '/trainer/clients') {
       content = <ClientsList data={data} />;
     } else if (path === '/trainer/clients/invite') {
@@ -1030,6 +1104,18 @@ function formatScheduleDay(value: string) {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
+function isScheduleDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T12:00:00`);
+  return !Number.isNaN(parsed.getTime()) && dateKey(parsed) === value && value >= dateKey();
+}
+
+function dateAfter(value: string, days: number) {
+  const next = new Date(`${value}T12:00:00`);
+  next.setDate(next.getDate() + days);
+  return dateKey(next);
+}
+
 function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Assignment }) {
   const student = findStudent(data, assignment.studentId);
   const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
@@ -1064,7 +1150,29 @@ function TrainerUpcomingRow({ data, assignment }: { data: DemoState; assignment:
   );
 }
 
+function ScheduleStudentPicker({ date, students, onClose, onSelect }: { date: string; students: Student[]; onClose: () => void; onSelect: (student: Student) => void }) {
+  return (
+    <ModalLayer>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet schedule-student-picker" role="dialog" aria-modal="true" aria-label={`Кого назначить на ${formatScheduleDay(date)}`} onMouseDown={(event) => event.stopPropagation()}>
+          <div className="sheet-handle" />
+          <div className="sheet-title"><div><span className="eyebrow">{formatScheduleDay(date)}</span><h2>Выбери ученика</h2></div><button type="button" onClick={onClose} aria-label="Закрыть выбор ученика"><Icon name="close" /></button></div>
+          {students.length ? <div className="schedule-student-list">{students.map((student) => (
+            <button key={student.id} type="button" onClick={() => onSelect(student)}>
+              <Avatar student={student} />
+              <span><strong>{student.name}</strong><small>{student.status === 'invited' ? 'Ожидает приглашения' : 'Выбрать тренировки'}</small></span>
+              <Icon name="chevron-right" />
+            </button>
+          ))}</div> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
+        </section>
+      </div>
+    </ModalLayer>
+  );
+}
+
 function TrainerHome({ data }: { data: DemoState }) {
+  const [showAllDays, setShowAllDays] = useState(false);
+  const [assignDate, setAssignDate] = useState<string | null>(null);
   const todayKey = dateKey();
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + 14);
@@ -1076,6 +1184,11 @@ function TrainerHome({ data }: { data: DemoState }) {
   const futureAssignments = upcoming.filter((item) => item.scheduledFor !== todayKey);
   const pendingRequests = data.assignments.filter((item) => item.rescheduleRequest);
   const todayParts = planDayParts(todayKey);
+  const futureDays = Array.from({ length: 14 }, (_, index) => {
+    const date = dateAfter(todayKey, index + 1);
+    return { date, assignments: futureAssignments.filter((item) => item.scheduledFor === date) };
+  });
+  const startAssignment = (date: string) => setAssignDate(date);
 
   return (
     <main className="content-page trainer-home-page">
@@ -1091,16 +1204,45 @@ function TrainerHome({ data }: { data: DemoState }) {
       <section className="today-schedule">
         <header>
           <div><h2>СЕГОДНЯ</h2><p>{todayParts.weekday}, {todayParts.day} {todayParts.month}</p></div>
+          <button className="schedule-add-button on-light" type="button" aria-label="Назначить тренировку на сегодня" onClick={() => startAssignment(todayKey)}><Icon name="plus" /></button>
         </header>
         {todayAssignments.length ? (
           <div className="today-session-list">{todayAssignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</div>
-        ) : <div className="today-empty"><Icon name="check" /><strong>Тренировок нет</strong></div>}
+        ) : <button className="today-empty" type="button" onClick={() => startAssignment(todayKey)}><Icon name="plus" /><strong>Тренировок нет</strong><small>Назначить ученика</small></button>}
       </section>
 
       <section className="future-schedule">
-        <div className="section-heading"><h2>Дальше</h2></div>
-        {futureAssignments.length ? <div className="trainer-upcoming-list">{futureAssignments.map((assignment) => <TrainerUpcomingRow key={assignment.id} data={data} assignment={assignment} />)}</div> : <EmptyState icon="calendar" title="Остальные дни свободны" text="На ближайшие две недели больше ничего не назначено." />}
+        <div className="future-schedule-heading">
+          <div><h2>Дальше</h2><p>Ближайшие две недели</p></div>
+          <button className={`schedule-view-toggle ${showAllDays ? 'active' : ''}`} type="button" role="switch" aria-checked={showAllDays} onClick={() => setShowAllDays((current) => !current)}>
+            <span className="toggle-track" aria-hidden="true"><i /></span>
+            <span><strong>Все дни</strong><small>{showAllDays ? 'Пустые видны' : 'Только занятые'}</small></span>
+          </button>
+        </div>
+        {showAllDays ? (
+          <div className="all-days-list">{futureDays.map((day) => {
+            const parts = planDayParts(day.date);
+            return <article className={`plan-day-card ${day.assignments.length ? '' : 'empty-day'}`} key={day.date}>
+              <header>
+                <time dateTime={day.date}><strong>{parts.day}</strong><span>{parts.month}<small>{parts.weekday}</small></span></time>
+                <button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${formatScheduleDay(day.date)}`} onClick={() => startAssignment(day.date)}><Icon name="plus" /></button>
+              </header>
+              {day.assignments.length
+                ? <div className="day-session-list">{day.assignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</div>
+                : <button className="empty-day-action" type="button" onClick={() => startAssignment(day.date)}><span><Icon name="plus" /></span><div><strong>Свободно</strong><small>Назначить ученика</small></div></button>}
+            </article>;
+          })}</div>
+        ) : futureAssignments.length ? <div className="trainer-upcoming-list">{futureAssignments.map((assignment) => <TrainerUpcomingRow key={assignment.id} data={data} assignment={assignment} />)}</div> : <EmptyState icon="calendar" title="Остальные дни свободны" text="На ближайшие две недели больше ничего не назначено." />}
       </section>
+      {assignDate && <ScheduleStudentPicker
+        date={assignDate}
+        students={data.students}
+        onClose={() => setAssignDate(null)}
+        onSelect={(student) => {
+          setAssignDate(null);
+          go(`/trainer/schedule/${assignDate}/${student.id}`);
+        }}
+      />}
     </main>
   );
 }
@@ -1445,6 +1587,35 @@ function WorkoutsList({ data }: { data: DemoState }) {
   );
 }
 
+function StudentWorkoutHistory({ data, student, scheduledFor }: { data: DemoState; student: Student; scheduledFor: string }) {
+  const previousAssignments = data.assignments
+    .filter((assignment) => assignment.studentId === student.id && assignment.scheduledFor < scheduledFor)
+    .sort((a, b) => `${b.scheduledFor} ${b.scheduledTime}`.localeCompare(`${a.scheduledFor} ${a.scheduledTime}`));
+
+  return (
+    <main className="content-page workouts-page schedule-workout-picker-page">
+      <PageHeader back="/trainer" eyebrow={formatScheduleDay(scheduledFor)} title="ВЫБЕРИ ТРЕНИРОВКУ" />
+      <p className="page-lead">Ученик выбран: <strong>{student.name}</strong>. Возьми одну из его предыдущих тренировок за основу или создай новую.</p>
+      <button className="list-primary-action" type="button" onClick={() => go(`/trainer/schedule/${scheduledFor}/${student.id}/new`)}><Icon name="plus" /> Создать новую тренировку</button>
+      {previousAssignments.length ? (
+        <section className="schedule-history-list" aria-label={`Предыдущие тренировки ${student.name}`}>
+          {previousAssignments.map((assignment) => {
+            const workout = findAssignmentWorkout(data, assignment);
+            if (!workout) return null;
+            return (
+              <button key={assignment.id} type="button" onClick={() => go(`/trainer/schedule/${scheduledFor}/${student.id}/copy/${assignment.id}`)}>
+                <span className="history-copy-icon"><Icon name="copy" /></span>
+                <div><h2>{workout.name}</h2><p>{formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime} · {exercisePreview(workout, true)}</p></div>
+                <Icon name="chevron-right" />
+              </button>
+            );
+          })}
+        </section>
+      ) : <EmptyState icon="history" title="Предыдущих тренировок нет" text="Создай первую тренировку для этого ученика — позже её можно будет копировать на новые даты." />}
+    </main>
+  );
+}
+
 function StudentWorkoutTemplates({ data, student }: { data: DemoState; student: Student }) {
   return (
     <main className="content-page workouts-page">
@@ -1468,14 +1639,26 @@ function StudentWorkoutTemplates({ data, student }: { data: DemoState; student: 
 function AssignWorkoutToStudent({
   student,
   workout,
+  initialScheduledFor = dateKey(),
+  initialScheduledTime = '18:00',
+  backPath,
+  title = 'НАЗНАЧИТЬ ТРЕНИРОВКУ',
+  submitLabel,
+  submitIcon = 'plus',
   onAssign,
 }: {
   student: Student;
   workout: Workout;
+  initialScheduledFor?: string;
+  initialScheduledTime?: string;
+  backPath?: string;
+  title?: string;
+  submitLabel?: string;
+  submitIcon?: IconName;
   onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
 }) {
-  const [scheduledFor, setScheduledFor] = useState(dateKey());
-  const [scheduledTime, setScheduledTime] = useState('18:00');
+  const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
+  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => workout.exercises.map((exercise) => ({ ...exercise })));
   const [error, setError] = useState('');
 
@@ -1491,7 +1674,7 @@ function AssignWorkoutToStudent({
 
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${student.id}/assign`} eyebrow={student.name} title="НАЗНАЧИТЬ ТРЕНИРОВКУ" />
+      <PageHeader back={backPath ?? `/trainer/clients/${student.id}/assign`} eyebrow={student.name} title={title} />
       <section className="plan-context-card assignment-edit-card">
         <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
         <div className="schedule-fields">
@@ -1501,7 +1684,7 @@ function AssignWorkoutToStudent({
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name="plus" /> Назначить {student.name}</button></div>
+      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name={submitIcon} /> {submitLabel ?? `Назначить ${student.name}`}</button></div>
     </main>
   );
 }
