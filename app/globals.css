@@ -595,10 +595,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .future-schedule-heading > div { display: grid; gap: 5px; }
 .future-schedule-heading h2 { margin: 0; font-size: 22px; letter-spacing: normal; }
 .future-schedule-heading p { margin: 0; color: var(--muted); font-size: 11px; }
-.schedule-view-toggle { display: flex; min-height: 52px; align-items: center; gap: 11px; border: 1px solid var(--ui-outline); border-radius: 18px; padding: 7px 12px 7px 9px; background: var(--surface); color: inherit; cursor: pointer; text-align: left; }
-.schedule-view-toggle > span:last-child { display: grid; gap: 2px; }
-.schedule-view-toggle strong { font-size: 12px; }
-.schedule-view-toggle small { color: var(--muted); font-size: 10px; white-space: nowrap; }
+.schedule-view-toggle { display: grid; min-height: 48px; grid-template-columns: 30px auto 38px; align-items: center; gap: 9px; border: 1px solid var(--ui-outline); border-radius: 16px; padding: 6px 9px 6px 7px; background: var(--surface); color: inherit; cursor: pointer; text-align: left; transition: border-color .18s ease, background .18s ease; }
+.schedule-view-toggle strong { font-size: 12px; white-space: nowrap; }
+.schedule-view-toggle.active { border-color: rgba(198,255,61,.32); background: var(--brand-soft); }
+.schedule-view-icon { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 10px; background: var(--surface-3); color: var(--muted); transition: background .18s ease, color .18s ease; }
+.schedule-view-icon svg { width: 15px; height: 15px; }
+.schedule-view-toggle.active .schedule-view-icon { background: var(--lime); color: var(--ink); }
 .toggle-track { position: relative; width: 38px; height: 23px; flex: 0 0 auto; border-radius: 999px; background: #353a34; transition: background .18s ease; }
 .toggle-track i { position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #a9afa6; transition: transform .18s ease, background .18s ease; }
 .schedule-view-toggle.active .toggle-track { background: var(--lime); }

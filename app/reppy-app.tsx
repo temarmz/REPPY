@@ -59,7 +59,25 @@ const COPY = {
 
 const NAVIGATION_EVENT = 'reppy:navigate';
 const MODAL_LAYER_EVENT = 'reppy:modal-layer';
+const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 let openModalLayers = 0;
+
+function loadAllDaysPreference() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(TRAINER_ALL_DAYS_PREFERENCE) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveAllDaysPreference(value: boolean) {
+  try {
+    window.localStorage.setItem(TRAINER_ALL_DAYS_PREFERENCE, String(value));
+  } catch {
+    // The view still works when storage is unavailable (for example, in private mode).
+  }
+}
 
 function hashPath() {
   if (typeof window === 'undefined') return '/';
@@ -1177,7 +1195,7 @@ function ScheduleStudentPicker({ date, students, onClose, onSelect }: { date: st
 }
 
 function TrainerHome({ data }: { data: DemoState }) {
-  const [showAllDays, setShowAllDays] = useState(false);
+  const [showAllDays, setShowAllDays] = useState(loadAllDaysPreference);
   const [assignDate, setAssignDate] = useState<string | null>(null);
   const todayKey = dateKey();
   const horizon = new Date();
@@ -1195,6 +1213,11 @@ function TrainerHome({ data }: { data: DemoState }) {
     return { date, assignments: futureAssignments.filter((item) => item.scheduledFor === date) };
   });
   const startAssignment = (date: string) => setAssignDate(date);
+  const toggleAllDays = () => setShowAllDays((current) => {
+    const next = !current;
+    saveAllDaysPreference(next);
+    return next;
+  });
 
   return (
     <main className="content-page trainer-home-page">
@@ -1220,9 +1243,10 @@ function TrainerHome({ data }: { data: DemoState }) {
       <section className="future-schedule">
         <div className="future-schedule-heading">
           <div><h2>Дальше</h2><p>Ближайшие две недели</p></div>
-          <button className={`schedule-view-toggle ${showAllDays ? 'active' : ''}`} type="button" role="switch" aria-checked={showAllDays} onClick={() => setShowAllDays((current) => !current)}>
+          <button className={`schedule-view-toggle ${showAllDays ? 'active' : ''}`} type="button" role="switch" aria-checked={showAllDays} onClick={toggleAllDays}>
+            <span className="schedule-view-icon" aria-hidden="true"><Icon name="calendar" /></span>
+            <strong>Все дни</strong>
             <span className="toggle-track" aria-hidden="true"><i /></span>
-            <span><strong>Все дни</strong><small>{showAllDays ? 'Пустые видны' : 'Только занятые'}</small></span>
           </button>
         </div>
         {showAllDays ? (

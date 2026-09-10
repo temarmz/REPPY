@@ -64,6 +64,10 @@ test('тренер видит все дни и назначает ученику
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
   await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
 
+  await page.reload();
+  await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
+
   const firstEmptyDay = page.locator('.all-days-list .plan-day-card.empty-day').first();
   const selectedDate = await firstEmptyDay.locator('time').getAttribute('datetime');
   expect(selectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -87,7 +91,8 @@ test('тренер видит все дни и назначает ученику
 
   await expect(page).toHaveURL(/#\/trainer$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
-  await expect(page.locator(`.trainer-upcoming-row time[datetime^="${selectedDate}"]`)).toHaveCount(1);
+  const assignedDay = page.locator('.all-days-list .plan-day-card').filter({ has: page.locator(`time[datetime="${selectedDate}"]`) });
+  await expect(assignedDay).toContainText('Мария А.');
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'ВЫБРАТЬ ТРЕНИРОВКУ' })).toBeVisible();
