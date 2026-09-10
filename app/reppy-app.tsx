@@ -1807,7 +1807,7 @@ function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onPro
             ))}
           </div>
           {exercise.coachNote && <p className="readonly-coach-note"><Icon name="edit" /> {exercise.coachNote}</p>}
-          {onProgress?.(exercise) && <button type="button" className="wide-secondary" onClick={onProgress(exercise)}><Icon name="history" /> Прогресс упражнения</button>}
+          {onProgress?.(exercise) && <button type="button" className="wide-secondary exercise-progress-button" onClick={onProgress(exercise)}><Icon name="history" /> Прогресс упражнения</button>}
         </article>
       ))}
     </section>
@@ -2802,7 +2802,7 @@ function SessionResult({
           return (
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
-              {trainerView && progress.some((group) => group.key === progressKey(exercise)) && <button type="button" className="wide-secondary" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения <Icon name="arrow-right" /></button>}
+              {trainerView && progress.some((group) => group.key === progressKey(exercise)) && <button type="button" className="wide-secondary exercise-progress-button" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения <Icon name="arrow-right" /></button>}
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
             </article>
           );

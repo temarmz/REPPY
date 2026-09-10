@@ -68,15 +68,25 @@ test('график, клавиатура, соседние занятия и п�
   await page.getByRole('button', { name: 'Открыть тренировку' }).click();
   await expect(page).toHaveURL(/sessions\/progress-2$/);
   await expect(page.getByText('Контрольный комментарий к тренировке')).toBeVisible();
-  await page.locator('.result-exercises article').first().getByRole('button', { name: 'Прогресс упражнения' }).click();
+  const resultProgressButton = page.locator('.result-exercises article').first().getByRole('button', { name: 'Прогресс упражнения' });
+  expect(await resultProgressButton.evaluate((element) => {
+    const css = getComputedStyle(element);
+    return [css.marginTop, css.marginRight, css.marginBottom, css.marginLeft];
+  })).toEqual(['14px', '18px', '14px', '18px']);
+  await resultProgressButton.click();
   await expect(page.locator('.progress-chart')).toBeVisible();
 });
 
 test('история доступна перед тренировкой только для упражнений с результатами', async ({ page }) => {
   await seedProgress(page);
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.getByRole('button', { name: 'Прогресс упражнения' })).toHaveCount(1);
-  await page.getByRole('button', { name: 'Прогресс упражнения' }).click();
+  const plannedProgressButton = page.getByRole('button', { name: 'Прогресс упражнения' });
+  await expect(plannedProgressButton).toHaveCount(1);
+  expect(await plannedProgressButton.evaluate((element) => {
+    const css = getComputedStyle(element);
+    return [css.marginTop, css.marginRight, css.marginBottom, css.marginLeft];
+  })).toEqual(['14px', '18px', '18px', '18px']);
+  await plannedProgressButton.click();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(3);
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/assignments\/assignment-artem-push-today$/);

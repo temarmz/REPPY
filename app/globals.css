@@ -1824,6 +1824,12 @@ body.modal-open .bottom-nav { display: none; }
   margin-top: 1px;
   color: var(--lime);
 }
+.exercise-progress-button {
+  width: calc(100% - 36px);
+  min-height: 52px;
+  margin: 14px 18px 18px;
+}
+.result-exercises .exercise-progress-button { margin-block: 14px; }
 
 .plan-context-card {
   margin-bottom: 18px;
