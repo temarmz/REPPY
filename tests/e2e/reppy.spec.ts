@@ -65,6 +65,7 @@ test('тренер видит все дни и назначает ученику
   await allDaysToggle.click();
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
   await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
+  await expect(page.locator('.all-days-list .empty-day').first()).not.toContainText('Свободно');
 
   const occupiedDateNumber = page.locator('.all-days-list .plan-day-card:not(.empty-day) .plan-day-date > strong').first();
   const emptyDateNumber = page.locator('.all-days-list .empty-day .plan-day-date > strong').first();
@@ -307,6 +308,25 @@ test('тренер пополняет и исправляет абонемент
   await page.goto('/#/student/profile');
   await expect(page.getByLabel('Абонемент')).toContainText('Осталось 17 занятий');
   await expect(page.getByLabel('Последние пополнения')).toContainText('12 000 ₽ · наличные');
+});
+
+test('главная ученика не показывает отсутствующий абонемент, но профиль его показывает', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.evaluate(() => {
+    const raw = window.localStorage.getItem('reppy-demo-v0');
+    if (!raw) throw new Error('Demo state is missing');
+    const state = JSON.parse(raw);
+    state.activeStudentId = 'maria';
+    window.localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
+  });
+
+  await page.goto('/#/student');
+  await page.reload();
+  await expect(page.getByLabel('Остаток абонемента')).toHaveCount(0);
+  await expect(page.getByText('Абонемент не добавлен')).toHaveCount(0);
+
+  await page.goto('/#/student/profile');
+  await expect(page.getByLabel('Абонемент')).toContainText('Абонемент не добавлен');
 });
 
 test('тренер может завершить занятие в долг и списание происходит один раз', async ({ page }) => {

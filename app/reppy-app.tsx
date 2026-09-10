@@ -1258,7 +1258,6 @@ function TrainerHome({ data }: { data: DemoState }) {
               <article className="plan-day-card empty-day" key={day.date}>
                 <button className="empty-day-action" type="button" aria-label={`Назначить ученика на ${formatScheduleDay(day.date)}`} onClick={() => startAssignment(day.date)}>
                   <time className="plan-day-date" dateTime={day.date}><strong>{parts.day}</strong><span><b>{parts.month}</b><small>{parts.weekday}</small></span></time>
-                  <span className="empty-day-label"><strong>Свободно</strong><small>Назначить</small></span>
                   <span className="empty-day-plus"><Icon name="plus" /></span>
                 </button>
               </article>
@@ -2272,10 +2271,10 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 
   return (
     <main className="content-page student-page">
-      <section className={`student-subscription-status ${subscriptionTone(balance, hasSubscription)}`} aria-label="Остаток абонемента">
+      {hasSubscription && <section className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Остаток абонемента">
         <span><Icon name={balance > 0 ? 'check' : 'minus'} /></span>
-        <div><small>АБОНЕМЕНТ</small><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong></div>
-      </section>
+        <div><small>АБОНЕМЕНТ</small><strong>{subscriptionBalanceLabel(balance)}</strong></div>
+      </section>}
       {mainAssignment ? (
         <section className="student-focus-card">
           <div className="student-card-top"><time dateTime={`${mainAssignment.scheduledFor}T${mainAssignment.scheduledTime}`}><strong>{formatScheduleDay(mainAssignment.scheduledFor)}</strong><small>{mainAssignment.scheduledTime}</small></time>{mainSession && <b>{mainProgress}%</b>}</div>
