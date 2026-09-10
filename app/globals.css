@@ -578,7 +578,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .today-schedule > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
 .today-schedule > header h2 { margin: 0; font-size: clamp(40px, 7vw, 66px); line-height: .9; letter-spacing: normal; }
 .today-schedule > header p { margin: 10px 0 0; color: #626961; font-size: 14px; font-weight: 750; text-transform: capitalize; }
-.schedule-add-button { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 0; background: rgba(255,255,255,.055); color: var(--lime); cursor: pointer; }
+.schedule-add-button { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 0; background: rgba(255,255,255,.055); color: var(--lime); cursor: pointer; }
 .schedule-add-button:hover { background: rgba(198,255,61,.1); }
 .schedule-add-button .ui-icon { width: 18px; height: 18px; }
 .schedule-add-button.on-light { border-color: rgba(7,9,8,.1); background: rgba(7,9,8,.055); color: #526d19; }
@@ -598,22 +598,26 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .schedule-view-toggle { display: flex; min-height: 52px; align-items: center; gap: 11px; border: 1px solid var(--ui-outline); border-radius: 18px; padding: 7px 12px 7px 9px; background: var(--surface); color: inherit; cursor: pointer; text-align: left; }
 .schedule-view-toggle > span:last-child { display: grid; gap: 2px; }
 .schedule-view-toggle strong { font-size: 12px; }
-.schedule-view-toggle small { color: var(--muted); font-size: 9px; white-space: nowrap; }
+.schedule-view-toggle small { color: var(--muted); font-size: 10px; white-space: nowrap; }
 .toggle-track { position: relative; width: 38px; height: 23px; flex: 0 0 auto; border-radius: 999px; background: #353a34; transition: background .18s ease; }
 .toggle-track i { position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #a9afa6; transition: transform .18s ease, background .18s ease; }
 .schedule-view-toggle.active .toggle-track { background: var(--lime); }
 .schedule-view-toggle.active .toggle-track i { background: var(--ink); transform: translateX(15px); }
-.all-days-list { display: grid; gap: 10px; }
+.all-days-list { display: grid; gap: 8px; }
 .all-days-list .plan-day-card > header { justify-content: space-between; }
-.all-days-list .plan-day-card.empty-day > header { border-bottom-style: dashed; }
 .day-session-list { overflow: hidden; }
-.empty-day-action { display: flex; width: 100%; min-height: 72px; align-items: center; gap: 13px; border: 0; padding: 12px 18px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.plan-day-card.empty-day { border-style: dashed; background: rgba(255,255,255,.018); }
+.empty-day-action { display: grid; width: 100%; min-height: 78px; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 14px; border: 0; padding: 10px 13px 10px 18px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .empty-day-action:hover { background: rgba(255,255,255,.025); }
-.empty-day-action > span { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border: 1px dashed rgba(198,255,61,.28); border-radius: 12px; color: var(--lime); }
-.empty-day-action > span .ui-icon { width: 15px; height: 15px; }
-.empty-day-action > div { display: grid; gap: 4px; }
-.empty-day-action strong { color: #d9ddd6; font-size: 13px; }
-.empty-day-action small { color: var(--muted); font-size: 11px; }
+.empty-day-action time { display: flex; min-width: 0; align-items: center; gap: 11px; text-transform: capitalize; }
+.empty-day-action time > strong { min-width: 38px; color: #e8ebe5; font-size: 29px; line-height: 1; letter-spacing: normal; }
+.empty-day-action time > span, .empty-day-label { display: grid; gap: 3px; }
+.empty-day-action time > span { color: #d6dad3; font-size: 14px; font-weight: 800; }
+.empty-day-action time small, .empty-day-label small { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: lowercase; }
+.empty-day-label { min-width: 70px; }
+.empty-day-label strong { color: #d9ddd6; font-size: 13px; }
+.empty-day-plus { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: rgba(255,255,255,.055); color: var(--lime); }
+.empty-day-plus .ui-icon { width: 18px; height: 18px; }
 .trainer-upcoming-list { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 24px; background: var(--surface); }
 .trainer-upcoming-row { grid-template-columns: 105px minmax(0,1fr) auto; }
 .trainer-upcoming-row time strong { color: #dfe3dc; }
@@ -654,11 +658,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .schedule-student-picker { overflow-y: auto; }
 .schedule-student-picker .eyebrow { margin-bottom: 6px; text-transform: capitalize; }
 .schedule-student-list { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 22px; background: #0e110e; }
-.schedule-student-list > button { display: grid; width: 100%; min-height: 76px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 13px; border: 0; border-bottom: 1px solid rgba(255,255,255,.06); padding: 10px 13px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.schedule-student-list > button { display: grid; width: 100%; min-height: 82px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 15px; border: 0; border-bottom: 1px solid rgba(255,255,255,.06); padding: 14px 17px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .schedule-student-list > button:last-child { border-bottom: 0; }
 .schedule-student-list > button:hover { background: rgba(255,255,255,.03); }
 .schedule-student-list > button > span:not(.person-avatar) { display: grid; min-width: 0; gap: 5px; }
-.schedule-student-list strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-student-list strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .schedule-student-list small { color: var(--muted); font-size: 11px; }
 .schedule-student-list > button > .ui-icon { width: 16px; height: 16px; color: var(--muted); }
 .recent-card {
@@ -1383,16 +1387,13 @@ body.modal-open .bottom-nav { display: none; }
 .workout-template-row p { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .workout-template-row > .ui-icon { width: 18px; height: 18px; color: var(--muted); }
 .schedule-workout-picker-page .page-lead strong { color: #e1e5de; }
-.schedule-history-list { overflow: hidden; margin-top: 14px; border: 1px solid rgba(255,255,255,.07); border-radius: 26px; background: var(--surface); }
-.schedule-history-list > button { display: grid; width: 100%; min-height: 98px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 15px; border: 0; border-bottom: 1px solid rgba(255,255,255,.065); padding: 16px 18px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
-.schedule-history-list > button:last-child { border-bottom: 0; }
-.schedule-history-list > button:hover { background: rgba(255,255,255,.025); }
+.schedule-history-list { margin-top: 14px; }
 .history-copy-icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 15px; background: var(--brand-soft); color: var(--lime); }
 .history-copy-icon .ui-icon { width: 19px; height: 19px; }
-.schedule-history-list div { display: grid; min-width: 0; gap: 7px; }
-.schedule-history-list h2 { overflow: hidden; margin: 0; font-size: 17px; letter-spacing: normal; text-overflow: ellipsis; white-space: nowrap; }
-.schedule-history-list p { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.schedule-history-list > button > .ui-icon { width: 17px; height: 17px; color: var(--muted); }
+.history-status { display: inline-flex; margin-right: 7px; border-radius: 999px; padding: 2px 6px; background: rgba(122,76,255,.12); color: #b5a3e8; font-size: 9px; font-weight: 850; line-height: 1.35; }
+.history-status.completed { background: var(--brand-soft); color: var(--lime); }
+.history-status.overdue { background: rgba(255,106,53,.12); color: #ff9b77; }
+.history-show-more { margin-top: 10px; }
 .workout-detail-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 34px; }
 .workout-detail-actions .primary-button, .workout-detail-actions .wide-secondary { min-height: 58px; }
 .workout-plan-heading { margin-bottom: 14px; }

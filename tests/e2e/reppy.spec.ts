@@ -75,19 +75,41 @@ test('тренер видит все дни и назначает ученику
   await studentDialog.getByRole('button', { name: /Мария А\./ }).click();
 
   await expect(page).toHaveURL(new RegExp(`#\/trainer\/schedule\/${selectedDate}\/maria$`));
-  await expect(page.getByRole('heading', { name: 'ВЫБЕРИ ТРЕНИРОВКУ' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Создать новую тренировку' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ВЫБРАТЬ ТРЕНИРОВКУ' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Создать тренировку' })).toBeVisible();
   const previousWorkout = page.locator('.schedule-history-list > button').first();
   await expect(previousWorkout).toContainText('Ноги');
   await previousWorkout.click();
 
-  await expect(page.getByRole('heading', { name: 'СКОПИРОВАТЬ ТРЕНИРОВКУ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Дата тренировки:/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Скопировать для Мария А.' }).click();
+  await page.getByRole('button', { name: 'Создать копию' }).click();
 
   await expect(page).toHaveURL(/#\/trainer$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
   await expect(page.locator(`.trainer-upcoming-row time[datetime^="${selectedDate}"]`)).toHaveCount(1);
+
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'ВЫБРАТЬ ТРЕНИРОВКУ' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Создать копию' })).toHaveCount(0);
+});
+
+test('повтор завершённой тренировки из расписания использует фактические результаты', async ({ page }) => {
+  await openFreshDemo(page);
+  const targetDate = await page.evaluate(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  });
+  await page.goto(`/#/trainer/schedule/${targetDate}/artem`);
+
+  const completedWorkout = page.locator('.schedule-history-list .workout-template-row').filter({ hasText: 'Завершена' }).first();
+  await expect(completedWorkout).toBeVisible();
+  await completedWorkout.click();
+
+  const firstSet = page.locator('.plan-exercise-card').first().locator('.plan-set-card').first();
+  await expect(firstSet.getByLabel('КГ')).toHaveValue('70');
+  await expect(firstSet.getByLabel('ПОВТОРЫ')).toHaveValue('10');
 });
 
 test('тренер дублирует шаблон и повторяет назначение тому же ученику', async ({ page }) => {
