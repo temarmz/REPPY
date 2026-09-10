@@ -1071,6 +1071,7 @@ function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, back,
 function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
   const today = new Date();
   const [selectedDay, setSelectedDay] = useState(dateKey(today));
+  const [assignDate, setAssignDate] = useState<string | null>(null);
   const assignments = data.assignments
     .filter((item) => area === 'trainer' || item.studentId === data.activeStudentId)
     .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
@@ -1092,7 +1093,10 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
       />
 
       <section className="calendar-agenda">
-        <div className="section-heading"><h2>{selectedTitle}</h2></div>
+        <div className="section-heading">
+          <h2>{selectedTitle}</h2>
+          {area === 'trainer' && isScheduleDate(selectedDay) && <button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${selectedTitle}`} onClick={() => setAssignDate(selectedDay)}><Icon name="plus" /></button>}
+        </div>
         {selectedAssignments.length ? <div className="agenda-list">{selectedAssignments.map((assignment) => {
           const student = findStudent(data, assignment.studentId);
           const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
@@ -1109,6 +1113,15 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
           );
         })}</div> : <EmptyState icon="calendar" title="Свободный день" text={area === 'trainer' ? 'У команды нет тренировок в этот день.' : 'На этот день тренировка не запланирована.'} />}
       </section>
+      {assignDate && <ScheduleStudentPicker
+        date={assignDate}
+        students={data.students}
+        onClose={() => setAssignDate(null)}
+        onSelect={(student) => {
+          setAssignDate(null);
+          go(`/trainer/schedule/${assignDate}/${student.id}`);
+        }}
+      />}
     </main>
   );
 }
@@ -1162,21 +1175,6 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
   );
 }
 
-function TrainerUpcomingRow({ data, assignment }: { data: DemoState; assignment: Assignment }) {
-  const student = findStudent(data, assignment.studentId);
-  const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
-  const workout = session ? findSessionWorkout(data, session) : findAssignmentWorkout(data, assignment);
-  const target = session ? `/trainer/sessions/${session.id}` : `/trainer/assignments/${assignment.id}`;
-
-  return (
-    <button className="student-upcoming-row trainer-upcoming-row" type="button" onClick={() => go(target)}>
-      <time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}><strong>{formatCalendarDay(assignment.scheduledFor)}</strong><small>{assignment.scheduledTime}</small></time>
-      <span><strong>{student?.name}</strong><small>{workout?.name}</small></span>
-      <Icon name="chevron-right" />
-    </button>
-  );
-}
-
 function ScheduleStudentPicker({ date, students, onClose, onSelect }: { date: string; students: Student[]; onClose: () => void; onSelect: (student: Student) => void }) {
   return (
     <ModalLayer>
@@ -1214,6 +1212,7 @@ function TrainerHome({ data }: { data: DemoState }) {
     const date = dateAfter(todayKey, index + 1);
     return { date, assignments: futureAssignments.filter((item) => item.scheduledFor === date) };
   });
+  const visibleFutureDays = showAllDays ? futureDays : futureDays.filter((day) => day.assignments.length > 0);
   const startAssignment = (date: string) => setAssignDate(date);
   const toggleAllDays = () => setShowAllDays((current) => {
     const next = !current;
@@ -1251,8 +1250,8 @@ function TrainerHome({ data }: { data: DemoState }) {
             <span className="toggle-track" aria-hidden="true"><i /></span>
           </button>
         </div>
-        {showAllDays ? (
-          <div className="all-days-list">{futureDays.map((day) => {
+        {visibleFutureDays.length ? (
+          <div className="schedule-days-list">{visibleFutureDays.map((day) => {
             const parts = planDayParts(day.date);
             if (!day.assignments.length) return (
               <article className="plan-day-card empty-day" key={day.date}>
@@ -1270,7 +1269,7 @@ function TrainerHome({ data }: { data: DemoState }) {
               <div className="day-session-list">{day.assignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</div>
             </article>;
           })}</div>
-        ) : futureAssignments.length ? <div className="trainer-upcoming-list">{futureAssignments.map((assignment) => <TrainerUpcomingRow key={assignment.id} data={data} assignment={assignment} />)}</div> : <EmptyState icon="calendar" title="Остальные дни свободны" text="На ближайшие две недели больше ничего не назначено." />}
+        ) : <EmptyState icon="calendar" title="Остальные дни свободны" text="На ближайшие две недели больше ничего не назначено." />}
       </section>
       {assignDate && <ScheduleStudentPicker
         date={assignDate}

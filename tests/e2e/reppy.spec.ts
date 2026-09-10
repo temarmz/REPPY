@@ -53,25 +53,27 @@ test('настройки демо остаются поверх нижнего �
   await expect(page.locator('.bottom-nav')).toBeVisible();
 });
 
-test('тренер видит все дни и назначает ученику копию прошлой тренировки на свободную дату', async ({ page }) => {
+test('тренер видит единые карточки расписания и назначает копию тренировки на свободную дату', async ({ page }) => {
   await openFreshDemo(page);
 
   const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'false');
-  await expect(page.locator('.all-days-list')).toHaveCount(0);
-  const compactDate = page.locator('.trainer-upcoming-row time strong').first();
-  expect(await compactDate.textContent()).toBe((await compactDate.textContent())?.toLocaleLowerCase('ru-RU'));
+  const occupiedOnlyDays = page.locator('.schedule-days-list .plan-day-card');
+  expect(await occupiedOnlyDays.count()).toBeGreaterThan(0);
+  await expect(page.locator('.schedule-days-list .empty-day')).toHaveCount(0);
+  await expect(occupiedOnlyDays.first().locator('.plan-day-date')).toBeVisible();
+  await expect(occupiedOnlyDays.first().locator('.plan-session-row')).toBeVisible();
 
   await allDaysToggle.click();
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
-  await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
-  await expect(page.locator('.all-days-list .empty-day').first()).not.toContainText('Свободно');
+  await expect(page.locator('.schedule-days-list .plan-day-card')).toHaveCount(14);
+  await expect(page.locator('.schedule-days-list .empty-day').first()).not.toContainText('Свободно');
 
-  const occupiedDateNumber = page.locator('.all-days-list .plan-day-card:not(.empty-day) .plan-day-date > strong').first();
-  const emptyDateNumber = page.locator('.all-days-list .empty-day .plan-day-date > strong').first();
+  const occupiedDateNumber = page.locator('.schedule-days-list .plan-day-card:not(.empty-day) .plan-day-date > strong').first();
+  const emptyDateNumber = page.locator('.schedule-days-list .empty-day .plan-day-date > strong').first();
   expect(await occupiedDateNumber.evaluate((element) => getComputedStyle(element).fontSize))
     .toBe(await emptyDateNumber.evaluate((element) => getComputedStyle(element).fontSize));
-  const firstMonth = page.locator('.all-days-list .plan-day-date > span > b').first();
+  const firstMonth = page.locator('.schedule-days-list .plan-day-date > span > b').first();
   const expectedMonth = await firstMonth.locator('xpath=ancestor::time').getAttribute('datetime').then((value) => (
     new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
       .formatToParts(new Date(`${value}T12:00:00`))
@@ -81,9 +83,9 @@ test('тренер видит все дни и назначает ученику
 
   await page.reload();
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
-  await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
+  await expect(page.locator('.schedule-days-list .plan-day-card')).toHaveCount(14);
 
-  const firstEmptyDay = page.locator('.all-days-list .plan-day-card.empty-day').first();
+  const firstEmptyDay = page.locator('.schedule-days-list .plan-day-card.empty-day').first();
   const selectedDate = await firstEmptyDay.locator('time').getAttribute('datetime');
   expect(selectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   await firstEmptyDay.getByRole('button', { name: /Назначить ученика/ }).click();
@@ -106,12 +108,31 @@ test('тренер видит все дни и назначает ученику
 
   await expect(page).toHaveURL(/#\/trainer$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
-  const assignedDay = page.locator('.all-days-list .plan-day-card').filter({ has: page.locator(`time[datetime="${selectedDate}"]`) });
+  const assignedDay = page.locator('.schedule-days-list .plan-day-card').filter({ has: page.locator(`time[datetime="${selectedDate}"]`) });
   await expect(assignedDay).toContainText('Мария А.');
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'ВЫБРАТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Создать копию' })).toHaveCount(0);
+});
+
+test('календарь тренера использует тот же плюс и выбор ученика', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/student/calendar');
+  await expect(page.getByRole('button', { name: /Назначить тренировку на/ })).toHaveCount(0);
+
+  await page.goto('/#/trainer/calendar');
+  const assignButton = page.getByRole('button', { name: /Назначить тренировку на/ });
+  await expect(assignButton).toHaveClass(/schedule-add-button/);
+  const buttonBox = await assignButton.boundingBox();
+  expect(Math.round(buttonBox?.width ?? 0)).toBe(44);
+  expect(Math.round(buttonBox?.height ?? 0)).toBe(44);
+  await assignButton.click();
+
+  const studentDialog = page.getByRole('dialog', { name: /Кого назначить/ });
+  await expect(studentDialog).toBeVisible();
+  await studentDialog.getByRole('button', { name: /Мария А\./ }).click();
+  await expect(page).toHaveURL(/#\/trainer\/schedule\/\d{4}-\d{2}-\d{2}\/maria$/);
 });
 
 test('повтор завершённой тренировки из расписания использует фактические результаты', async ({ page }) => {
