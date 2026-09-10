@@ -59,10 +59,24 @@ test('тренер видит все дни и назначает ученику
   const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'false');
   await expect(page.locator('.all-days-list')).toHaveCount(0);
+  const compactDate = page.locator('.trainer-upcoming-row time strong').first();
+  expect(await compactDate.textContent()).toBe((await compactDate.textContent())?.toLocaleLowerCase('ru-RU'));
 
   await allDaysToggle.click();
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');
   await expect(page.locator('.all-days-list .plan-day-card')).toHaveCount(14);
+
+  const occupiedDateNumber = page.locator('.all-days-list .plan-day-card:not(.empty-day) .plan-day-date > strong').first();
+  const emptyDateNumber = page.locator('.all-days-list .empty-day .plan-day-date > strong').first();
+  expect(await occupiedDateNumber.evaluate((element) => getComputedStyle(element).fontSize))
+    .toBe(await emptyDateNumber.evaluate((element) => getComputedStyle(element).fontSize));
+  const firstMonth = page.locator('.all-days-list .plan-day-date > span > b').first();
+  const expectedMonth = await firstMonth.locator('xpath=ancestor::time').getAttribute('datetime').then((value) => (
+    new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
+      .formatToParts(new Date(`${value}T12:00:00`))
+      .find((part) => part.type === 'month')?.value ?? ''
+  ));
+  await expect(firstMonth).toHaveText(expectedMonth);
 
   await page.reload();
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'true');

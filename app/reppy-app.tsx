@@ -1064,8 +1064,8 @@ function AppShell({
   );
 }
 
-function PageHeader({ eyebrow, title, action, back, directBack = false }: { eyebrow?: string; title: string; action?: ReactNode; back?: string; directBack?: boolean }) {
-  return <SharedPageHeader eyebrow={eyebrow} title={title} action={action} onBack={back ? () => directBack ? go(back) : goBack(back) : undefined} />;
+function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, back, directBack = false }: { eyebrow?: string; preserveEyebrowCase?: boolean; title: string; action?: ReactNode; back?: string; directBack?: boolean }) {
+  return <SharedPageHeader eyebrow={eyebrow} preserveEyebrowCase={preserveEyebrowCase} title={title} action={action} onBack={back ? () => directBack ? go(back) : goBack(back) : undefined} />;
 }
 
 function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
@@ -1079,7 +1079,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
     return counts;
   }, new Map<string, number>());
   const selectedAssignments = assignments.filter((item) => item.scheduledFor === selectedDay);
-  const selectedTitle = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${selectedDay}T12:00:00`));
+  const selectedTitle = formatScheduleDay(selectedDay);
 
   return (
     <main className="content-page calendar-page">
@@ -1115,9 +1115,12 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
 
 function planDayParts(value: string) {
   const date = new Date(`${value}T12:00:00`);
+  const monthWithDay = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' })
+    .formatToParts(date)
+    .find((part) => part.type === 'month')?.value ?? '';
   return {
     day: new Intl.DateTimeFormat('ru-RU', { day: '2-digit' }).format(date),
-    month: new Intl.DateTimeFormat('ru-RU', { month: 'short' }).format(date).replace('.', ''),
+    month: monthWithDay,
     weekday: new Intl.DateTimeFormat('ru-RU', { weekday: 'long' }).format(date),
   };
 }
@@ -1207,7 +1210,6 @@ function TrainerHome({ data }: { data: DemoState }) {
   const todayAssignments = upcoming.filter((item) => item.scheduledFor === todayKey);
   const futureAssignments = upcoming.filter((item) => item.scheduledFor !== todayKey);
   const pendingRequests = data.assignments.filter((item) => item.rescheduleRequest);
-  const todayParts = planDayParts(todayKey);
   const futureDays = Array.from({ length: 14 }, (_, index) => {
     const date = dateAfter(todayKey, index + 1);
     return { date, assignments: futureAssignments.filter((item) => item.scheduledFor === date) };
@@ -1232,7 +1234,7 @@ function TrainerHome({ data }: { data: DemoState }) {
 
       <section className="today-schedule">
         <header>
-          <div><h2>СЕГОДНЯ</h2><p>{todayParts.weekday}, {todayParts.day} {todayParts.month}</p></div>
+          <div><h2>СЕГОДНЯ</h2><p>{formatScheduleDay(todayKey)}</p></div>
           {todayAssignments.length > 0 && <button className="schedule-add-button on-light" type="button" aria-label="Назначить тренировку на сегодня" onClick={() => startAssignment(todayKey)}><Icon name="plus" /></button>}
         </header>
         {todayAssignments.length ? (
@@ -1255,7 +1257,7 @@ function TrainerHome({ data }: { data: DemoState }) {
             if (!day.assignments.length) return (
               <article className="plan-day-card empty-day" key={day.date}>
                 <button className="empty-day-action" type="button" aria-label={`Назначить ученика на ${formatScheduleDay(day.date)}`} onClick={() => startAssignment(day.date)}>
-                  <time dateTime={day.date}><strong>{parts.day}</strong><span>{parts.month}<small>{parts.weekday}</small></span></time>
+                  <time className="plan-day-date" dateTime={day.date}><strong>{parts.day}</strong><span><b>{parts.month}</b><small>{parts.weekday}</small></span></time>
                   <span className="empty-day-label"><strong>Свободно</strong><small>Назначить</small></span>
                   <span className="empty-day-plus"><Icon name="plus" /></span>
                 </button>
@@ -1263,7 +1265,7 @@ function TrainerHome({ data }: { data: DemoState }) {
             );
             return <article className="plan-day-card" key={day.date}>
               <header>
-                <time dateTime={day.date}><strong>{parts.day}</strong><span>{parts.month}<small>{parts.weekday}</small></span></time>
+                <time className="plan-day-date" dateTime={day.date}><strong>{parts.day}</strong><span><b>{parts.month}</b><small>{parts.weekday}</small></span></time>
                 <button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${formatScheduleDay(day.date)}`} onClick={() => startAssignment(day.date)}><Icon name="plus" /></button>
               </header>
               <div className="day-session-list">{day.assignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</div>
@@ -1633,7 +1635,7 @@ function StudentWorkoutHistory({ data, student, scheduledFor }: { data: DemoStat
 
   return (
     <main className="content-page workouts-page schedule-workout-picker-page">
-      <PageHeader back="/trainer" eyebrow={formatScheduleDay(scheduledFor)} title="ВЫБРАТЬ ТРЕНИРОВКУ" />
+      <PageHeader back="/trainer" eyebrow={formatScheduleDay(scheduledFor)} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
       <p className="page-lead">Ученик выбран: <strong>{student.name}</strong>. Повтори одну из назначенных ранее тренировок или создай новую.</p>
       <button className="list-primary-action" type="button" onClick={() => go(`/trainer/schedule/${scheduledFor}/${student.id}/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
       {previousAssignments.length ? (
@@ -2060,7 +2062,7 @@ function AssignmentDetails({
   if (!student || !workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)}, ${assignment.scheduledTime}`} title={workout.name.toUpperCase()} />
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)}, ${assignment.scheduledTime}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       {assignment.rescheduleRequest && <section className="reschedule-request-card">
         <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
         <div className="reschedule-request-actions"><button className="wide-secondary" type="button" onClick={onDeclineRequest}><Icon name="close" /> Отклонить</button><button className="primary-button" type="button" onClick={onAcceptRequest}><Icon name="check" /> Подтвердить</button></div>
@@ -2789,7 +2791,7 @@ function SessionResult({
   if (!workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
-      <PageHeader directBack back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} title={workout.name.toUpperCase()} />
+      <PageHeader directBack back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
       {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       {trainerView && <div className="session-result-actions">

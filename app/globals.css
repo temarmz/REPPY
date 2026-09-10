@@ -120,6 +120,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   letter-spacing: .12em;
   text-transform: uppercase;
 }
+.eyebrow.preserve-case { text-transform: none; }
 .welcome-copy h1 {
   margin: 0;
   font-size: clamp(43px, 8.5vw, 76px);
@@ -310,6 +311,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 
 .brand-button { border: 0; padding: 0; background: transparent; cursor: pointer; }
+.topbar .brand-button { margin-left: -22px; }
 .app-shell { min-height: 100svh; background: var(--ink); }
 .topbar {
   position: sticky;
@@ -577,7 +579,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .today-schedule { overflow: hidden; border-radius: 30px; padding: clamp(22px, 4vw, 34px); background: #ecefe9; color: var(--ink); }
 .today-schedule > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
 .today-schedule > header h2 { margin: 0; font-size: clamp(40px, 7vw, 66px); line-height: .9; letter-spacing: normal; }
-.today-schedule > header p { margin: 10px 0 0; color: #626961; font-size: 14px; font-weight: 750; text-transform: capitalize; }
+.today-schedule > header p { margin: 10px 0 0; color: #626961; font-size: 14px; font-weight: 750; }
 .schedule-add-button { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 0; background: rgba(255,255,255,.055); color: var(--lime); cursor: pointer; }
 .schedule-add-button:hover { background: rgba(198,255,61,.1); }
 .schedule-add-button .ui-icon { width: 18px; height: 18px; }
@@ -611,13 +613,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .plan-day-card.empty-day { border-style: dashed; background: rgba(255,255,255,.018); }
 .empty-day-action { display: grid; width: 100%; min-height: 78px; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 14px; border: 0; padding: 10px 13px 10px 18px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .empty-day-action:hover { background: rgba(255,255,255,.025); }
-.empty-day-action time { display: flex; min-width: 0; align-items: center; gap: 11px; text-transform: capitalize; }
-.empty-day-action time > strong { min-width: 38px; color: #e8ebe5; font-size: 29px; line-height: 1; letter-spacing: normal; }
-.empty-day-action time > span, .empty-day-label { display: grid; gap: 3px; }
-.empty-day-action time > span { color: #d6dad3; font-size: 14px; font-weight: 800; }
-.empty-day-action time small, .empty-day-label small { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: lowercase; }
+.plan-day-date { display: flex; min-width: 0; align-items: center; gap: 13px; }
+.plan-day-date > strong { min-width: 48px; color: #e8ebe5; font-size: 36px; line-height: 1; letter-spacing: normal; }
+.plan-day-date > span, .empty-day-label { display: grid; gap: 3px; }
+.plan-day-date > span { color: #d6dad3; }
+.plan-day-date > span b { font-size: 15px; font-weight: 800; }
+.plan-day-date small { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: lowercase; }
 .empty-day-label { min-width: 70px; }
 .empty-day-label strong { color: #d9ddd6; font-size: 13px; }
+.empty-day-label small { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: lowercase; }
 .empty-day-plus { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: rgba(255,255,255,.055); color: var(--lime); }
 .empty-day-plus .ui-icon { width: 18px; height: 18px; }
 .trainer-upcoming-list { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 24px; background: var(--surface); }
@@ -636,10 +640,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .plan-day-list { display: grid; gap: 12px; }
 .plan-day-card { overflow: hidden; border: 1px solid rgba(255,255,255,.075); border-radius: 26px; background: var(--surface); }
 .plan-day-card > header { display: flex; min-height: 82px; align-items: center; gap: 16px; border-bottom: 1px solid rgba(255,255,255,.065); padding: 14px 18px; background: rgba(255,255,255,.025); }
-.plan-day-card > header time { display: flex; align-items: center; gap: 13px; text-transform: capitalize; }
-.plan-day-card > header time > strong { min-width: 48px; color: #e8ebe5; font-size: 36px; line-height: 1; letter-spacing: normal; }
-.plan-day-card > header time > span { display: grid; gap: 3px; color: #d6dad3; font-size: 15px; font-weight: 800; }
-.plan-day-card > header time small { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: lowercase; }
 .plan-session-row { display: grid; width: 100%; min-height: 76px; grid-template-columns: 58px auto minmax(0,1fr) auto; align-items: center; gap: 13px; border: 0; border-bottom: 1px solid rgba(255,255,255,.055); padding: 11px 17px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .plan-session-row:last-child { border-bottom: 0; }
 .plan-session-row > time { color: #dce0d9; font-size: 15px; font-weight: 850; }
@@ -658,7 +658,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .today-schedule .person-avatar.pink { border-color: rgba(158,72,133,.15); background: rgba(255,79,216,.1); color: #76536e; }
 .today-schedule .person-avatar.orange { border-color: rgba(153,83,47,.15); background: rgba(255,106,53,.1); color: #79533f; }
 .schedule-student-picker { overflow-y: auto; }
-.schedule-student-picker .eyebrow { margin-bottom: 6px; text-transform: capitalize; }
+.schedule-student-picker .eyebrow { margin-bottom: 6px; text-transform: none; }
 .schedule-student-list { overflow: hidden; border: 1px solid var(--ui-outline); border-radius: 22px; background: #0e110e; }
 .schedule-student-list > button { display: grid; width: 100%; min-height: 82px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 15px; border: 0; border-bottom: 1px solid rgba(255,255,255,.06); padding: 14px 17px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .schedule-student-list > button:last-child { border-bottom: 0; }
@@ -868,7 +868,7 @@ body.modal-open .bottom-nav { display: none; }
 .student-upcoming-row { display: grid; width: 100%; min-height: 82px; grid-template-columns: 96px minmax(0,1fr) auto; align-items: center; gap: 14px; border: 0; border-bottom: 1px solid rgba(255,255,255,.06); padding: 13px 16px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .student-upcoming-row:last-child { border-bottom: 0; }
 .student-upcoming-row time, .student-upcoming-row > span { display: grid; min-width: 0; gap: 5px; }
-.student-upcoming-row time strong { color: #cdd1ca; font-size: 13px; text-transform: capitalize; }
+.student-upcoming-row time strong { color: #cdd1ca; font-size: 13px; }
 .student-upcoming-row time small, .student-upcoming-row > span small { color: var(--muted); font-size: 12px; }
 .student-upcoming-row > span strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .student-upcoming-row > .ui-icon { width: 17px; height: 17px; color: var(--muted); }
@@ -979,6 +979,7 @@ body.modal-open .bottom-nav { display: none; }
     top: auto;
   }
   .topbar { padding-right: 17px; padding-left: 17px; }
+  .topbar .brand-button { margin-left: -18px; }
   .topbar .brand-logo { width: 108px; height: 36px; }
   .role-switch { min-height: 40px; padding-right: 10px; font-size: 0; }
   .role-switch::after { color: #b9beb6; content: 'Сменить роль'; font-size: var(--button-font-size); }
@@ -1091,7 +1092,6 @@ body.modal-open .bottom-nav { display: none; }
   color: var(--muted);
   font-size: 14px;
   font-weight: 700;
-  text-transform: capitalize;
 }
 
 .desktop-nav nav button.active,
@@ -1206,7 +1206,7 @@ body.modal-open .bottom-nav { display: none; }
 .calendar-page .page-header h1 { font-size: clamp(32px, 4vw, 46px); }
 .calendar-card { overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 27px; padding: 18px; background: var(--surface); }
 .calendar-toolbar { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; gap: 12px; margin-bottom: 20px; }
-.calendar-toolbar h2 { margin: 0; font-size: 22px; letter-spacing: normal; text-align: center; text-transform: capitalize; }
+.calendar-toolbar h2 { margin: 0; font-size: 22px; letter-spacing: normal; text-align: center; }
 .calendar-toolbar button { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid rgba(255,255,255,.09); border-radius: 15px; background: rgba(255,255,255,.05); color: #dfe2dc; cursor: pointer; }
 .calendar-toolbar button:disabled { opacity: .35; cursor: not-allowed; }
 .calendar-toolbar button .ui-icon { width: 18px; height: 18px; }
@@ -1222,7 +1222,6 @@ body.modal-open .bottom-nav { display: none; }
 .calendar-grid button.selected i { background: #6b8a21; }
 .calendar-agenda { margin-top: 30px; }
 .calendar-agenda .section-heading > span { color: var(--muted); font-size: 13px; font-weight: 750; }
-.calendar-agenda .section-heading h2 { text-transform: capitalize; }
 .agenda-list { display: grid; gap: 10px; }
 .agenda-list > button { display: grid; min-height: 92px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 14px; border: 1px solid var(--ui-outline); border-radius: 23px; padding: 15px 17px; background: var(--surface); cursor: pointer; text-align: left; }
 .agenda-status { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 16px; background: var(--brand-soft); color: var(--lime); }
