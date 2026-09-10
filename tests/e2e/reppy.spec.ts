@@ -55,6 +55,40 @@ test('настройки демо остаются поверх нижнего �
   await expect(page.locator('.bottom-nav')).toBeVisible();
 });
 
+test('кнопка Назад восстанавливает точную глубину прокрутки предыдущего экрана', async ({ page }) => {
+  await openFreshDemo(page);
+
+  await page.getByRole('switch', { name: /Все дни/ }).click();
+  const scrollArea = page.locator('.page-wrap');
+  const target = page.locator('.plan-session-row').last();
+  await target.scrollIntoViewIfNeeded();
+  const previousDepth = await scrollArea.evaluate((element) => element.scrollTop);
+  expect(previousDepth).toBeGreaterThan(100);
+
+  await target.click();
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBe(0);
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/trainer$/);
+  await expect.poll(async () => Math.abs(await scrollArea.evaluate((element) => element.scrollTop) - previousDepth)).toBeLessThanOrEqual(1);
+});
+
+test('кнопка Назад восстанавливает прокрутку окна на широком экране', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openFreshDemo(page);
+
+  await page.getByRole('switch', { name: /Все дни/ }).click();
+  const target = page.locator('.plan-session-row').last();
+  await target.scrollIntoViewIfNeeded();
+  const previousDepth = await page.evaluate(() => window.scrollY);
+  expect(previousDepth).toBeGreaterThan(100);
+
+  await target.click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/trainer$/);
+  await expect.poll(async () => Math.abs(await page.evaluate(() => window.scrollY) - previousDepth)).toBeLessThanOrEqual(1);
+});
+
 test('тренер видит единые карточки расписания и назначает копию тренировки на свободную дату', async ({ page }) => {
   await openFreshDemo(page);
 
@@ -378,7 +412,7 @@ test('тренер может завершить занятие в долг и �
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
   await expect(page.getByText('Одно занятие списано')).toBeVisible();
   await page.getByRole('button', { name: 'Назад' }).click();
-  await expect(page.getByLabel('Абонемент')).toContainText('1 занятие в долг');
+  await expect(page.getByText('1 занятие в долг', { exact: true })).toBeVisible();
 });
 
 test('результат ученика виден тренеру и не меняется вместе с шаблоном', async ({ page }) => {

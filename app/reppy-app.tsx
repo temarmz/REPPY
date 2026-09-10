@@ -84,18 +84,48 @@ function hashPath() {
   return window.location.hash.replace(/^#/, '') || '/';
 }
 
+type ReppyScrollPosition = {
+  pageTop: number;
+  pageLeft: number;
+  windowTop: number;
+  windowLeft: number;
+};
+
+const TOP_SCROLL_POSITION: ReppyScrollPosition = { pageTop: 0, pageLeft: 0, windowTop: 0, windowLeft: 0 };
+
+function currentScrollPosition(): ReppyScrollPosition {
+  const page = document.querySelector<HTMLElement>('.page-wrap');
+  return {
+    pageTop: page?.scrollTop ?? 0,
+    pageLeft: page?.scrollLeft ?? 0,
+    windowTop: window.scrollY,
+    windowLeft: window.scrollX,
+  };
+}
+
+function saveCurrentScrollPosition() {
+  const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
+  window.history.replaceState({ ...currentState, reppyScroll: currentScrollPosition() }, '', window.location.href);
+}
+
+function restoreScrollPosition(position: ReppyScrollPosition) {
+  document.querySelector<HTMLElement>('.page-wrap')?.scrollTo({ top: position.pageTop, left: position.pageLeft, behavior: 'auto' });
+  window.scrollTo({ top: position.windowTop, left: position.windowLeft, behavior: 'auto' });
+}
 function go(path: string, replace = false) {
   if (hashPath() === path) return;
+  saveCurrentScrollPosition();
   const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
   if (replace) {
-    window.history.replaceState({ ...previousState, reppyEntry: true }, '', `#${path}`);
+    window.history.replaceState({ ...previousState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
   } else {
-    window.history.pushState({ ...previousState, reppyEntry: true }, '', `#${path}`);
+    window.history.pushState({ ...previousState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
   }
   window.dispatchEvent(new Event(NAVIGATION_EVENT));
 }
 
 function goBack(fallback: string) {
+  saveCurrentScrollPosition();
   if (window.history.state?.reppyEntry) {
     window.history.back();
     return;
@@ -236,12 +266,15 @@ export default function ReppyApp() {
   }, []);
 
   useEffect(() => {
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
     const handleNavigation = () => setPath(hashPath());
     handleNavigation();
     window.addEventListener('hashchange', handleNavigation);
     window.addEventListener('popstate', handleNavigation);
     window.addEventListener(NAVIGATION_EVENT, handleNavigation);
     return () => {
+      window.history.scrollRestoration = previousRestoration;
       window.removeEventListener('hashchange', handleNavigation);
       window.removeEventListener('popstate', handleNavigation);
       window.removeEventListener(NAVIGATION_EVENT, handleNavigation);
@@ -261,23 +294,43 @@ export default function ReppyApp() {
     const requestedPath = hashPath();
     if (requestedPath === '/' && data.loggedIn) {
       const homePath = data.role === 'trainer' ? '/trainer' : '/student';
-      window.history.replaceState({ reppyEntry: false }, '', `#${homePath}`);
+      window.history.replaceState({ reppyEntry: false, reppyScroll: TOP_SCROLL_POSITION }, '', `#${homePath}`);
       window.dispatchEvent(new Event(NAVIGATION_EVENT));
     }
   }, [data.loggedIn, data.role, hydrated]);
 
-  const screenPath = path.split('?')[0];
-  const previousScreenPath = useRef(screenPath);
   useEffect(() => {
-    const returningFromProgress = previousScreenPath.current.includes('/progress/');
-    previousScreenPath.current = screenPath;
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('.page-wrap')?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      if (returningFromProgress) document.querySelector('.student-exercise-progress')?.scrollIntoView({ block: 'start' });
+    if (!hydrated || !assetsReady) return;
+    const position = window.history.state?.reppyScroll ?? TOP_SCROLL_POSITION;
+    let restoreFrame = 0;
+    const renderFrame = window.requestAnimationFrame(() => {
+      restoreFrame = window.requestAnimationFrame(() => restoreScrollPosition(position));
     });
-  }, [screenPath]);
+    return () => {
+      window.cancelAnimationFrame(renderFrame);
+      window.cancelAnimationFrame(restoreFrame);
+    };
+  }, [path, hydrated, assetsReady]);
 
+  useEffect(() => {
+    if (!hydrated || !assetsReady) return;
+    const page = document.querySelector<HTMLElement>('.page-wrap');
+    let saveFrame = 0;
+    const scheduleSave = () => {
+      if (saveFrame) return;
+      saveFrame = window.requestAnimationFrame(() => {
+        saveFrame = 0;
+        saveCurrentScrollPosition();
+      });
+    };
+    page?.addEventListener('scroll', scheduleSave, { passive: true });
+    window.addEventListener('scroll', scheduleSave, { passive: true });
+    return () => {
+      if (saveFrame) window.cancelAnimationFrame(saveFrame);
+      page?.removeEventListener('scroll', scheduleSave);
+      window.removeEventListener('scroll', scheduleSave);
+    };
+  }, [path, hydrated, assetsReady]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(''), 2600);
@@ -663,7 +716,7 @@ export default function ReppyApp() {
               };
             });
             showToast(chargeSubscription ? 'Тренировка завершена, занятие списано' : 'Тренировка завершена без списания');
-            go(`/trainer/sessions/${sessionId}`);
+            go(`/trainer/sessions/${sessionId}`, true);
           }}
         />
       ) : <NotFound />;
@@ -1064,8 +1117,8 @@ function AppShell({
   );
 }
 
-function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, back, directBack = false }: { eyebrow?: string; preserveEyebrowCase?: boolean; title: string; action?: ReactNode; back?: string; directBack?: boolean }) {
-  return <SharedPageHeader eyebrow={eyebrow} preserveEyebrowCase={preserveEyebrowCase} title={title} action={action} onBack={back ? () => directBack ? go(back) : goBack(back) : undefined} />;
+function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, back }: { eyebrow?: string; preserveEyebrowCase?: boolean; title: string; action?: ReactNode; back?: string }) {
+  return <SharedPageHeader eyebrow={eyebrow} preserveEyebrowCase={preserveEyebrowCase} title={title} action={action} onBack={back ? () => goBack(back) : undefined} />;
 }
 
 function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
@@ -2789,7 +2842,7 @@ function SessionResult({
   if (!workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
-      <PageHeader directBack back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
       {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       {trainerView && <div className="session-result-actions">
