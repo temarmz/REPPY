@@ -61,6 +61,10 @@ const NAVIGATION_EVENT = 'reppy:navigate';
 const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 let openModalLayers = 0;
+let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
+let restoringBlockedHistory = false;
+let pendingHistoryBlocker: ((proceed: () => void) => void) | null = null;
+let pendingModalReplacement: string | null = null;
 
 function loadAllDaysPreference() {
   if (typeof window === 'undefined') return false;
@@ -112,25 +116,97 @@ function restoreScrollPosition(position: ReppyScrollPosition) {
   document.querySelector<HTMLElement>('.page-wrap')?.scrollTo({ top: position.pageTop, left: position.pageLeft, behavior: 'auto' });
   window.scrollTo({ top: position.windowTop, left: position.windowLeft, behavior: 'auto' });
 }
-function go(path: string, replace = false) {
-  if (hashPath() === path) return;
+function performNavigation(path: string, replace = false) {
+  if (hashPath() === path) {
+    restoreScrollPosition(TOP_SCROLL_POSITION);
+    saveCurrentScrollPosition();
+    return;
+  }
   saveCurrentScrollPosition();
   const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
-  if (replace) {
-    window.history.replaceState({ ...previousState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
+  const { reppyModal: _modalEntry, ...navigationState } = previousState;
+  if (replace && _modalEntry) {
+    pendingModalReplacement = path;
+    window.history.back();
+    return;
+  }
+  if (replace || _modalEntry) {
+    window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
   } else {
     window.history.pushState({ ...previousState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
   }
   window.dispatchEvent(new Event(NAVIGATION_EVENT));
 }
 
-function goBack(fallback: string) {
-  saveCurrentScrollPosition();
-  if (window.history.state?.reppyEntry) {
-    window.history.back();
+function go(path: string, replace = false) {
+  const proceed = () => performNavigation(path, replace);
+  if (activeNavigationBlocker) {
+    activeNavigationBlocker(proceed);
     return;
   }
-  go(fallback);
+  proceed();
+}
+
+function goBack(fallback: string) {
+  const proceed = () => {
+    saveCurrentScrollPosition();
+    if (window.history.state?.reppyEntry) {
+      window.history.go(window.history.state?.reppyModal ? -2 : -1);
+      return;
+    }
+    performNavigation(fallback);
+  };
+  if (activeNavigationBlocker) {
+    activeNavigationBlocker(proceed);
+    return;
+  }
+  proceed();
+}
+
+function useUnsavedNavigationGuard(isDirty: boolean) {
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  const blockerRef = useRef<((proceed: () => void) => void) | null>(null);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const blocker = (proceed: () => void) => setPendingNavigation(() => proceed);
+    blockerRef.current = blocker;
+    activeNavigationBlocker = blocker;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      if (activeNavigationBlocker === blocker) activeNavigationBlocker = null;
+      blockerRef.current = null;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
+
+  const allowNextNavigation = () => {
+    if (activeNavigationBlocker === blockerRef.current) activeNavigationBlocker = null;
+    setPendingNavigation(null);
+  };
+  const discardAndContinue = () => {
+    const proceed = pendingNavigation;
+    allowNextNavigation();
+    proceed?.();
+  };
+
+  return {
+    allowNextNavigation,
+    discardPrompt: pendingNavigation ? (
+      <ConfirmationModal
+        title="Выйти без сохранения?"
+        text="Изменения на этом экране ещё не сохранены."
+        confirmLabel="Выйти без сохранения"
+        onClose={() => setPendingNavigation(null)}
+        onConfirm={discardAndContinue}
+      />
+    ) : null,
+  };
 }
 
 function initials(name: string) {
@@ -247,6 +323,7 @@ function preloadAsset(path: string) {
 export default function ReppyApp() {
   const { data, hydrated, reset: resetData, setData } = useReppyData();
   const [path, setPath] = useState('/');
+  const currentPathRef = useRef('/');
   const hydratedPathReady = useRef(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -268,7 +345,43 @@ export default function ReppyApp() {
   useEffect(() => {
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = 'manual';
-    const handleNavigation = () => setPath(hashPath());
+    const commitPath = () => {
+      const nextPath = hashPath();
+      currentPathRef.current = nextPath;
+      setPath(nextPath);
+    };
+    const handleNavigation = (event?: Event) => {
+      if (event?.type === 'hashchange' && restoringBlockedHistory) return;
+      if (event?.type === 'popstate' && pendingModalReplacement) {
+        const replacementPath = pendingModalReplacement;
+        pendingModalReplacement = null;
+        const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
+        const navigationState = { ...currentState };
+        delete navigationState.reppyModal;
+        window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${replacementPath}`);
+        commitPath();
+        return;
+      }
+      if (event?.type === 'popstate' && openModalLayers > 0) {
+        commitPath();
+        return;
+      }
+      if (event?.type === 'popstate' && restoringBlockedHistory) {
+        restoringBlockedHistory = false;
+        const blocker = pendingHistoryBlocker;
+        pendingHistoryBlocker = null;
+        commitPath();
+        blocker?.(() => window.history.go(window.history.state?.reppyModal ? -2 : -1));
+        return;
+      }
+      if (event?.type === 'popstate' && activeNavigationBlocker && hashPath() !== currentPathRef.current) {
+        restoringBlockedHistory = true;
+        pendingHistoryBlocker = activeNavigationBlocker;
+        window.history.forward();
+        return;
+      }
+      commitPath();
+    };
     handleNavigation();
     window.addEventListener('hashchange', handleNavigation);
     window.addEventListener('popstate', handleNavigation);
@@ -351,7 +464,6 @@ export default function ReppyApp() {
   };
 
   const resetDemo = () => {
-    if (!window.confirm('Сбросить все изменения и вернуть исходные демо-данные?')) return;
     resetData();
     setSettingsOpen(false);
     go('/');
@@ -402,6 +514,7 @@ export default function ReppyApp() {
     const subscriptionPaymentMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription\/payments\/([^/]+)$/);
     const subscriptionNewMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription\/new$/);
     const subscriptionMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription$/);
+    const clientAssignCopyMatch = path.match(/^\/trainer\/clients\/([^/]+)\/assign\/copy\/([^/]+)$/);
     const clientAssignMatch = path.match(/^\/trainer\/clients\/([^/]+)\/assign(?:\/([^/]+))?$/);
     const clientMatch = path.match(/^\/trainer\/clients\/([^/]+)$/);
     const assignmentEditMatch = path.match(/^\/trainer\/assignments\/([^/]+)\/edit$/);
@@ -434,7 +547,7 @@ export default function ReppyApp() {
           initialScheduledTime={sourceAssignment.scheduledTime}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
-          submitLabel="Создать копию"
+          submitLabel="Назначить повтор"
           submitIcon="copy"
           onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
             const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
@@ -476,12 +589,25 @@ export default function ReppyApp() {
       const [scheduledFor, studentId] = scheduleNewMatch.slice(1);
       const student = findStudent(data, studentId);
       content = student?.status === 'active' && isScheduleDate(scheduledFor) ? (
-        <WorkoutForm
+        <NewAssignmentForStudent
+          student={student}
+          initialScheduledFor={scheduledFor}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
-          onSave={(workout) => {
-            setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
-            showToast('Тренировка сохранена — осталось выбрать время');
-            go(`/trainer/schedule/${scheduledFor}/${student.id}/template/${workout.id}`, true);
+          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
+            const assignment: Assignment = {
+              id: makeId('assignment'),
+              workoutId: workoutSnapshot.id,
+              studentId: student.id,
+              assignedAt: new Date().toISOString(),
+              scheduledFor: nextDate,
+              scheduledTime,
+              status: 'assigned',
+              workoutSnapshot,
+              source: 'manual-edit',
+            };
+            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            showToast(`Тренировка назначена: ${student.name}`);
+            go('/trainer', true);
           }}
         />
       ) : <NotFound />;
@@ -489,7 +615,7 @@ export default function ReppyApp() {
       const [scheduledFor, studentId] = scheduleStudentMatch.slice(1);
       const student = findStudent(data, studentId);
       content = student?.status === 'active' && isScheduleDate(scheduledFor)
-        ? <StudentWorkoutHistory data={data} student={student} scheduledFor={scheduledFor} />
+        ? <StudentWorkoutHistory data={data} student={student} scheduledFor={scheduledFor} backPath="/trainer" routeBase={`/trainer/schedule/${scheduledFor}/${student.id}`} />
         : <NotFound />;
     } else if (path === '/trainer/clients') {
       content = <ClientsList data={data} />;
@@ -542,15 +668,50 @@ export default function ReppyApp() {
     } else if (subscriptionMatch) {
       const student = findStudent(data, subscriptionMatch[1]);
       content = student ? <SubscriptionHistory data={data} student={student} /> : <NotFound />;
+    } else if (clientAssignCopyMatch) {
+      const [studentId, sourceAssignmentId] = clientAssignCopyMatch.slice(1);
+      const student = findStudent(data, studentId);
+      const sourceAssignment = data.assignments.find((item) => item.id === sourceAssignmentId && item.studentId === studentId);
+      const sourceWorkout = sourceAssignment && workoutForRepeat(data, sourceAssignment);
+      content = student?.status === 'active' && sourceAssignment && sourceWorkout ? (
+        <AssignWorkoutToStudent
+          student={student}
+          workout={sourceWorkout}
+          initialScheduledFor={dateKey()}
+          initialScheduledTime={sourceAssignment.scheduledTime}
+          backPath={`/trainer/clients/${student.id}/assign`}
+          title="ПОВТОРИТЬ ТРЕНИРОВКУ"
+          submitLabel="Назначить повтор"
+          submitIcon="copy"
+          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
+            const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
+            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            showToast(`Тренировка назначена: ${student.name}`);
+            go(`/trainer/clients/${student.id}`);
+          }}
+        />
+      ) : <NotFound />;
     } else if (clientAssignMatch?.[2] === 'new') {
       const student = findStudent(data, clientAssignMatch[1]);
       content = student ? (
-        <WorkoutForm
+        <NewAssignmentForStudent
+          student={student}
           backPath={`/trainer/clients/${student.id}/assign`}
-          onSave={(workout) => {
-            setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
-            showToast('Шаблон сохранён — подстрой его под ученика');
-            go(`/trainer/clients/${student.id}/assign/${workout.id}`);
+          onAssign={(scheduledFor, scheduledTime, workoutSnapshot) => {
+            const assignment: Assignment = {
+              id: makeId('assignment'),
+              workoutId: workoutSnapshot.id,
+              studentId: student.id,
+              assignedAt: new Date().toISOString(),
+              scheduledFor,
+              scheduledTime,
+              status: 'assigned',
+              workoutSnapshot,
+              source: 'manual-edit',
+            };
+            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            showToast(`Тренировка назначена: ${student.name}`);
+            go(`/trainer/clients/${student.id}`);
           }}
         />
       ) : <NotFound />;
@@ -589,7 +750,7 @@ export default function ReppyApp() {
       ) : <NotFound />;
     } else if (clientAssignMatch) {
       const student = findStudent(data, clientAssignMatch[1]);
-      content = student ? <StudentWorkoutTemplates data={data} student={student} /> : <NotFound />;
+      content = student ? <StudentWorkoutHistory data={data} student={student} scheduledFor={dateKey()} backPath={`/trainer/clients/${student.id}`} routeBase={`/trainer/clients/${student.id}/assign`} /> : <NotFound />;
     } else if (clientMatch || progressMatch) {
       content = <StudentProfile data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView onUpdate={(updated) => {
         setData((current) => ({ ...current, students: current.students.map((item) => item.id === updated.id ? updated : item) }));
@@ -643,7 +804,7 @@ export default function ReppyApp() {
           onSave={(scheduledFor, scheduledTime, workout) => {
             const next = repeatAssignment(assignment, workout, scheduledFor, scheduledTime);
             setData((current) => ({ ...current, assignments: [...current.assignments, next] }));
-            showToast('Тренировка скопирована на новую дату');
+            showToast('Повтор тренировки назначен');
             go(`/trainer/assignments/${next.id}`);
           }}
         />
@@ -683,6 +844,9 @@ export default function ReppyApp() {
         <ActiveWorkout
           workout={workout}
           session={session}
+          student={findStudent(data, assignment.studentId)}
+          scheduledFor={assignment.scheduledFor}
+          scheduledTime={assignment.scheduledTime}
           backPath={`/trainer/assignments/${assignment.id}`}
           trainerCanWaiveCharge
           balance={subscriptionBalance(data.subscriptionEntries, assignment.studentId)}
@@ -700,9 +864,6 @@ export default function ReppyApp() {
             sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
           }))}
           onFinish={(sessionId, chargeSubscription) => {
-            const currentSession = data.sessions.find((item) => item.id === sessionId);
-            const unfinished = currentSession?.results.some((result) => !result.completed);
-            if (unfinished && !window.confirm('Есть незавершённые подходы. Всё равно закончить тренировку?')) return;
             const completedAt = new Date().toISOString();
             setData((current) => {
               const savedSession = current.sessions.find((item) => item.id === sessionId);
@@ -776,7 +937,6 @@ export default function ReppyApp() {
         trainerView
         onRepeat={() => go(`/trainer/assignments/${session.assignmentId}/repeat`)}
         onDelete={() => {
-          if (!window.confirm('Удалить завершённую тренировку и её результат? Это действие нельзя отменить.')) return;
           setData((current) => ({
             ...current,
             assignments: current.assignments.filter((item) => item.id !== session.assignmentId),
@@ -838,6 +998,9 @@ export default function ReppyApp() {
         <ActiveWorkout
           workout={workout}
           session={session}
+          student={findStudent(data, assignment.studentId)}
+          scheduledFor={assignment.scheduledFor}
+          scheduledTime={assignment.scheduledTime}
           backPath="/student"
           onStart={() => {
             if (session) return;
@@ -853,9 +1016,6 @@ export default function ReppyApp() {
             sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
           }))}
           onFinish={(sessionId) => {
-            const currentSession = data.sessions.find((item) => item.id === sessionId);
-            const unfinished = currentSession?.results.some((result) => !result.completed);
-            if (unfinished && !window.confirm('Есть незавершённые подходы. Всё равно закончить тренировку?')) return;
             const completedAt = new Date().toISOString();
             setData((current) => {
               const savedSession = current.sessions.find((item) => item.id === sessionId);
@@ -1067,9 +1227,8 @@ function AppShell({
   const focusMode = /^\/student\/(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
 
   const isActive = (route: string) => {
-    if (route.endsWith('/calendar')) return path === route;
-    if (route.endsWith('/clients')) return path.startsWith('/trainer/clients') || path.startsWith('/trainer/workouts');
-    if (route.endsWith('/workouts')) return path.startsWith('/trainer/workouts');
+    if (route === '/trainer/calendar') return path === route || path.startsWith('/trainer/schedule/') || path.startsWith('/trainer/assignments/') || path.startsWith('/trainer/sessions/');
+    if (route.endsWith('/clients')) return path.startsWith('/trainer/clients');
     if (route.endsWith('/history')) return path.startsWith('/student/history');
     return path === route || (route === '/student' && /^\/student\/(workout|assignments)\//.test(path));
   };
@@ -1081,7 +1240,9 @@ function AppShell({
         <div className="topbar-actions">
           <button className="role-switch" type="button" onClick={onSwitchRole}>
             <span>DEMO</span>
-            {area === 'trainer' ? 'Тренер' : 'Ученик'} <Icon name="change" /> {area === 'trainer' ? 'Ученик' : 'Тренер'}
+            <span className="role-switch-label">{area === 'trainer' ? 'Тренер' : 'Ученик'}</span>
+            <Icon name="change" />
+            <span className="role-switch-label">{area === 'trainer' ? 'Ученик' : 'Тренер'}</span>
           </button>
           <button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
             {initials(displayName)}
@@ -1096,7 +1257,7 @@ function AppShell({
         </div>
         <nav>
           {nav.map((item) => (
-            <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route)}>
+            <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route, true)}>
               <span><Icon name={item.icon} /></span>{item.label}
             </button>
           ))}
@@ -1108,7 +1269,7 @@ function AppShell({
 
       {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
-          <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route)}>
+          <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route, true)}>
             <span><Icon name={item.icon} /></span><small>{item.label}</small>
           </button>
         ))}
@@ -1142,7 +1303,10 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
         onChange={setSelectedDay}
         markedDates={assignmentCounts}
         selectFirstDayOnMonthChange
-        dateAriaLabel={(day, count) => `${day.getDate()}, тренировок: ${count}`}
+        dateAriaLabel={(day, count) => {
+          const fullDate = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(day);
+          return `${fullDate}. ${count ? `Тренировок: ${count}` : 'Тренировок нет'}`;
+        }}
       />
 
       <section className="calendar-agenda">
@@ -1192,8 +1356,13 @@ function planDayParts(value: string) {
 }
 
 function formatScheduleDay(value: string) {
-  const formatted = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
-    .format(new Date(`${value}T12:00:00`));
+  const date = new Date(`${value}T12:00:00`);
+  const formatted = new Intl.DateTimeFormat('ru-RU', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  }).format(date).replace(/\s*г\.$/, '');
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
@@ -1230,7 +1399,7 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
 
 function ScheduleStudentPicker({ date, students, onClose, onSelect }: { date: string; students: Student[]; onClose: () => void; onSelect: (student: Student) => void }) {
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="bottom-sheet schedule-student-picker" role="dialog" aria-modal="true" aria-label={`Кого назначить на ${formatScheduleDay(date)}`} onMouseDown={(event) => event.stopPropagation()}>
           <div className="sheet-handle" />
@@ -1352,7 +1521,7 @@ function ClientsList({ data }: { data: DemoState }) {
           const status = student.status === 'invited'
             ? 'Ожидает приглашения'
             : assigned
-              ? `${formatCalendarDay(assigned.scheduledFor)}, ${assigned.scheduledTime} · ${findAssignmentWorkout(data, assigned)?.name}`
+              ? `${formatCalendarDay(assigned.scheduledFor)} · ${assigned.scheduledTime} · ${findAssignmentWorkout(data, assigned)?.name}`
               : recent
                 ? `Завершил · ${findSessionWorkout(data, recent)?.name}`
                 : 'Нет назначений';
@@ -1391,7 +1560,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
           const workout = findAssignmentWorkout(data, assignment);
           return (
             <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/assignments/${assignment.id}`)}>
-              <span><strong>{workout?.name}</strong><small>{formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
+              <span><strong>{workout?.name}</strong><small>{formatCalendarDay(assignment.scheduledFor)} · {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
         })}</div> : trainerView
@@ -1490,7 +1659,7 @@ function SubscriptionHistory({ data, student }: { data: DemoState; student: Stud
 function DatePickerSheet({ title, value, min, onChange, onClose }: { title: string; value: string; min?: string; onChange: (value: string) => void; onClose: () => void }) {
   const [selectedDate, setSelectedDate] = useState(value);
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="bottom-sheet date-picker-sheet" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
           <div className="sheet-handle" />
@@ -1677,18 +1846,35 @@ function WorkoutsList({ data }: { data: DemoState }) {
   );
 }
 
-function StudentWorkoutHistory({ data, student, scheduledFor }: { data: DemoState; student: Student; scheduledFor: string }) {
+function StudentWorkoutHistory({
+  data,
+  student,
+  scheduledFor,
+  backPath,
+  routeBase,
+}: {
+  data: DemoState;
+  student: Student;
+  scheduledFor: string;
+  backPath: string;
+  routeBase: string;
+}) {
   const [showAllHistory, setShowAllHistory] = useState(false);
   const previousAssignments = data.assignments
     .filter((assignment) => assignment.studentId === student.id)
-    .sort((a, b) => `${b.scheduledFor} ${b.scheduledTime}`.localeCompare(`${a.scheduledFor} ${a.scheduledTime}`));
+    .sort((a, b) => {
+      const aCompleted = a.status === 'completed' || data.sessions.some((session) => session.assignmentId === a.id && session.completedAt);
+      const bCompleted = b.status === 'completed' || data.sessions.some((session) => session.assignmentId === b.id && session.completedAt);
+      if (aCompleted !== bCompleted) return aCompleted ? -1 : 1;
+      return `${b.scheduledFor} ${b.scheduledTime}`.localeCompare(`${a.scheduledFor} ${a.scheduledTime}`);
+    });
   const visibleAssignments = showAllHistory ? previousAssignments : previousAssignments.slice(0, 8);
 
   return (
     <main className="content-page workouts-page schedule-workout-picker-page">
-      <PageHeader back="/trainer" eyebrow={formatScheduleDay(scheduledFor)} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
-      <p className="page-lead">Ученик выбран: <strong>{student.name}</strong>. Повтори одну из назначенных ранее тренировок или создай новую.</p>
-      <button className="list-primary-action" type="button" onClick={() => go(`/trainer/schedule/${scheduledFor}/${student.id}/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
+      <PageHeader back={backPath} eyebrow={`${student.name} · ${formatScheduleDay(scheduledFor)}`} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
+      <p className="page-lead">Повтори одну из тренировок {student.name} или собери новую с нуля.</p>
+      <button className="list-primary-action" type="button" onClick={() => go(`${routeBase}/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
       {previousAssignments.length ? (
         <>
         <section className="workout-template-list schedule-history-list" aria-label={`Ранее назначенные тренировки ${student.name}`}>
@@ -1699,9 +1885,9 @@ function StudentWorkoutHistory({ data, student, scheduledFor }: { data: DemoStat
             const overdue = !completed && assignment.scheduledFor < dateKey();
             const statusLabel = completed ? 'Завершена' : overdue ? 'Не завершена' : 'Запланирована';
             return (
-              <button className="workout-template-row" key={assignment.id} type="button" onClick={() => go(`/trainer/schedule/${scheduledFor}/${student.id}/copy/${assignment.id}`)}>
+              <button className="workout-template-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
                 <span className="history-copy-icon"><Icon name="copy" /></span>
-                <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{formatCalendarDay(assignment.scheduledFor)}, {assignment.scheduledTime} · {exercisePreview(workout, true)}</p></div>
+                <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{formatCalendarDay(assignment.scheduledFor)} · {assignment.scheduledTime} · {exercisePreview(workout, true)}</p></div>
                 <Icon name="chevron-right" />
               </button>
             );
@@ -1709,27 +1895,7 @@ function StudentWorkoutHistory({ data, student, scheduledFor }: { data: DemoStat
         </section>
         {previousAssignments.length > 8 && <button className="wide-secondary history-show-more" type="button" onClick={() => setShowAllHistory((current) => !current)}>{showAllHistory ? 'Показать последние' : `Показать ещё ${previousAssignments.length - 8}`}</button>}
         </>
-      ) : <EmptyState icon="history" title="Предыдущих тренировок нет" text="Создай первую тренировку для этого ученика — позже её можно будет копировать на новые даты." />}
-    </main>
-  );
-}
-
-function StudentWorkoutTemplates({ data, student }: { data: DemoState; student: Student }) {
-  return (
-    <main className="content-page workouts-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={student.name} title="ВЫБРАТЬ ТРЕНИРОВКУ" />
-      <button className="list-primary-action" type="button" onClick={() => go(`/trainer/clients/${student.id}/assign/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
-      {data.workouts.length ? (
-        <section className="workout-template-list">
-          {data.workouts.map((workout, index) => (
-            <button className="workout-template-row" key={workout.id} type="button" onClick={() => go(`/trainer/clients/${student.id}/assign/${workout.id}`)}>
-              <span className="template-number">{String(index + 1).padStart(2, '0')}</span>
-              <div><h2>{workout.name}</h2><p>{exercisePreview(workout, true)}</p></div>
-              <Icon name="chevron-right" />
-            </button>
-          ))}
-        </section>
-      ) : <EmptyState icon="workout" title="Шаблонов пока нет" text="Создай тренировку-шаблон, а затем назначь её ученику." />}
+      ) : <EmptyState icon="history" title="Предыдущих тренировок нет" text="Создай первую тренировку для этого ученика — позже её можно будет повторять на новые даты." />}
     </main>
   );
 }
@@ -1759,10 +1925,14 @@ function AssignWorkoutToStudent({
   const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => workout.exercises.map((exercise) => ({ ...exercise })));
   const [error, setError] = useState('');
+  const [initialFormState] = useState(() => JSON.stringify({ scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, exercises: workout.exercises }));
+  const currentFormState = JSON.stringify({ scheduledFor, scheduledTime, exercises });
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
 
   const assign = () => {
     if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
+    allowNextNavigation();
     onAssign(scheduledFor, scheduledTime, {
       ...cloneWorkout(workout),
       exercises: exercises.map((exercise) => ({ ...exercise })),
@@ -1783,6 +1953,63 @@ function AssignWorkoutToStudent({
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name={submitIcon} /> {submitLabel ?? `Назначить ${student.name}`}</button></div>
+      {discardPrompt}
+    </main>
+  );
+}
+
+function NewAssignmentForStudent({
+  student,
+  initialScheduledFor = dateKey(),
+  initialScheduledTime = '18:00',
+  backPath,
+  onAssign,
+}: {
+  student: Student;
+  initialScheduledFor?: string;
+  initialScheduledTime?: string;
+  backPath: string;
+  onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
+}) {
+  const [name, setName] = useState('');
+  const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
+  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const [error, setError] = useState('');
+  const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, exercises });
+  const [initialFormState] = useState(() => JSON.stringify({ name: '', scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, exercises: [] }));
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
+
+  const assign = () => {
+    if (!name.trim()) return setError('Добавь название тренировки.');
+    if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
+    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
+    const createdAt = new Date().toISOString();
+    allowNextNavigation();
+    onAssign(scheduledFor, scheduledTime, {
+      id: makeId('workout'),
+      name: name.trim(),
+      exercises: exercises.map((exercise) => ({ ...exercise })),
+      createdAt,
+    });
+  };
+
+  return (
+    <main className="content-page narrow-page">
+      <PageHeader back={backPath} eyebrow={student.name} title="СОЗДАТЬ ТРЕНИРОВКУ" />
+      <section className="plan-context-card assignment-edit-card new-assignment-card">
+        <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong></div></div>
+        <label className="field-label" htmlFor="new-assignment-name">Название тренировки</label>
+        <input id="new-assignment-name" className="text-input" value={name} onChange={(event) => { setName(event.target.value); setError(''); }} placeholder="Например, Грудь + плечи" autoFocus />
+        <div className="schedule-fields">
+          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={(value) => { setScheduledFor(value); setError(''); }} />
+          <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => { setScheduledTime(event.target.value); setError(''); }} /></label>
+        </div>
+      </section>
+      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!name.trim() || !scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name="plus" /> Назначить тренировку</button></div>
+      {discardPrompt}
     </main>
   );
 }
@@ -1791,11 +2018,14 @@ function WorkoutForm({ initial, onSave, backPath }: { initial?: Workout; onSave:
   const [name, setName] = useState(initial?.name ?? '');
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initial?.exercises.map((exercise) => ({ ...exercise })) ?? []);
   const [error, setError] = useState('');
+  const [initialFormState] = useState(() => JSON.stringify({ name: initial?.name ?? '', exercises: initial?.exercises ?? [] }));
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(JSON.stringify({ name, exercises }) !== initialFormState);
 
   const save = () => {
     if (!name.trim()) return setError('Добавь название тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
     const now = new Date().toISOString();
+    allowNextNavigation();
     onSave({
       id: initial?.id ?? makeId('workout'),
       name: name.trim(),
@@ -1816,6 +2046,7 @@ function WorkoutForm({ initial, onSave, backPath }: { initial?: Workout; onSave:
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="plan-sticky-actions"><button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button></div>
+      {discardPrompt}
     </main>
   );
 }
@@ -2074,7 +2305,12 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     onChange(next);
   };
 
-  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
+  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => {
+    const nextDraft = event.target.value;
+    setDraft(nextDraft);
+    const parsed = Number(nextDraft.replace(',', '.'));
+    if (nextDraft.trim() && Number.isFinite(parsed)) onChange(Math.max(min, parsed));
+  }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 
 
@@ -2113,7 +2349,7 @@ function AssignmentDetails({
   if (!student || !workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)}, ${assignment.scheduledTime}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)} · ${assignment.scheduledTime}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       {assignment.rescheduleRequest && <section className="reschedule-request-card">
         <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
         <div className="reschedule-request-actions"><button className="wide-secondary" type="button" onClick={onDeclineRequest}><Icon name="close" /> Отклонить</button><button className="primary-button" type="button" onClick={onAcceptRequest}><Icon name="check" /> Подтвердить</button></div>
@@ -2201,10 +2437,13 @@ function RepeatAssignment({
   const [scheduledFor, setScheduledFor] = useState(dateKey());
   const [scheduledTime, setScheduledTime] = useState(assignment.scheduledTime);
   const [exercises, setExercises] = useState(() => sourceWorkout.exercises.map((exercise) => ({ ...exercise })));
+  const [initialFormState] = useState(() => JSON.stringify({ scheduledFor: dateKey(), scheduledTime: assignment.scheduledTime, exercises: sourceWorkout.exercises }));
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(JSON.stringify({ scheduledFor, scheduledTime, exercises }) !== initialFormState);
   if (!student) return <NotFound />;
 
   const copyWorkout = () => {
     if (!scheduledFor || !scheduledTime || !exercises.length) return;
+    allowNextNavigation();
     onSave(scheduledFor, scheduledTime, { ...cloneWorkout(sourceWorkout), exercises });
   };
 
@@ -2219,7 +2458,8 @@ function RepeatAssignment({
         </div>
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
-      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Создать копию</button></div>
+      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Назначить повтор</button></div>
+      {discardPrompt}
     </main>
   );
 }
@@ -2242,7 +2482,7 @@ function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: 
             </button>
           ))}
           <div className="schedule-fields">
-            <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} formatValue={formatCalendarDay} onChange={setScheduledFor} />
+            <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
             <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
           </div>
           <div className="plan-sticky-actions">
@@ -2260,17 +2500,17 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
   const [scheduledTime, setScheduledTime] = useState(assignment.scheduledTime);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => assignment.workoutSnapshot.exercises.map((exercise) => ({ ...exercise })));
   const [error, setError] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
-  const remove = () => {
-    if (!window.confirm('Удалить «' + (workout?.name ?? 'тренировку') + '» из расписания ' + (student?.name ?? 'ученика') + '?')) return;
-    onDelete(assignment);
-  };
+  const [initialFormState] = useState(() => JSON.stringify({ scheduledFor: assignment.scheduledFor, scheduledTime: assignment.scheduledTime, exercises: assignment.workoutSnapshot.exercises }));
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(JSON.stringify({ scheduledFor, scheduledTime, exercises }) !== initialFormState);
   const save = () => {
     if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
     if (!workout) return;
     const exercisesChanged = JSON.stringify(exercises) !== JSON.stringify(workout.exercises);
+    allowNextNavigation();
     onSave({
       ...assignment,
       scheduledFor,
@@ -2292,16 +2532,29 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
       <section className="plan-context-card assignment-edit-card">
         <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
         <div className="schedule-fields">
-          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} formatValue={formatCalendarDay} onChange={setScheduledFor} />
+          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
           <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
         </div>
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="danger-button plan-delete-button" type="button" onClick={remove}><Icon name="close" /> Удалить назначение</button>
+      <button className="danger-button plan-delete-button" type="button" onClick={() => setDeleteOpen(true)}><Icon name="trash" /> Удалить назначение</button>
       <div className="plan-sticky-actions">
         <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={save}><Icon name="check" /> Сохранить изменения</button>
       </div>
+      {deleteOpen && <ConfirmationModal
+        title="Удалить тренировку?"
+        text={`«${workout.name}» исчезнет из расписания ${student.name}.`}
+        confirmLabel="Удалить тренировку"
+        danger
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          allowNextNavigation();
+          setDeleteOpen(false);
+          onDelete(assignment);
+        }}
+      />}
+      {discardPrompt}
     </main>
   );
 }
@@ -2350,6 +2603,9 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 function ActiveWorkout({
   workout,
   session,
+  student,
+  scheduledFor,
+  scheduledTime,
   backPath,
   onStart,
   onUpdate,
@@ -2360,6 +2616,9 @@ function ActiveWorkout({
 }: {
   workout: Workout;
   session?: WorkoutSession;
+  student?: Student;
+  scheduledFor: string;
+  scheduledTime: string;
   backPath: string;
   onStart: () => void;
   onUpdate: (sessionId: string, results: SetResult[]) => void;
@@ -2374,7 +2633,9 @@ function ActiveWorkout({
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [saveState, setSaveState] = useState<'saving' | 'saved'>('saved');
   const moveHighlightTimer = useRef<number | null>(null);
+  const saveStateTimer = useRef<number | null>(null);
   const startRequested = useRef(false);
   const startedAt = session?.startedAt;
 
@@ -2393,6 +2654,7 @@ function ActiveWorkout({
 
   useEffect(() => () => {
     if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
+    if (saveStateTimer.current) window.clearTimeout(saveStateTimer.current);
   }, []);
 
   if (!session || !workout.exercises.length) {
@@ -2402,9 +2664,17 @@ function ActiveWorkout({
   const completed = session.results.filter((result) => result.completed).length;
   const progress = Math.round((completed / Math.max(session.results.length, 1)) * 100);
   const elapsed = formatElapsedTime(session.startedAt, currentTime);
+  const unfinishedCount = session.results.filter((result) => !result.completed).length;
+
+  const markSaving = () => {
+    setSaveState('saving');
+    if (saveStateTimer.current) window.clearTimeout(saveStateTimer.current);
+    saveStateTimer.current = window.setTimeout(() => setSaveState('saved'), 450);
+  };
 
   const updateWorkout = (exercises: WorkoutExercise[]) => {
     if (!exercises.length) return;
+    markSaving();
     onWorkoutUpdate(session.id, { ...cloneWorkout(workout), exercises });
   };
 
@@ -2419,6 +2689,7 @@ function ActiveWorkout({
   };
 
   const updateResult = (exerciseId: string, setNumber: number, patch: Partial<SetResult>) => {
+    markSaving();
     onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch } : result));
   };
 
@@ -2470,8 +2741,8 @@ function ActiveWorkout({
     <main className="active-workout-page active-workout-list-page">
       <div className="active-sticky-header">
         <header className="active-header">
-          <button type="button" onClick={() => goBack(backPath)} aria-label="Закрыть тренировку"><Icon name="close" /></button>
-          <div className="active-header-copy"><span>{workout.name}</span><strong>{workout.exercises.length} упражнений</strong></div>
+          <button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></button>
+          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`}>{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
           <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
         </header>
         <div className="active-progress"><span style={{ width: progress + '%' }} /></div>
@@ -2523,6 +2794,8 @@ function ActiveWorkout({
       />}
       {finishOpen && <FinishWorkoutModal
         balance={balance}
+        unfinishedCount={unfinishedCount}
+        canWaiveCharge={trainerCanWaiveCharge}
         onClose={() => setFinishOpen(false)}
         onFinish={(chargeSubscription) => {
           setFinishOpen(false);
@@ -2531,27 +2804,28 @@ function ActiveWorkout({
       />}
 
       <footer className="exercise-navigation single-action">
-        <button className="finish-workout" type="button" onClick={() => trainerCanWaiveCharge ? setFinishOpen(true) : onFinish(session.id, true)}><Icon name="check" /> Завершить тренировку</button>
+        <button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</button>
       </footer>
     </main>
   );
 }
 
-function FinishWorkoutModal({ balance, onClose, onFinish }: { balance: number; onClose: () => void; onFinish: (chargeSubscription: boolean) => void }) {
+function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose, onFinish }: { balance: number; unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (chargeSubscription: boolean) => void }) {
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="bottom-sheet finish-workout-sheet" role="dialog" aria-modal="true" aria-label="Завершение тренировки" onMouseDown={(event) => event.stopPropagation()}>
           <div className="sheet-handle" />
-          <div className="sheet-title"><div><span className="eyebrow">АБОНЕМЕНТ</span><h2>Завершить тренировку</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-          <div className={`finish-balance-preview ${subscriptionTone(balance)}`}>
+          <div className="sheet-title"><div>{canWaiveCharge && <span className="eyebrow">АБОНЕМЕНТ</span>}<h2>Завершить тренировку</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
+          {unfinishedCount > 0 && <div className="finish-incomplete-warning"><Icon name="minus" /><div><strong>Есть незавершённые подходы</strong><small>Не отмечено: {unfinishedCount}. Результат сохранится в текущем виде.</small></div></div>}
+          {canWaiveCharge && <div className={`finish-balance-preview ${subscriptionTone(balance)}`}>
             <span>СЕЙЧАС</span><strong>{subscriptionBalanceLabel(balance)}</strong>
             <Icon name="arrow-right" />
             <span>ПОСЛЕ</span><strong>{subscriptionBalanceLabel(balance - 1)}</strong>
-          </div>
+          </div>}
           <div className="finish-subscription-actions">
-            <button className="primary-button" type="button" onClick={() => onFinish(true)}><Icon name="check" /> Завершить и списать занятие</button>
-            <button className="wide-secondary" type="button" onClick={() => onFinish(false)}><Icon name="minus" /> Не списывать занятие</button>
+            <button className="primary-button" type="button" onClick={() => onFinish(true)}><Icon name="check" /> {canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</button>
+            {canWaiveCharge && <button className="wide-secondary" type="button" onClick={() => onFinish(false)}><Icon name="minus" /> Не списывать занятие</button>}
           </div>
         </section>
       </div>
@@ -2647,7 +2921,7 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
   const resolvedEquipment = exercise.equipment ?? definition?.equipment;
   const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
@@ -2685,7 +2959,7 @@ function ExerciseActionsModal({
   onDeleteExercise: () => void;
 }) {
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="bottom-sheet exercise-actions-sheet" role="dialog" aria-modal="true" aria-label={'Действия — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
@@ -2727,7 +3001,7 @@ function ActiveExercisePicker({
   });
 
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнение после выбранного" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
@@ -2839,28 +3113,47 @@ function SessionResult({
   const progress = trainerView ? collectExerciseProgress(data.sessions, session.studentId) : [];
   const charged = isSessionCharged(data.subscriptionEntries, session.id);
   const chargeStatus = charged ? 'charged' : session.subscriptionChargeStatus === 'waived' ? 'waived' : undefined;
+  const [deleteOpen, setDeleteOpen] = useState(false);
   if (!workout) return <NotFound />;
+  const completedSets = session.results.filter((result) => result.completed).length;
+  const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <main className="content-page narrow-page">
       <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <section className="session-summary" aria-label="Итоги тренировки">
+        <div><small>ДЛИТЕЛЬНОСТЬ</small><strong>{elapsed}</strong></div>
+        <div><small>ПОДХОДЫ</small><strong>{completedSets} из {session.results.length}</strong></div>
+        <div><small>УПРАЖНЕНИЯ</small><strong>{workout.exercises.length}</strong></div>
+      </section>
       {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
       {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       {trainerView && <div className="session-result-actions">
         <button className="wide-secondary" type="button" onClick={onRepeat}><Icon name="copy" /> Повторить на другую дату</button>
-        <button className="danger-button" type="button" onClick={onDelete}><Icon name="close" /> Удалить тренировку</button>
+        <button className="danger-button" type="button" onClick={() => setDeleteOpen(true)}><Icon name="trash" /> Удалить тренировку</button>
       </div>}
       <section className="result-exercises">
         {workout.exercises.map((exercise, index) => {
           const results = session.results.filter((item) => item.exerciseId === exercise.id);
           return (
             <article key={exercise.id}>
-              <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
+              <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><small className="result-exercise-meta">{exerciseMetadata(exercise)}</small>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
               {trainerView && progress.some((group) => group.key === progressKey(exercise)) && <button type="button" className="wide-secondary exercise-progress-button" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения <Icon name="arrow-right" /></button>}
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
             </article>
           );
         })}
       </section>
+      {deleteOpen && <ConfirmationModal
+        title="Удалить завершённую тренировку?"
+        text={charged ? 'Результат будет удалён, а одно занятие вернётся в абонемент ученика.' : 'Тренировка и её результат будут удалены без возможности восстановления.'}
+        confirmLabel="Удалить тренировку"
+        danger
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          onDelete?.();
+        }}
+      />}
     </main>
   );
 }
@@ -2885,32 +3178,137 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
 }
 
 function SettingsModal({ onClose, onReset }: { onClose: () => void; onReset: () => void }) {
+  const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   return (
-    <ModalLayer>
+    <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>Настройки демо</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-        <p>Сброс вернёт исходных учеников, тренировки и расписание.</p>
-        <button className="reset-button" type="button" onClick={onReset}><Icon name="close" /> Сбросить демо-данные</button>
+        <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>{resetConfirmationOpen ? 'Сбросить демо-данные?' : 'Настройки демо'}</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
+        <p>{resetConfirmationOpen ? 'Все изменения в учениках, тренировках и расписании будут удалены.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
+        {resetConfirmationOpen ? <div className="confirmation-actions"><button className="wide-secondary" type="button" onClick={() => setResetConfirmationOpen(false)}>Остаться</button><button className="danger-button" type="button" onClick={onReset}>Сбросить данные</button></div> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}
         </section>
       </div>
     </ModalLayer>
   );
 }
 
-function ModalLayer({ children }: { children: ReactNode }) {
+function ConfirmationModal({
+  title,
+  text,
+  confirmLabel,
+  danger = false,
+  onClose,
+  onConfirm,
+}: {
+  title: string;
+  text: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <ModalLayer onClose={onClose}>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <section className="bottom-sheet confirmation-sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-description" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="sheet-title"><h2 id="confirmation-title">{title}</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
+          <p id="confirmation-description">{text}</p>
+          <div className="confirmation-actions">
+            <button className="wide-secondary" type="button" onClick={onClose}>Остаться</button>
+            <button className={danger ? 'danger-button' : 'primary-button'} type="button" onClick={onConfirm}>{confirmLabel}</button>
+          </div>
+        </section>
+      </div>
+    </ModalLayer>
+  );
+}
+
+function ModalLayer({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  const layerRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const historyCleanupTimer = useRef<number | null>(null);
+  const [modalId] = useState(() => makeId('modal'));
+
   useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (historyCleanupTimer.current) {
+      window.clearTimeout(historyCleanupTimer.current);
+      historyCleanupTimer.current = null;
+    }
     openModalLayers += 1;
     document.body.classList.add('modal-open');
     window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: true }));
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const appShell = document.querySelector<HTMLElement>('.app-shell');
+    if (appShell) {
+      appShell.inert = true;
+      appShell.setAttribute('aria-hidden', 'true');
+    }
+    const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
+    if (currentState.reppyModal !== modalId) {
+      window.history.pushState({ ...currentState, reppyModal: modalId }, '', window.location.href);
+    }
+    let focusFrame = window.requestAnimationFrame(() => {
+      focusFrame = window.requestAnimationFrame(() => {
+        const root = layerRef.current;
+        const target = root?.querySelector<HTMLElement>('[autofocus], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])');
+        target?.focus({ preventScroll: true });
+      });
+    });
+
+    const focusableElements = () => Array.from(layerRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') ?? [])
+      .filter((element) => !element.hidden && element.getClientRects().length > 0);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = focusableElements();
+      if (!focusable.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    const handleHistoryBack = (event: PopStateEvent) => {
+      if (event.state?.reppyModal === modalId) return;
+      onCloseRef.current();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('popstate', handleHistoryBack, { capture: true });
     return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('popstate', handleHistoryBack, { capture: true });
       openModalLayers = Math.max(0, openModalLayers - 1);
       document.body.classList.toggle('modal-open', openModalLayers > 0);
       window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: openModalLayers > 0 }));
+      if (appShell && openModalLayers === 0) {
+        appShell.inert = false;
+        appShell.removeAttribute('aria-hidden');
+      }
+      historyCleanupTimer.current = window.setTimeout(() => {
+        historyCleanupTimer.current = null;
+        if (window.history.state?.reppyModal === modalId) window.history.back();
+      }, 0);
+      returnFocus?.focus({ preventScroll: true });
     };
-  }, []);
+  }, [modalId]);
 
-  return createPortal(children, document.body);
+  return createPortal(<div className="modal-layer-root" ref={layerRef}>{children}</div>, document.body);
 }
 
 function NotFound() {

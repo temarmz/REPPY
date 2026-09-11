@@ -37,12 +37,18 @@ export default function MonthDatePicker({
   });
   const previousMonthLastDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 0);
   const canMoveToPreviousMonth = !min || dateKey(previousMonthLastDay) >= min;
-  const monthTitle = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(visibleMonth).replace(/\s*г\.$/, '');
+  const rawMonthTitle = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(visibleMonth).replace(/\s*г\.$/, '');
+  const monthTitle = rawMonthTitle.charAt(0).toUpperCase() + rawMonthTitle.slice(1);
 
   const moveMonth = (step: number) => {
     const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + step, 1);
     setVisibleMonth(next);
-    if (selectFirstDayOnMonthChange) onChange(dateKey(next));
+    if (selectFirstDayOnMonthChange) {
+      const preferredDay = Number.isNaN(selectedDate.getTime()) ? 1 : selectedDate.getDate();
+      const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+      const nextSelection = new Date(next.getFullYear(), next.getMonth(), Math.min(preferredDay, lastDay));
+      onChange(dateKey(nextSelection));
+    }
   };
 
   return (
@@ -70,7 +76,7 @@ export default function MonthDatePicker({
               aria-label={dateAriaLabel?.(day, markerCount) ?? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(day)}
               aria-pressed={key === value}
             >
-              <span>{day.getDate()}</span>{markerCount > 0 && <i aria-hidden="true" />}
+              <span>{day.getDate()}</span>{markerCount > 0 && <i className={markerCount > 1 ? 'multiple' : ''} aria-hidden="true">{markerCount > 1 ? markerCount : ''}</i>}
             </button>
           );
         })}

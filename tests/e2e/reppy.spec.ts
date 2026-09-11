@@ -89,6 +89,31 @@ test('кнопка Назад восстанавливает прокрутку 
   await expect.poll(async () => Math.abs(await page.evaluate(() => window.scrollY) - previousDepth)).toBeLessThanOrEqual(1);
 });
 
+test('модалки и несохранённая форма корректно обрабатывают Back и Escape', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/assignments/assignment-anton-push-1/edit');
+  await setFirstExerciseWeight(page, 81);
+
+  await page.goBack();
+  const discardDialog = page.getByRole('alertdialog');
+  await expect(discardDialog).toBeVisible();
+  await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-anton-push-1\/edit$/);
+  await discardDialog.getByRole('button', { name: 'Остаться' }).click();
+
+  const dateButton = page.getByRole('button', { name: /Дата тренировки:/ });
+  await dateButton.click();
+  await expect(page.getByRole('dialog', { name: 'Дата тренировки' })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('dialog', { name: 'Дата тренировки' })).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-anton-push-1\/edit$/);
+  await expect(dateButton).toBeFocused();
+
+  await dateButton.click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Дата тренировки' })).toHaveCount(0);
+  await expect(dateButton).toBeFocused();
+});
+
 test('тренер видит единые карточки расписания и назначает копию тренировки на свободную дату', async ({ page }) => {
   await openFreshDemo(page);
 
@@ -150,7 +175,7 @@ test('тренер видит единые карточки расписания
 
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Дата тренировки:/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Создать копию' }).click();
+  await page.getByRole('button', { name: 'Назначить повтор' }).click();
 
   await expect(page).toHaveURL(/#\/trainer$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
@@ -159,7 +184,7 @@ test('тренер видит единые карточки расписания
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'ВЫБРАТЬ ТРЕНИРОВКУ' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Создать копию' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Назначить повтор' })).toHaveCount(0);
 });
 
 test('календарь тренера использует тот же плюс и выбор ученика', async ({ page }) => {
@@ -231,7 +256,7 @@ test('тренер дублирует шаблон и повторяет наз�
   const firstCard = page.locator('.plan-exercise-card').first();
   await firstCard.getByRole('button', { name: 'Добавить комментарий' }).click();
   await firstCard.locator('.active-comment-field textarea').fill('Держи лопатки сведёнными');
-  await page.getByRole('button', { name: 'Создать копию' }).click();
+  await page.getByRole('button', { name: 'Назначить повтор' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-/);
   await expect(page.getByText('Скопировано из предыдущей тренировки этого ученика')).toHaveCount(0);
@@ -288,8 +313,8 @@ test('тренер назначает тренировку из профиля �
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria\/assign$/);
 
   await page.getByRole('button', { name: /Грудь и плечи/ }).click();
-  await expect(page).toHaveURL(/#\/trainer\/clients\/maria\/assign\/push-day$/);
-  await expect(page.getByRole('heading', { name: 'НАЗНАЧИТЬ ТРЕНИРОВКУ' })).toBeVisible();
+  await expect(page).toHaveURL(/#\/trainer\/clients\/maria\/assign\/copy\/assignment-/);
+  await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await expect(page.locator('.assignment-edit-person strong')).toHaveText('Мария А.');
   const firstExercise = page.locator('.plan-exercise-card').first();
 
@@ -320,13 +345,31 @@ test('тренер назначает тренировку из профиля �
   await expect(page.locator('.bottom-nav')).toBeVisible();
 
   await setFirstExerciseWeight(page, 62.5);
-  await page.getByRole('button', { name: 'Назначить Мария А.' }).click();
+  await page.getByRole('button', { name: 'Назначить повтор' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
   const assigned = page.locator('.profile-schedule .workout-row').filter({ hasText: 'Грудь и плечи' }).first();
   await assigned.click();
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('62.5 кг × 8');
+});
+
+test('новая тренировка ученика не создаёт глобальную заготовку', async ({ page }) => {
+  await openFreshDemo(page);
+  const workoutsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}').workouts.length);
+
+  await page.goto('/#/trainer/clients/maria/assign');
+  expect((await page.locator('main').innerText()).toLowerCase()).not.toContain('шаблон');
+  await page.getByRole('button', { name: 'Создать тренировку' }).click();
+  await page.getByLabel('Название тренировки').fill('Персональная тренировка Марии');
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  await page.getByRole('dialog', { name: 'Добавить упражнение после выбранного' }).getByRole('button', { name: /Жим лёжа/ }).click();
+  await page.getByRole('button', { name: 'Назначить тренировку' }).click();
+
+  await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}'));
+  expect(saved.workouts).toHaveLength(workoutsBefore);
+  expect(saved.assignments.at(-1).workoutSnapshot.name).toBe('Персональная тренировка Марии');
 });
 
 test('тренер пополняет и исправляет абонемент, ученик видит остаток и последние оплаты', async ({ page }) => {
@@ -406,7 +449,6 @@ test('тренер может завершить занятие в долг и �
   const finishDialog = page.getByRole('dialog', { name: 'Завершение тренировки' });
   await expect(finishDialog).toContainText('Абонемент закончился');
   await expect(finishDialog).toContainText('1 занятие в долг');
-  page.once('dialog', (dialog) => dialog.accept());
   await finishDialog.getByRole('button', { name: 'Завершить и списать занятие' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
@@ -428,8 +470,10 @@ test('результат ученика виден тренеру и не мен
   await expect(page.locator('.active-exercise-card')).toHaveCount(3);
   await expect(page.getByRole('heading', { name: 'Жим гантелей на наклонной скамье' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Следующее упражнение' })).toHaveCount(0);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
+  const studentFinishDialog = page.getByRole('dialog', { name: 'Завершение тренировки' });
+  await expect(studentFinishDialog).toBeVisible();
+  await studentFinishDialog.getByRole('button', { name: 'Завершить тренировку' }).click();
 
   await expect(page.getByRole('heading', { name: 'КАК ПРОШЛО?' })).toBeVisible();
   await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
@@ -559,7 +603,6 @@ test('тренер ведёт занятие, правит его в момен�
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим ногами' }).click();
   await expect(legPressCard.locator('.set-card.completed')).toHaveCount(1);
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
   await expect(page.getByRole('dialog', { name: 'Завершение тренировки' })).toBeVisible();
   await page.getByRole('button', { name: 'Не списывать занятие' }).click();
@@ -578,8 +621,10 @@ test('тренер ведёт занятие, правит его в момен�
   await page.goBack();
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Удалить тренировку' }).click();
+  const deleteDialog = page.getByRole('alertdialog');
+  await expect(deleteDialog).toContainText('Тренировка и её результат будут удалены');
+  await deleteDialog.getByRole('button', { name: 'Удалить тренировку' }).click();
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
   await expect(page.getByRole('status')).toContainText('Завершённая тренировка удалена');
 });

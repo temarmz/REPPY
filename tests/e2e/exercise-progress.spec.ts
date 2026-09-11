@@ -115,7 +115,6 @@ test('результат нового занятия появляется в п�
   await expect(page.getByRole('button', { name: 'Прогресс упражнения' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
   await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить и списать занятие' }).click();
   await page.goto('/#/trainer/clients/artem');
@@ -214,7 +213,7 @@ test('цвет текста различает динамику без допо�
 
 test('размер подписей кнопок одинаков на основных экранах и ширинах', async ({ page }) => {
   await seedProgress(page);
-  for (const width of [360, 1280]) {
+  for (const width of [320, 360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/workouts/push-day', '/trainer/workouts/push-day/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student/profile']) {
       const previousPage = await page.locator('.page-wrap main').elementHandle();

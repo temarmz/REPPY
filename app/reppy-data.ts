@@ -811,12 +811,21 @@ export function formatDay(iso?: string) {
   const date = new Date(iso);
   const today = new Date();
   if (date.toDateString() === today.toDateString()) return 'Сегодня';
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date);
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  }).format(date).replace(/\s*г\.$/, '');
 }
 
 export function formatCalendarDay(value?: string) {
   if (!value) return '';
   const date = new Date(`${value}T12:00:00`);
   if (value === dateKey()) return 'Сегодня';
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date);
+  const today = new Date();
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  }).format(date).replace(/\s*г\.$/, '');
 }

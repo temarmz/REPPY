@@ -2051,3 +2051,73 @@ body.modal-open .bottom-nav { display: none; }
   .finish-balance-preview > span, .finish-balance-preview > strong, .finish-balance-preview > span:nth-of-type(2), .finish-balance-preview > strong:nth-of-type(2), .finish-balance-preview > .ui-icon { grid-column: 1; grid-row: auto; }
   .finish-balance-preview > .ui-icon { transform: rotate(90deg); }
 }
+
+/* Unified application controls and navigation states. */
+body { min-width: 0; }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
+input::placeholder,
+textarea::placeholder { color: #747b72; opacity: 1; }
+
+.sheet-handle { display: none; }
+.confirmation-sheet { width: min(100%, 520px); padding-top: 24px; }
+.confirmation-sheet > p { margin: -3px 0 22px; color: #b4bab1; font-size: 14px; line-height: 1.55; }
+.confirmation-actions { display: grid; grid-template-columns: 1fr 1.2fr; gap: 9px; }
+.confirmation-actions .wide-secondary,
+.confirmation-actions .danger-button,
+.confirmation-actions .primary-button { min-height: 56px; }
+
+.finish-incomplete-warning { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 12px; margin-bottom: 14px; border: 1px solid rgba(255,209,102,.24); border-radius: 18px; padding: 14px 15px; background: rgba(255,209,102,.07); }
+.finish-incomplete-warning > .ui-icon { width: 19px; height: 19px; margin-top: 1px; color: #ffd166; }
+.finish-incomplete-warning > div { display: grid; gap: 4px; }
+.finish-incomplete-warning strong { font-size: 14px; }
+.finish-incomplete-warning small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+.active-header-copy strong { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
+.active-header-copy .save-state { color: var(--lime); font-size: 11px; font-style: normal; font-weight: 800; }
+.active-header-copy .save-state.saving { color: #ffd166; }
+
+.session-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-bottom: 13px; }
+.session-summary > div { display: grid; min-height: 76px; align-content: center; gap: 7px; border: 1px solid var(--ui-outline); border-radius: 18px; padding: 13px; background: var(--surface); }
+.session-summary small { color: var(--muted); font-size: 10px; font-weight: 850; }
+.session-summary strong { font-family: var(--app-font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.result-exercise-meta { color: var(--muted); font-size: 11px; font-weight: 700; }
+
+.calendar-grid button i.multiple { display: grid; right: 4px; bottom: 4px; width: 18px; height: 18px; place-items: center; background: var(--lime); color: var(--ink); font-family: var(--app-font-mono); font-size: 9px; font-style: normal; font-weight: 900; transform: none; }
+.calendar-grid button.selected i.multiple { background: #6b8a21; color: white; }
+.new-assignment-card .schedule-fields { margin-top: 16px; }
+
+@media (min-width: 801px) {
+  .modal-backdrop { place-items: center; }
+  .bottom-sheet { border-radius: 28px; padding-top: 24px; box-shadow: 0 30px 90px rgba(0,0,0,.5); }
+}
+
+@media (max-width: 800px) {
+  .bottom-nav button { min-width: 0; flex: 1 1 0; padding-inline: 0; }
+  .muscle-filter button { min-height: 44px; }
+}
+
+@media (max-width: 540px) {
+  .plan-context-card .schedule-fields { grid-template-columns: 1fr; }
+  .confirmation-actions { grid-template-columns: 1fr; }
+  .session-summary { gap: 6px; }
+  .session-summary > div { min-height: 70px; padding: 10px; }
+  .session-summary small { font-size: 9px; }
+  .session-summary strong { font-size: 12px; }
+}
+
+@media (max-width: 360px) {
+  .topbar { padding-inline: 10px; }
+  .topbar .brand-button { margin-left: -15px; }
+  .topbar .brand-logo { width: 96px; }
+  .topbar-actions { gap: 7px; }
+  .role-switch { gap: 6px; padding: 0 8px 0 6px; }
+  .role-switch::after { display: none; content: ''; }
+  .avatar-button { width: 40px; flex: 0 0 40px; }
+  .bottom-nav { padding-inline: 2px; }
+  .bottom-nav button { min-width: 0; border-radius: 14px; }
+  .bottom-nav button small { overflow: hidden; max-width: 100%; font-size: var(--button-font-size); text-overflow: ellipsis; white-space: nowrap; }
+}
