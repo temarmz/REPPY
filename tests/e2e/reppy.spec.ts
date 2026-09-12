@@ -119,19 +119,41 @@ test('светлая тема переключается из компактно
     return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
   });
   expect(primaryContrast).toBeGreaterThanOrEqual(4.5);
+  await expect(page.locator('.design-kit-statuses span').first()).toHaveCSS('color', 'rgb(96, 72, 154)');
+  await expect(page.locator('.design-kit-statuses .attention')).toHaveCSS('color', 'rgb(168, 68, 43)');
   await page.screenshot({ path: 'test-results/theme-light-design-kit.png', animations: 'disabled' });
 
   await page.goto('/#/trainer/calendar');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('.calendar-grid button.outside').first()).toHaveCSS('color', 'rgb(104, 113, 102)');
   await page.screenshot({ path: 'test-results/theme-light-calendar.png', animations: 'disabled' });
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
+  await expect(page.locator('.set-count-control > span').first()).toHaveCSS('color', 'rgb(78, 89, 74)');
+  await expect(page.locator('.set-count-control > strong').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
+  const firstPlanExercise = page.locator('.plan-exercise-card').first();
+  await firstPlanExercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
+  await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(96, 72, 154)');
+  await page.getByRole('button', { name: 'Закрыть описание' }).click();
   await page.screenshot({ path: 'test-results/theme-light-assignment-edit.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer/clients');
+  await expect(page.locator('.person-avatar.lime').first()).toHaveCSS('color', 'rgb(79, 113, 17)');
+
+  await page.goto('/#/trainer/clients/artem/subscription');
+  await expect(page.locator('.subscription-entry-delta.negative').first()).toHaveCSS('color', 'rgb(168, 68, 43)');
 
   await page.goto('/#/trainer/workout/assignment-maria-legs');
   await expect(page.locator('.active-sticky-header')).toBeVisible();
   await page.screenshot({ path: 'test-results/theme-light-active-workout.png', animations: 'disabled' });
 
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/#/trainer');
+  await expect(page.locator('.desktop-nav')).toHaveCSS('background-color', 'rgb(248, 249, 244)');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/theme-light-trainer-desktop.png', animations: 'disabled' });
+
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/trainer');
   await roleSwitch.click();
   await expect(page).toHaveURL(/#\/student$/);
@@ -140,6 +162,15 @@ test('светлая тема переключается из компактно
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
   await page.screenshot({ path: 'test-results/theme-light-student.png', animations: 'disabled' });
+
+  await page.goto('/#/student/profile');
+  await expect(page.locator('.athlete-details .section-heading h2')).toHaveCSS('color', 'rgb(48, 56, 46)');
+  await expect(page.locator('.athlete-summary strong').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
+
+  await page.goto('/#/student/finish/session-artem-legs-history-5');
+  await page.getByRole('button', { name: 'Отлично' }).click();
+  await expect(page.locator('.mood-fieldset legend')).toHaveCSS('color', 'rgb(61, 70, 58)');
+  await expect(page.locator('.mood-grid strong').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
 });
 
 test('дата и время назначения имеют одинаковый компактный размер', async ({ page }) => {

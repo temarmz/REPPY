@@ -1528,6 +1528,7 @@ body.modal-open .bottom-nav { display: none; }
 .active-exercise-actions { display: grid; min-width: 0; }
 .active-exercise-actions button { display: inline-flex; min-width: 0; height: 48px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 12px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
 .active-exercise-footer-actions button { display: inline-flex; min-height: 56px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 17px; padding: 9px 14px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
+.active-exercise-footer-actions > button { gap: 5px; padding-inline: 8px; }
 .active-exercise-actions button .ui-icon, .active-exercise-footer-actions button .ui-icon { width: 19px; height: 19px; flex: 0 0 auto; color: var(--lime); }
 .active-exercise-actions button.has-value:not(.selected) { border-color: rgba(198,255,61,.22); background: var(--brand-soft); }
 .active-comment-field { display: grid; gap: 8px; margin-top: 12px; border-radius: 18px; padding: 14px; background: #090b09; }
@@ -2182,6 +2183,7 @@ textarea::placeholder { color: #747b72; opacity: 1; }
   .session-summary > div { min-height: 70px; padding: 10px; }
   .session-summary small { font-size: 9px; }
   .session-summary strong { font-size: 12px; }
+  .active-exercise-footer-actions > button .ui-icon { display: none; }
 }
 
 @media (max-width: 380px) {
@@ -2244,6 +2246,11 @@ html[data-theme="light"] .desktop-nav {
   background: #f8f9f4;
 }
 html[data-theme="light"] .profile-avatar { border-color: var(--ui-outline); background: #e9ece5; color: #30372e; }
+html[data-theme="light"] .person-avatar { border-color: var(--ui-outline); background: #eef0ea; color: #4e574c; }
+html[data-theme="light"] .person-avatar.lime { border-color: rgba(79,113,17,.2); background: rgba(184,242,56,.13); color: #4f7111; }
+html[data-theme="light"] .person-avatar.violet { border-color: rgba(97,74,158,.2); background: rgba(122,76,255,.1); color: #60489a; }
+html[data-theme="light"] .person-avatar.pink { border-color: rgba(138,59,118,.18); background: rgba(255,79,216,.08); color: #83386f; }
+html[data-theme="light"] .person-avatar.orange { border-color: rgba(138,75,44,.18); background: rgba(255,106,53,.09); color: #86492d; }
 html[data-theme="light"] .desktop-nav nav button { color: #667064; }
 html[data-theme="light"] .desktop-nav nav button > span { background: rgba(25,35,23,.05); }
 html[data-theme="light"] .desktop-nav nav button.active,
@@ -2299,7 +2306,7 @@ html[data-theme="light"] .sheet-handle { background: #cbd0c8; }
 
 html[data-theme="light"] .calendar-toolbar button { border-color: var(--ui-outline); background: var(--control-bg); color: #30372e; }
 html[data-theme="light"] .calendar-grid button { background: rgba(25,35,23,.025); color: #30372e; }
-html[data-theme="light"] .calendar-grid button.outside { color: #9ba299; }
+html[data-theme="light"] .calendar-grid button.outside { color: #687166; }
 html[data-theme="light"] .calendar-grid button:disabled { color: #b7bdb4; }
 html[data-theme="light"] .calendar-grid button.today { border-color: rgba(25,35,23,.32); color: #171b16; }
 html[data-theme="light"] .calendar-grid button.selected { background: var(--lime); color: var(--ink); }
@@ -2313,6 +2320,22 @@ html[data-theme="light"] .subscription-history-summary { background: #f4f8ea; }
 html[data-theme="light"] .subscription-card.debt,
 html[data-theme="light"] .subscription-history-summary.debt { background: #fff4ef; }
 html[data-theme="light"] .subscription-entry-delta { background: var(--surface-2); }
+html[data-theme="light"] .subscription-entry-delta.negative { color: #a8442b; }
+html[data-theme="light"] .client-subscription.low,
+html[data-theme="light"] .subscription-card.low > header span,
+html[data-theme="light"] .student-subscription-status.low > span { color: #80600b; }
+html[data-theme="light"] .client-subscription.debt,
+html[data-theme="light"] .subscription-card.debt > header span,
+html[data-theme="light"] .subscription-history-summary.debt > span,
+html[data-theme="light"] .student-subscription-status.debt > span { color: #a8442b; }
+html[data-theme="light"] .subscription-warning > .ui-icon,
+html[data-theme="light"] .subscription-warning > button,
+html[data-theme="light"] .finish-incomplete-warning > .ui-icon,
+html[data-theme="light"] .active-header-copy .save-state.saving { color: #80600b; }
+html[data-theme="light"] .subscription-warning.debt > .ui-icon,
+html[data-theme="light"] .subscription-warning.debt > button,
+html[data-theme="light"] .subscription-warning.empty > .ui-icon,
+html[data-theme="light"] .subscription-warning.empty > button { color: #a8442b; }
 
 html[data-theme="light"] .active-workout-page { background: var(--app-bg); color: var(--text-primary); }
 html[data-theme="light"] .active-sticky-header { background: rgba(241,242,235,.94); box-shadow: 0 10px 24px rgba(31,40,28,.09); }
@@ -2327,6 +2350,9 @@ html[data-theme="light"] .active-exercise-card.completed { border-color: rgba(79
 html[data-theme="light"] :is(.exercise-order-controls button, .active-exercise-actions button, .active-exercise-footer-actions button, .active-exercise-corner-actions button, .exercise-action-list > button, .muscle-filter button, .picker-list .custom-load-mode button) { border-color: var(--ui-outline); background: var(--control-bg); color: #343c32; }
 html[data-theme="light"] .set-card > button { border-color: #c9d0c5; background: var(--surface-2); color: #6c7569; }
 html[data-theme="light"] .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .set-count-control { border-color: rgba(79,113,17,.22); background: #eef5df; }
+html[data-theme="light"] .set-count-control > span { color: #4e594a; }
+html[data-theme="light"] .set-count-control > strong { color: var(--text-primary); }
 html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider); background: rgba(250,251,247,.94); }
 html[data-theme="light"] .plan-sticky-actions { background: linear-gradient(180deg, rgba(241,242,235,0), rgba(241,242,235,.96) 28%); }
 
@@ -2335,10 +2361,37 @@ html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state >
 html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .select-student-list i, .personal-version-note > span, .personal-version-note button, .agenda-status, .history-status.completed, .reschedule-request-card span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.readonly-coach-note, .template-edit-note, .reschedule-request-card p, .student-request-status p, .exercise-coach-note, .active-coach-note strong, .exercise-instruction-body p, .subscription-entry-list p, .confirmation-sheet > p) { color: #465043 !important; }
 html[data-theme="light"] .readonly-exercise-card h2 { border-top-color: rgba(79,113,17,.14); color: #465043; }
+html[data-theme="light"] .athlete-details { border-top-color: var(--divider); }
+html[data-theme="light"] .athlete-details .section-heading h2 { color: #30382e; }
+html[data-theme="light"] .athlete-summary span { color: #596157; }
+html[data-theme="light"] .athlete-summary strong { color: var(--text-primary); }
+html[data-theme="light"] .athlete-summary article p { color: #566054; }
+html[data-theme="light"] .success-mood { border-top-color: var(--divider); color: #465043; }
+html[data-theme="light"] .session-feedback p { background: var(--control-bg); color: #465043; }
+html[data-theme="light"] .exercise-instruction-media { border-color: rgba(96,72,154,.22); background: rgba(122,76,255,.07); color: #60489a; }
+html[data-theme="light"] .exercise-action-list > button.danger,
+html[data-theme="light"] .exercise-action-list > button.danger > .ui-icon { color: #a84438; }
+html[data-theme="light"] .settings-modal .sheet-title > button .ui-icon { color: #30372e; }
+html[data-theme="light"] .mood-fieldset legend { color: #3d463a; }
+html[data-theme="light"] .mood-grid button { border-color: var(--ui-outline); background: var(--control-bg); color: var(--text-primary); }
+html[data-theme="light"] .mood-grid button > span { background: #e7eae3; color: #566054; }
+html[data-theme="light"] .mood-grid button.selected { border-color: rgba(79,113,17,.38); background: var(--brand-soft); }
+html[data-theme="light"] .mood-grid button.selected > span { background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .calendar-shortcut > span,
+html[data-theme="light"] .workout-number { color: #60489a; }
+html[data-theme="light"] .success-screen section b { color: var(--text-primary); }
+html[data-theme="light"] .demo-stats span { background: var(--control-bg); }
+html[data-theme="light"] .demo-stats b { color: var(--text-primary); }
+html[data-theme="light"] .form-error { background: rgba(168,68,56,.08); color: #a84438; }
+html[data-theme="light"] .trend-down { color: #a8442b; }
 html[data-theme="light"] :is(.plan-day-date > strong, .plan-day-date > span, .plan-session-row > time, .schedule-workout-picker-page .page-lead strong, .active-edit-toggle, .active-exercise-actions button, .active-exercise-footer-actions button, .exercise-action-list > button, .history-date) { color: #30382e; }
 html[data-theme="light"] .plan-day-card .plan-session-row > time,
 html[data-theme="light"] .connected-list .workout-row small,
 html[data-theme="light"] .student-upcoming-row time small { color: var(--lime-strong); }
 html[data-theme="light"] :is(.add-exercise, .select-student-list > button.selected, .muscle-filter button.selected, .active-exercise-card.recently-moved, .picker-list .custom-load-mode button.selected, .payment-method-field button.selected) { border-color: rgba(79,113,17,.34); }
+html[data-theme="light"] .history-status:not(.completed):not(.overdue),
+html[data-theme="light"] .design-kit-statuses span:not(.completed):not(.attention) { background: rgba(96,72,154,.1); color: #60489a; }
+html[data-theme="light"] .history-status.overdue,
+html[data-theme="light"] .design-kit-statuses .attention { background: rgba(168,68,43,.09); color: #a8442b; }
 html[data-theme="light"] .toast { border-color: rgba(79,113,17,.2); background: #eef7da; color: var(--lime-strong); box-shadow: 0 18px 50px rgba(37,47,33,.14); }
 html[data-theme="light"] .design-kit-swatches > div { background: var(--control-bg); }
