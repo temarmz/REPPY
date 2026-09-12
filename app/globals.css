@@ -1842,8 +1842,6 @@ body.modal-open .bottom-nav { display: none; }
   min-height: 52px;
   margin: 14px 18px 18px;
 }
-.result-exercises .exercise-progress-button { margin-block: 14px; }
-
 .plan-context-card {
   margin-bottom: 18px;
   border-radius: 22px;
@@ -1876,6 +1874,12 @@ body.modal-open .bottom-nav { display: none; }
   font-size: 14px;
   line-height: 48px;
 }
+.plan-context-card .schedule-field.date-picker-field > button {
+  min-height: 48px;
+  border-radius: 13px;
+  padding-inline: 10px;
+}
+.plan-context-card .schedule-field.date-picker-field > button strong { font-size: 14px; }
 .plan-sticky-actions {
   position: sticky;
   z-index: 35;
@@ -2099,6 +2103,45 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 .result-exercise-meta { color: var(--muted); font-size: 11px; font-weight: 700; }
 
 .new-assignment-card .schedule-fields { margin-top: 16px; }
+.settings-actions { display: grid; gap: 9px; }
+
+.design-kit-page { padding-bottom: 80px; }
+.design-kit-intro { max-width: 660px; margin: -8px 0 24px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.design-kit-section { margin-top: 16px; border: 1px solid var(--ui-outline); border-radius: 24px; padding: clamp(17px, 4vw, 24px); background: var(--surface); }
+.design-kit-section > .section-heading { margin: 0 0 18px; }
+.design-kit-section > .section-heading > span { color: var(--muted); font-size: 11px; font-weight: 750; }
+.design-kit-swatches { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; }
+.design-kit-swatches > div { display: flex; min-width: 0; align-items: center; gap: 10px; border: 1px solid var(--ui-outline); border-radius: 16px; padding: 10px; background: rgba(255,255,255,.025); }
+.design-kit-swatches i { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--ui-outline); border-radius: 11px; }
+.design-kit-swatches span { display: grid; min-width: 0; gap: 3px; }
+.design-kit-swatches strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; }
+.design-kit-swatches small { color: var(--muted); font-family: var(--app-font-mono); font-size: 9px; }
+.kit-color-background { background: var(--ink); }
+.kit-color-surface { background: var(--surface); }
+.kit-color-raised { background: var(--surface-2); }
+.kit-color-text { background: var(--paper); }
+.kit-color-muted { background: var(--muted); }
+.kit-color-accent { background: var(--lime); }
+.design-kit-type-samples { display: grid; gap: 10px; }
+.design-kit-type-samples .eyebrow { margin: 0; }
+.design-kit-type-samples h2, .design-kit-type-samples p { margin: 0; }
+.design-kit-type-samples h2 { font-size: 22px; letter-spacing: normal; }
+.design-kit-type-samples p { font-size: 14px; line-height: 1.5; }
+.design-kit-type-samples small { color: var(--muted); font-size: 12px; }
+.design-kit-button-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+.design-kit-button-grid > button { min-height: 56px; }
+.design-kit-compact-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 12px; }
+.design-kit-modal-button { width: auto; min-height: 48px; }
+.design-kit-section .schedule-fields { margin-top: 14px; }
+.design-kit-textarea-field { display: grid; gap: 9px; margin-top: 14px; }
+.design-kit-textarea-field > span { color: #d3d7d0; font-size: 14px; font-weight: 800; }
+.design-kit-textarea-field textarea { width: 100%; min-height: 110px; resize: vertical; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 14px 16px; background: #090b09; color: white; font-size: 16px; line-height: 1.5; }
+.design-kit-statuses { display: flex; flex-wrap: wrap; gap: 8px; }
+.design-kit-statuses span { border-radius: 999px; padding: 7px 10px; background: rgba(122,76,255,.14); color: #b9a7f0; font-size: 11px; font-weight: 850; }
+.design-kit-statuses .completed { background: var(--brand-soft); color: var(--lime); }
+.design-kit-statuses .attention { background: rgba(255,106,53,.12); color: #ff9b77; }
+.design-kit-section .readonly-exercise-list { margin: 0; }
+.design-kit-section .readonly-exercise-card { background: var(--surface-2); }
 
 @media (min-width: 801px) {
   .modal-backdrop { place-items: center; }
@@ -2112,6 +2155,8 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 
 @media (max-width: 540px) {
   .plan-context-card .schedule-fields { grid-template-columns: 1fr; }
+  .design-kit-swatches { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .design-kit-button-grid { grid-template-columns: 1fr; }
   .confirmation-actions { grid-template-columns: 1fr; }
   .session-summary { gap: 6px; }
   .session-summary > div { min-height: 70px; padding: 10px; }

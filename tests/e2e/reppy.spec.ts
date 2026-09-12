@@ -55,6 +55,48 @@ test('настройки демо остаются поверх нижнего �
   await expect(page.locator('.bottom-nav')).toBeVisible();
 });
 
+test('внутренний дизайн-кит собирает реальные контролы и модальный слой', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFreshDemo(page);
+  await page.getByRole('button', { name: 'Открыть настройки' }).click();
+  await page.getByRole('button', { name: 'Открыть дизайн-кит' }).click();
+
+  await expect(page).toHaveURL(/#\/trainer\/design-kit$/);
+  await expect(page.getByRole('heading', { name: 'ДИЗАЙН-КИТ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Цвета и поверхности' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Типографика' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Действия' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Поля' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Карточка упражнения' })).toBeVisible();
+
+  const scheduleFields = page.getByRole('group', { name: 'Дата и время тренировки' });
+  const dateControl = scheduleFields.getByRole('button', { name: /Дата тренировки:/ });
+  const timeControl = scheduleFields.locator('input[type="time"]');
+  expect(Math.round((await dateControl.boundingBox())?.height ?? 0)).toBe(Math.round((await timeControl.boundingBox())?.height ?? 0));
+
+  await page.getByRole('button', { name: 'Открыть модалку' }).click();
+  await expect(page.getByRole('alertdialog')).toContainText('Пример модального окна');
+  await page.getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+  await page.locator('.page-wrap').evaluate((element) => { element.scrollTop = 0; });
+  await page.screenshot({ path: 'test-results/design-kit-mobile.png', animations: 'disabled' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('дата и время назначения имеют одинаковый компактный размер', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
+  const scheduleFields = page.getByRole('group', { name: 'Дата и время тренировки' });
+  const dateControl = scheduleFields.getByRole('button', { name: /Дата тренировки:/ });
+  const timeControl = scheduleFields.locator('input[type="time"]');
+  const dateBox = await dateControl.boundingBox();
+  const timeBox = await timeControl.boundingBox();
+  expect(Math.round(dateBox?.height ?? 0)).toBe(48);
+  expect(Math.round(timeBox?.height ?? 0)).toBe(48);
+  expect(Math.round(dateBox?.width ?? 0)).toBe(Math.round(timeBox?.width ?? 0));
+});
+
 test('кнопка Назад восстанавливает точную глубину прокрутки предыдущего экрана', async ({ page }) => {
   await openFreshDemo(page);
 

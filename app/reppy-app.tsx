@@ -38,7 +38,7 @@ import ExerciseProgressView, { StudentExerciseProgress } from './exercise-progre
 import SharedPageHeader from './page-header';
 import EmptyState from './empty-state';
 import MonthDatePicker from './month-date-picker';
-import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
+import { progressHref } from './exercise-progress';
 import {
   chargeSubscriptionForSession,
   createSubscriptionPayment,
@@ -530,7 +530,9 @@ export default function ReppyApp() {
     const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
-    if (progressMatch?.[2]) {
+    if (path === '/trainer/design-kit') {
+      content = <DesignKitScreen />;
+    } else if (progressMatch?.[2]) {
       content = <ExerciseProgressView key={progressPath} data={data} studentId={progressMatch[1]} exerciseId={progressMatch[2]} search={progressSearch} go={go} back={goBack} />;
     } else if (path === '/trainer/calendar') {
       content = <WorkoutCalendar data={data} area="trainer" />;
@@ -1077,7 +1079,14 @@ export default function ReppyApp() {
         {content}
         {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
       </AppShell>
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} onReset={resetDemo} />}
+      {settingsOpen && <SettingsModal
+        onClose={() => setSettingsOpen(false)}
+        onReset={resetDemo}
+        onOpenDesignKit={() => {
+          setSettingsOpen(false);
+          go('/trainer/design-kit');
+        }}
+      />}
     </>
   );
 }
@@ -1684,6 +1693,110 @@ function DatePickerField({ label, value, min, className = '', formatValue = form
   </>;
 }
 
+function WorkoutScheduleFields({
+  dateLabel = 'Дата тренировки',
+  timeLabel = 'Время начала',
+  scheduledFor,
+  scheduledTime,
+  min = dateKey(),
+  onDateChange,
+  onTimeChange,
+}: {
+  dateLabel?: string;
+  timeLabel?: string;
+  scheduledFor: string;
+  scheduledTime: string;
+  min?: string;
+  onDateChange: (value: string) => void;
+  onTimeChange: (value: string) => void;
+}) {
+  return (
+    <div className="schedule-fields" role="group" aria-label="Дата и время тренировки">
+      <DatePickerField className="schedule-field" label={dateLabel} value={scheduledFor} min={min} formatValue={formatCalendarDay} onChange={onDateChange} />
+      <label className="schedule-field time-picker-field"><span>{timeLabel}</span><input type="time" value={scheduledTime} onChange={(event) => onTimeChange(event.target.value)} /></label>
+    </div>
+  );
+}
+
+function DesignKitScreen() {
+  const [scheduledFor, setScheduledFor] = useState(dateKey());
+  const [scheduledTime, setScheduledTime] = useState('18:00');
+  const [toggleActive, setToggleActive] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  return (
+    <main className="content-page narrow-page design-kit-page">
+      <PageHeader back="/trainer" eyebrow="Внутренний экран" title="ДИЗАЙН-КИТ" />
+      <p className="design-kit-intro">Контрольная страница основных элементов REPPY. Она не входит в рабочую навигацию и нужна для согласования размеров, состояний и будущих тем.</p>
+
+      <section className="design-kit-section" aria-labelledby="kit-colors-title">
+        <div className="section-heading"><h2 id="kit-colors-title">Цвета и поверхности</h2><span>Токены темы</span></div>
+        <div className="design-kit-swatches" role="list">
+          <div role="listitem"><i className="kit-color-background" /><span><strong>Фон</strong><small>--ink</small></span></div>
+          <div role="listitem"><i className="kit-color-surface" /><span><strong>Поверхность</strong><small>--surface</small></span></div>
+          <div role="listitem"><i className="kit-color-raised" /><span><strong>Выше фона</strong><small>--surface-2</small></span></div>
+          <div role="listitem"><i className="kit-color-text" /><span><strong>Текст</strong><small>--paper</small></span></div>
+          <div role="listitem"><i className="kit-color-muted" /><span><strong>Вторичный</strong><small>--muted</small></span></div>
+          <div role="listitem"><i className="kit-color-accent" /><span><strong>Акцент</strong><small>--lime</small></span></div>
+        </div>
+      </section>
+
+      <section className="design-kit-section" aria-labelledby="kit-type-title">
+        <div className="section-heading"><h2 id="kit-type-title">Типографика</h2><span>Основные уровни</span></div>
+        <div className="design-kit-type-samples">
+          <p className="eyebrow">Служебная подпись</p>
+          <h2>Заголовок секции</h2>
+          <p>Основной текст интерфейса для коротких объяснений и значимых сообщений.</p>
+          <small>Вторичный текст и уточнение состояния.</small>
+        </div>
+      </section>
+
+      <section className="design-kit-section" aria-labelledby="kit-actions-title">
+        <div className="section-heading"><h2 id="kit-actions-title">Действия</h2><span>Обычные и опасные</span></div>
+        <div className="design-kit-button-grid">
+          <button className="primary-button" type="button"><Icon name="plus" /> Основное действие</button>
+          <button className="wide-secondary" type="button"><Icon name="edit" /> Вторичное действие</button>
+          <button className="danger-button" type="button"><Icon name="trash" /> Опасное действие</button>
+          <button className="wide-secondary" type="button" disabled><Icon name="check" /> Недоступно</button>
+        </div>
+        <div className="design-kit-compact-row">
+          <button className="schedule-add-button" type="button" aria-label="Добавить"><Icon name="plus" /></button>
+          <button className={`schedule-view-toggle ${toggleActive ? 'active' : ''}`} type="button" role="switch" aria-checked={toggleActive} onClick={() => setToggleActive((current) => !current)}>
+            <span className="schedule-view-icon" aria-hidden="true"><Icon name="calendar" /></span><strong>Переключатель</strong><span className="toggle-track" aria-hidden="true"><i /></span>
+          </button>
+          <button className="wide-secondary design-kit-modal-button" type="button" onClick={() => setModalOpen(true)}>Открыть модалку</button>
+        </div>
+      </section>
+
+      <section className="design-kit-section" aria-labelledby="kit-fields-title">
+        <div className="section-heading"><h2 id="kit-fields-title">Поля</h2><span>Общие размеры</span></div>
+        <label className="field-label" htmlFor="kit-name">Название тренировки</label>
+        <input id="kit-name" className="text-input" defaultValue="Грудь и плечи" />
+        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
+        <label className="design-kit-textarea-field"><span>Комментарий</span><textarea defaultValue="Держи лопатки сведёнными" /></label>
+      </section>
+
+      <section className="design-kit-section" aria-labelledby="kit-states-title">
+        <div className="section-heading"><h2 id="kit-states-title">Состояния</h2><span>Короткие статусы</span></div>
+        <div className="design-kit-statuses"><span>Запланирована</span><span className="completed">Завершена</span><span className="attention">Требует внимания</span></div>
+      </section>
+
+      <section className="design-kit-section" aria-labelledby="kit-exercise-title">
+        <div className="section-heading"><h2 id="kit-exercise-title">Карточка упражнения</h2><span>Эталон порядка</span></div>
+        <section className="readonly-exercise-list" aria-label="Пример упражнения">
+          <article className="readonly-exercise-card">
+            <header><span>01</span><div><h2>Жим лёжа</h2><small>Грудь · Штанга</small></div></header>
+            <div className="readonly-set-list"><p><span>Подход 1</span><strong>80 кг × 8</strong></p><p><span>Подход 2</span><strong>80 кг × 8</strong></p></div>
+            <p className="readonly-coach-note"><Icon name="edit" /> Держи лопатки сведёнными</p>
+            <button type="button" className="wide-secondary exercise-progress-button"><Icon name="history" /> Прогресс упражнения</button>
+          </article>
+        </section>
+      </section>
+
+      {modalOpen && <ConfirmationModal title="Пример модального окна" text="Здесь проверяются фон, отступы, кнопки и контраст модального слоя." confirmLabel="Подтвердить" onClose={() => setModalOpen(false)} onConfirm={() => setModalOpen(false)} />}
+    </main>
+  );
+}
+
 function SubscriptionPaymentForm({
   student,
   initial,
@@ -1945,10 +2058,7 @@ function AssignWorkoutToStudent({
       <PageHeader back={backPath ?? `/trainer/clients/${student.id}/assign`} eyebrow={student.name} title={title} />
       <section className="plan-context-card assignment-edit-card">
         <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
-        <div className="schedule-fields">
-          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={(value) => { setScheduledFor(value); setError(''); }} />
-          <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => { setScheduledTime(event.target.value); setError(''); }} /></label>
-        </div>
+        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={(value) => { setScheduledFor(value); setError(''); }} onTimeChange={(value) => { setScheduledTime(value); setError(''); }} />
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -2001,10 +2111,7 @@ function NewAssignmentForStudent({
         <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong></div></div>
         <label className="field-label" htmlFor="new-assignment-name">Название тренировки</label>
         <input id="new-assignment-name" className="text-input" value={name} onChange={(event) => { setName(event.target.value); setError(''); }} placeholder="Например, Грудь + плечи" autoFocus />
-        <div className="schedule-fields">
-          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={(value) => { setScheduledFor(value); setError(''); }} />
-          <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => { setScheduledTime(event.target.value); setError(''); }} /></label>
-        </div>
+        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={(value) => { setScheduledFor(value); setError(''); }} onTimeChange={(value) => { setScheduledTime(value); setError(''); }} />
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -2405,10 +2512,7 @@ function StudentAssignmentDetails({
       {assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <button className="wide-secondary student-reschedule-button" type="button" onClick={() => setRequestOpen((current) => !current)}><Icon name="calendar" /> Предложить другое время</button>}
 
       {requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
-        <div className="schedule-fields">
-          <DatePickerField className="schedule-field" label="Новая дата" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
-          <label className="schedule-field"><span>Новое время</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
-        </div>
+        <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
         <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}><Icon name="check" /> Отправить тренеру</button>
       </section>}
 
@@ -2454,10 +2558,7 @@ function RepeatAssignment({
       <PageHeader back={`/trainer/assignments/${assignment.id}`} eyebrow={student.name} title="ПОВТОРИТЬ ТРЕНИРОВКУ" />
       <section className="plan-context-card repeat-assignment-form">
         <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{sourceWorkout.name}</p></div></div>
-        <div className="schedule-fields">
-          <DatePickerField className="schedule-field" label="Новая дата" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
-          <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
-        </div>
+        <WorkoutScheduleFields dateLabel="Новая дата" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
       <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="plus" /> Назначить тренировку</button></div>
@@ -2483,10 +2584,7 @@ function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: 
               <Avatar student={student} /><span><strong>{student.name}</strong>{student.status === 'invited' && <small>Сначала ученик должен принять приглашение</small>}</span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
             </button>
           ))}
-          <div className="schedule-fields">
-            <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
-            <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
-          </div>
+          <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
           <div className="plan-sticky-actions">
             <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}><Icon name="plus" /> Назначить {chosen?.name ? chosen.name : ''}</button>
           </div>
@@ -2533,10 +2631,7 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
       <PageHeader back={'/trainer/assignments/' + assignment.id} eyebrow={student.name + ' · ' + workout.name} title="РЕДАКТИРОВАТЬ ТРЕНИРОВКУ" />
       <section className="plan-context-card assignment-edit-card">
         <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
-        <div className="schedule-fields">
-          <DatePickerField className="schedule-field" label="Дата тренировки" value={scheduledFor} min={dateKey()} formatValue={formatCalendarDay} onChange={setScheduledFor} />
-          <label className="schedule-field"><span>Время начала</span><input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} /></label>
-        </div>
+        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -3145,7 +3240,6 @@ function SessionResult({
 }) {
   const workout = findSessionWorkout(data, session);
   const student = findStudent(data, session.studentId);
-  const progress = trainerView ? collectExerciseProgress(data.sessions, session.studentId) : [];
   const charged = isSessionCharged(data.subscriptionEntries, session.id);
   const chargeStatus = charged ? 'charged' : session.subscriptionChargeStatus === 'waived' ? 'waived' : undefined;
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -3172,8 +3266,8 @@ function SessionResult({
           return (
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><small className="result-exercise-meta">{exerciseMetadata(exercise)}</small>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
-              {trainerView && progress.some((group) => group.key === progressKey(exercise)) && <button type="button" className="wide-secondary exercise-progress-button" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения <Icon name="arrow-right" /></button>}
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
+              {trainerView && <button type="button" className="wide-secondary exercise-progress-button" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения</button>}
             </article>
           );
         })}
@@ -3212,7 +3306,7 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
   );
 }
 
-function SettingsModal({ onClose, onReset }: { onClose: () => void; onReset: () => void }) {
+function SettingsModal({ onClose, onReset, onOpenDesignKit }: { onClose: () => void; onReset: () => void; onOpenDesignKit: () => void }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   return (
     <ModalLayer onClose={onClose}>
@@ -3220,7 +3314,7 @@ function SettingsModal({ onClose, onReset }: { onClose: () => void; onReset: () 
         <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>{resetConfirmationOpen ? 'Сбросить демо-данные?' : 'Настройки демо'}</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <p>{resetConfirmationOpen ? 'Все изменения в учениках, тренировках и расписании будут удалены.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
-        {resetConfirmationOpen ? <div className="confirmation-actions"><button className="wide-secondary" type="button" onClick={() => setResetConfirmationOpen(false)}>Остаться</button><button className="danger-button" type="button" onClick={onReset}>Сбросить данные</button></div> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}
+        {resetConfirmationOpen ? <div className="confirmation-actions"><button className="wide-secondary" type="button" onClick={() => setResetConfirmationOpen(false)}>Остаться</button><button className="danger-button" type="button" onClick={onReset}>Сбросить данные</button></div> : <div className="settings-actions"><button className="wide-secondary" type="button" onClick={onOpenDesignKit}><Icon name="workout" /> Открыть дизайн-кит</button><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
         </section>
       </div>
     </ModalLayer>

@@ -68,11 +68,13 @@ test('график, клавиатура, соседние занятия и п�
   await page.getByRole('button', { name: 'Открыть тренировку' }).click();
   await expect(page).toHaveURL(/sessions\/progress-2$/);
   await expect(page.getByText('Контрольный комментарий к тренировке')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Прогресс упражнения' })).toHaveCount(3);
   const resultProgressButton = page.locator('.result-exercises article').first().getByRole('button', { name: 'Прогресс упражнения' });
+  expect(await resultProgressButton.evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
   expect(await resultProgressButton.evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.marginTop, css.marginRight, css.marginBottom, css.marginLeft];
-  })).toEqual(['14px', '18px', '14px', '18px']);
+  })).toEqual(['14px', '18px', '18px', '18px']);
   await resultProgressButton.click();
   await expect(page.locator('.progress-chart')).toBeVisible();
 });
@@ -82,6 +84,7 @@ test('прогресс доступен из каждой карточки на�
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
   const plannedProgressButton = page.getByRole('button', { name: 'Прогресс упражнения' });
   await expect(plannedProgressButton).toHaveCount(3);
+  expect(await plannedProgressButton.first().evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
   expect(await plannedProgressButton.first().evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.marginTop, css.marginRight, css.marginBottom, css.marginLeft];
