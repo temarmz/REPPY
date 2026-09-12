@@ -2152,7 +2152,7 @@ function WorkoutExerciseEditor({
     const afterIndex = pickerAfterId === 'start' ? -1 : next.findIndex((exercise) => exercise.id === pickerAfterId);
     next.splice(afterIndex + 1, 0, nextExercise);
     onChange(next);
-    setPickerAfterId(null);
+    setPickerAfterId(nextExercise.id);
     focusExercise(nextExercise.id);
   };
 
@@ -2170,7 +2170,6 @@ function WorkoutExerciseEditor({
   };
 
   const actionExercise = exercises.find((exercise) => exercise.id === actionExerciseId);
-  const actionMinimumSets = actionExercise ? Math.max(1, minSetsByExerciseId[actionExercise.id] ?? 1) : 1;
 
   return (
     <section className="workout-plan-editor">
@@ -2198,6 +2197,8 @@ function WorkoutExerciseEditor({
               plannedSets.push({ ...(plannedSets.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) });
               return withExerciseSetPlans(current, plannedSets);
             })}
+            canRemoveSet={getExerciseSetPlans(exercise).length > Math.max(1, minSetsByExerciseId[exercise.id] ?? 1)}
+            onRemoveSet={() => updateExercise(exercise.id, (current) => withExerciseSetPlans(current, getExerciseSetPlans(current).slice(0, -1)))}
             onAddAfter={() => setPickerAfterId(exercise.id)}
           />
         ))}
@@ -2207,13 +2208,8 @@ function WorkoutExerciseEditor({
       {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
-        canRemoveSet={getExerciseSetPlans(actionExercise).length > actionMinimumSets}
         canDeleteExercise={exercises.length > 1 && (minSetsByExerciseId[actionExercise.id] ?? 0) === 0}
         onClose={() => setActionExerciseId(null)}
-        onRemoveSet={() => {
-          updateExercise(actionExercise.id, (current) => withExerciseSetPlans(current, getExerciseSetPlans(current).slice(0, -1)));
-          setActionExerciseId(null);
-        }}
         onDeleteExercise={() => {
           setActionExerciseId(null);
           onChange(exercises.filter((item) => item.id !== actionExercise.id));
@@ -2235,6 +2231,8 @@ function PlanExerciseCard({
   onNoteChange,
   onSetChange,
   onAddSet,
+  canRemoveSet,
+  onRemoveSet,
   onAddAfter,
 }: {
   exercise: WorkoutExercise;
@@ -2248,6 +2246,8 @@ function PlanExerciseCard({
   onNoteChange: (note: string) => void;
   onSetChange: (index: number, patch: Partial<WorkoutSetPlan>) => void;
   onAddSet: () => void;
+  canRemoveSet: boolean;
+  onRemoveSet: () => void;
   onAddAfter: () => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(Boolean(exercise.coachNote));
@@ -2281,7 +2281,7 @@ function PlanExerciseCard({
           </article>
         ))}
       </section>
-      <footer className="active-exercise-footer-actions"><button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Ещё подход</button><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>
+      <footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} count={getExerciseSetPlans(exercise).length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>
     </article>
   );
 }
@@ -2729,7 +2729,7 @@ function ActiveWorkout({
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
     next.splice(afterIndex + 1, 0, nextExercise);
     updateWorkout(next);
-    setPickerAfterId(null);
+    setPickerAfterId(nextExercise.id);
     focusExercise(nextExercise.id);
   };
 
@@ -2755,6 +2755,7 @@ function ActiveWorkout({
       <section className="active-exercise-list">
         {workout.exercises.map((exercise, index) => {
           const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
+          const minimumSets = Math.max(1, ...exerciseResults.filter((result) => result.completed).map((result) => result.setNumber));
           return (
             <ActiveExerciseCard
               key={exercise.id}
@@ -2768,6 +2769,8 @@ function ActiveWorkout({
               onShowInstruction={() => setInstructionExercise(exercise)}
               onShowActions={() => setActionExerciseId(exercise.id)}
               onAddSet={() => updateExerciseSets(exercise.id, (plans, current) => [...plans, { ...(plans.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) }])}
+              canRemoveSet={getExerciseSetPlans(exercise).length > minimumSets}
+              onRemoveSet={() => updateExerciseSets(exercise.id, (plans) => plans.slice(0, -1))}
               onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
@@ -2780,13 +2783,8 @@ function ActiveWorkout({
       {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
-        canRemoveSet={getExerciseSetPlans(actionExercise).length > Math.max(1, actionMinimumSets)}
         canDeleteExercise={workout.exercises.length > 1 && actionMinimumSets === 0}
         onClose={() => setActionExerciseId(null)}
-        onRemoveSet={() => {
-          updateExerciseSets(actionExercise.id, (plans) => plans.slice(0, -1));
-          setActionExerciseId(null);
-        }}
         onDeleteExercise={() => {
           setActionExerciseId(null);
           updateWorkout(workout.exercises.filter((item) => item.id !== actionExercise.id));
@@ -2833,6 +2831,29 @@ function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose,
   );
 }
 
+function SetCountControl({
+  exerciseName,
+  count,
+  canRemove,
+  onRemove,
+  onAdd,
+}: {
+  exerciseName: string;
+  count: number;
+  canRemove: boolean;
+  onRemove: () => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="set-count-control" role="group" aria-label={`Подходы — ${exerciseName}`}>
+      <span>Подходы</span>
+      <button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></button>
+      <strong aria-live="polite">{count}</strong>
+      <button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></button>
+    </div>
+  );
+}
+
 function ActiveExerciseCard({
   exercise,
   index,
@@ -2844,6 +2865,8 @@ function ActiveExerciseCard({
   onShowInstruction,
   onShowActions,
   onAddSet,
+  canRemoveSet,
+  onRemoveSet,
   onAddAfter,
   onMoveUp,
   onMoveDown,
@@ -2858,6 +2881,8 @@ function ActiveExerciseCard({
   onShowInstruction: () => void;
   onShowActions: () => void;
   onAddSet: () => void;
+  canRemoveSet: boolean;
+  onRemoveSet: () => void;
   onAddAfter: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -2909,7 +2934,7 @@ function ActiveExerciseCard({
       </section>
 
       <footer className="active-exercise-footer-actions">
-        <button className="add-set-action" type="button" onClick={onAddSet}><Icon name="plus" /> Ещё подход</button>
+        <SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} />
         <button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button>
       </footer>
     </article>
@@ -2945,17 +2970,13 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
 
 function ExerciseActionsModal({
   exercise,
-  canRemoveSet,
   canDeleteExercise,
   onClose,
-  onRemoveSet,
   onDeleteExercise,
 }: {
   exercise: WorkoutExercise;
-  canRemoveSet: boolean;
   canDeleteExercise: boolean;
   onClose: () => void;
-  onRemoveSet: () => void;
   onDeleteExercise: () => void;
 }) {
   return (
@@ -2965,10 +2986,6 @@ function ExerciseActionsModal({
         <div className="sheet-handle" />
         <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть действия"><Icon name="close" /></button></div>
         <div className="exercise-action-list">
-          <button type="button" disabled={!canRemoveSet} onClick={onRemoveSet}>
-            <Icon name="minus" />
-            <span><strong>Удалить подход</strong><small>{canRemoveSet ? 'Будет удалён последний подход' : 'Нельзя удалить выполненный или единственный подход'}</small></span>
-          </button>
           <button className="danger" type="button" disabled={!canDeleteExercise} onClick={onDeleteExercise}>
             <Icon name="trash" />
             <span><strong>Удалить упражнение</strong><small>{canDeleteExercise ? 'Упражнение исчезнет из этой тренировки' : 'Сначала отмени выполненные подходы'}</small></span>
@@ -2991,6 +3008,8 @@ function ActiveExercisePicker({
   const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
   const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>('external');
   const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>('reps');
+  const [addedIds, setAddedIds] = useState(() => new Set<string>());
+  const [addedCount, setAddedCount] = useState(0);
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
   const customName = search.trim();
   const canCreateCustom = customName.length >= 2 && !exerciseLibrary.some((exercise) => exercise.name.toLocaleLowerCase('ru') === normalizedSearch);
@@ -2999,13 +3018,23 @@ function ActiveExercisePicker({
     const haystack = (exercise.name + ' ' + exercise.primaryMuscle + ' ' + exercise.equipment).toLocaleLowerCase('ru');
     return matchesMuscle && haystack.includes(normalizedSearch);
   });
+  const selectExercise = (exercise: ExercisePickerChoice, custom = false) => {
+    if (!custom && addedIds.has(exercise.id)) return;
+    onSelect(exercise);
+    setAddedCount((count) => count + 1);
+    if (custom) {
+      setSearch('');
+      return;
+    }
+    setAddedIds((current) => new Set(current).add(exercise.id));
+  };
 
   return (
     <ModalLayer onClose={onClose}>
       <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнение после выбранного" onMouseDown={(event) => event.stopPropagation()}>
+        <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнения" onMouseDown={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
-        <div className="sheet-title"><h2>Добавить упражнение</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
+        <div className="sheet-title"><div><h2>Добавить упражнения</h2><p>Выбери несколько — окно останется открытым</p></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
         <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
         <div className="muscle-filter" aria-label="Фильтр по основной мышце">
           <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
@@ -3022,11 +3051,15 @@ function ActiveExercisePicker({
               <button className={customMeasureType === 'reps' ? 'selected' : ''} type="button" onClick={() => setCustomMeasureType('reps')} aria-pressed={customMeasureType === 'reps'}>Повторы</button>
               <button className={customMeasureType === 'duration' ? 'selected' : ''} type="button" onClick={() => { setCustomMeasureType('duration'); setCustomLoadMode('bodyweight'); }} aria-pressed={customMeasureType === 'duration'}>Секунды</button>
             </div>
-            <button className="custom-exercise-option" type="button" onClick={() => onSelect({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode, measureType: customMeasureType })}><Icon name="plus" /> Добавить «{customName}»</button>
+            <button className="custom-exercise-option" type="button" onClick={() => selectExercise({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode, measureType: customMeasureType }, true)}><Icon name="plus" /> Добавить «{customName}»</button>
           </section>}
-          {filtered.map((exercise) => <button key={exercise.id} type="button" onClick={() => onSelect(exercise)}><span><Icon name="plus" /></span><div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div></button>)}
+          {filtered.map((exercise) => {
+            const added = addedIds.has(exercise.id);
+            return <button className={added ? 'added' : ''} key={exercise.id} type="button" disabled={added} aria-pressed={added} onClick={() => selectExercise(exercise)}><span><Icon name={added ? 'check' : 'plus'} /></span><div><strong>{exercise.name}</strong><small>{added ? 'Добавлено' : `${exercise.primaryMuscle} · ${exercise.equipment}`}</small></div></button>;
+          })}
           {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
         </div>
+        <footer className="picker-footer"><span aria-live="polite">{addedCount ? `Добавлено: ${addedCount}` : 'Можно выбрать несколько'}</span><button className="primary-button" type="button" onClick={onClose}><Icon name="check" /> Готово</button></footer>
         </section>
       </div>
     </ModalLayer>
