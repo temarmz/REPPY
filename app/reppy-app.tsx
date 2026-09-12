@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   TRAINER_NAME,
@@ -60,6 +60,8 @@ const COPY = {
 const NAVIGATION_EVENT = 'reppy:navigate';
 const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
+const THEME_PREFERENCE = 'reppy-ui:theme';
+type AppTheme = 'dark' | 'light';
 let openModalLayers = 0;
 let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
 let restoringBlockedHistory = false;
@@ -80,6 +82,23 @@ function saveAllDaysPreference(value: boolean) {
     window.localStorage.setItem(TRAINER_ALL_DAYS_PREFERENCE, String(value));
   } catch {
     // The view still works when storage is unavailable (for example, in private mode).
+  }
+}
+
+function loadThemePreference(): AppTheme {
+  if (typeof window === 'undefined') return 'dark';
+  try {
+    return window.localStorage.getItem(THEME_PREFERENCE) === 'light' ? 'light' : 'dark';
+  } catch {
+    return 'dark';
+  }
+}
+
+function saveThemePreference(theme: AppTheme) {
+  try {
+    window.localStorage.setItem(THEME_PREFERENCE, theme);
+  } catch {
+    // Theme still changes for the current session when storage is unavailable.
   }
 }
 
@@ -329,6 +348,13 @@ export default function ReppyApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modalLayerOpen, setModalLayerOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const [theme, setTheme] = useState<AppTheme>(loadThemePreference);
+
+  useLayoutEffect(() => {
+    const appliedTheme: AppTheme = data.loggedIn ? theme : 'dark';
+    document.documentElement.dataset.theme = appliedTheme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', appliedTheme === 'light' ? '#f1f2eb' : '#070908');
+  }, [data.loggedIn, theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -462,6 +488,12 @@ export default function ReppyApp() {
     setData((current) => ({ ...current, role, loggedIn: true }));
     go(role === 'trainer' ? '/trainer' : '/student');
   };
+
+  const toggleTheme = () => setTheme((current) => {
+    const next = current === 'dark' ? 'light' : 'dark';
+    saveThemePreference(next);
+    return next;
+  });
 
   const resetDemo = () => {
     resetData();
@@ -1074,6 +1106,8 @@ export default function ReppyApp() {
         data={data}
         hideBottomNav={settingsOpen || modalLayerOpen}
         onSwitchRole={switchRole}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
       >
         {content}
@@ -1208,6 +1242,8 @@ function AppShell({
   data,
   hideBottomNav,
   onSwitchRole,
+  theme,
+  onToggleTheme,
   onSettings,
   children,
 }: {
@@ -1216,6 +1252,8 @@ function AppShell({
   data: DemoState;
   hideBottomNav: boolean;
   onSwitchRole: () => void;
+  theme: AppTheme;
+  onToggleTheme: () => void;
   onSettings: () => void;
   children: ReactNode;
 }) {
@@ -1247,12 +1285,11 @@ function AppShell({
       {!focusMode && <header className="topbar">
         <Brand />
         <div className="topbar-actions">
-          <button className="role-switch" type="button" onClick={onSwitchRole}>
+          <button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${area === 'trainer' ? 'ученика' : 'тренера'}`} title={`Переключиться в роль ${area === 'trainer' ? 'ученика' : 'тренера'}`}>
             <span>DEMO</span>
-            <span className="role-switch-label">{area === 'trainer' ? 'Тренер' : 'Ученик'}</span>
             <Icon name="change" />
-            <span className="role-switch-label">{area === 'trainer' ? 'Ученик' : 'Тренер'}</span>
           </button>
+          <button className="theme-switch" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'} title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
           <button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
             {initials(displayName)}
           </button>
@@ -1731,10 +1768,10 @@ function DesignKitScreen() {
       <section className="design-kit-section" aria-labelledby="kit-colors-title">
         <div className="section-heading"><h2 id="kit-colors-title">Цвета и поверхности</h2><span>Токены темы</span></div>
         <div className="design-kit-swatches" role="list">
-          <div role="listitem"><i className="kit-color-background" /><span><strong>Фон</strong><small>--ink</small></span></div>
+          <div role="listitem"><i className="kit-color-background" /><span><strong>Фон</strong><small>--app-bg</small></span></div>
           <div role="listitem"><i className="kit-color-surface" /><span><strong>Поверхность</strong><small>--surface</small></span></div>
           <div role="listitem"><i className="kit-color-raised" /><span><strong>Выше фона</strong><small>--surface-2</small></span></div>
-          <div role="listitem"><i className="kit-color-text" /><span><strong>Текст</strong><small>--paper</small></span></div>
+          <div role="listitem"><i className="kit-color-text" /><span><strong>Текст</strong><small>--text-primary</small></span></div>
           <div role="listitem"><i className="kit-color-muted" /><span><strong>Вторичный</strong><small>--muted</small></span></div>
           <div role="listitem"><i className="kit-color-accent" /><span><strong>Акцент</strong><small>--lime</small></span></div>
         </div>

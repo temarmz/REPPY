@@ -14,6 +14,7 @@ export type IconName =
   | 'circle'
   | 'copy'
   | 'sun'
+  | 'moon'
   | 'change'
   | 'edit'
   | 'minus'
@@ -38,6 +39,7 @@ const iconFiles: Record<IconName, string> = {
   circle: 'icon-circle.svg',
   copy: 'icon-copy.svg',
   sun: 'icon-sun-reppy.svg',
+  moon: 'icon-moon-reppy.svg',
   change: 'icon-change.svg',
   edit: 'icon-edit.svg',
   minus: 'icon-minus.svg',

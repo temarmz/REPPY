@@ -84,6 +84,64 @@ test('внутренний дизайн-кит собирает реальные
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('светлая тема переключается из компактной шапки, сохраняется и держит контраст', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFreshDemo(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  const roleSwitch = page.getByRole('button', { name: 'Переключиться в роль ученика' });
+  const themeSwitch = page.getByRole('button', { name: 'Включить светлую тему' });
+  const roleBox = await roleSwitch.boundingBox();
+  const themeBox = await themeSwitch.boundingBox();
+  expect(roleBox?.width ?? 999).toBeLessThan(90);
+  expect(Math.round(themeBox?.width ?? 0)).toBe(40);
+
+  await themeSwitch.click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
+  await expect(page.locator('.today-schedule')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.screenshot({ path: 'test-results/theme-light-trainer.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer/design-kit');
+  const primary = page.getByRole('button', { name: 'Основное действие' });
+  const primaryContrast = await primary.evaluate((element) => {
+    const parse = (value: string) => value.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+    const luminance = (value: string) => {
+      const channels = parse(value).map((channel) => {
+        const normalized = channel / 255;
+        return normalized <= .04045 ? normalized / 12.92 : ((normalized + .055) / 1.055) ** 2.4;
+      });
+      return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+    };
+    const css = getComputedStyle(element);
+    const foreground = luminance(css.color);
+    const background = luminance(css.backgroundColor);
+    return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
+  });
+  expect(primaryContrast).toBeGreaterThanOrEqual(4.5);
+  await page.screenshot({ path: 'test-results/theme-light-design-kit.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer/calendar');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.screenshot({ path: 'test-results/theme-light-calendar.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
+  await page.screenshot({ path: 'test-results/theme-light-assignment-edit.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer/workout/assignment-maria-legs');
+  await expect(page.locator('.active-sticky-header')).toBeVisible();
+  await page.screenshot({ path: 'test-results/theme-light-active-workout.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer');
+  await roleSwitch.click();
+  await expect(page).toHaveURL(/#\/student$/);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/theme-light-student.png', animations: 'disabled' });
+});
+
 test('дата и время назначения имеют одинаковый компактный размер', async ({ page }) => {
   await openFreshDemo(page);
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
@@ -488,7 +546,7 @@ test('тренер пополняет и исправляет абонемент
   await expect(page.locator('.subscription-entry-list > button').first()).toContainText('12 000 ₽ · наличные');
   await expect(page.locator('.subscription-entry-list > button').first()).toContainText('Исправлено тренером');
 
-  await page.getByRole('button', { name: /DEMO.*Тренер.*Ученик/ }).first().click();
+  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
   await expect(page.getByLabel('Остаток абонемента')).toContainText('Осталось 17 занятий');
   await page.goto('/#/student/profile');
   await expect(page.getByLabel('Абонемент')).toContainText('Осталось 17 занятий');
@@ -535,7 +593,7 @@ test('тренер может завершить занятие в долг и �
 test('результат ученика виден тренеру и не меняется вместе с шаблоном', async ({ page }) => {
   await openFreshDemo(page);
 
-  await page.getByRole('button', { name: /DEMO.*Тренер.*Ученик/ }).first().click();
+  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
   await expect(page).toHaveURL(/#\/student$/);
   await expect(page.getByLabel('Остаток абонемента')).toContainText('Осталось 11 занятий');
   await page.getByRole('button', { name: 'Посмотреть тренировку' }).click();
@@ -555,7 +613,7 @@ test('результат ученика виден тренеру и не мен
   await expect(page.getByText('Осталось 10 занятий')).toBeVisible();
 
   await page.getByRole('button', { name: 'Готово' }).click();
-  await page.getByRole('button', { name: /DEMO.*Ученик.*Тренер/ }).first().click();
+  await page.getByRole('button', { name: 'Переключиться в роль тренера' }).click();
 
   await page.goto('/#/trainer/workouts/push-day/edit');
   await setFirstExerciseWeight(page, 95);

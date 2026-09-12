@@ -12,6 +12,12 @@
   --orange: #ff6a35;
   --ui-outline: rgba(255,255,255,.085);
   --brand-soft: rgba(198,255,61,.11);
+  --app-bg: #070908;
+  --text-primary: #f5f6ef;
+  --control-bg: #090b09;
+  --overlay-surface: #171b17;
+  --divider: rgba(255,255,255,.065);
+  --lime-strong: #c6ff3d;
   --app-font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   --app-font-mono: var(--font-geist-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
   --topbar-content-height: 76px;
@@ -21,14 +27,14 @@
 
 * { box-sizing: border-box; }
 
-html { min-height: 100%; background: var(--ink); }
+html { min-height: 100%; background: var(--app-bg); }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100%;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--app-bg);
+  color: var(--text-primary);
   font-family: var(--app-font-sans);
 }
 
@@ -313,7 +319,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .brand-button { border: 0; padding: 0; background: transparent; cursor: pointer; }
 .welcome-card > .brand-button { margin-left: -22px; }
 .topbar .brand-button { margin-left: -22px; }
-.app-shell { min-height: 100svh; background: var(--ink); }
+.app-shell { min-height: 100svh; background: var(--app-bg); }
 .topbar {
   position: sticky;
   top: 0;
@@ -327,15 +333,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   background: rgba(7,9,8,.88);
   backdrop-filter: blur(18px);
 }
-.topbar-actions { display: flex; align-items: center; gap: 11px; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
 .role-switch {
   display: flex;
-  min-height: 44px;
+  min-height: 40px;
   align-items: center;
-  gap: 9px;
+  gap: 5px;
   border: 1px solid rgba(255,255,255,.1);
-  border-radius: 999px;
-  padding: 0 15px 0 7px;
+  border-radius: 14px;
+  padding: 0 7px 0 5px;
   background: rgba(255,255,255,.04);
   color: #c7cbc5;
   cursor: pointer;
@@ -344,7 +350,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 .role-switch > span:first-child {
   border-radius: 999px;
-  padding: 7px 9px;
+  padding: 6px 7px;
   background: var(--lime);
   color: var(--ink);
   font-size: 9px;
@@ -352,6 +358,20 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   letter-spacing: .08em;
 }
 .role-switch .ui-icon { width: 14px; height: 14px; }
+.theme-switch {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 15px;
+  padding: 0;
+  background: rgba(255,255,255,.04);
+  color: var(--lime);
+  cursor: pointer;
+}
+.theme-switch .ui-icon { width: 20px; height: 20px; }
 .avatar-button {
   width: 44px;
   height: 44px;
@@ -976,9 +996,9 @@ body.modal-open .bottom-nav { display: none; }
   .topbar { padding-right: 17px; padding-left: 17px; }
   .topbar .brand-button { margin-left: -18px; }
   .topbar .brand-logo { width: 108px; height: 36px; }
-  .role-switch { min-height: 40px; padding-right: 10px; font-size: 0; }
-  .role-switch::after { color: #b9beb6; content: 'Сменить роль'; font-size: var(--button-font-size); }
+  .role-switch { min-height: 40px; }
   .role-switch > span:first-child { padding: 6px 8px; }
+  .theme-switch { width: 40px; height: 40px; flex-basis: 40px; border-radius: 13px; }
   .avatar-button { width: 40px; height: 40px; border-radius: 13px; }
   .desktop-nav { display: none; }
   .page-wrap { min-height: calc(100svh - var(--topbar-height)); margin-left: 0; }
@@ -2116,10 +2136,10 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 .design-kit-swatches span { display: grid; min-width: 0; gap: 3px; }
 .design-kit-swatches strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; }
 .design-kit-swatches small { color: var(--muted); font-family: var(--app-font-mono); font-size: 9px; }
-.kit-color-background { background: var(--ink); }
+.kit-color-background { background: var(--app-bg); }
 .kit-color-surface { background: var(--surface); }
 .kit-color-raised { background: var(--surface-2); }
-.kit-color-text { background: var(--paper); }
+.kit-color-text { background: var(--text-primary); }
 .kit-color-muted { background: var(--muted); }
 .kit-color-accent { background: var(--lime); }
 .design-kit-type-samples { display: grid; gap: 10px; }
@@ -2173,10 +2193,152 @@ textarea::placeholder { color: #747b72; opacity: 1; }
   .topbar .brand-button { margin-left: -15px; }
   .topbar .brand-logo { width: 96px; }
   .topbar-actions { gap: 7px; }
-  .role-switch { gap: 6px; padding: 0 8px 0 6px; }
-  .role-switch::after { display: none; content: ''; }
+  .role-switch { gap: 5px; padding: 0 7px 0 5px; }
   .avatar-button { width: 40px; flex: 0 0 40px; }
   .bottom-nav { padding-inline: 2px; }
   .bottom-nav button { min-width: 0; border-radius: 14px; }
   .bottom-nav button small { overflow: hidden; max-width: 100%; font-size: var(--button-font-size); text-overflow: ellipsis; white-space: nowrap; }
 }
+
+/* Light application theme. Landing stays dark until the user enters the app. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #f1f2eb;
+  --text-primary: #171b16;
+  --surface: #ffffff;
+  --surface-2: #f2f4ee;
+  --surface-3: #e5e9e1;
+  --control-bg: #f7f8f3;
+  --overlay-surface: #ffffff;
+  --muted: #687067;
+  --ui-outline: rgba(25,35,23,.12);
+  --divider: rgba(25,35,23,.09);
+  --brand-soft: rgba(93,128,18,.1);
+  --lime: #b8f238;
+  --lime-strong: #4f7111;
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root,
+html[data-theme="light"] .app-shell { background: var(--app-bg); color: var(--text-primary); }
+
+html[data-theme="light"] .topbar {
+  border-bottom-color: var(--divider);
+  background: rgba(250,251,247,.9);
+  box-shadow: 0 6px 22px rgba(38,48,34,.04);
+}
+html[data-theme="light"] .topbar .brand-logo { filter: drop-shadow(0 1px 0 rgba(0,0,0,.68)) drop-shadow(0 5px 10px rgba(91,52,150,.12)); }
+html[data-theme="light"] .role-switch,
+html[data-theme="light"] .theme-switch,
+html[data-theme="light"] .avatar-button {
+  border-color: var(--ui-outline);
+  background: #ffffff;
+  color: #30372e;
+  box-shadow: 0 4px 14px rgba(32,42,29,.05);
+}
+html[data-theme="light"] .theme-switch { color: var(--lime-strong); }
+
+html[data-theme="light"] .desktop-nav {
+  border-right-color: var(--divider);
+  background: #f8f9f4;
+}
+html[data-theme="light"] .profile-avatar { border-color: var(--ui-outline); background: #e9ece5; color: #30372e; }
+html[data-theme="light"] .desktop-nav nav button { color: #667064; }
+html[data-theme="light"] .desktop-nav nav button > span { background: rgba(25,35,23,.05); }
+html[data-theme="light"] .desktop-nav nav button.active,
+html[data-theme="light"] .bottom-nav button.active { background: var(--lime); color: var(--ink); box-shadow: 0 5px 18px rgba(78,105,22,.11); }
+html[data-theme="light"] .side-demo { border-color: rgba(79,113,17,.2); background: var(--brand-soft); color: #566052; }
+
+html[data-theme="light"] .bottom-nav {
+  border-color: var(--ui-outline);
+  background: rgba(250,251,247,.96);
+  box-shadow: 0 -12px 38px rgba(36,46,32,.1);
+}
+html[data-theme="light"] .bottom-nav button { color: #687166; }
+
+html[data-theme="light"] :is(.wide-secondary, .back-button, .empty-state button, .details-edit-button) {
+  border-color: var(--ui-outline);
+  background: var(--control-bg);
+  color: #2f372d;
+}
+html[data-theme="light"] :is(.wide-secondary, .back-button, .empty-state button, .details-edit-button):hover { border-color: rgba(25,35,23,.2); background: #eef1e9; }
+html[data-theme="light"] .primary-button:focus-visible { outline-color: var(--lime-strong); }
+html[data-theme="light"] .danger-button,
+html[data-theme="light"] .reset-button { border-color: rgba(177,66,52,.22); background: rgba(201,75,58,.07); color: #a84336; }
+
+html[data-theme="light"] .today-schedule,
+html[data-theme="light"] .student-focus-card {
+  border: 1px solid var(--ui-outline);
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 18px 48px rgba(37,47,33,.08);
+}
+html[data-theme="light"] .today-session-list { border-color: rgba(25,35,23,.09); background: #f7f8f3; }
+html[data-theme="light"] .today-schedule .plan-session-row { border-bottom-color: rgba(25,35,23,.08); }
+
+html[data-theme="light"] :is(.activity-row, .workout-row, .session-row, .plan-session-row, .reschedule-notification-row, .student-upcoming-row, .workout-template-row, .picker-list button, .subscription-entry-list > button, .subscription-entry-list > article) { border-bottom-color: var(--divider); }
+html[data-theme="light"] :is(.plan-day-card > header, .readonly-set-list, .readonly-set-list p, .result-exercises header, .result-exercises p, .picker-footer) { border-color: var(--divider); }
+html[data-theme="light"] :is(.client-card, .workout-template-list, .empty-state, .calendar-card, .agenda-list > button, .plan-day-card, .select-student-list > button, .active-exercise-card, .set-card) { border-color: var(--ui-outline); }
+html[data-theme="light"] :is(.plan-day-card > header, .plan-day-card.empty-day, .empty-day-action:hover, .remember-version-toggle, .athlete-summary > div, .athlete-summary article, .design-kit-swatches > div) { background: rgba(25,35,23,.025); }
+
+html[data-theme="light"] :is(.schedule-student-list, .exercise-editor, .workout-assignments > button, .mood-grid button, .active-comment-field, .bodyweight-set-label, .plan-context-card .schedule-field, .finish-balance-preview) { background: var(--control-bg); }
+html[data-theme="light"] :is(.text-input, .schedule-field input, .date-picker-field > button, .athlete-form input, .athlete-form select, .athlete-form textarea, .metric-input input, .set-card input, .coach-note-field textarea, .active-comment-field textarea, .comment-field textarea, .subscription-payment-form input, .subscription-payment-form textarea, .payment-method-field button, .design-kit-textarea-field textarea) {
+  border-color: var(--ui-outline);
+  background: #ffffff;
+  color: var(--text-primary);
+  color-scheme: light;
+}
+html[data-theme="light"] :is(input, textarea)::placeholder { color: #7b8378; }
+html[data-theme="light"] :is(.field-label, .schedule-field span, .athlete-form label > span, .coach-note-field > span, .active-comment-field span, .comment-field > span, .subscription-payment-form label > span, .payment-method-field legend, .subscription-payment-form .date-picker-field > span, .design-kit-textarea-field > span) { color: #3d463a; }
+
+html[data-theme="light"] :is(.bottom-sheet, .settings-modal) { background: var(--overlay-surface); color: var(--text-primary); box-shadow: 0 24px 80px rgba(29,38,26,.2); }
+html[data-theme="light"] .modal-backdrop { background: rgba(24,31,22,.46); }
+html[data-theme="light"] .sheet-title > button { background: var(--surface-2); color: #30372e; }
+html[data-theme="light"] .sheet-handle { background: #cbd0c8; }
+
+html[data-theme="light"] .calendar-toolbar button { border-color: var(--ui-outline); background: var(--control-bg); color: #30372e; }
+html[data-theme="light"] .calendar-grid button { background: rgba(25,35,23,.025); color: #30372e; }
+html[data-theme="light"] .calendar-grid button.outside { color: #9ba299; }
+html[data-theme="light"] .calendar-grid button:disabled { color: #b7bdb4; }
+html[data-theme="light"] .calendar-grid button.today { border-color: rgba(25,35,23,.32); color: #171b16; }
+html[data-theme="light"] .calendar-grid button.selected { background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .calendar-grid button i,
+html[data-theme="light"] .calendar-grid button.selected i { background: var(--lime-strong); }
+
+html[data-theme="light"] :is(.recent-card, .profile-hero) { background: linear-gradient(135deg, #ffffff, #eef1e8); color: var(--text-primary); box-shadow: 0 14px 38px rgba(37,47,33,.06); }
+html[data-theme="light"] .workout-card::after { border-color: rgba(25,35,23,.08); }
+html[data-theme="light"] .subscription-card,
+html[data-theme="light"] .subscription-history-summary { background: #f4f8ea; }
+html[data-theme="light"] .subscription-card.debt,
+html[data-theme="light"] .subscription-history-summary.debt { background: #fff4ef; }
+html[data-theme="light"] .subscription-entry-delta { background: var(--surface-2); }
+
+html[data-theme="light"] .active-workout-page { background: var(--app-bg); color: var(--text-primary); }
+html[data-theme="light"] .active-sticky-header { background: rgba(241,242,235,.94); box-shadow: 0 10px 24px rgba(31,40,28,.09); }
+html[data-theme="light"] .active-sticky-header::before { background: var(--app-bg); }
+html[data-theme="light"] .active-timing time { color: var(--text-primary); }
+html[data-theme="light"] .active-progress { background: #dce1d7; }
+html[data-theme="light"] .active-progress span { background: var(--lime-strong); }
+html[data-theme="light"] .active-workout-editor,
+html[data-theme="light"] .active-exercise-card,
+html[data-theme="light"] .plan-exercise-card { background: #ffffff; }
+html[data-theme="light"] .active-exercise-card.completed { border-color: rgba(79,113,17,.25); background: linear-gradient(145deg, rgba(184,242,56,.12), #ffffff 44%); }
+html[data-theme="light"] :is(.exercise-order-controls button, .active-exercise-actions button, .active-exercise-footer-actions button, .active-exercise-corner-actions button, .exercise-action-list > button, .muscle-filter button, .picker-list .custom-load-mode button) { border-color: var(--ui-outline); background: var(--control-bg); color: #343c32; }
+html[data-theme="light"] .set-card > button { border-color: #c9d0c5; background: var(--surface-2); color: #6c7569; }
+html[data-theme="light"] .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider); background: rgba(250,251,247,.94); }
+html[data-theme="light"] .plan-sticky-actions { background: linear-gradient(180deg, rgba(241,242,235,0), rgba(241,242,235,.96) 28%); }
+
+html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .template-number, .student-assignment-schedule time, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .progress-chart svg, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state > span, .history-copy-icon, .student-assignment-schedule > span, .student-request-status > .ui-icon, .assignment-source > .ui-icon, .exercise-coach-note .ui-icon, .active-coach-note > .ui-icon, .active-edit-toggle .ui-icon, .active-exercise-actions button .ui-icon, .active-exercise-footer-actions button .ui-icon, .result-coach-note .ui-icon, .readonly-coach-note .ui-icon, .student-subscription-status > span, .subscription-entry-delta.positive, .session-subscription-status > .ui-icon, .feedback-intro > span, .success-mood .ui-icon, .session-feedback strong .ui-icon) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .select-student-list i, .personal-version-note > span, .personal-version-note button, .agenda-status, .history-status.completed, .reschedule-request-card span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.readonly-coach-note, .template-edit-note, .reschedule-request-card p, .student-request-status p, .exercise-coach-note, .active-coach-note strong, .exercise-instruction-body p, .subscription-entry-list p, .confirmation-sheet > p) { color: #465043 !important; }
+html[data-theme="light"] .readonly-exercise-card h2 { border-top-color: rgba(79,113,17,.14); color: #465043; }
+html[data-theme="light"] :is(.plan-day-date > strong, .plan-day-date > span, .plan-session-row > time, .schedule-workout-picker-page .page-lead strong, .active-edit-toggle, .active-exercise-actions button, .active-exercise-footer-actions button, .exercise-action-list > button, .history-date) { color: #30382e; }
+html[data-theme="light"] .plan-day-card .plan-session-row > time,
+html[data-theme="light"] .connected-list .workout-row small,
+html[data-theme="light"] .student-upcoming-row time small { color: var(--lime-strong); }
+html[data-theme="light"] :is(.add-exercise, .select-student-list > button.selected, .muscle-filter button.selected, .active-exercise-card.recently-moved, .picker-list .custom-load-mode button.selected, .payment-method-field button.selected) { border-color: rgba(79,113,17,.34); }
+html[data-theme="light"] .toast { border-color: rgba(79,113,17,.2); background: #eef7da; color: var(--lime-strong); box-shadow: 0 18px 50px rgba(37,47,33,.14); }
+html[data-theme="light"] .design-kit-swatches > div { background: var(--control-bg); }
