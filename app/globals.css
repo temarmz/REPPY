@@ -2098,8 +2098,6 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 .session-summary strong { font-family: var(--app-font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
 .result-exercise-meta { color: var(--muted); font-size: 11px; font-weight: 700; }
 
-.calendar-grid button i.multiple { display: grid; right: 4px; bottom: 4px; width: 18px; height: 18px; place-items: center; background: var(--lime); color: var(--ink); font-family: var(--app-font-mono); font-size: 9px; font-style: normal; font-weight: 900; transform: none; }
-.calendar-grid button.selected i.multiple { background: #6b8a21; color: white; }
 .new-assignment-card .schedule-fields { margin-top: 16px; }
 
 @media (min-width: 801px) {

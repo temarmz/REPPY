@@ -76,7 +76,7 @@ export default function MonthDatePicker({
               aria-label={dateAriaLabel?.(day, markerCount) ?? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(day)}
               aria-pressed={key === value}
             >
-              <span>{day.getDate()}</span>{markerCount > 0 && <i className={markerCount > 1 ? 'multiple' : ''} aria-hidden="true">{markerCount > 1 ? markerCount : ''}</i>}
+              <span>{day.getDate()}</span>{markerCount > 0 && <i aria-hidden="true" />}
             </button>
           );
         })}

@@ -175,7 +175,9 @@ test('тренер видит единые карточки расписания
 
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Дата тренировки:/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Назначить повтор' }).click();
+  const repeatSubmit = page.getByRole('button', { name: 'Назначить тренировку' });
+  await expect(repeatSubmit.locator('.ui-icon')).toHaveAttribute('style', /icon-plus\.svg/);
+  await repeatSubmit.click();
 
   await expect(page).toHaveURL(/#\/trainer$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
@@ -184,7 +186,7 @@ test('тренер видит единые карточки расписания
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'ВЫБРАТЬ ТРЕНИРОВКУ' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Назначить повтор' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Назначить тренировку' })).toHaveCount(0);
 });
 
 test('календарь тренера использует тот же плюс и выбор ученика', async ({ page }) => {
@@ -193,6 +195,10 @@ test('календарь тренера использует тот же плю�
   await expect(page.getByRole('button', { name: /Назначить тренировку на/ })).toHaveCount(0);
 
   await page.goto('/#/trainer/calendar');
+  const todayMarker = page.locator('.calendar-grid button[aria-current="date"] > i');
+  await expect(todayMarker).toHaveCount(1);
+  await expect(todayMarker).toHaveText('');
+  await expect(todayMarker).not.toHaveClass(/multiple/);
   const assignButton = page.getByRole('button', { name: /Назначить тренировку на/ });
   await expect(assignButton).toHaveClass(/schedule-add-button/);
   const buttonBox = await assignButton.boundingBox();
@@ -256,7 +262,7 @@ test('тренер дублирует шаблон и повторяет наз�
   const firstCard = page.locator('.plan-exercise-card').first();
   await firstCard.getByRole('button', { name: 'Добавить комментарий' }).click();
   await firstCard.locator('.active-comment-field textarea').fill('Держи лопатки сведёнными');
-  await page.getByRole('button', { name: 'Назначить повтор' }).click();
+  await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-/);
   await expect(page.getByText('Скопировано из предыдущей тренировки этого ученика')).toHaveCount(0);
@@ -345,7 +351,7 @@ test('тренер назначает тренировку из профиля �
   await expect(page.locator('.bottom-nav')).toBeVisible();
 
   await setFirstExerciseWeight(page, 62.5);
-  await page.getByRole('button', { name: 'Назначить повтор' }).click();
+  await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
   await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
@@ -498,10 +504,7 @@ test('результат ученика виден тренеру и не мен
   await expect(page.getByRole('heading', { name: 'Жим гантелей на наклонной скамье' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Следующее упражнение' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
-  const studentFinishDialog = page.getByRole('dialog', { name: 'Завершение тренировки' });
-  await expect(studentFinishDialog).toBeVisible();
-  await studentFinishDialog.getByRole('button', { name: 'Завершить тренировку' }).click();
-
+  await expect(page.getByRole('dialog', { name: 'Завершение тренировки' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'КАК ПРОШЛО?' })).toBeVisible();
   await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
   await page.getByLabel(/Комментарий тренеру/).fill('Тестовый результат ученика');

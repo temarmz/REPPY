@@ -547,8 +547,8 @@ export default function ReppyApp() {
           initialScheduledTime={sourceAssignment.scheduledTime}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
-          submitLabel="Назначить повтор"
-          submitIcon="copy"
+          submitLabel="Назначить тренировку"
+          submitIcon="plus"
           onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
             const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
@@ -681,8 +681,8 @@ export default function ReppyApp() {
           initialScheduledTime={sourceAssignment.scheduledTime}
           backPath={`/trainer/clients/${student.id}/assign`}
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
-          submitLabel="Назначить повтор"
-          submitIcon="copy"
+          submitLabel="Назначить тренировку"
+          submitIcon="plus"
           onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
             const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
@@ -2079,21 +2079,24 @@ function actualSetLabel(exercise: WorkoutExercise, result: SetResult) {
 function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onProgress?: (exercise: WorkoutExercise) => (() => void) | undefined }) {
   return (
     <section className="readonly-exercise-list">
-      {workout.exercises.map((exercise, index) => (
-        <article className="readonly-exercise-card" key={exercise.id}>
-          <header>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <div><h2>{exercise.name}</h2><small>{exerciseMetadata(exercise)}</small></div>
-          </header>
-          <div className="readonly-set-list">
-            {getExerciseSetPlans(exercise).map((set, setIndex) => (
-              <p key={setIndex}><span>Подход {setIndex + 1}</span><strong>{plannedSetLabel(exercise, set)}</strong></p>
-            ))}
-          </div>
-          {exercise.coachNote && <p className="readonly-coach-note"><Icon name="edit" /> {exercise.coachNote}</p>}
-          {onProgress?.(exercise) && <button type="button" className="wide-secondary exercise-progress-button" onClick={onProgress(exercise)}><Icon name="history" /> Прогресс упражнения</button>}
-        </article>
-      ))}
+      {workout.exercises.map((exercise, index) => {
+        const progressAction = onProgress?.(exercise);
+        return (
+          <article className="readonly-exercise-card" key={exercise.id}>
+            <header>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <div><h2>{exercise.name}</h2><small>{exerciseMetadata(exercise)}</small></div>
+            </header>
+            <div className="readonly-set-list">
+              {getExerciseSetPlans(exercise).map((set, setIndex) => (
+                <p key={setIndex}><span>Подход {setIndex + 1}</span><strong>{plannedSetLabel(exercise, set)}</strong></p>
+              ))}
+            </div>
+            {exercise.coachNote && <p className="readonly-coach-note"><Icon name="edit" /> {exercise.coachNote}</p>}
+            {progressAction && <button type="button" className="wide-secondary exercise-progress-button" onClick={progressAction}><Icon name="history" /> Прогресс упражнения</button>}
+          </article>
+        );
+      })}
     </section>
   );
 }
@@ -2342,7 +2345,6 @@ function AssignmentDetails({
 }) {
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
-  const progress = collectExerciseProgress(data.sessions, assignment.studentId);
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
   const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
@@ -2365,7 +2367,7 @@ function AssignmentDetails({
         <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}><Icon name="copy" /> Повторить на другую дату</button>
       </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => progress.some((group) => group.key === progressKey(exercise)) ? () => go(progressHref(student.id, exercise)) : undefined} />
+      <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => () => go(progressHref(student.id, exercise))} />
     </main>
   );
 }
@@ -2458,7 +2460,7 @@ function RepeatAssignment({
         </div>
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
-      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="copy" /> Назначить повтор</button></div>
+      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="plus" /> Назначить тренировку</button></div>
       {discardPrompt}
     </main>
   );
@@ -2790,7 +2792,7 @@ function ActiveWorkout({
           updateWorkout(workout.exercises.filter((item) => item.id !== actionExercise.id));
         }}
       />}
-      {finishOpen && <FinishWorkoutModal
+      {finishOpen && trainerCanWaiveCharge && <FinishWorkoutModal
         balance={balance}
         unfinishedCount={unfinishedCount}
         canWaiveCharge={trainerCanWaiveCharge}
@@ -2802,7 +2804,7 @@ function ActiveWorkout({
       />}
 
       <footer className="exercise-navigation single-action">
-        <button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</button>
+        <button className="finish-workout" type="button" onClick={() => trainerCanWaiveCharge ? setFinishOpen(true) : onFinish(session.id, false)}><Icon name="check" /> Завершить тренировку</button>
       </footer>
     </main>
   );

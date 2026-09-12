@@ -77,16 +77,16 @@ test('график, клавиатура, соседние занятия и п�
   await expect(page.locator('.progress-chart')).toBeVisible();
 });
 
-test('история доступна перед тренировкой только для упражнений с результатами', async ({ page }) => {
+test('прогресс доступен из каждой карточки назначенной тренировки', async ({ page }) => {
   await seedProgress(page);
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
   const plannedProgressButton = page.getByRole('button', { name: 'Прогресс упражнения' });
-  await expect(plannedProgressButton).toHaveCount(1);
-  expect(await plannedProgressButton.evaluate((element) => {
+  await expect(plannedProgressButton).toHaveCount(3);
+  expect(await plannedProgressButton.first().evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.marginTop, css.marginRight, css.marginBottom, css.marginLeft];
   })).toEqual(['14px', '18px', '18px', '18px']);
-  await plannedProgressButton.click();
+  await plannedProgressButton.first().click();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(3);
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/assignments\/assignment-artem-push-today$/);
@@ -112,7 +112,11 @@ test('старые ссылки показывают всю историю, чу
 test('результат нового занятия появляется в профиле и на графике', async ({ page }) => {
   await seedProgress(page, 0);
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.getByRole('button', { name: 'Прогресс упражнения' })).toHaveCount(0);
+  const progressButtons = page.getByRole('button', { name: 'Прогресс упражнения' });
+  await expect(progressButtons).toHaveCount(3);
+  await progressButtons.first().click();
+  await expect(page.getByRole('heading', { name: 'Результаты не найдены', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
