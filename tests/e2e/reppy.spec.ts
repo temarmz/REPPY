@@ -343,6 +343,38 @@ test('календарь тренера использует тот же плю�
   await expect(page).toHaveURL(/#\/trainer\/schedule\/\d{4}-\d{2}-\d{2}\/maria$/);
 });
 
+test('переключение месяца выбирает первый день и переход по внешней дате меняет месяц', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/calendar');
+
+  const calendar = page.locator('.calendar-card').first();
+  const initialMonth = await calendar.locator('.calendar-toolbar h2').textContent();
+  await calendar.getByRole('button', { name: 'Следующий месяц' }).click();
+
+  await expect(calendar.locator('.calendar-toolbar h2')).not.toHaveText(initialMonth ?? '');
+  await expect(calendar.locator('.calendar-grid button[aria-pressed="true"]')).toHaveText('1');
+
+  const visibleMonth = await calendar.locator('.calendar-toolbar h2').textContent();
+  const nextMonthOutsideDay = calendar.locator('.calendar-grid button.outside:not(:disabled)').last();
+  await nextMonthOutsideDay.click();
+
+  await expect(calendar.locator('.calendar-toolbar h2')).not.toHaveText(visibleMonth ?? '');
+  await expect(calendar.locator('.calendar-grid button[aria-pressed="true"]')).toHaveCount(1);
+});
+
+test('вложенные экраны остаются у канонического раздела навигации', async ({ page }) => {
+  await openFreshDemo(page);
+
+  await page.goto('/#/trainer/assignments/assignment-artem-push-today');
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Календарь' })).toHaveClass(/active/);
+
+  await page.goto('/#/trainer/workouts/push-day');
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveClass(/active/);
+
+  await page.goto('/#/trainer/clients/maria/assign');
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveClass(/active/);
+});
+
 test('повтор завершённой тренировки из расписания использует фактические результаты', async ({ page }) => {
   await openFreshDemo(page);
   const targetDate = await page.evaluate(() => {

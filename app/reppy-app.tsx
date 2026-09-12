@@ -38,6 +38,7 @@ import ExerciseProgressView, { StudentExerciseProgress } from './exercise-progre
 import SharedPageHeader from './page-header';
 import EmptyState from './empty-state';
 import MonthDatePicker from './month-date-picker';
+import AppShell, { type AppTheme } from './app-shell';
 import { progressHref } from './exercise-progress';
 import {
   chargeSubscriptionForSession,
@@ -61,7 +62,6 @@ const NAVIGATION_EVENT = 'reppy:navigate';
 const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 const THEME_PREFERENCE = 'reppy-ui:theme';
-type AppTheme = 'dark' | 'light';
 let openModalLayers = 0;
 let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
 let restoringBlockedHistory = false;
@@ -1103,8 +1103,9 @@ export default function ReppyApp() {
       <AppShell
         area={area}
         path={path}
-        data={data}
+        displayName={area === 'trainer' ? TRAINER_NAME : findStudent(data, data.activeStudentId)?.name ?? 'Ученик'}
         hideBottomNav={settingsOpen || modalLayerOpen}
+        onNavigate={go}
         onSwitchRole={switchRole}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -1175,7 +1176,7 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
               <h3>День начинается с расписания</h3>
               <p>Сразу видно, кто и во сколько приходит. Дальше — только действия по конкретному ученику.</p>
               <ul>
-                <li><Icon name="check" /><span><strong>Планирование</strong>Шаблоны, назначения и календарь на ближайшие недели.</span></li>
+                <li><Icon name="check" /><span><strong>Планирование</strong>Тренировки, назначения и календарь на ближайшие недели.</span></li>
                 <li><Icon name="check" /><span><strong>Контекст ученика</strong>Прогресс, ограничения, комментарии и история занятий.</span></li>
                 <li><Icon name="check" /><span><strong>Абонементы</strong>Остаток тренировок, оплаты и списание после занятия.</span></li>
               </ul>
@@ -1233,94 +1234,6 @@ function Brand() {
     <button className="brand-mark brand-button" type="button" onClick={() => go('/')} aria-label="REPPY — на стартовый экран">
       <img className="brand-logo" src="logo-text.png" alt="" />
     </button>
-  );
-}
-
-function AppShell({
-  area,
-  path,
-  data,
-  hideBottomNav,
-  onSwitchRole,
-  theme,
-  onToggleTheme,
-  onSettings,
-  children,
-}: {
-  area: 'trainer' | 'student';
-  path: string;
-  data: DemoState;
-  hideBottomNav: boolean;
-  onSwitchRole: () => void;
-  theme: AppTheme;
-  onToggleTheme: () => void;
-  onSettings: () => void;
-  children: ReactNode;
-}) {
-  const student = findStudent(data, data.activeStudentId);
-  const trainerNav = [
-    { label: 'Главная', icon: 'home' as IconName, route: '/trainer' },
-    { label: 'Календарь', icon: 'calendar' as IconName, route: '/trainer/calendar' },
-    { label: 'Ученики', icon: 'users' as IconName, route: '/trainer/clients' },
-  ];
-  const studentNav = [
-    { label: 'Сегодня', icon: 'calendar' as IconName, route: '/student' },
-    { label: 'Календарь', icon: 'calendar' as IconName, route: '/student/calendar' },
-    { label: 'История', icon: 'history' as IconName, route: '/student/history' },
-    { label: 'Профиль', icon: 'users' as IconName, route: '/student/profile' },
-  ];
-  const nav = area === 'trainer' ? trainerNav : studentNav;
-  const displayName = area === 'trainer' ? TRAINER_NAME : student?.name ?? 'Ученик';
-  const focusMode = /^\/student\/(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
-
-  const isActive = (route: string) => {
-    if (route === '/trainer/calendar') return path === route || path.startsWith('/trainer/schedule/') || path.startsWith('/trainer/assignments/') || path.startsWith('/trainer/sessions/');
-    if (route.endsWith('/clients')) return path.startsWith('/trainer/clients');
-    if (route.endsWith('/history')) return path.startsWith('/student/history');
-    return path === route || (route === '/student' && /^\/student\/(workout|assignments)\//.test(path));
-  };
-
-  return (
-    <div className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
-      {!focusMode && <header className="topbar">
-        <Brand />
-        <div className="topbar-actions">
-          <button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${area === 'trainer' ? 'ученика' : 'тренера'}`} title={`Переключиться в роль ${area === 'trainer' ? 'ученика' : 'тренера'}`}>
-            <span>DEMO</span>
-            <Icon name="change" />
-          </button>
-          <button className="theme-switch" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'} title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
-          <button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
-            {initials(displayName)}
-          </button>
-        </div>
-      </header>}
-
-      {!focusMode && <aside className="desktop-nav" aria-label="Основная навигация">
-        <div className="profile-block">
-          <span className="profile-avatar">{initials(displayName)}</span>
-          <div><strong>{displayName}</strong><small>{area === 'trainer' ? 'Персональный тренер' : 'Ученик'}</small></div>
-        </div>
-        <nav>
-          {nav.map((item) => (
-            <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route, true)}>
-              <span><Icon name={item.icon} /></span>{item.label}
-            </button>
-          ))}
-        </nav>
-        <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>
-      </aside>}
-
-      <div className="page-wrap page-transition" key={path.split('?')[0]}>{children}</div>
-
-      {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
-        {nav.map((item) => (
-          <button key={item.route} className={isActive(item.route) ? 'active' : ''} type="button" onClick={() => go(item.route, true)}>
-            <span><Icon name={item.icon} /></span><small>{item.label}</small>
-          </button>
-        ))}
-      </nav>}
-    </div>
   );
 }
 

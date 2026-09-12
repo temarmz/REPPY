@@ -26,6 +26,13 @@ export default function MonthDatePicker({
     Number.isNaN(selectedDate.getTime()) ? today.getMonth() : selectedDate.getMonth(),
     1,
   ));
+  const [trackedValue, setTrackedValue] = useState(value);
+  if (value !== trackedValue) {
+    setTrackedValue(value);
+    if (!Number.isNaN(selectedDate.getTime()) && (visibleMonth.getFullYear() !== selectedDate.getFullYear() || visibleMonth.getMonth() !== selectedDate.getMonth())) {
+      setVisibleMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+    }
+  }
   const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
   const mondayOffset = (firstDay.getDay() + 6) % 7;
   const gridStart = new Date(firstDay);
@@ -44,11 +51,20 @@ export default function MonthDatePicker({
     const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + step, 1);
     setVisibleMonth(next);
     if (selectFirstDayOnMonthChange) {
-      const preferredDay = Number.isNaN(selectedDate.getTime()) ? 1 : selectedDate.getDate();
-      const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
-      const nextSelection = new Date(next.getFullYear(), next.getMonth(), Math.min(preferredDay, lastDay));
+      const firstAvailableKey = min && min > dateKey(next) ? min : dateKey(next);
+      const firstAvailable = new Date(`${firstAvailableKey}T12:00:00`);
+      const nextSelection = firstAvailable.getFullYear() === next.getFullYear() && firstAvailable.getMonth() === next.getMonth()
+        ? firstAvailable
+        : next;
       onChange(dateKey(nextSelection));
     }
+  };
+
+  const selectDay = (day: Date) => {
+    if (day.getFullYear() !== visibleMonth.getFullYear() || day.getMonth() !== visibleMonth.getMonth()) {
+      setVisibleMonth(new Date(day.getFullYear(), day.getMonth(), 1));
+    }
+    onChange(dateKey(day));
   };
 
   return (
@@ -71,7 +87,7 @@ export default function MonthDatePicker({
               key={key}
               type="button"
               disabled={disabled}
-              onClick={() => onChange(key)}
+              onClick={() => selectDay(day)}
               aria-current={key === dateKey(today) ? 'date' : undefined}
               aria-label={dateAriaLabel?.(day, markerCount) ?? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(day)}
               aria-pressed={key === value}
