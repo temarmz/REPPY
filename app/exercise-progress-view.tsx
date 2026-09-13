@@ -4,6 +4,7 @@ import { collectExerciseProgress, compareProgress, filterProgressPeriod, progres
 import Icon from './ui-icon';
 import PageHeader from './page-header';
 import EmptyState from './empty-state';
+import { ActionButton } from './ui-controls';
 
 type Props = { data: DemoState; studentId: string; exerciseId?: string; search: string; go: (path: string) => void; back: (fallback: string) => void };
 const dateLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -63,7 +64,7 @@ function ProgressChart({ entries, exercise, go }: { entries: ProgressEntry[]; ex
         <button type="button" className="wide-secondary" aria-label="Следующее занятие" disabled={selectedIndex === 0} onClick={() => setSelectedId(entries[selectedIndex - 1].session.id)}><Icon name="chevron-right" /></button>
       </div>
       <ResultSets entry={selected} />
-      <button className="wide-secondary" type="button" onClick={() => go(`/trainer/sessions/${selected.session.id}`)}>Открыть тренировку <Icon name="arrow-right" /></button>
+      <ActionButton variant="secondary" onClick={() => go(`/trainer/sessions/${selected.session.id}`)}>Открыть тренировку <Icon name="arrow-right" /></ActionButton>
     </div>
 
   </section>;

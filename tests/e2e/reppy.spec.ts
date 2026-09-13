@@ -68,6 +68,9 @@ test('внутренний дизайн-кит собирает реальные
   await expect(page.getByRole('heading', { name: 'Действия' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Поля' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Карточка упражнения' })).toBeVisible();
+  await expect(page.locator('.design-kit-button-grid [data-ui-control="action"]')).toHaveCount(4);
+  await expect(page.locator('[data-ui-control="text-field"]')).toHaveCount(1);
+  await expect(page.locator('[data-ui-control="schedule-fields"]')).toHaveCount(1);
 
   const scheduleFields = page.getByRole('group', { name: 'Дата и время тренировки' });
   const dateControl = scheduleFields.getByRole('button', { name: /Дата тренировки:/ });
@@ -504,6 +507,7 @@ test('тренер назначает тренировку из профиля �
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await expect(page.locator('.assignment-edit-person strong')).toHaveText('Мария А.');
   const firstExercise = page.locator('.plan-exercise-card').first();
+  await expect(firstExercise).toHaveAttribute('data-exercise-card', 'plan');
 
   await page.getByRole('button', { name: /Дата тренировки:/ }).click();
   const assignmentDatePicker = page.getByRole('dialog', { name: 'Дата тренировки' });
@@ -682,6 +686,7 @@ test('результат ученика виден тренеру и не мен
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
   await expect(page.getByRole('heading', { name: 'Жим лёжа' })).toBeVisible();
   await expect(page.locator('.active-exercise-card')).toHaveCount(3);
+  await expect(page.locator('[data-exercise-card="active"]')).toHaveCount(3);
   await expect(page.getByRole('heading', { name: 'Жим гантелей на наклонной скамье' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Следующее упражнение' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();

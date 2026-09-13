@@ -39,6 +39,9 @@ import EmptyState from './empty-state';
 import MonthDatePicker from './month-date-picker';
 import AppShell, { type AppTheme } from './app-shell';
 import ModalFrame, { MODAL_LAYER_EVENT, hasOpenModalLayers } from './modal-frame';
+import WorkoutScheduleFields, { DatePickerField } from './workout-schedule-fields';
+import { ActionButton, FormError, TextField } from './ui-controls';
+import { ActiveExerciseCard, PlanExerciseCard } from './workout-exercise-card';
 import { progressHref } from './exercise-progress';
 import {
   chargeSubscriptionForSession,
@@ -1564,8 +1567,8 @@ function SubscriptionCard({ data, student, trainerView }: { data: DemoState; stu
         ))}
       </div>}
       {trainerView && <div className="subscription-actions">
-        <button className="primary-button" type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}><Icon name="plus" /> {payments.length ? 'Продлить' : 'Добавить абонемент'}</button>
-        <button className="wide-secondary" type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription`)}><Icon name="history" /> История</button>
+        <ActionButton icon="plus" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{payments.length ? 'Продлить' : 'Добавить абонемент'}</ActionButton>
+        <ActionButton variant="secondary" icon="history" onClick={() => go(`/trainer/clients/${student.id}/subscription`)}>История</ActionButton>
       </div>}
     </section>
   );
@@ -1587,7 +1590,7 @@ function SubscriptionHistory({ data, student }: { data: DemoState; student: Stud
       <section className={`subscription-history-summary ${subscriptionTone(balance, hasEntries)}`}>
         <span>ТЕКУЩИЙ БАЛАНС</span>
         <strong>{subscriptionBalanceLabel(balance, hasEntries)}</strong>
-        <button className="primary-button" type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}><Icon name="plus" /> Добавить пополнение</button>
+        <ActionButton icon="plus" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>Добавить пополнение</ActionButton>
       </section>
       {entries.length ? <section className="subscription-entry-list" aria-label="Операции абонемента">
         {entries.map((entry) => {
@@ -1611,53 +1614,6 @@ function SubscriptionHistory({ data, student }: { data: DemoState; student: Stud
         })}
       </section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
     </main>
-  );
-}
-
-function DatePickerSheet({ title, value, min, onChange, onClose }: { title: string; value: string; min?: string; onChange: (value: string) => void; onClose: () => void }) {
-  const [selectedDate, setSelectedDate] = useState(value);
-  return (
-    <ModalFrame title={title} className="date-picker-sheet" ariaLabel={title} closeLabel="Закрыть выбор даты" onClose={onClose}>
-      <MonthDatePicker value={selectedDate} min={min} onChange={setSelectedDate} className="calendar-picker-card" />
-      <button className="primary-button" type="button" onClick={() => { onChange(selectedDate); onClose(); }}><Icon name="check" /> Выбрать дату</button>
-    </ModalFrame>
-  );
-}
-
-function DatePickerField({ label, value, min, className = '', formatValue = formatSubscriptionDate, onChange }: { label: string; value: string; min?: string; className?: string; formatValue?: (value: string) => string; onChange: (value: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const displayValue = formatValue(value);
-  return <>
-    <div className={`date-picker-field ${className}`.trim()}>
-      <span>{label}</span>
-      <button type="button" aria-label={`${label}: ${displayValue}`} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></button>
-    </div>
-    {open && <DatePickerSheet title={label} value={value} min={min} onChange={onChange} onClose={() => setOpen(false)} />}
-  </>;
-}
-
-function WorkoutScheduleFields({
-  dateLabel = 'Дата тренировки',
-  timeLabel = 'Время начала',
-  scheduledFor,
-  scheduledTime,
-  min = dateKey(),
-  onDateChange,
-  onTimeChange,
-}: {
-  dateLabel?: string;
-  timeLabel?: string;
-  scheduledFor: string;
-  scheduledTime: string;
-  min?: string;
-  onDateChange: (value: string) => void;
-  onTimeChange: (value: string) => void;
-}) {
-  return (
-    <div className="schedule-fields" role="group" aria-label="Дата и время тренировки">
-      <DatePickerField className="schedule-field" label={dateLabel} value={scheduledFor} min={min} formatValue={formatCalendarDay} onChange={onDateChange} />
-      <label className="schedule-field time-picker-field"><span>{timeLabel}</span><input type="time" value={scheduledTime} onChange={(event) => onTimeChange(event.target.value)} /></label>
-    </div>
   );
 }
 
@@ -1696,24 +1652,23 @@ function DesignKitScreen() {
       <section className="design-kit-section" aria-labelledby="kit-actions-title">
         <div className="section-heading"><h2 id="kit-actions-title">Действия</h2><span>Обычные и опасные</span></div>
         <div className="design-kit-button-grid">
-          <button className="primary-button" type="button"><Icon name="plus" /> Основное действие</button>
-          <button className="wide-secondary" type="button"><Icon name="edit" /> Вторичное действие</button>
-          <button className="danger-button" type="button"><Icon name="trash" /> Опасное действие</button>
-          <button className="wide-secondary" type="button" disabled><Icon name="check" /> Недоступно</button>
+          <ActionButton icon="plus">Основное действие</ActionButton>
+          <ActionButton variant="secondary" icon="edit">Вторичное действие</ActionButton>
+          <ActionButton variant="danger" icon="trash">Опасное действие</ActionButton>
+          <ActionButton variant="secondary" icon="check" disabled>Недоступно</ActionButton>
         </div>
         <div className="design-kit-compact-row">
           <button className="schedule-add-button" type="button" aria-label="Добавить"><Icon name="plus" /></button>
           <button className={`schedule-view-toggle ${toggleActive ? 'active' : ''}`} type="button" role="switch" aria-checked={toggleActive} onClick={() => setToggleActive((current) => !current)}>
             <span className="schedule-view-icon" aria-hidden="true"><Icon name="calendar" /></span><strong>Переключатель</strong><span className="toggle-track" aria-hidden="true"><i /></span>
           </button>
-          <button className="wide-secondary design-kit-modal-button" type="button" onClick={() => setModalOpen(true)}>Открыть модалку</button>
+          <ActionButton variant="secondary" className="design-kit-modal-button" onClick={() => setModalOpen(true)}>Открыть модалку</ActionButton>
         </div>
       </section>
 
       <section className="design-kit-section" aria-labelledby="kit-fields-title">
         <div className="section-heading"><h2 id="kit-fields-title">Поля</h2><span>Общие размеры</span></div>
-        <label className="field-label" htmlFor="kit-name">Название тренировки</label>
-        <input id="kit-name" className="text-input" defaultValue="Грудь и плечи" />
+        <TextField id="kit-name" label="Название тренировки" defaultValue="Грудь и плечи" />
         <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
         <label className="design-kit-textarea-field"><span>Комментарий</span><textarea defaultValue="Держи лопатки сведёнными" /></label>
       </section>
@@ -1730,7 +1685,7 @@ function DesignKitScreen() {
             <header><span>01</span><div><h2>Жим лёжа</h2><small>Грудь · Штанга</small></div></header>
             <div className="readonly-set-list"><p><span>Подход 1</span><strong>80 кг × 8</strong></p><p><span>Подход 2</span><strong>80 кг × 8</strong></p></div>
             <p className="readonly-coach-note"><Icon name="edit" /> Держи лопатки сведёнными</p>
-            <button type="button" className="wide-secondary exercise-progress-button"><Icon name="history" /> Прогресс упражнения</button>
+            <ActionButton variant="secondary" className="exercise-progress-button" icon="history">Прогресс упражнения</ActionButton>
           </article>
         </section>
       </section>
@@ -1783,8 +1738,8 @@ function SubscriptionPaymentForm({
         </fieldset>
         <DatePickerField label="Дата оплаты" value={occurredAt} onChange={(value) => { setOccurredAt(value); setError(''); }} />
         <label><span>Комментарий <small>необязательно</small></span><textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><i>{comment.length}/240</i></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="primary-button" type="button" onClick={save}><Icon name="check" /> {initial ? 'Сохранить изменения' : 'Добавить пополнение'}</button>
+        {error && <FormError>{error}</FormError>}
+        <ActionButton icon="check" onClick={save}>{initial ? 'Сохранить изменения' : 'Добавить пополнение'}</ActionButton>
       </section>
     </main>
   );
@@ -1825,8 +1780,8 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
         <label><span>Пол</span><select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><option value="not-specified">Не указан</option><option value="male">Мужской</option><option value="female">Женский</option></select></label>
         <label><span>Мобильный телефон</span><input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></label>
         <label><span>Противопоказания и особенности</span><textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><small>Опиши всё, что тренеру важно учитывать при составлении плана.</small></label>
-        <button className="primary-button" type="button" onClick={save}><Icon name="check" /> Сохранить данные</button>
-        {compact && <button type="button" className="wide-secondary" onClick={() => setEditing(false)}>Отмена</button>}
+        <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
+        {compact && <ActionButton variant="secondary" onClick={() => setEditing(false)}>Отмена</ActionButton>}
       </div> : <><button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</button><div className="athlete-summary">
         <div><span>Рост</span><strong>{student.height ? `${student.height} см` : 'Не указан'}</strong></div>
         <div><span>Вес</span><strong>{student.weight ? `${student.weight} кг` : 'Не указан'}</strong></div>
@@ -1866,10 +1821,9 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
       <PageHeader back="/trainer/clients" eyebrow="Новый участник команды" title={created ? 'ССЫЛКА ГОТОВА' : 'ПРИГЛАСИТЬ УЧЕНИКА'} />
       {!created ? (
         <section className="form-card">
-          <label className="field-label" htmlFor="student-name">Имя ученика</label>
-          <input id="student-name" className="text-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
+          <TextField id="student-name" label="Имя ученика" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
           <p className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</p>
-          <button className="primary-button" type="button" disabled={!name.trim()} onClick={create}><Icon name="arrow-right" /> Продолжить</button>
+          <ActionButton icon="arrow-right" disabled={!name.trim()} onClick={create}>Продолжить</ActionButton>
         </section>
       ) : (
         <section className="invite-ready">
@@ -1877,8 +1831,8 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
           <h2>{created.name} почти в команде</h2>
           <p>Отправь эту демо-ссылку ученику. На его устройстве откроется персональный кабинет для проверки интерфейса.</p>
           <output>{inviteUrl}</output>
-          <button className="primary-button" type="button" onClick={copy}><Icon name={copied ? 'check' : 'copy'} /> {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</button>
-          <button className="wide-secondary" type="button" onClick={() => go('/trainer/clients')}><Icon name="check" /> Готово</button>
+          <ActionButton icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</ActionButton>
+          <ActionButton variant="secondary" icon="check" onClick={() => go('/trainer/clients')}>Готово</ActionButton>
         </section>
       )}
     </main>
@@ -1949,7 +1903,7 @@ function StudentWorkoutHistory({
             );
           })}
         </section>
-        {previousAssignments.length > 8 && <button className="wide-secondary history-show-more" type="button" onClick={() => setShowAllHistory((current) => !current)}>{showAllHistory ? 'Показать последние' : `Показать ещё ${previousAssignments.length - 8}`}</button>}
+        {previousAssignments.length > 8 && <ActionButton variant="secondary" className="history-show-more" onClick={() => setShowAllHistory((current) => !current)}>{showAllHistory ? 'Показать последние' : `Показать ещё ${previousAssignments.length - 8}`}</ActionButton>}
         </>
       ) : <EmptyState icon="history" title="Предыдущих тренировок нет" text="Создай первую тренировку для этого ученика — позже её можно будет повторять на новые даты." />}
     </main>
@@ -2046,10 +2000,7 @@ function WorkoutComposer({
     });
   };
 
-  const nameField = nameEditable ? <>
-    <label className="field-label" htmlFor={nameInputId}>Название тренировки</label>
-    <input id={nameInputId} className="text-input" value={name} onChange={(event) => { setName(event.target.value); clearError(); }} placeholder="Например, Грудь + плечи" autoFocus={nameAutoFocus} />
-  </> : null;
+  const nameField = nameEditable ? <TextField id={nameInputId} label="Название тренировки" value={name} onChange={(event) => { setName(event.target.value); clearError(); }} placeholder="Например, Грудь + плечи" autoFocus={nameAutoFocus} /> : null;
 
   return (
     <main className="content-page narrow-page" data-workout-composer>
@@ -2067,9 +2018,9 @@ function WorkoutComposer({
         </section>
       )}
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {dangerAction && <button className="danger-button plan-delete-button" type="button" onClick={() => setDangerOpen(true)}><Icon name="trash" /> {dangerAction.label}</button>}
-      <div className="plan-sticky-actions"><button className={`primary-button ${submitClassName}`.trim()} type="button" disabled={disableSubmitUntilReady && !ready} onClick={submit}><Icon name={submitIcon} /> {submitLabel}</button></div>
+      {error && <FormError>{error}</FormError>}
+      {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
+      <div className="plan-sticky-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
       {dangerOpen && dangerAction && <ConfirmationModal
         title={dangerAction.title}
         text={dangerAction.text}
@@ -2239,7 +2190,7 @@ function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onPro
               ))}
             </div>
             {exercise.coachNote && <p className="readonly-coach-note"><Icon name="edit" /> {exercise.coachNote}</p>}
-            {progressAction && <button type="button" className="wide-secondary exercise-progress-button" onClick={progressAction}><Icon name="history" /> Прогресс упражнения</button>}
+            {progressAction && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={progressAction}>Прогресс упражнения</ActionButton>}
           </article>
         );
       })}
@@ -2329,6 +2280,7 @@ function WorkoutExerciseEditor({
           <PlanExerciseCard
             key={exercise.id}
             exercise={exercise}
+            metadata={exerciseMetadata(exercise)}
             index={index}
             totalExercises={exercises.length}
             recentlyMoved={recentlyMovedId === exercise.id}
@@ -2368,109 +2320,14 @@ function WorkoutExerciseEditor({
   );
 }
 
-function PlanExerciseCard({
-  exercise,
-  index,
-  totalExercises,
-  recentlyMoved,
-  onShowInstruction,
-  onShowActions,
-  onMoveUp,
-  onMoveDown,
-  onNoteChange,
-  onSetChange,
-  onAddSet,
-  canRemoveSet,
-  onRemoveSet,
-  onAddAfter,
-}: {
-  exercise: WorkoutExercise;
-  index: number;
-  totalExercises: number;
-  recentlyMoved: boolean;
-  onShowInstruction: () => void;
-  onShowActions: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onNoteChange: (note: string) => void;
-  onSetChange: (index: number, patch: Partial<WorkoutSetPlan>) => void;
-  onAddSet: () => void;
-  canRemoveSet: boolean;
-  onRemoveSet: () => void;
-  onAddAfter: () => void;
-}) {
-  const [commentOpen, setCommentOpen] = useState(Boolean(exercise.coachNote));
-  const bodyweight = exercise.loadMode === 'bodyweight';
-  return (
-    <article data-plan-exercise={exercise.id} className={'active-exercise-card plan-exercise-card ' + (recentlyMoved ? 'recently-moved' : '')}>
-      <header className="active-exercise-card-header">
-        <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
-        <div><h2>{exercise.name}</h2><small className="active-exercise-meta">{exerciseMetadata(exercise)}</small></div>
-        <div className="active-exercise-corner-actions">
-          <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
-          <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
-        </div>
-      </header>
-      <div className="exercise-toolbar">
-        <div className="active-exercise-actions"><button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {commentOpen ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button></div>
-        <div className="exercise-order-controls">
-          <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
-          <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
-        </div>
-      </div>
-      {commentOpen && <label className="active-comment-field"><span>Комментарий к упражнению</span><textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></label>}
-      <section className="active-card-sets plan-card-sets">
-        {getExerciseSetPlans(exercise).map((set, setIndex) => (
-          <article className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
-            <div className="set-number"><span>ПОДХОД</span><strong>{setIndex + 1}</strong></div>
-            <div className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
-              {!bodyweight && <label><span>КГ</span><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></label>}
-              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
-            </div>
-          </article>
-        ))}
-      </section>
-      <footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} count={getExerciseSetPlans(exercise).length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>
-    </article>
-  );
-}
-
-function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric' }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal' }) {
-  const [draft, setDraft] = useState<string | null>(null);
-
-  const commit = () => {
-    const nextDraft = draft ?? String(value);
-    if (!nextDraft.trim()) {
-      setDraft(null);
-      return;
-    }
-    const parsed = Number(nextDraft.replace(',', '.'));
-    if (!Number.isFinite(parsed)) {
-      setDraft(null);
-      return;
-    }
-    const next = Math.max(min, parsed);
-    setDraft(null);
-    onChange(next);
-  };
-
-  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => {
-    const nextDraft = event.target.value;
-    setDraft(nextDraft);
-    const parsed = Number(nextDraft.replace(',', '.'));
-    if (nextDraft.trim() && Number.isFinite(parsed)) onChange(Math.max(min, parsed));
-  }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
-}
-
-
 function WorkoutDetails({ workout, onDuplicate }: { workout: Workout; onDuplicate: () => void }) {
   return (
     <main className="content-page narrow-page">
       <PageHeader back="/trainer/workouts" eyebrow="Тренировка" title={workout.name.toUpperCase()} />
       <div className="workout-detail-actions">
-        <button className="primary-button" type="button" onClick={() => go('/trainer/workouts/' + workout.id + '/assign')}><Icon name="plus" /> Назначить</button>
-        <button className="wide-secondary" type="button" onClick={() => go('/trainer/workouts/' + workout.id + '/edit')}><Icon name="edit" /> Редактировать</button>
-        <button className="wide-secondary" type="button" onClick={onDuplicate}><Icon name="copy" /> Дублировать</button>
+        <ActionButton icon="plus" onClick={() => go('/trainer/workouts/' + workout.id + '/assign')}>Назначить</ActionButton>
+        <ActionButton variant="secondary" icon="edit" onClick={() => go('/trainer/workouts/' + workout.id + '/edit')}>Редактировать</ActionButton>
+        <ActionButton variant="secondary" icon="copy" onClick={onDuplicate}>Дублировать</ActionButton>
       </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <ReadOnlyExerciseList workout={workout} />
@@ -2500,7 +2357,7 @@ function AssignmentDetails({
       <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)} · ${assignment.scheduledTime}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       {assignment.rescheduleRequest && <section className="reschedule-request-card">
         <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
-        <div className="reschedule-request-actions"><button className="wide-secondary" type="button" onClick={onDeclineRequest}><Icon name="close" /> Отклонить</button><button className="primary-button" type="button" onClick={onAcceptRequest}><Icon name="check" /> Подтвердить</button></div>
+        <div className="reschedule-request-actions"><ActionButton variant="secondary" icon="close" onClick={onDeclineRequest}>Отклонить</ActionButton><ActionButton icon="check" onClick={onAcceptRequest}>Подтвердить</ActionButton></div>
       </section>}
       {(balance <= 2 || !hasSubscription) && <section className={`subscription-warning ${subscriptionTone(balance, hasSubscription)}`}>
         <Icon name={balance <= 0 || !hasSubscription ? 'minus' : 'history'} />
@@ -2508,9 +2365,9 @@ function AssignmentDetails({
         <button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</button>
       </section>}
       <div className="assignment-detail-actions">
-        {assignment.status === 'assigned' && <button className="primary-button assignment-start-button" type="button" onClick={() => go(`/trainer/workout/${assignment.id}`)}><Icon name="workout" /> {activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>}
-        {assignment.status === 'assigned' && <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}><Icon name="edit" /> Редактировать</button>}
-        <button className="wide-secondary" type="button" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}><Icon name="copy" /> Повторить на другую дату</button>
+        {assignment.status === 'assigned' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
+        {assignment.status === 'assigned' && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать</ActionButton>}
+        <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
       </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => () => go(progressHref(student.id, exercise))} />
@@ -2548,11 +2405,11 @@ function StudentAssignmentDetails({
         <div><small>ДАТА И ВРЕМЯ</small><strong>{formatScheduleDay(assignment.scheduledFor)}</strong><time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}>{assignment.scheduledTime}</time></div>
       </section>
 
-      {assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <button className="wide-secondary student-reschedule-button" type="button" onClick={() => setRequestOpen((current) => !current)}><Icon name="calendar" /> Предложить другое время</button>}
+      {assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>}
 
       {requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
         <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-        <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}><Icon name="check" /> Отправить тренеру</button>
+        <ActionButton icon="check" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
       </section>}
 
       {balance <= 0 && <section className="subscription-warning debt student-debt-warning">
@@ -2560,7 +2417,7 @@ function StudentAssignmentDetails({
         <div><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong><small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</small></div>
       </section>}
 
-      {canStart && <button className="primary-button student-start-button" type="button" onClick={onStart}><Icon name="workout" /> {activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</button>}
+      {canStart && <ActionButton className="student-start-button" icon="workout" onClick={onStart}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
       <ReadOnlyExerciseList workout={workout} />
     </main>
@@ -2621,7 +2478,7 @@ function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: 
           ))}
           <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
           <div className="plan-sticky-actions">
-            <button className="primary-button assign-button" type="button" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}><Icon name="plus" /> Назначить {chosen?.name ? chosen.name : ''}</button>
+            <ActionButton className="assign-button" icon="plus" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}>Назначить {chosen?.name ? chosen.name : ''}</ActionButton>
           </div>
         </section>
       ) : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
@@ -2879,6 +2736,7 @@ function ActiveWorkout({
             <ActiveExerciseCard
               key={exercise.id}
               exercise={exercise}
+              metadata={exerciseMetadata(exercise)}
               index={index}
               totalExercises={workout.exercises.length}
               results={exerciseResults}
@@ -2937,120 +2795,10 @@ function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose,
         <span>ПОСЛЕ</span><strong>{subscriptionBalanceLabel(balance - 1)}</strong>
       </div>}
       <div className="finish-subscription-actions">
-        <button className="primary-button" type="button" onClick={() => onFinish({ chargeSubscription: true })}><Icon name="check" /> {canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</button>
-        {canWaiveCharge && <button className="wide-secondary" type="button" onClick={() => onFinish({ chargeSubscription: false })}><Icon name="minus" /> Не списывать занятие</button>}
+        <ActionButton icon="check" onClick={() => onFinish({ chargeSubscription: true })}>{canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</ActionButton>
+        {canWaiveCharge && <ActionButton variant="secondary" icon="minus" onClick={() => onFinish({ chargeSubscription: false })}>Не списывать занятие</ActionButton>}
       </div>
     </ModalFrame>
-  );
-}
-
-function SetCountControl({
-  exerciseName,
-  count,
-  canRemove,
-  onRemove,
-  onAdd,
-}: {
-  exerciseName: string;
-  count: number;
-  canRemove: boolean;
-  onRemove: () => void;
-  onAdd: () => void;
-}) {
-  return (
-    <div className="set-count-control" role="group" aria-label={`Подходы — ${exerciseName}`}>
-      <span>Подходы</span>
-      <button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></button>
-      <strong aria-live="polite">{count}</strong>
-      <button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></button>
-    </div>
-  );
-}
-
-function ActiveExerciseCard({
-  exercise,
-  index,
-  totalExercises,
-  results,
-  recentlyMoved,
-  onNoteChange,
-  onResultChange,
-  onShowInstruction,
-  onShowActions,
-  onAddSet,
-  canRemoveSet,
-  onRemoveSet,
-  onAddAfter,
-  onMoveUp,
-  onMoveDown,
-}: {
-  exercise: WorkoutExercise;
-  index: number;
-  totalExercises: number;
-  results: SetResult[];
-  recentlyMoved: boolean;
-  onNoteChange: (coachNote: string) => void;
-  onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
-  onShowInstruction: () => void;
-  onShowActions: () => void;
-  onAddSet: () => void;
-  canRemoveSet: boolean;
-  onRemoveSet: () => void;
-  onAddAfter: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-}) {
-  const [commentOpen, setCommentOpen] = useState(false);
-  const completedSets = results.filter((result) => result.completed).length;
-  const allCompleted = results.length > 0 && completedSets === results.length;
-
-  return (
-    <article data-active-exercise={exercise.id} className={'active-exercise-card ' + (allCompleted ? 'completed ' : '') + (recentlyMoved ? 'recently-moved' : '')}>
-      <header className="active-exercise-card-header">
-        <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
-        <div>
-          <h2>{exercise.name}</h2>
-          <small className="active-exercise-meta">{exerciseMetadata(exercise)}</small>
-        </div>
-        <div className="active-exercise-corner-actions">
-          <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
-          <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
-        </div>
-      </header>
-
-      <div className="exercise-toolbar">
-        <div className="active-exercise-actions">
-          <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={() => setCommentOpen((current) => !current)}><Icon name="edit" /> {commentOpen ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button>
-        </div>
-        <div className="exercise-order-controls">
-          <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
-          <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
-        </div>
-      </div>
-
-      {commentOpen && <label className="active-comment-field">
-        <span>Комментарий к упражнению</span>
-        <textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus />
-      </label>}
-
-      <section className="active-card-sets">
-        {results.map((result) => (
-          <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
-            <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
-            <div className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
-              {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
-              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
-            </div>
-            <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name="check" /></button>
-          </article>
-        ))}
-      </section>
-
-      <footer className="active-exercise-footer-actions">
-        <SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} />
-        <button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button>
-      </footer>
-    </article>
   );
 }
 
@@ -3156,7 +2904,7 @@ function ActiveExercisePicker({
         })}
         {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
       </div>
-      <footer className="picker-footer"><span aria-live="polite">{addedCount ? `Добавлено: ${addedCount}` : 'Можно выбрать несколько'}</span><button className="primary-button" type="button" onClick={onClose}><Icon name="check" /> Готово</button></footer>
+      <footer className="picker-footer"><span aria-live="polite">{addedCount ? `Добавлено: ${addedCount}` : 'Можно выбрать несколько'}</span><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></footer>
     </ModalFrame>
   );
 }
@@ -3181,7 +2929,7 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
           </div>
         </fieldset>
         <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
-        <button className="primary-button" type="button" disabled={!mood} onClick={() => mood && onComplete(mood, comment)}><Icon name="check" /> Сохранить результат</button>
+        <ActionButton icon="check" disabled={!mood} onClick={() => mood && onComplete(mood, comment)}>Сохранить результат</ActionButton>
       </section>
     </main>
   );
@@ -3196,7 +2944,7 @@ function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSe
       <p className="eyebrow">Результат сохранён</p>
       <h1>ТРЕНИРОВКА<br />ЗАВЕРШЕНА</h1>
       <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}<p className={`success-subscription ${subscriptionTone(balance)}`}>{subscriptionBalanceLabel(balance)}</p></section>
-      <button className="primary-button" type="button" onClick={() => go('/student')}><Icon name="check" /> Готово</button>
+      <ActionButton icon="check" onClick={() => go('/student')}>Готово</ActionButton>
     </main>
   );
 }
@@ -3255,8 +3003,8 @@ function SessionResult({
       {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
       {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       {trainerView && <div className="session-result-actions">
-        <button className="wide-secondary" type="button" onClick={onRepeat}><Icon name="copy" /> Повторить на другую дату</button>
-        <button className="danger-button" type="button" onClick={() => setDeleteOpen(true)}><Icon name="trash" /> Удалить тренировку</button>
+        <ActionButton variant="secondary" icon="copy" onClick={onRepeat}>Повторить на другую дату</ActionButton>
+        <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить тренировку</ActionButton>
       </div>}
       <section className="result-exercises">
         {workout.exercises.map((exercise, index) => {
@@ -3265,7 +3013,7 @@ function SessionResult({
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><small className="result-exercise-meta">{exerciseMetadata(exercise)}</small>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
-              {trainerView && <button type="button" className="wide-secondary exercise-progress-button" onClick={() => go(progressHref(session.studentId, exercise))}><Icon name="history" /> Прогресс упражнения</button>}
+              {trainerView && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise))}>Прогресс упражнения</ActionButton>}
             </article>
           );
         })}
@@ -3298,7 +3046,7 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
         <p className="eyebrow">Приглашение в REPPY</p>
         <h1>{TRAINER_NAME.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</h1>
         <p>Привет, {student.name}! Здесь ты будешь получать тренировки и отмечать результаты прямо в зале.</p>
-        <button className="primary-button" type="button" onClick={() => onAccept(student)}><Icon name="check" /> Принять приглашение</button>
+        <ActionButton icon="check" onClick={() => onAccept(student)}>Принять приглашение</ActionButton>
       </section>
     </main>
   );
@@ -3309,7 +3057,7 @@ function SettingsModal({ onClose, onReset, onOpenDesignKit }: { onClose: () => v
   return (
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить демо-данные?' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel="Настройки демо" onClose={onClose}>
       <p>{resetConfirmationOpen ? 'Все изменения в учениках, тренировках и расписании будут удалены.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
-      {resetConfirmationOpen ? <div className="confirmation-actions"><button className="wide-secondary" type="button" onClick={() => setResetConfirmationOpen(false)}>Остаться</button><button className="danger-button" type="button" onClick={onReset}>Сбросить данные</button></div> : <div className="settings-actions"><button className="wide-secondary" type="button" onClick={onOpenDesignKit}><Icon name="workout" /> Открыть дизайн-кит</button><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
+      {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions"><ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
     </ModalFrame>
   );
 }
@@ -3332,8 +3080,8 @@ function ConfirmationModal({
   return (
     <ModalFrame title={title} description={text} className="confirmation-sheet" role="alertdialog" showHandle={false} onClose={onClose}>
       <div className="confirmation-actions">
-        <button className="wide-secondary" type="button" onClick={onClose}>Остаться</button>
-        <button className={danger ? 'danger-button' : 'primary-button'} type="button" onClick={onConfirm}>{confirmLabel}</button>
+        <ActionButton variant="secondary" onClick={onClose}>Остаться</ActionButton>
+        <ActionButton variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</ActionButton>
       </div>
     </ModalFrame>
   );
