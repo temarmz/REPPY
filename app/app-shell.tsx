@@ -73,7 +73,7 @@ export default function AppShell({
   const navigation = (
     <>
       {nav.map((item) => (
-        <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" onClick={() => onNavigate(item.route, true)}>
+        <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => onNavigate(item.route, true)}>
           <span><Icon name={item.icon} /></span>{item.label}
         </button>
       ))}
@@ -111,7 +111,7 @@ export default function AppShell({
 
       {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
-          <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" onClick={() => onNavigate(item.route, true)}>
+          <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => onNavigate(item.route, true)}>
             <span><Icon name={item.icon} /></span><small>{item.label}</small>
           </button>
         ))}

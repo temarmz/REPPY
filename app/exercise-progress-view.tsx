@@ -52,7 +52,7 @@ function ProgressChart({ entries, exercise, go }: { entries: ProgressEntry[]; ex
       {[0, 0.5, 1].map((fraction) => <g key={fraction}><line x1="45" x2={chartWidth - 15} y1={195 - fraction * 155} y2={195 - fraction * 155} stroke="currentColor" opacity=".15" /><text x="38" y={199 - fraction * 155} textAnchor="end">{progressNumber(Math.round(maximum * fraction * 10) / 10)}</text></g>)}
       <polyline points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
       {points.map(({ x, y, entry }, index) => <g key={entry.session.id} role="button" tabIndex={0} aria-label={`${dateLabel(entry)} ${timeLabel(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${unit}`} aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
-        <circle cx={x} cy={y} r="15" fill="transparent" /><circle cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" />
+        <circle className="progress-point-hitarea" cx={x} cy={y} r="22" fill="transparent" /><circle cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" />
       </g>)}
       <text x="45" y="225">{dateLabel(ordered[0])}</text>{ordered.length > 1 && <text x={chartWidth - 15} y="225" textAnchor="end">{dateLabel(ordered[ordered.length - 1])}</text>}
     </svg>

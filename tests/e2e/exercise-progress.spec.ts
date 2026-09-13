@@ -129,6 +129,7 @@ test('результат нового занятия появляется в п�
   await expect(progressSection(page).locator('.progress-trend')).toHaveCount(0);
   await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(1);
+  await expect(page.locator('.progress-point-hitarea')).toHaveAttribute('r', '22');
   await expect(page.getByText('Для динамики нужно ещё одно занятие.')).toBeVisible();
   await expect(page.locator('.progress-selected')).toContainText('Выполнено 1 из 4');
 });

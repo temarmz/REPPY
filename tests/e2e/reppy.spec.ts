@@ -73,9 +73,15 @@ test('внутренний дизайн-кит собирает реальные
   await expect(page.locator('[data-ui-control="schedule-fields"]')).toHaveCount(1);
 
   const scheduleFields = page.getByRole('group', { name: 'Дата и время тренировки' });
-  const dateControl = scheduleFields.getByRole('button', { name: /Дата тренировки:/ });
+  const dateControl = page.locator('.design-kit-section .schedule-fields .date-picker-field > button');
   const timeControl = scheduleFields.locator('input[type="time"]');
+  await expect(dateControl).toHaveAttribute('aria-haspopup', 'dialog');
+  await expect(dateControl).toHaveAttribute('aria-expanded', 'false');
   expect(Math.round((await dateControl.boundingBox())?.height ?? 0)).toBe(Math.round((await timeControl.boundingBox())?.height ?? 0));
+
+  await dateControl.click();
+  await expect(dateControl).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: 'Закрыть выбор даты' }).click();
 
   await page.getByRole('button', { name: 'Открыть модалку' }).click();
   await expect(page.getByRole('alertdialog')).toContainText('Пример модального окна');
@@ -232,6 +238,8 @@ test('модалки и несохранённая форма корректно
   const discardDialog = page.getByRole('alertdialog');
   await expect(discardDialog).toBeVisible();
   await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-anton-push-1\/edit$/);
+  await expect(discardDialog.getByRole('button', { name: 'Остаться' })).toBeFocused();
+  await expect(discardDialog.getByRole('button', { name: 'Выйти без сохранения' })).toHaveClass(/danger-button/);
   await discardDialog.getByRole('button', { name: 'Остаться' }).click();
 
   const dateButton = page.getByRole('button', { name: /Дата тренировки:/ });
@@ -369,13 +377,14 @@ test('вложенные экраны остаются у каноническо
   await openFreshDemo(page);
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Календарь' })).toHaveClass(/active/);
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
 
   await page.goto('/#/trainer/workouts/push-day');
-  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveClass(/active/);
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveAttribute('aria-current', 'page');
 
   await page.goto('/#/trainer/clients/maria/assign');
-  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveClass(/active/);
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.bottom-nav [aria-current="page"]')).toHaveCount(1);
 });
 
 test('повтор завершённой тренировки из расписания использует фактические результаты', async ({ page }) => {
@@ -724,6 +733,8 @@ test('тренер ведёт занятие, правит его в момен�
   await page.goto('/#/trainer/assignments/assignment-maria-legs');
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
   await expect(page.locator('.active-exercise-card')).toHaveCount(3);
+  await expect(page.getByRole('progressbar', { name: 'Прогресс тренировки' })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.locator('.save-state[role="status"]')).toHaveText('Сохранено');
   await expect(page.getByRole('button', { name: 'Редактировать тренировку' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Завершить тренировку' })).toHaveCSS('background-color', 'rgb(198, 255, 61)');
   await expect(page.locator('.active-sticky-header')).toHaveCSS('position', 'sticky');
@@ -766,6 +777,11 @@ test('тренер ведёт занятие, правит его в момен�
 
   await expect(squatCard.getByRole('group', { name: 'Подходы — Приседания' })).toContainText('4');
   await expect(squatCard.getByRole('checkbox', { name: 'Выполнено' })).toHaveCount(0);
+  for (const controlName of ['Удалить последний подход — Приседания', 'Добавить подход — Приседания']) {
+    const box = await squatCard.getByRole('button', { name: controlName }).boundingBox();
+    expect(Math.round(box?.width ?? 0)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(box?.height ?? 0)).toBeGreaterThanOrEqual(44);
+  }
   await squatCard.getByRole('button', { name: 'Добавить подход — Приседания' }).click();
   await squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }).click();
   const instructionDialog = page.getByRole('dialog', { name: 'Как выполнять — Приседания' });
@@ -778,6 +794,7 @@ test('тренер ведёт занятие, правит его в момен�
 
   await squatCard.getByRole('button', { name: 'Ещё упражнение' }).click();
   await expect(page.locator('.exercise-picker-sheet .search-input')).toHaveCSS('font-size', '16px');
+  await expect(page.getByRole('searchbox', { name: 'Поиск упражнений' })).toBeVisible();
   await page.getByRole('button', { name: 'Бицепс', exact: true }).click();
   await page.getByRole('button', { name: /Молотковые сгибания/ }).click();
   const multiPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });

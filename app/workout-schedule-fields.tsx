@@ -26,7 +26,7 @@ export function DatePickerField({ label, value, min, className = '', formatValue
   return <>
     <div className={`date-picker-field ${className}`.trim()}>
       <span>{label}</span>
-      <button type="button" aria-label={`${label}: ${displayValue}`} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></button>
+      <button type="button" aria-label={`${label}: ${displayValue}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></button>
     </div>
     {open && <DatePickerSheet title={label} value={value} min={min} onChange={onChange} onClose={() => setOpen(false)} />}
   </>;

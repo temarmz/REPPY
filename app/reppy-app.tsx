@@ -222,6 +222,7 @@ function useUnsavedNavigationGuard(isDirty: boolean) {
         title="Выйти без сохранения?"
         text="Изменения на этом экране ещё не сохранены."
         confirmLabel="Выйти без сохранения"
+        danger
         onClose={() => setPendingNavigation(null)}
         onConfirm={discardAndContinue}
       />
@@ -1771,7 +1772,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
 
   return (
     <section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
-      {compact ? <div className="athlete-inline-summary"><div><p>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</p><p>Ограничения: {student.contraindications || 'не указаны'}</p></div><button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></button></div> : <div className="section-heading"><h2>Данные и ограничения</h2>{!alwaysExpanded && <button type="button" onClick={() => { setExpanded((current) => !current); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>}
+      {compact ? <div className="athlete-inline-summary"><div><p>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</p><p>Ограничения: {student.contraindications || 'не указаны'}</p></div><button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></button></div> : <div className="section-heading"><h2>Данные и ограничения</h2>{!alwaysExpanded && <button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>}
       {(compact ? editing : expanded) && (editing ? <div className="athlete-form">
         <div className="athlete-form-grid">
           <label><span>Рост, см</span><input type="number" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></label>
@@ -2405,7 +2406,7 @@ function StudentAssignmentDetails({
         <div><small>ДАТА И ВРЕМЯ</small><strong>{formatScheduleDay(assignment.scheduledFor)}</strong><time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}>{assignment.scheduledTime}</time></div>
       </section>
 
-      {assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>}
+      {assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>}
 
       {requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
         <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
@@ -2472,7 +2473,7 @@ function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: 
       {students.length ? (
         <section className="select-student-list">
           {students.map((student) => (
-            <button className={selected === student.id ? 'selected' : ''} key={student.id} type="button" disabled={student.status === 'invited'} onClick={() => setSelected(student.id)}>
+            <button className={selected === student.id ? 'selected' : ''} key={student.id} type="button" disabled={student.status === 'invited'} aria-pressed={selected === student.id} onClick={() => setSelected(student.id)}>
               <Avatar student={student} /><span><strong>{student.name}</strong>{student.status === 'invited' && <small>Сначала ученик должен принять приглашение</small>}</span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
             </button>
           ))}
@@ -2718,10 +2719,10 @@ function ActiveWorkout({
       <div className="active-sticky-header">
         <header className="active-header">
           <button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></button>
-          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`}>{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
+          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
           <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
         </header>
-        <div className="active-progress"><span style={{ width: progress + '%' }} /></div>
+        <div className="active-progress" role="progressbar" aria-label="Прогресс тренировки" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: progress + '%' }} /></div>
       </div>
 
       <section className="active-workout-overview">
@@ -2880,7 +2881,7 @@ function ActiveExercisePicker({
 
   return (
     <ModalFrame title="Добавить упражнения" subtitle="Выбери несколько — окно останется открытым" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
-      <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
+      <input className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
       <div className="muscle-filter" aria-label="Фильтр по основной мышце">
         <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
         {muscleGroups.map((muscle) => <button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</button>)}
@@ -3057,7 +3058,7 @@ function SettingsModal({ onClose, onReset, onOpenDesignKit }: { onClose: () => v
   return (
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить демо-данные?' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel="Настройки демо" onClose={onClose}>
       <p>{resetConfirmationOpen ? 'Все изменения в учениках, тренировках и расписании будут удалены.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
-      {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions"><ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
+      {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions"><ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
     </ModalFrame>
   );
 }
@@ -3080,7 +3081,7 @@ function ConfirmationModal({
   return (
     <ModalFrame title={title} description={text} className="confirmation-sheet" role="alertdialog" showHandle={false} onClose={onClose}>
       <div className="confirmation-actions">
-        <ActionButton variant="secondary" onClick={onClose}>Остаться</ActionButton>
+        <ActionButton variant="secondary" autoFocus onClick={onClose}>Остаться</ActionButton>
         <ActionButton variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</ActionButton>
       </div>
     </ModalFrame>

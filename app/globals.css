@@ -1561,10 +1561,10 @@ body.modal-open .bottom-nav { display: none; }
 .set-metrics label { min-width: 0; }
 .active-card-sets .set-number span, .active-card-sets .set-card label span { font-size: 10px; }
 .active-exercise-footer-actions { display: grid; grid-template-columns: minmax(218px,1fr) minmax(100px,.52fr); gap: 9px; margin-top: 13px; }
-.set-count-control { display: grid; min-width: 0; min-height: 56px; grid-template-columns: minmax(58px,1fr) 42px 28px 42px; align-items: center; gap: 4px; border: 1px solid rgba(198,255,61,.26); border-radius: 17px; padding: 6px; background: var(--brand-soft); }
+.set-count-control { display: grid; min-width: 0; min-height: 56px; grid-template-columns: minmax(58px,1fr) 44px 28px 44px; align-items: center; gap: 4px; border: 1px solid rgba(198,255,61,.26); border-radius: 17px; padding: 6px; background: var(--brand-soft); }
 .set-count-control > span { overflow: hidden; padding-left: 7px; color: #d9ddd6; font-size: var(--button-font-size); font-weight: 800; text-overflow: ellipsis; }
 .set-count-control > strong { color: white; font-family: var(--app-font-mono); font-size: 15px; text-align: center; }
-.active-exercise-footer-actions .set-count-control > button { width: 42px; min-height: 42px; height: 42px; border-color: rgba(255,255,255,.1); border-radius: 13px; padding: 0; background: rgba(7,9,8,.72); }
+.active-exercise-footer-actions .set-count-control > button { width: 44px; min-height: 44px; height: 44px; border-color: rgba(255,255,255,.1); border-radius: 13px; padding: 0; background: rgba(7,9,8,.72); }
 .active-exercise-footer-actions .set-count-control > button:disabled { cursor: not-allowed; opacity: .28; }
 .active-exercise-footer-actions .set-count-control > button .ui-icon { width: 17px; height: 17px; }
 .picker-list .custom-exercise-option { border: 1px solid rgba(198,255,61,.2); border-radius: 16px; padding: 9px 11px; background: rgba(198,255,61,.06); }
@@ -1591,7 +1591,7 @@ body.modal-open .bottom-nav { display: none; }
 .custom-exercise-builder > div:first-child strong { font-size: 14px; }
 .custom-exercise-builder > div:first-child small { color: var(--muted); font-size: 11px; }
 .picker-list .custom-load-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.picker-list .custom-load-mode button { min-height: 42px; justify-content: center; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; padding: 0 10px; background: rgba(255,255,255,.035); color: var(--muted); font-size: var(--button-font-size); text-align: center; }
+.picker-list .custom-load-mode button { min-height: 44px; justify-content: center; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; padding: 0 10px; background: rgba(255,255,255,.035); color: var(--muted); font-size: var(--button-font-size); text-align: center; }
 .picker-list .custom-load-mode button.selected { border-color: rgba(198,255,61,.42); background: rgba(198,255,61,.12); color: var(--lime); }
 .picker-list .custom-exercise-builder .custom-exercise-option { min-height: 48px; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 0 12px; background: var(--lime); color: var(--ink); font-size: var(--button-font-size); font-weight: 900; text-align: center; }
 .picker-list .custom-exercise-builder .custom-exercise-option .ui-icon { width: 18px; height: 18px; }
@@ -1933,6 +1933,7 @@ body.modal-open .bottom-nav { display: none; }
 .progress-chart text { font-size: 12px; fill: var(--muted); }
 .progress-chart g[role="button"] { cursor: pointer; }
 .progress-chart g[role="button"]:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+.progress-chart g[role="button"]:focus-visible circle:last-child { stroke: var(--lime); stroke-width: 4px; }
 .progress-selected { border-top: 1px solid var(--ui-outline); padding-top: 16px; margin-top: 12px; }
 .progress-selection-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .progress-selection-heading h3 { margin: 0; font-size: 16px; text-align: center; }
@@ -1948,7 +1949,7 @@ body.modal-open .bottom-nav { display: none; }
 .athlete-inline-summary { display: flex; align-items: flex-start; gap: 12px; }
 .athlete-inline-summary > div { min-width: 0; }
 .athlete-inline-summary p { margin: 0 0 5px; font-size: 13px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
-.athlete-inline-summary .athlete-edit-icon { width: 40px; min-height: 40px; padding: 0; flex: 0 0 auto; }
+.athlete-inline-summary .athlete-edit-icon { width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; }
 .athlete-details-compact .athlete-form { margin-top: 18px; }
 .progress-set-number { color: var(--muted); }
 .progress-sets .progress-set { white-space: nowrap; }
