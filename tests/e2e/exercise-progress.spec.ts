@@ -223,7 +223,7 @@ test('размер подписей кнопок одинаков на осно�
   await seedProgress(page);
   for (const width of [320, 360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/workouts/push-day', '/trainer/workouts/push-day/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student/profile']) {
+    for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/clients/maria/assign/new', '/trainer/assignments/assignment-artem-push-today/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student/profile']) {
       const previousPage = await page.locator('.page-wrap main').elementHandle();
       await page.goto('/#' + route);
       if (previousPage) await page.waitForFunction((element) => !element.isConnected, previousPage);

@@ -3,7 +3,6 @@ import {
   TRAINER_NAME,
   cloneWorkout,
   createWorkoutSession,
-  createWorkoutTemplate,
   dateKey,
   exerciseLibrary,
   findAssignmentWorkout,
@@ -233,10 +232,6 @@ function useUnsavedNavigationGuard(isDirty: boolean) {
 
 function initials(name: string) {
   return name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-}
-
-function findWorkout(data: DemoState, id: string) {
-  return data.workouts.find((workout) => workout.id === id);
 }
 
 function findStudent(data: DemoState, id: string) {
@@ -560,12 +555,8 @@ export default function ReppyApp() {
     const assignmentMatch = path.match(/^\/trainer\/assignments\/([^/]+)$/);
     const trainerActiveMatch = path.match(/^\/trainer\/workout\/([^/]+)$/);
     const scheduleCopyMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/copy\/([^/]+)$/);
-    const scheduleTemplateMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/template\/([^/]+)$/);
     const scheduleNewMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/new$/);
     const scheduleStudentMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)$/);
-    const workoutEditMatch = path.match(/^\/trainer\/workouts\/([^/]+)\/edit$/);
-    const workoutAssignMatch = path.match(/^\/trainer\/workouts\/([^/]+)\/assign$/);
-    const workoutMatch = path.match(/^\/trainer\/workouts\/([^/]+)$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
     if (path === '/trainer/design-kit') {
@@ -597,34 +588,6 @@ export default function ReppyApp() {
           }}
         />
       ) : <NotFound />;
-    } else if (scheduleTemplateMatch) {
-      const [scheduledFor, studentId, workoutId] = scheduleTemplateMatch.slice(1);
-      const student = findStudent(data, studentId);
-      const workout = findWorkout(data, workoutId);
-      content = student?.status === 'active' && workout && isScheduleDate(scheduledFor) ? (
-        <AssignWorkoutToStudent
-          student={student}
-          workout={workout}
-          initialScheduledFor={scheduledFor}
-          backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
-          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
-            const assignment: Assignment = {
-              id: makeId('assignment'),
-              workoutId: workout.id,
-              studentId: student.id,
-              assignedAt: new Date().toISOString(),
-              scheduledFor: nextDate,
-              scheduledTime,
-              status: 'assigned',
-              workoutSnapshot: { ...cloneWorkout(workoutSnapshot), updatedAt: new Date().toISOString() },
-              source: JSON.stringify(workoutSnapshot.exercises) === JSON.stringify(workout.exercises) ? 'template' : 'manual-edit',
-            };
-            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
-            showToast(`Тренировка назначена: ${student.name}`);
-            go('/trainer', true);
-          }}
-        />
-      ) : <NotFound />;
     } else if (scheduleNewMatch) {
       const [scheduledFor, studentId] = scheduleNewMatch.slice(1);
       const student = findStudent(data, studentId);
@@ -636,14 +599,12 @@ export default function ReppyApp() {
           onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
             const assignment: Assignment = {
               id: makeId('assignment'),
-              workoutId: workoutSnapshot.id,
               studentId: student.id,
               assignedAt: new Date().toISOString(),
               scheduledFor: nextDate,
               scheduledTime,
               status: 'assigned',
               workoutSnapshot,
-              source: 'manual-edit',
             };
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
             showToast(`Тренировка назначена: ${student.name}`);
@@ -740,49 +701,14 @@ export default function ReppyApp() {
           onAssign={(scheduledFor, scheduledTime, workoutSnapshot) => {
             const assignment: Assignment = {
               id: makeId('assignment'),
-              workoutId: workoutSnapshot.id,
               studentId: student.id,
               assignedAt: new Date().toISOString(),
               scheduledFor,
               scheduledTime,
               status: 'assigned',
               workoutSnapshot,
-              source: 'manual-edit',
             };
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
-            showToast(`Тренировка назначена: ${student.name}`);
-            go(`/trainer/clients/${student.id}`);
-          }}
-        />
-      ) : <NotFound />;
-    } else if (clientAssignMatch?.[2]) {
-      const student = findStudent(data, clientAssignMatch[1]);
-      const workout = findWorkout(data, clientAssignMatch[2]);
-      content = student && workout ? (
-        <AssignWorkoutToStudent
-          student={student}
-          workout={workout}
-          onAssign={(scheduledFor, scheduledTime, workoutSnapshot) => {
-            setData((current) => {
-              const currentWorkout = findWorkout(current, workout.id) ?? workout;
-              const customizedWorkout = {
-                ...cloneWorkout(currentWorkout),
-                exercises: workoutSnapshot.exercises.map((exercise) => ({ ...exercise })),
-                updatedAt: new Date().toISOString(),
-              };
-              const assignment: Assignment = {
-                id: makeId('assignment'),
-                workoutId: currentWorkout.id,
-                studentId: student.id,
-                assignedAt: new Date().toISOString(),
-                scheduledFor,
-                scheduledTime,
-                status: 'assigned',
-                workoutSnapshot: customizedWorkout,
-                source: JSON.stringify(customizedWorkout.exercises) === JSON.stringify(currentWorkout.exercises) ? 'template' : 'manual-edit',
-              };
-              return { ...current, assignments: [...current.assignments, assignment] };
-            });
             showToast(`Тренировка назначена: ${student.name}`);
             go(`/trainer/clients/${student.id}`);
           }}
@@ -796,18 +722,6 @@ export default function ReppyApp() {
         setData((current) => ({ ...current, students: current.students.map((item) => item.id === updated.id ? updated : item) }));
         showToast('Профиль ученика сохранён');
       }} />;
-    } else if (path === '/trainer/workouts') {
-      content = <WorkoutsList data={data} />;
-    } else if (path === '/trainer/workouts/new') {
-      content = (
-        <WorkoutForm
-          onSave={(workout) => {
-            setData((current) => ({ ...current, workouts: [...current.workouts, workout] }));
-            showToast('Тренировка сохранена');
-            go(`/trainer/workouts/${workout.id}`);
-          }}
-        />
-      );
     } else if (assignmentEditMatch) {
       const assignment = data.assignments.find((item) => item.id === assignmentEditMatch[1]);
       content = assignment && assignment.status === 'assigned' ? (
@@ -921,54 +835,6 @@ export default function ReppyApp() {
           }}
         />
       ) : <NotFound />;
-    } else if (workoutEditMatch) {
-      const workout = findWorkout(data, workoutEditMatch[1]);
-      content = workout ? (
-        <WorkoutForm
-          initial={workout}
-          onSave={(updated) => {
-            setData((current) => ({ ...current, workouts: current.workouts.map((item) => item.id === updated.id ? updated : item) }));
-            showToast('Изменения сохранены');
-            go(`/trainer/workouts/${updated.id}`);
-          }}
-        />
-      ) : <NotFound />;
-    } else if (workoutAssignMatch) {
-      const workout = findWorkout(data, workoutAssignMatch[1]);
-      content = workout ? (
-        <AssignWorkout
-          data={data}
-          workout={workout}
-          onAssign={(studentId, scheduledFor, scheduledTime) => {
-            setData((current) => {
-              const currentWorkout = findWorkout(current, workout.id) ?? workout;
-              const assignment: Assignment = {
-                id: makeId('assignment'),
-                workoutId: currentWorkout.id,
-                studentId,
-                assignedAt: new Date().toISOString(),
-                scheduledFor,
-                scheduledTime,
-                status: 'assigned',
-                workoutSnapshot: cloneWorkout(currentWorkout),
-                source: 'template',
-              };
-              return { ...current, assignments: [...current.assignments, assignment] };
-            });
-            const name = findStudent(data, studentId)?.name ?? 'ученику';
-            showToast(`Тренировка назначена: ${name}`);
-            go(`/trainer/clients/${studentId}`);
-          }}
-        />
-      ) : <NotFound />;
-    } else if (workoutMatch) {
-      const workout = findWorkout(data, workoutMatch[1]);
-      content = workout ? <WorkoutDetails workout={workout} onDuplicate={() => {
-        const duplicate = createWorkoutTemplate(workout, `${workout.name} — копия`);
-        setData((current) => ({ ...current, workouts: [...current.workouts, duplicate] }));
-        showToast('Копия тренировки создана');
-        go(`/trainer/workouts/${duplicate.id}/edit`);
-      }} /> : <NotFound />;
     } else if (sessionMatch) {
       const session = data.sessions.find((item) => item.id === sessionMatch[1]);
       content = session ? <SessionResult
@@ -987,8 +853,10 @@ export default function ReppyApp() {
           go(`/trainer/clients/${session.studentId}`);
         }}
       /> : <NotFound />;
-    } else {
+    } else if (path === '/trainer') {
       content = <TrainerHome data={data} />;
+    } else {
+      content = <NotFound />;
     }
   } else {
     const assignmentDetailsMatch = path.match(/^\/student\/assignments\/([^/]+)$/);
@@ -1094,13 +962,15 @@ export default function ReppyApp() {
     } else if (historyMatch) {
       const session = data.sessions.find((item) => item.id === historyMatch[1]);
       content = session ? <SessionResult data={data} session={session} /> : <NotFound />;
-    } else {
+    } else if (path === '/student') {
       content = (
         <StudentHome
           data={data}
           onOpen={(assignmentId) => go(`/student/assignments/${assignmentId}`)}
         />
       );
+    } else {
+      content = <NotFound />;
     }
   }
 
@@ -1851,23 +1721,6 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
   );
 }
 
-function WorkoutsList({ data }: { data: DemoState }) {
-  return (
-    <main className="content-page workouts-page">
-      <button className="list-primary-action" type="button" onClick={() => go('/trainer/workouts/new')}><Icon name="plus" /> {COPY.createWorkout}</button>
-      <section className="workout-template-list">
-        {data.workouts.map((workout, index) => (
-            <button className="workout-template-row" key={workout.id} type="button" onClick={() => go(`/trainer/workouts/${workout.id}`)}>
-              <span className="template-number">{String(index + 1).padStart(2, '0')}</span>
-              <div><h2>{workout.name}</h2><p>{exercisePreview(workout, true)}</p></div>
-              <Icon name="chevron-right" />
-            </button>
-        ))}
-      </section>
-    </main>
-  );
-}
-
 function StudentWorkoutHistory({
   data,
   student,
@@ -1893,13 +1746,13 @@ function StudentWorkoutHistory({
   const visibleAssignments = showAllHistory ? previousAssignments : previousAssignments.slice(0, 8);
 
   return (
-    <main className="content-page workouts-page schedule-workout-picker-page">
+    <main className="content-page workout-picker-page schedule-workout-picker-page">
       <PageHeader back={backPath} eyebrow={`${student.name} · ${formatScheduleDay(scheduledFor)}`} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
       <p className="page-lead">Повтори одну из тренировок {student.name} или собери новую с нуля.</p>
       <button className="list-primary-action" type="button" onClick={() => go(`${routeBase}/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
       {previousAssignments.length ? (
         <>
-        <section className="workout-template-list schedule-history-list" aria-label={`Ранее назначенные тренировки ${student.name}`}>
+        <section className="workout-history-list schedule-history-list" aria-label={`Ранее назначенные тренировки ${student.name}`}>
           {visibleAssignments.map((assignment) => {
             const workout = workoutForRepeat(data, assignment);
             if (!workout) return null;
@@ -1907,7 +1760,7 @@ function StudentWorkoutHistory({
             const overdue = !completed && assignment.scheduledFor < dateKey();
             const statusLabel = completed ? 'Завершена' : overdue ? 'Не завершена' : 'Запланирована';
             return (
-              <button className="workout-template-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
+              <button className="workout-history-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
                 <span className="history-copy-icon"><Icon name="copy" /></span>
                 <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{formatCalendarDay(assignment.scheduledFor)} · {assignment.scheduledTime} · {exercisePreview(workout, true)}</p></div>
                 <Icon name="chevron-right" />
@@ -1947,7 +1800,6 @@ function WorkoutComposer({
   nameEditable = false,
   nameInputId = 'workout-name',
   nameAutoFocus = false,
-  nameHint,
   initialScheduledFor,
   initialScheduledTime,
   dateLabel,
@@ -1965,13 +1817,12 @@ function WorkoutComposer({
   title: string;
   eyebrow: string;
   backPath: string;
-  student?: Student;
+  student: Student;
   workoutLabel?: string;
   initialName: string;
   nameEditable?: boolean;
   nameInputId?: string;
   nameAutoFocus?: boolean;
-  nameHint?: string;
   initialScheduledFor?: string;
   initialScheduledTime?: string;
   dateLabel?: string;
@@ -2017,18 +1868,11 @@ function WorkoutComposer({
   return (
     <main className="content-page narrow-page" data-workout-composer>
       <PageHeader back={backPath} eyebrow={eyebrow} title={title} />
-      {student ? (
-        <section className={`plan-context-card ${contextClassName ?? 'assignment-edit-card'}`}>
-          <div className="assignment-edit-person"><Avatar student={student} large={largeStudentAvatar} /><div><span>УЧЕНИК</span><strong>{student.name}</strong>{workoutLabel && <p>{workoutLabel}</p>}</div></div>
-          {nameField}
-          {hasSchedule && <WorkoutScheduleFields dateLabel={dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime ?? ''} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
-        </section>
-      ) : (
-        <section className={`plan-context-card ${contextClassName ?? 'workout-name-card'}`}>
-          {nameField}
-          {nameHint && <p className="plan-editor-hint">{nameHint}</p>}
-        </section>
-      )}
+      <section className={`plan-context-card ${contextClassName ?? 'assignment-edit-card'}`}>
+        <div className="assignment-edit-person"><Avatar student={student} large={largeStudentAvatar} /><div><span>УЧЕНИК</span><strong>{student.name}</strong>{workoutLabel && <p>{workoutLabel}</p>}</div></div>
+        {nameField}
+        {hasSchedule && <WorkoutScheduleFields dateLabel={dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime ?? ''} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
+      </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
@@ -2128,34 +1972,6 @@ function NewAssignmentForStudent({
         exercises,
         createdAt: new Date().toISOString(),
       })}
-    />
-  );
-}
-
-function WorkoutForm({ initial, onSave, backPath }: { initial?: Workout; onSave: (workout: Workout) => void; backPath?: string }) {
-  return (
-    <WorkoutComposer
-      title={initial ? initial.name.toUpperCase() : 'СОЗДАТЬ ТРЕНИРОВКУ'}
-      eyebrow={initial ? 'Редактирование тренировки' : 'Новая тренировка'}
-      backPath={backPath ?? (initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts')}
-      initialName={initial?.name ?? ''}
-      nameEditable
-      nameHint={initial ? 'Изменения применятся только к будущим назначениям.' : undefined}
-      initialExercises={initial?.exercises ?? []}
-      submitLabel="Сохранить тренировку"
-      submitIcon="check"
-      submitClassName="save-workout"
-      disableSubmitUntilReady={false}
-      onSubmit={({ name, exercises }) => {
-        const now = new Date().toISOString();
-        onSave({
-          id: initial?.id ?? makeId('workout'),
-          name,
-          exercises,
-          createdAt: initial?.createdAt ?? now,
-          updatedAt: initial ? now : undefined,
-        });
-      }}
     />
   );
 }
@@ -2335,21 +2151,6 @@ function WorkoutExerciseEditor({
   );
 }
 
-function WorkoutDetails({ workout, onDuplicate }: { workout: Workout; onDuplicate: () => void }) {
-  return (
-    <main className="content-page narrow-page">
-      <PageHeader back="/trainer/workouts" eyebrow="Тренировка" title={workout.name.toUpperCase()} />
-      <div className="workout-detail-actions">
-        <ActionButton icon="plus" onClick={() => go('/trainer/workouts/' + workout.id + '/assign')}>Назначить</ActionButton>
-        <ActionButton variant="secondary" icon="edit" onClick={() => go('/trainer/workouts/' + workout.id + '/edit')}>Редактировать</ActionButton>
-        <ActionButton variant="secondary" icon="copy" onClick={onDuplicate}>Дублировать</ActionButton>
-      </div>
-      <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <ReadOnlyExerciseList workout={workout} />
-    </main>
-  );
-}
-
 function AssignmentDetails({
   data,
   assignment,
@@ -2475,33 +2276,6 @@ function RepeatAssignment({
 }
 
 
-function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: Workout; onAssign: (studentId: string, scheduledFor: string, scheduledTime: string) => void }) {
-  const { students } = data;
-  const [selected, setSelected] = useState(students.find((student) => student.id === 'artem' && student.status === 'active')?.id ?? students.find((student) => student.status === 'active')?.id ?? '');
-  const [scheduledFor, setScheduledFor] = useState(dateKey());
-  const [scheduledTime, setScheduledTime] = useState('18:00');
-  const chosen = students.find((student) => student.id === selected);
-  return (
-    <main className="content-page narrow-page">
-      <PageHeader back={'/trainer/workouts/' + workout.id} eyebrow={workout.name} title="КОМУ НАЗНАЧИТЬ?" />
-      {students.length ? (
-        <section className="select-student-list">
-          {students.map((student) => (
-            <button className={selected === student.id ? 'selected' : ''} key={student.id} type="button" disabled={student.status === 'invited'} aria-pressed={selected === student.id} onClick={() => setSelected(student.id)}>
-              <Avatar student={student} /><span><strong>{student.name}</strong>{student.status === 'invited' && <small>Сначала ученик должен принять приглашение</small>}</span><i><Icon name={selected === student.id ? 'check' : 'circle'} /></i>
-            </button>
-          ))}
-          <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-          <div className="plan-sticky-actions">
-            <ActionButton className="assign-button" icon="plus" onClick={() => selected && scheduledFor && scheduledTime && onAssign(selected, scheduledFor, scheduledTime)} disabled={!selected || !scheduledFor || !scheduledTime}>Назначить {chosen?.name ? chosen.name : ''}</ActionButton>
-          </div>
-        </section>
-      ) : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
-    </main>
-  );
-}
-
-
 function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoState; assignment: Assignment; onSave: (assignment: Assignment) => void; onDelete: (assignment: Assignment) => void }) {
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
@@ -2539,7 +2313,6 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
             exercises,
             updatedAt: new Date().toISOString(),
           } : cloneWorkout(workout),
-          source: exercisesChanged ? 'manual-edit' : assignment.source,
         });
       }}
     />

@@ -38,34 +38,20 @@ export type Workout = {
   updatedAt?: string;
 };
 
-export type AssignmentSource = 'template' | 'student-version' | 'manual-edit' | 'repeated';
-
 export type Assignment = {
   id: string;
-  workoutId: string;
   studentId: string;
   assignedAt: string;
   scheduledFor: string;
   scheduledTime: string;
   status: 'assigned' | 'completed';
   workoutSnapshot: Workout;
-  source: AssignmentSource;
   repeatedFromAssignmentId?: string;
   rescheduleRequest?: {
     scheduledFor: string;
     scheduledTime: string;
     requestedAt: string;
   };
-};
-
-export type StudentWorkoutVersion = {
-  id: string;
-  studentId: string;
-  baseWorkoutId: string;
-  name: string;
-  exercises: WorkoutExercise[];
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type SetResult = {
@@ -80,7 +66,6 @@ export type WorkoutSession = {
   id: string;
   assignmentId: string;
   studentId: string;
-  workoutId: string;
   workoutSnapshot: Workout;
   startedAt: string;
   recordedBy: Role;
@@ -110,13 +95,11 @@ export type SubscriptionEntry = {
 };
 
 export type DemoState = {
-  schemaVersion: 4;
+  schemaVersion: 5;
   loggedIn: boolean;
   role: Role;
   activeStudentId: string;
   students: Student[];
-  workouts: Workout[];
-  studentWorkoutVersions: StudentWorkoutVersion[];
   assignments: Assignment[];
   sessions: WorkoutSession[];
   subscriptionEntries: SubscriptionEntry[];
@@ -268,7 +251,7 @@ const legacyDemoWorkoutNames: Record<string, string> = {
   arms: 'Arms',
 };
 
-function createDemoWorkouts(now: string): Workout[] {
+function createDemoPlans(now: string): Workout[] {
   return [
     {
       id: 'push-day',
@@ -324,25 +307,23 @@ function createDemoWorkouts(now: string): Workout[] {
   ];
 }
 
-function createDemoAssignments(now: string, workouts: Workout[]): Assignment[] {
+function createDemoAssignments(now: string, plans: Workout[]): Assignment[] {
   const after = (days: number) => {
     const date = new Date();
     date.setDate(date.getDate() + days);
     return dateKey(date);
   };
-  const assignment = (id: string, workoutId: string, studentId: string, days: number, scheduledTime: string): Assignment => {
-    const workout = workouts.find((item) => item.id === workoutId);
-    if (!workout) throw new Error(`Не найден шаблон демо-тренировки: ${workoutId}`);
+  const assignment = (id: string, planId: string, studentId: string, days: number, scheduledTime: string): Assignment => {
+    const workout = plans.find((item) => item.id === planId);
+    if (!workout) throw new Error(`Не найден план демо-тренировки: ${planId}`);
     return {
       id,
-      workoutId,
       studentId,
       assignedAt: now,
       scheduledFor: after(days),
       scheduledTime,
       status: 'assigned',
       workoutSnapshot: cloneWorkout(workout),
-      source: 'template',
     };
   };
   return [
@@ -370,22 +351,20 @@ function demoDate(daysAgo: number, hour: number) {
   return date;
 }
 
-function createArtemLegHistory(workouts: Workout[]): { assignments: Assignment[]; sessions: WorkoutSession[] } {
-  const workout = workouts.find((item) => item.id === 'legs');
-  if (!workout) throw new Error('Не найден шаблон демо-тренировки: legs');
+function createArtemLegHistory(plans: Workout[]): { assignments: Assignment[]; sessions: WorkoutSession[] } {
+  const workout = plans.find((item) => item.id === 'legs');
+  if (!workout) throw new Error('Не найден план демо-тренировки: legs');
 
   const assignments = artemLegProgress.map((progress, index): Assignment => {
     const date = demoDate(progress.daysAgo, 19);
     return {
       id: `assignment-artem-legs-history-${index + 1}`,
-      workoutId: workout.id,
       studentId: 'artem',
       assignedAt: new Date(date.getTime() - 24 * 60 * 60 * 1000).toISOString(),
       scheduledFor: dateKey(date),
       scheduledTime: '19:00',
       status: 'completed',
       workoutSnapshot: cloneWorkout(workout),
-      source: 'template',
     };
   });
 
@@ -401,7 +380,6 @@ function createArtemLegHistory(workouts: Workout[]): { assignments: Assignment[]
       id: `session-artem-legs-history-${index + 1}`,
       assignmentId: assignment.id,
       studentId: 'artem',
-      workoutId: workout.id,
       workoutSnapshot: cloneWorkout(workout),
       startedAt: demoDate(progress.daysAgo, 19).toISOString(),
       completedAt,
@@ -465,11 +443,11 @@ function createDemoSubscriptionEntries(sessions: WorkoutSession[]): Subscription
 
 export function createInitialState(): DemoState {
   const now = new Date().toISOString();
-  const workouts = createDemoWorkouts(now);
-  const artemHistory = createArtemLegHistory(workouts);
+  const plans = createDemoPlans(now);
+  const artemHistory = createArtemLegHistory(plans);
 
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     loggedIn: false,
     role: 'trainer',
     activeStudentId: 'artem',
@@ -478,9 +456,7 @@ export function createInitialState(): DemoState {
       { id: 'maria', name: 'Мария А.', status: 'active', color: 'violet', height: 168, weight: 61, gender: 'female', phone: '+7 903 754-26-81', contraindications: '' },
       { id: 'anton', name: 'Антон К.', status: 'active', color: 'pink', height: 176, weight: 74, gender: 'male', phone: '+7 925 318-64-09', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
     ],
-    workouts,
-    studentWorkoutVersions: [],
-    assignments: [...createDemoAssignments(now, workouts), ...artemHistory.assignments],
+    assignments: [...createDemoAssignments(now, plans), ...artemHistory.assignments],
     sessions: artemHistory.sessions,
     subscriptionEntries: createDemoSubscriptionEntries(artemHistory.sessions),
   };
@@ -504,52 +480,103 @@ const demoHealthDefaults: Record<string, Pick<Student, 'height' | 'weight' | 'ge
   anton: { height: 176, weight: 74, gender: 'male', phone: '+7 925 318-64-09', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
 };
 
-export function migrateDemoState(state: DemoState): DemoState {
+type PersistedAssignment = Omit<Assignment, 'scheduledFor' | 'scheduledTime' | 'workoutSnapshot'> & {
+  scheduledFor?: string;
+  scheduledTime?: string;
+  workoutSnapshot?: Workout;
+  workoutId?: string;
+  source?: string;
+};
+
+type PersistedWorkoutSession = Omit<WorkoutSession, 'workoutSnapshot' | 'recordedBy'> & {
+  workoutSnapshot?: Workout;
+  workoutId?: string;
+  recordedBy?: Role;
+};
+
+type PersistedDemoState = Omit<DemoState, 'schemaVersion' | 'assignments' | 'sessions' | 'subscriptionEntries'> & {
+  schemaVersion?: number;
+  assignments: PersistedAssignment[];
+  sessions: PersistedWorkoutSession[];
+  subscriptionEntries?: SubscriptionEntry[];
+  workouts?: Workout[];
+  studentWorkoutVersions?: unknown[];
+};
+
+function normalizeWorkout(workout: Workout): Workout {
+  const localizedName = demoWorkoutNames[workout.id];
+  const legacyName = legacyDemoWorkoutNames[workout.id];
+  const normalized = cloneWorkout(workout);
+  return localizedName && workout.name === legacyName ? { ...normalized, name: localizedName } : normalized;
+}
+
+export function migrateDemoState(state: PersistedDemoState): DemoState {
+  if (!Array.isArray(state.students) || !Array.isArray(state.assignments) || !Array.isArray(state.sessions)) {
+    throw new Error('Сохранённое состояние REPPY имеет неверный формат.');
+  }
+
   const currentId = (id: string) => legacyStudentIds[id] ?? id;
-  const localizedWorkouts = state.workouts.map((workout) => {
-    const localizedName = demoWorkoutNames[workout.id];
-    const legacyName = legacyDemoWorkoutNames[workout.id];
-    const normalized = { ...workout, exercises: workout.exercises.map(normalizeWorkoutExercise) };
-    return localizedName && workout.name === legacyName ? { ...normalized, name: localizedName } : normalized;
-  });
-  const missingDemoWorkouts = createDemoWorkouts(new Date().toISOString())
-    .filter((workout) => !state.workouts.some((item) => item.id === workout.id));
-  const workouts = [...localizedWorkouts, ...missingDemoWorkouts];
-  const migratedAssignments = state.assignments.map((assignment) => {
-    const template = workouts.find((item) => item.id === assignment.workoutId);
-    const fallback: Workout = template ?? {
-      id: assignment.workoutId,
+  const savedPlans = Array.isArray(state.workouts) ? state.workouts.map(normalizeWorkout) : [];
+  const seedPlans = createDemoPlans(new Date().toISOString());
+  const legacyPlans = [
+    ...savedPlans,
+    ...seedPlans.filter((plan) => !savedPlans.some((saved) => saved.id === plan.id)),
+  ];
+  const migratedAssignments = state.assignments.map((assignment): Assignment => {
+    const workoutId = assignment.workoutId;
+    const currentAssignment = { ...assignment };
+    delete currentAssignment.workoutId;
+    delete currentAssignment.source;
+    const fallback = legacyPlans.find((plan) => plan.id === workoutId) ?? {
+      id: workoutId ?? `workout-${assignment.id}`,
       name: 'Тренировка',
       exercises: [],
       createdAt: assignment.assignedAt,
     };
     return {
-      ...assignment,
+      ...currentAssignment,
       studentId: currentId(assignment.studentId),
       scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
       scheduledTime: assignment.scheduledTime ?? '18:00',
-      workoutSnapshot: cloneWorkout(assignment.workoutSnapshot ?? fallback),
-      source: assignment.source ?? 'template',
+      workoutSnapshot: normalizeWorkout(assignment.workoutSnapshot ?? fallback),
     };
   });
-  const needsProgressDemo = ((state as { schemaVersion?: number }).schemaVersion ?? 0) < 3;
-  const artemHistory = createArtemLegHistory(workouts);
+  const needsProgressDemo = (state.schemaVersion ?? 0) < 3;
+  const artemHistory = createArtemLegHistory(legacyPlans);
   const assignments = needsProgressDemo
     ? [
         ...migratedAssignments.filter((assignment) => assignment.studentId !== 'artem'),
-        ...createDemoAssignments(new Date().toISOString(), workouts).filter((assignment) => assignment.studentId === 'artem'),
+        ...createDemoAssignments(new Date().toISOString(), legacyPlans).filter((assignment) => assignment.studentId === 'artem'),
         ...artemHistory.assignments,
       ]
     : migratedAssignments;
-  const sessions = needsProgressDemo
+  const savedSessions: PersistedWorkoutSession[] = needsProgressDemo
     ? [
         ...state.sessions.filter((session) => currentId(session.studentId) !== 'artem'),
         ...artemHistory.sessions,
       ]
     : state.sessions;
+  const sessions = savedSessions.map((session): WorkoutSession => {
+    const { workoutId, ...currentSession } = session;
+    const assignmentWorkout = assignments.find((assignment) => assignment.id === session.assignmentId)?.workoutSnapshot;
+    const fallback = legacyPlans.find((plan) => plan.id === workoutId) ?? {
+      id: workoutId ?? `workout-${session.assignmentId}`,
+      name: 'Тренировка',
+      exercises: [],
+      createdAt: session.startedAt,
+    };
+    return {
+      ...currentSession,
+      studentId: currentId(session.studentId),
+      recordedBy: session.recordedBy ?? 'student',
+      workoutSnapshot: normalizeWorkout(session.workoutSnapshot ?? assignmentWorkout ?? fallback),
+    };
+  });
+
   return {
-    ...state,
-    schemaVersion: 4,
+    schemaVersion: 5,
+    loggedIn: state.loggedIn,
+    role: state.role,
     activeStudentId: currentId(state.activeStudentId),
     students: state.students.map((student) => {
       const id = currentId(student.id);
@@ -567,24 +594,8 @@ export function migrateDemoState(state: DemoState): DemoState {
       } : student;
     }),
     assignments,
-    workouts,
-    studentWorkoutVersions: (state.studentWorkoutVersions ?? []).map((version) => ({
-      ...version,
-      studentId: currentId(version.studentId),
-      exercises: version.exercises.map(normalizeWorkoutExercise),
-    })),
-    sessions: sessions.map((session) => ({
-      ...session,
-      studentId: currentId(session.studentId),
-      recordedBy: session.recordedBy ?? 'student',
-      workoutSnapshot: cloneWorkout(
-        session.workoutSnapshot
-          ?? assignments.find((assignment) => assignment.id === session.assignmentId)?.workoutSnapshot
-          ?? workouts.find((workout) => workout.id === session.workoutId)
-          ?? { id: session.workoutId, name: 'Тренировка', exercises: [], createdAt: session.startedAt },
-      ),
-    })),
-    subscriptionEntries: ((state as DemoState & { subscriptionEntries?: SubscriptionEntry[] }).subscriptionEntries ?? []).map((entry) => ({
+    sessions,
+    subscriptionEntries: (state.subscriptionEntries ?? []).map((entry) => ({
       ...entry,
       trainerId: entry.trainerId ?? TRAINER_ID,
       studentId: currentId(entry.studentId),
@@ -599,19 +610,6 @@ export function cloneWorkout(workout: Workout): Workout {
   };
 }
 
-export function createWorkoutTemplate(
-  source: Workout,
-  name: string,
-  now = new Date().toISOString(),
-): Workout {
-  return {
-    id: makeId('workout'),
-    name: name.trim() || `${source.name} — копия`,
-    exercises: source.exercises.map((exercise) => normalizeWorkoutExercise({ ...exercise, id: makeId('exercise') })),
-    createdAt: now,
-  };
-}
-
 export function createWorkoutSession(
   assignment: Assignment,
   workout: Workout,
@@ -622,7 +620,6 @@ export function createWorkoutSession(
     id: makeId('session'),
     assignmentId: assignment.id,
     studentId: assignment.studentId,
-    workoutId: assignment.workoutId,
     workoutSnapshot: cloneWorkout(workout),
     startedAt: now,
     recordedBy,
@@ -722,7 +719,6 @@ export function repeatAssignment(
 ): Assignment {
   return {
     id: makeId('assignment'),
-    workoutId: source.workoutId,
     studentId: source.studentId,
     assignedAt: now,
     scheduledFor,
@@ -730,72 +726,22 @@ export function repeatAssignment(
     status: 'assigned',
     workoutSnapshot: {
       ...cloneWorkout(sourceWorkout),
+      id: makeId('workout'),
       exercises: sourceWorkout.exercises.map((exercise) => normalizeWorkoutExercise({ ...exercise, id: makeId('exercise') })),
       updatedAt: now,
     },
-    source: 'repeated',
     repeatedFromAssignmentId: source.id,
   };
 }
 
-export function findAssignmentWorkout(data: DemoState, assignment: Assignment) {
-  return assignment.workoutSnapshot ?? data.workouts.find((workout) => workout.id === assignment.workoutId);
+export function findAssignmentWorkout(_data: DemoState, assignment: Assignment) {
+  return assignment.workoutSnapshot;
 }
 
 export function findSessionWorkout(data: DemoState, session: WorkoutSession) {
   if (session.workoutSnapshot) return session.workoutSnapshot;
   const assignment = data.assignments.find((item) => item.id === session.assignmentId);
-  return (assignment && findAssignmentWorkout(data, assignment))
-    ?? data.workouts.find((workout) => workout.id === session.workoutId);
-}
-
-export function findStudentWorkoutVersion(data: DemoState, studentId: string, workoutId: string) {
-  return data.studentWorkoutVersions.find((version) => version.studentId === studentId && version.baseWorkoutId === workoutId);
-}
-
-export function resolveAssignmentWorkout(data: DemoState, studentId: string, workout: Workout, useOriginalTemplate = false): Pick<Assignment, 'workoutSnapshot' | 'source'> {
-  const version = useOriginalTemplate ? undefined : findStudentWorkoutVersion(data, studentId, workout.id);
-  if (!version) return { workoutSnapshot: cloneWorkout(workout), source: 'template' };
-  return {
-    workoutSnapshot: {
-      ...cloneWorkout(workout),
-      name: version.name,
-      exercises: version.exercises.map(normalizeWorkoutExercise),
-      updatedAt: version.updatedAt,
-    },
-    source: 'student-version',
-  };
-}
-
-export function resolveEditedAssignmentSource(
-  currentSource: AssignmentSource,
-  exercisesChanged: boolean,
-  rememberForStudent: boolean,
-): AssignmentSource {
-  if (rememberForStudent) return 'student-version';
-  return exercisesChanged ? 'manual-edit' : currentSource;
-}
-
-export function upsertStudentWorkoutVersion(
-  versions: StudentWorkoutVersion[],
-  studentId: string,
-  baseWorkoutId: string,
-  workout: Workout,
-  now = new Date().toISOString(),
-) {
-  const existing = versions.find((version) => version.studentId === studentId && version.baseWorkoutId === baseWorkoutId);
-  const next: StudentWorkoutVersion = {
-    id: existing?.id ?? makeId('student-workout'),
-    studentId,
-    baseWorkoutId,
-    name: workout.name,
-    exercises: workout.exercises.map((exercise) => ({ ...exercise })),
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-  };
-  return existing
-    ? versions.map((version) => version.id === existing.id ? next : version)
-    : [...versions, next];
+  return assignment && findAssignmentWorkout(data, assignment);
 }
 
 export function makeId(prefix: string) {

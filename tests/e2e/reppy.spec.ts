@@ -462,12 +462,19 @@ test('вложенные экраны остаются у каноническо
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
   await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
 
-  await page.goto('/#/trainer/workouts/push-day');
-  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveAttribute('aria-current', 'page');
-
   await page.goto('/#/trainer/clients/maria/assign');
   await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Ученики' })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.bottom-nav [aria-current="page"]')).toHaveCount(1);
+});
+
+test('устаревшие маршруты общих тренировок больше не открываются', async ({ page }) => {
+  await openFreshDemo(page);
+
+  for (const route of ['/trainer/workouts', '/trainer/workouts/push-day', '/trainer/workouts/push-day/edit']) {
+    await page.goto(`/#${route}`);
+    await expect(page.getByRole('heading', { name: 'Ничего не найдено' })).toBeVisible();
+    await expect(page.locator('.bottom-nav [aria-current="page"]')).toHaveCount(0);
+  }
 });
 
 test('повтор завершённой тренировки из расписания использует фактические результаты', async ({ page }) => {
@@ -479,7 +486,7 @@ test('повтор завершённой тренировки из распис
   });
   await page.goto(`/#/trainer/schedule/${targetDate}/artem`);
 
-  const completedWorkout = page.locator('.schedule-history-list .workout-template-row').filter({ hasText: 'Завершена' }).first();
+  const completedWorkout = page.locator('.schedule-history-list .workout-history-row').filter({ hasText: 'Завершена' }).first();
   await expect(completedWorkout).toBeVisible();
   await completedWorkout.click();
 
@@ -488,25 +495,10 @@ test('повтор завершённой тренировки из распис
   await expect(firstSet.getByLabel('ПОВТОРЫ')).toHaveValue('10');
 });
 
-test('тренер дублирует шаблон и повторяет назначение тому же ученику', async ({ page }) => {
+test('тренер повторяет назначение тому же ученику', async ({ page }) => {
   await openFreshDemo(page);
 
-  await page.goto('/#/trainer/workouts/push-day');
-  const assignButton = page.getByRole('button', { name: 'Назначить', exact: true });
-  const editButton = page.getByRole('button', { name: 'Редактировать', exact: true });
-  const duplicateButton = page.getByRole('button', { name: 'Дублировать' });
-  const [assignBox, editBox, duplicateBox] = await Promise.all([assignButton.boundingBox(), editButton.boundingBox(), duplicateButton.boundingBox()]);
-  expect(assignBox?.width ?? 0).toBeGreaterThan((editBox?.width ?? 0) * 1.8);
-  expect(Math.round(editBox?.y ?? -1)).toBe(Math.round(duplicateBox?.y ?? -2));
-  await duplicateButton.click();
-  await expect(page.getByLabel('Название тренировки')).toHaveValue('Грудь и плечи — копия');
-  await page.getByRole('button', { name: 'Сохранить тренировку' }).click();
-
-  await page.goto('/#/trainer/workouts');
-  await expect(page.getByRole('heading', { name: 'Грудь и плечи — копия', exact: true })).toBeVisible();
-
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.getByRole('button', { name: 'Создать шаблон из назначения' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Повторить на другую дату' }).click();
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();
   await page.getByRole('button', { name: /Новая дата:/ }).click();
@@ -528,31 +520,22 @@ test('тренер дублирует шаблон и повторяет наз�
   await expect(page.getByText('Держи лопатки сведёнными')).toBeVisible();
 });
 
-test('редактирование шаблона не меняет существующее назначение', async ({ page }) => {
+test('редактирование одной назначенной тренировки не меняет другую', async ({ page }) => {
   await openFreshDemo(page);
 
-  await page.goto('/#/trainer/assignments/assignment-artem-push-today');
-  await expect(page.locator('.readonly-exercise-card').first()).toContainText('80 кг × 8');
-
-  await page.goto('/#/trainer/workouts/push-day/edit');
-  await setExerciseSetWeight(page, 0, 95);
-  await setExerciseSetWeight(page, 1, 90);
-  await page.getByRole('button', { name: 'Сохранить тренировку' }).click();
-
-  await page.goto('/#/trainer/workouts/push-day');
+  await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
+  await setFirstExerciseWeight(page, 95);
+  await page.getByRole('button', { name: 'Сохранить изменения' }).click();
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('95 кг × 8');
-  await expect(page.locator('.readonly-exercise-card').first()).toContainText('90 кг × 8');
 
-  await page.goto('/#/trainer/assignments/assignment-artem-push-today');
+  await page.goto('/#/trainer/assignments/assignment-maria-push-1');
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('80 кг × 8');
 });
 
-test('создание, назначение, редактирование и повтор используют единый редактор плана', async ({ page }) => {
+test('создание, копирование, редактирование и повтор используют единый редактор плана', async ({ page }) => {
   await openFreshDemo(page);
 
   for (const route of [
-    '/trainer/workouts/new',
-    '/trainer/workouts/push-day/edit',
     '/trainer/clients/maria/assign/new',
     '/trainer/clients/maria/assign/copy/assignment-maria-legs',
     '/trainer/assignments/assignment-artem-push-today/edit',
@@ -584,7 +567,7 @@ test('в редакторе можно удалить последнее упр�
 });
 
 
-test('редактирование назначения не создаёт скрытую персональную версию', async ({ page }) => {
+test('редактирование назначения не создаёт скрытые заготовки', async ({ page }) => {
   await openFreshDemo(page);
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
@@ -593,9 +576,10 @@ test('редактирование назначения не создаёт ск
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
   await expect(page.getByRole('status')).toContainText('Назначение сохранено');
 
-  await page.goto('/#/trainer/workouts/push-day/assign');
-  await expect(page.getByText('Для Артем А. есть сохранённая версия')).toHaveCount(0);
-  await expect(page.locator('.select-student-list > button:not(.assign-button)').first()).toContainText('Артем А.');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}'));
+  expect(saved).not.toHaveProperty('workouts');
+  expect(saved).not.toHaveProperty('studentWorkoutVersions');
+  expect(saved.assignments.find((assignment: { id: string }) => assignment.id === 'assignment-artem-push-today')).not.toHaveProperty('source');
 })
 
 test('тренер назначает тренировку из профиля ученика и сразу подстраивает план', async ({ page }) => {
@@ -655,9 +639,8 @@ test('тренер назначает тренировку из профиля �
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('62.5 кг × 8');
 });
 
-test('новая тренировка ученика не создаёт глобальную заготовку', async ({ page }) => {
+test('новая тренировка сохраняется только в назначении ученика', async ({ page }) => {
   await openFreshDemo(page);
-  const workoutsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}').workouts.length);
 
   await page.goto('/#/trainer/clients/maria/assign');
   expect((await page.locator('main').innerText()).toLowerCase()).not.toContain('шаблон');
@@ -675,8 +658,11 @@ test('новая тренировка ученика не создаёт гло�
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}'));
-  expect(saved.workouts).toHaveLength(workoutsBefore);
+  expect(saved).not.toHaveProperty('workouts');
+  expect(saved).not.toHaveProperty('studentWorkoutVersions');
   expect(saved.assignments.at(-1).workoutSnapshot.name).toBe('Персональная тренировка Марии');
+  expect(saved.assignments.at(-1)).not.toHaveProperty('workoutId');
+  expect(saved.assignments.at(-1)).not.toHaveProperty('source');
 });
 
 test('несколько упражнений быстро добавляются на экране шириной 320 px', async ({ page }) => {
@@ -785,7 +771,7 @@ test('тренер может завершить занятие в долг и �
   await expect(page.getByText('1 занятие в долг', { exact: true })).toBeVisible();
 });
 
-test('результат ученика виден тренеру и не меняется вместе с шаблоном', async ({ page }) => {
+test('результат ученика виден тренеру и не меняется вместе с назначением', async ({ page }) => {
   await openFreshDemo(page);
 
   await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
@@ -815,9 +801,15 @@ test('результат ученика виден тренеру и не мен
   await page.getByRole('button', { name: 'Готово' }).click();
   await page.getByRole('button', { name: 'Переключиться в роль тренера' }).click();
 
-  await page.goto('/#/trainer/workouts/push-day/edit');
-  await setFirstExerciseWeight(page, 95);
-  await page.getByRole('button', { name: 'Сохранить тренировку' }).click();
+  await page.evaluate(() => {
+    const raw = localStorage.getItem('reppy-demo-v0');
+    if (!raw) throw new Error('Демо-состояние не было сохранено');
+    const state = JSON.parse(raw);
+    const assignment = state.assignments.find((item: { id: string }) => item.id === 'assignment-artem-push-today');
+    assignment.workoutSnapshot.exercises[0].plannedSets[0].targetWeight = 95;
+    localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
+  });
+  await page.reload();
 
   await page.goto('/#/trainer/clients/artem');
   const result = page.locator('.session-row').first();
@@ -978,7 +970,13 @@ test('тренер ведёт занятие, правит его в момен�
 test('упражнение со своим весом не показывает килограммы в плане', async ({ page }) => {
   await openFreshDemo(page);
 
-  await page.goto('/#/trainer/workouts/pull-day/edit');
+  await page.goto('/#/trainer/clients/maria/assign/new');
+  await page.getByLabel('Название тренировки').fill('Тренировка со своим весом');
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  const initialPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
+  await initialPicker.getByRole('button', { name: 'Спина', exact: true }).click();
+  await initialPicker.getByRole('button', { name: /Подтягивания/ }).click();
+  await initialPicker.getByRole('button', { name: 'Готово' }).click();
   const pullUpsPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Подтягивания' });
   await expect(pullUpsPlan.getByText('Спина · Свой вес')).toBeVisible();
   await expect(pullUpsPlan.getByLabel('КГ')).toHaveCount(0);
@@ -987,6 +985,7 @@ test('упражнение со своим весом не показывает 
   await pullUpsPlan.getByRole('button', { name: 'Ещё упражнение' }).click();
   await page.getByRole('button', { name: 'Кор', exact: true }).click();
   await page.getByRole('button', { name: /Планка/ }).click();
+  await page.getByRole('button', { name: 'Готово' }).click();
   const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
   await expect(plankPlan.getByLabel('КГ')).toHaveCount(0);
   await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('30');
@@ -999,17 +998,33 @@ test('старое сохранённое состояние автоматич�
     const raw = window.localStorage.getItem('reppy-demo-v0');
     if (!raw) throw new Error('Демо-состояние не было сохранено');
     const legacy = JSON.parse(raw) as {
-      assignments: Array<{ source?: unknown; workoutSnapshot?: unknown }>;
-      studentWorkoutVersions?: unknown;
+      schemaVersion: number;
+      workouts?: unknown[];
+      assignments: Array<{ workoutId?: string; source?: string; workoutSnapshot?: { id: string } }>;
+      studentWorkoutVersions?: unknown[];
     };
-    delete legacy.studentWorkoutVersions;
-    delete legacy.assignments[0].source;
+    const workout = structuredClone(legacy.assignments[0].workoutSnapshot!);
+    legacy.schemaVersion = 4;
+    legacy.workouts = [workout];
+    legacy.studentWorkoutVersions = [];
+    legacy.assignments[0].workoutId = workout.id;
+    legacy.assignments[0].source = 'template';
     delete legacy.assignments[0].workoutSnapshot;
     window.localStorage.setItem('reppy-demo-v0', JSON.stringify(legacy));
   });
 
   await page.goto('/#/trainer/assignments/assignment-maria-legs');
-  await expect(page.getByText('Основано на шаблоне «Ноги»')).toHaveCount(0);
+  await page.reload();
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('Приседания');
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('70 кг × 8');
+  await expect.poll(async () => page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}');
+    return {
+      schemaVersion: saved.schemaVersion,
+      hasWorkouts: Object.hasOwn(saved, 'workouts'),
+      hasVersions: Object.hasOwn(saved, 'studentWorkoutVersions'),
+      hasWorkoutId: Object.hasOwn(saved.assignments[0], 'workoutId'),
+      hasSource: Object.hasOwn(saved.assignments[0], 'source'),
+    };
+  })).toEqual({ schemaVersion: 5, hasWorkouts: false, hasVersions: false, hasWorkoutId: false, hasSource: false });
 });

@@ -32,23 +32,29 @@ test('repository создаёт исходное состояние при пу�
   assert.equal(state.loggedIn, false);
   assert.equal(state.role, 'trainer');
   assert.ok(state.students.length > 0);
-  assert.ok(state.workouts.length > 0);
+  assert.ok(state.assignments.length > 0);
+  assert.equal('workouts' in state, false);
 });
 
 test('repository мигрирует старый формат данных', async () => {
   const legacy = structuredClone(createInitialState());
-  delete legacy.studentWorkoutVersions;
+  const legacyWorkout = structuredClone(legacy.assignments[0].workoutSnapshot);
+  legacy.schemaVersion = 4;
+  legacy.workouts = [legacyWorkout];
+  legacy.studentWorkoutVersions = [];
   delete legacy.subscriptionEntries;
-  delete legacy.assignments[0].source;
+  legacy.assignments[0].workoutId = legacyWorkout.id;
   delete legacy.assignments[0].workoutSnapshot;
   const memory = createMemoryStorage({ [STORAGE_KEY]: JSON.stringify(legacy) });
   const repository = createLocalStorageRepository(memory.storage);
   const state = await repository.load();
 
-  assert.deepEqual(state.studentWorkoutVersions, []);
   assert.deepEqual(state.subscriptionEntries, []);
-  assert.equal(state.assignments[0].source, 'template');
   assert.ok(state.assignments[0].workoutSnapshot.exercises.length > 0);
+  assert.equal('workouts' in state, false);
+  assert.equal('studentWorkoutVersions' in state, false);
+  assert.equal('workoutId' in state.assignments[0], false);
+  assert.equal('source' in state.assignments[0], false);
 });
 
 test('repository восстанавливает seed после повреждённого JSON', async () => {

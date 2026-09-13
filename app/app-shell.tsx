@@ -27,7 +27,7 @@ const NAVIGATION: Record<AppArea, NavigationItem[]> = {
 export function canonicalNavigationRoute(area: AppArea, path: string) {
   if (area === 'trainer') {
     if (/^\/trainer\/(calendar|schedule|assignments|sessions)(?:\/|$)/.test(path)) return '/trainer/calendar';
-    if (/^\/trainer\/(clients|workouts)(?:\/|$)/.test(path)) return '/trainer/clients';
+    if (/^\/trainer\/clients(?:\/|$)/.test(path)) return '/trainer/clients';
     return path === '/trainer' ? '/trainer' : null;
   }
 

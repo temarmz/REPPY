@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   createInitialState,
   createWorkoutSession,
-  createWorkoutTemplate,
   exerciseLibrary,
   findAssignmentWorkout,
   findSessionWorkout,
@@ -16,34 +15,38 @@ import {
   workoutFromSession,
 } from '../app/reppy-data.ts';
 
-test('назначения хранят независимый снимок шаблона', () => {
+test('назначения хранят независимые снимки тренировок', () => {
   const state = createInitialState();
-  const assignment = state.assignments[0];
-  const template = state.workouts.find((workout) => workout.id === assignment.workoutId);
+  const assignment = state.assignments.find((item) => item.id === 'assignment-maria-legs');
+  const anotherAssignment = state.assignments.find((item) => item.id === 'assignment-anton-legs-1');
 
-  assert.ok(template);
-  assert.notStrictEqual(assignment.workoutSnapshot, template);
-  assert.notStrictEqual(assignment.workoutSnapshot.exercises, template.exercises);
+  assert.ok(assignment);
+  assert.ok(anotherAssignment);
+  assert.notStrictEqual(assignment.workoutSnapshot, anotherAssignment.workoutSnapshot);
+  assert.notStrictEqual(assignment.workoutSnapshot.exercises, anotherAssignment.workoutSnapshot.exercises);
 
-  const originalName = assignment.workoutSnapshot.name;
-  const originalWeight = getExerciseSetPlans(assignment.workoutSnapshot.exercises[0])[0].targetWeight;
-  template.name = 'Изменённый шаблон';
-  template.exercises[0].plannedSets[0].targetWeight += 50;
+  const originalName = anotherAssignment.workoutSnapshot.name;
+  const originalWeight = getExerciseSetPlans(anotherAssignment.workoutSnapshot.exercises[0])[0].targetWeight;
+  assignment.workoutSnapshot.name = 'Изменённая тренировка';
+  assignment.workoutSnapshot.exercises[0].plannedSets[0].targetWeight += 50;
 
-  assert.equal(findAssignmentWorkout(state, assignment)?.name, originalName);
-  assert.equal(getExerciseSetPlans(findAssignmentWorkout(state, assignment).exercises[0])[0].targetWeight, originalWeight);
+  assert.equal(findAssignmentWorkout(state, anotherAssignment)?.name, originalName);
+  assert.equal(getExerciseSetPlans(findAssignmentWorkout(state, anotherAssignment).exercises[0])[0].targetWeight, originalWeight);
 });
 
-test('миграция дополняет старые назначения и сессии снимками', () => {
+test('миграция переносит старые шаблоны в снимки и удаляет устаревшие поля', () => {
   const legacy = structuredClone(createInitialState());
-  delete legacy.studentWorkoutVersions;
+  const legacyWorkout = structuredClone(legacy.assignments[0].workoutSnapshot);
+  legacy.schemaVersion = 4;
+  legacy.workouts = [legacyWorkout];
+  legacy.studentWorkoutVersions = [];
+  legacy.assignments[0].workoutId = legacyWorkout.id;
   delete legacy.assignments[0].workoutSnapshot;
-  delete legacy.assignments[0].source;
   legacy.sessions.push({
     id: 'legacy-session',
     assignmentId: legacy.assignments[0].id,
     studentId: legacy.assignments[0].studentId,
-    workoutId: legacy.assignments[0].workoutId,
+    workoutId: legacyWorkout.id,
     startedAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
     results: [],
@@ -53,10 +56,13 @@ test('миграция дополняет старые назначения и �
   const assignment = migrated.assignments[0];
   const session = migrated.sessions.at(-1);
 
-  assert.equal(assignment.source, 'template');
   assert.ok(assignment.workoutSnapshot.exercises.length > 0);
-  assert.deepEqual(migrated.studentWorkoutVersions, []);
+  assert.equal('workouts' in migrated, false);
+  assert.equal('studentWorkoutVersions' in migrated, false);
+  assert.equal('workoutId' in assignment, false);
+  assert.equal('source' in assignment, false);
   assert.ok(session?.workoutSnapshot.exercises.length > 0);
+  assert.equal('workoutId' in session, false);
   assert.notStrictEqual(session?.workoutSnapshot, assignment.workoutSnapshot);
   assert.equal(session?.recordedBy, 'student');
 });
@@ -64,8 +70,10 @@ test('миграция дополняет старые назначения и �
 
 test('состояние использует явную версию схемы и единый массив подходов', () => {
   const state = createInitialState();
-  assert.equal(state.schemaVersion, 4);
-  for (const workout of state.workouts) {
+  assert.equal(state.schemaVersion, 5);
+  assert.equal('workouts' in state, false);
+  assert.equal('studentWorkoutVersions' in state, false);
+  for (const workout of state.assignments.map((assignment) => assignment.workoutSnapshot)) {
     for (const exercise of workout.exercises) {
       assert.ok(Array.isArray(exercise.plannedSets));
       assert.equal('sets' in exercise, false);
@@ -84,7 +92,6 @@ test('завершённая сессия читает собственный с
     id: 'session-snapshot-test',
     assignmentId: assignment.id,
     studentId: assignment.studentId,
-    workoutId: assignment.workoutId,
     workoutSnapshot: sessionWorkout,
     startedAt: '2026-08-31T10:00:00.000Z',
     recordedBy: 'student',
@@ -100,7 +107,7 @@ test('завершённая сессия читает собственный с
 
 test('миграция удаляет агрегатные поля упражнения и сохраняет подходы', () => {
   const legacy = structuredClone(createInitialState());
-  const exercise = legacy.workouts[0].exercises[0];
+  const exercise = legacy.assignments[0].workoutSnapshot.exercises[0];
   exercise.sets = 2;
   exercise.targetReps = 7;
   exercise.targetWeight = 42.5;
@@ -108,9 +115,9 @@ test('миграция удаляет агрегатные поля упражн
   delete legacy.schemaVersion;
 
   const migrated = migrateDemoState(legacy);
-  const migratedExercise = migrated.workouts[0].exercises[0];
+  const migratedExercise = migrated.assignments.find((assignment) => assignment.id === legacy.assignments[0].id).workoutSnapshot.exercises[0];
 
-  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.schemaVersion, 5);
   assert.deepEqual(getExerciseSetPlans(migratedExercise), [
     { targetReps: 7, targetWeight: 42.5 },
     { targetReps: 7, targetWeight: 42.5 },
@@ -146,25 +153,6 @@ test('демо Артёма содержит пять тренировок но�
   }
 });
 
-test('новый шаблон получает независимые идентификаторы и упражнения', () => {
-  const state = createInitialState();
-  const source = state.workouts[0];
-  const originalWeight = getExerciseSetPlans(source.exercises[0])[0].targetWeight;
-  const copy = createWorkoutTemplate(source, `${source.name} — копия`, '2026-08-31T12:00:00.000Z');
-
-  assert.notEqual(copy.id, source.id);
-  assert.equal(copy.name, `${source.name} — копия`);
-  assert.equal(copy.createdAt, '2026-08-31T12:00:00.000Z');
-  assert.equal(copy.updatedAt, undefined);
-  assert.equal(copy.exercises.length, source.exercises.length);
-  copy.exercises.forEach((exercise, index) => {
-    assert.notEqual(exercise, source.exercises[index]);
-    assert.notEqual(exercise.id, source.exercises[index].id);
-    assert.equal(exercise.exerciseId, source.exercises[index].exerciseId);
-  });
-  source.exercises[0].plannedSets[0].targetWeight += 50;
-  assert.equal(getExerciseSetPlans(copy.exercises[0])[0].targetWeight, originalWeight);
-});
 test('повтор копирует тренировку тому же ученику и оставляет исходник независимым', () => {
   const state = createInitialState();
   const source = state.assignments[0];
@@ -174,8 +162,9 @@ test('повтор копирует тренировку тому же учен�
   const repeated = repeatAssignment(source, sourceWorkout, '2026-09-10', '19:15', '2026-09-01T12:00:00.000Z');
 
   assert.equal(repeated.studentId, source.studentId);
-  assert.equal(repeated.workoutId, source.workoutId);
-  assert.equal(repeated.source, 'repeated');
+  assert.equal('workoutId' in repeated, false);
+  assert.equal('source' in repeated, false);
+  assert.notEqual(repeated.workoutSnapshot.id, sourceWorkout.id);
   assert.equal(repeated.repeatedFromAssignmentId, source.id);
   assert.equal(repeated.scheduledFor, '2026-09-10');
   assert.equal(repeated.scheduledTime, '19:15');
@@ -262,13 +251,16 @@ test('каждый плановый подход задаёт собственн
 
 test('миграция распознаёт упражнения со своим весом и не создаёт для них килограммы', () => {
   const legacy = structuredClone(createInitialState());
-  const pullUps = legacy.workouts.find((workout) => workout.id === 'pull-day').exercises[0];
+  const pullUps = legacy.assignments[0].workoutSnapshot.exercises[0];
+  pullUps.exerciseId = 'pull-ups';
+  pullUps.name = 'Подтягивания';
+  delete pullUps.equipment;
   delete pullUps.loadMode;
   delete pullUps.plannedSets;
   pullUps.targetWeight = 25;
 
   const migrated = migrateDemoState(legacy);
-  const migratedPullUps = migrated.workouts.find((workout) => workout.id === 'pull-day').exercises[0];
+  const migratedPullUps = migrated.assignments.find((assignment) => assignment.id === legacy.assignments[0].id).workoutSnapshot.exercises[0];
 
   assert.equal(migratedPullUps.loadMode, 'bodyweight');
   assert.ok(migratedPullUps.plannedSets.every((set) => set.targetWeight === 0));
