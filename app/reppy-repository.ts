@@ -21,10 +21,11 @@ export function createLocalStorageRepository(
   return {
     async load() {
       const initial = createInitialState();
+      const saved = storage.getItem(key);
+      if (!saved) return initial;
 
       try {
-        const saved = storage.getItem(key);
-        return migrateDemoState(saved ? (JSON.parse(saved) as DemoState) : initial);
+        return migrateDemoState(JSON.parse(saved) as DemoState);
       } catch {
         try {
           storage.removeItem(key);

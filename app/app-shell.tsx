@@ -52,6 +52,7 @@ export default function AppShell({
   theme,
   onToggleTheme,
   onSettings,
+  systemStatus,
   children,
 }: {
   area: AppArea;
@@ -63,6 +64,7 @@ export default function AppShell({
   theme: AppTheme;
   onToggleTheme: () => void;
   onSettings: () => void;
+  systemStatus?: ReactNode;
   children: ReactNode;
 }) {
   const nav = NAVIGATION[area];
@@ -97,6 +99,8 @@ export default function AppShell({
           </button>
         </div>
       </header>}
+
+      {systemStatus}
 
       {!focusMode && <aside className="desktop-nav" aria-label="Основная навигация">
         <div className="profile-block">

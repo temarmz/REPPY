@@ -93,6 +93,65 @@ test('внутренний дизайн-кит собирает реальные
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('системные состояния показывают офлайн и позволяют повторить сохранение', async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/design-kit');
+
+  const samples = page.locator('.design-kit-system-states');
+  await expect(samples).toContainText('Загружаем данные');
+  await expect(samples).toContainText('Сохраняем изменения');
+  await expect(samples).toContainText('Нет сети');
+  await expect(samples).toContainText('Не удалось сохранить изменения');
+  await samples.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/design-kit-system-states.png', animations: 'disabled' });
+
+  await page.goto('/#/trainer');
+  await expect(page.locator('.app-status-banner:not(.preview)')).toHaveCount(0);
+  await context.setOffline(true);
+  await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toContainText('Изменения сохраняются на этом устройстве');
+  await context.setOffline(false);
+  await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toHaveCount(0);
+
+  await page.evaluate(() => {
+    const originalSetItem = Storage.prototype.setItem;
+    let shouldFail = true;
+    Storage.prototype.setItem = function setItem(key: string, value: string) {
+      if (key === 'reppy-demo-v0' && shouldFail) {
+        shouldFail = false;
+        throw new DOMException('Хранилище временно недоступно', 'QuotaExceededError');
+      }
+      return originalSetItem.call(this, key, value);
+    };
+  });
+
+  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  const saveError = page.getByRole('alert').filter({ hasText: 'Не удалось сохранить изменения' });
+  await expect(saveError).toBeVisible();
+  await saveError.getByRole('button', { name: 'Повторить' }).click();
+  await expect(saveError).toHaveCount(0);
+  await expect(page.locator('.app-status-banner:not(.preview)')).toHaveCount(0);
+});
+
+test('ошибка загрузки не подменяет данные и позволяет повторить запрос', async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalGetItem = Storage.prototype.getItem;
+    let shouldFail = true;
+    Storage.prototype.getItem = function getItem(key: string) {
+      if (key === 'reppy-demo-v0' && shouldFail) {
+        shouldFail = false;
+        throw new DOMException('Хранилище временно недоступно', 'SecurityError');
+      }
+      return originalGetItem.call(this, key);
+    };
+  });
+
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить данные');
+  await page.getByRole('button', { name: 'Повторить' }).click();
+  await expect(page.getByRole('button', { name: 'Попробовать REPPY' })).toBeVisible();
+});
+
 test('светлая тема переключается из компактной шапки, сохраняется и держит контраст', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openFreshDemo(page);

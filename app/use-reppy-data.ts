@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { createInitialState, type DemoState } from './reppy-data';
 import { createLocalStorageRepository, type ReppyRepository } from './reppy-repository';
+
+export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
 
 type ReppyDataController = {
   data: DemoState;
   hydrated: boolean;
+  persistencePhase: PersistencePhase;
   persistenceError: Error | null;
+  retryPersistence: () => void;
   reset: () => void;
   setData: Dispatch<SetStateAction<DemoState>>;
 };
@@ -24,7 +28,12 @@ export function useReppyData(
   const [repository] = useState(repositoryFactory);
   const [data, setData] = useState<DemoState>(() => createInitialState());
   const [hydrated, setHydrated] = useState(false);
+  const [persistencePhase, setPersistencePhase] = useState<PersistencePhase>('loading');
   const [persistenceError, setPersistenceError] = useState<Error | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [saveAttempt, setSaveAttempt] = useState(0);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const saveVersionRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,32 +43,68 @@ export function useReppyData(
         if (cancelled) return;
         setData(nextData);
         setHydrated(true);
+        setPersistencePhase('idle');
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
         setPersistenceError(toError(reason));
-        setData(createInitialState());
-        setHydrated(true);
+        setHydrated(false);
+        setPersistencePhase('error');
       });
 
     return () => {
       cancelled = true;
     };
-  }, [repository]);
+  }, [loadAttempt, repository]);
 
   useEffect(() => {
     if (!hydrated) return;
+    let cancelled = false;
+    const version = ++saveVersionRef.current;
+    const snapshot = data;
 
-    void repository.save(data)
-      .then(() => setPersistenceError(null))
-      .catch((reason: unknown) => setPersistenceError(toError(reason)));
-  }, [data, hydrated, repository]);
+    const request = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => {
+        if (!cancelled && version === saveVersionRef.current) {
+          setPersistenceError(null);
+          setPersistencePhase('saving');
+        }
+        return repository.save(snapshot);
+      });
+    saveQueueRef.current = request;
+
+    void request
+      .then(() => {
+        if (cancelled || version !== saveVersionRef.current) return;
+        setPersistenceError(null);
+        setPersistencePhase('idle');
+      })
+      .catch((reason: unknown) => {
+        if (cancelled || version !== saveVersionRef.current) return;
+        setPersistenceError(toError(reason));
+        setPersistencePhase('error');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, hydrated, repository, saveAttempt]);
+
+  const retryPersistence = useCallback(() => {
+    if (hydrated) {
+      setSaveAttempt((current) => current + 1);
+      return;
+    }
+    setPersistenceError(null);
+    setPersistencePhase('loading');
+    setLoadAttempt((current) => current + 1);
+  }, [hydrated]);
 
   const reset = useCallback(() => {
     setData(createInitialState());
     setPersistenceError(null);
-    void repository.clear().catch((reason: unknown) => setPersistenceError(toError(reason)));
-  }, [repository]);
+  }, []);
 
-  return { data, hydrated, persistenceError, reset, setData };
+  return { data, hydrated, persistencePhase, persistenceError, retryPersistence, reset, setData };
 }

@@ -38,6 +38,7 @@ import SharedPageHeader from './page-header';
 import EmptyState from './empty-state';
 import MonthDatePicker from './month-date-picker';
 import AppShell, { type AppTheme } from './app-shell';
+import { AppStatusBanner, DataLoadError, useOnlineStatus } from './app-status';
 import ModalFrame, { MODAL_LAYER_EVENT, hasOpenModalLayers } from './modal-frame';
 import WorkoutScheduleFields, { DatePickerField } from './workout-schedule-fields';
 import { ActionButton, FormError, TextField } from './ui-controls';
@@ -342,7 +343,8 @@ function preloadAsset(path: string) {
 }
 
 export default function ReppyApp() {
-  const { data, hydrated, reset: resetData, setData } = useReppyData();
+  const { data, hydrated, persistencePhase, retryPersistence, reset: resetData, setData } = useReppyData();
+  const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
   const hydratedPathReady = useRef(false);
@@ -502,6 +504,8 @@ export default function ReppyApp() {
     setSettingsOpen(false);
     go('/');
   };
+
+  if (!hydrated && persistencePhase === 'error') return <DataLoadError onRetry={retryPersistence} />;
 
   if (!hydrated || !assetsReady) {
     return (
@@ -1112,6 +1116,7 @@ export default function ReppyApp() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
+        systemStatus={<AppStatusBanner phase={persistencePhase} online={online} onRetry={retryPersistence} />}
       >
         {content}
         {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
@@ -1677,6 +1682,12 @@ function DesignKitScreen() {
       <section className="design-kit-section" aria-labelledby="kit-states-title">
         <div className="section-heading"><h2 id="kit-states-title">Состояния</h2><span>Короткие статусы</span></div>
         <div className="design-kit-statuses"><span>Запланирована</span><span className="completed">Завершена</span><span className="attention">Требует внимания</span></div>
+        <div className="design-kit-system-states" aria-label="Системные состояния">
+          <AppStatusBanner phase="loading" online onRetry={() => undefined} preview />
+          <AppStatusBanner phase="saving" online onRetry={() => undefined} preview />
+          <AppStatusBanner phase="idle" online={false} onRetry={() => undefined} preview />
+          <AppStatusBanner phase="error" online onRetry={() => undefined} preview />
+        </div>
       </section>
 
       <section className="design-kit-section" aria-labelledby="kit-exercise-title">

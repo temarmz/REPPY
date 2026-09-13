@@ -60,6 +60,18 @@ test('repository восстанавливает seed после повреждё
   assert.equal(memory.value(), null);
 });
 
+test('repository не подменяет данные seed-состоянием при недоступном хранилище', async () => {
+  const repository = createLocalStorageRepository({
+    getItem() {
+      throw new DOMException('Хранилище временно недоступно', 'SecurityError');
+    },
+    setItem() {},
+    removeItem() {},
+  });
+
+  await assert.rejects(repository.load(), { name: 'SecurityError' });
+});
+
 test('repository сохраняет и очищает состояние через единый контракт', async () => {
   const memory = createMemoryStorage();
   const repository = createLocalStorageRepository(memory.storage);
