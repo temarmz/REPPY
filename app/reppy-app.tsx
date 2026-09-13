@@ -1963,6 +1963,137 @@ function StudentWorkoutHistory({
   );
 }
 
+type WorkoutComposerValue = {
+  name: string;
+  scheduledFor?: string;
+  scheduledTime?: string;
+  exercises: WorkoutExercise[];
+};
+
+type WorkoutComposerDangerAction = {
+  label: string;
+  title: string;
+  text: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+};
+
+function WorkoutComposer({
+  title,
+  eyebrow,
+  backPath,
+  student,
+  workoutLabel,
+  initialName,
+  nameEditable = false,
+  nameInputId = 'workout-name',
+  nameAutoFocus = false,
+  nameHint,
+  initialScheduledFor,
+  initialScheduledTime,
+  dateLabel,
+  timeLabel,
+  contextClassName,
+  largeStudentAvatar = false,
+  initialExercises,
+  submitLabel,
+  submitIcon,
+  submitClassName = 'plan-submit-button',
+  disableSubmitUntilReady = true,
+  dangerAction,
+  onSubmit,
+}: {
+  title: string;
+  eyebrow: string;
+  backPath: string;
+  student?: Student;
+  workoutLabel?: string;
+  initialName: string;
+  nameEditable?: boolean;
+  nameInputId?: string;
+  nameAutoFocus?: boolean;
+  nameHint?: string;
+  initialScheduledFor?: string;
+  initialScheduledTime?: string;
+  dateLabel?: string;
+  timeLabel?: string;
+  contextClassName?: string;
+  largeStudentAvatar?: boolean;
+  initialExercises: WorkoutExercise[];
+  submitLabel: string;
+  submitIcon: IconName;
+  submitClassName?: string;
+  disableSubmitUntilReady?: boolean;
+  dangerAction?: WorkoutComposerDangerAction;
+  onSubmit: (value: WorkoutComposerValue) => void;
+}) {
+  const hasSchedule = initialScheduledFor !== undefined && initialScheduledTime !== undefined;
+  const [name, setName] = useState(initialName);
+  const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
+  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initialExercises.map((exercise) => ({ ...exercise })));
+  const [error, setError] = useState('');
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const [initialFormState] = useState(() => JSON.stringify({ name: initialName, scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, exercises: initialExercises }));
+  const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, exercises });
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
+  const ready = Boolean(name.trim() && exercises.length && (!hasSchedule || (scheduledFor && scheduledTime)));
+
+  const clearError = () => setError('');
+  const submit = () => {
+    if (!name.trim()) return setError('Добавь название тренировки.');
+    if (hasSchedule && (!scheduledFor || !scheduledTime)) return setError('Укажи дату и время тренировки.');
+    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
+    allowNextNavigation();
+    onSubmit({
+      name: name.trim(),
+      scheduledFor,
+      scheduledTime,
+      exercises: exercises.map((exercise) => ({ ...exercise })),
+    });
+  };
+
+  const nameField = nameEditable ? <>
+    <label className="field-label" htmlFor={nameInputId}>Название тренировки</label>
+    <input id={nameInputId} className="text-input" value={name} onChange={(event) => { setName(event.target.value); clearError(); }} placeholder="Например, Грудь + плечи" autoFocus={nameAutoFocus} />
+  </> : null;
+
+  return (
+    <main className="content-page narrow-page" data-workout-composer>
+      <PageHeader back={backPath} eyebrow={eyebrow} title={title} />
+      {student ? (
+        <section className={`plan-context-card ${contextClassName ?? 'assignment-edit-card'}`}>
+          <div className="assignment-edit-person"><Avatar student={student} large={largeStudentAvatar} /><div><span>УЧЕНИК</span><strong>{student.name}</strong>{workoutLabel && <p>{workoutLabel}</p>}</div></div>
+          {nameField}
+          {hasSchedule && <WorkoutScheduleFields dateLabel={dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime ?? ''} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
+        </section>
+      ) : (
+        <section className={`plan-context-card ${contextClassName ?? 'workout-name-card'}`}>
+          {nameField}
+          {nameHint && <p className="plan-editor-hint">{nameHint}</p>}
+        </section>
+      )}
+      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {dangerAction && <button className="danger-button plan-delete-button" type="button" onClick={() => setDangerOpen(true)}><Icon name="trash" /> {dangerAction.label}</button>}
+      <div className="plan-sticky-actions"><button className={`primary-button ${submitClassName}`.trim()} type="button" disabled={disableSubmitUntilReady && !ready} onClick={submit}><Icon name={submitIcon} /> {submitLabel}</button></div>
+      {dangerOpen && dangerAction && <ConfirmationModal
+        title={dangerAction.title}
+        text={dangerAction.text}
+        confirmLabel={dangerAction.confirmLabel}
+        danger
+        onClose={() => setDangerOpen(false)}
+        onConfirm={() => {
+          allowNextNavigation();
+          setDangerOpen(false);
+          dangerAction.onConfirm();
+        }}
+      />}
+      {discardPrompt}
+    </main>
+  );
+}
+
 function AssignWorkoutToStudent({
   student,
   workout,
@@ -1984,37 +2115,25 @@ function AssignWorkoutToStudent({
   submitIcon?: IconName;
   onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
 }) {
-  const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => workout.exercises.map((exercise) => ({ ...exercise })));
-  const [error, setError] = useState('');
-  const [initialFormState] = useState(() => JSON.stringify({ scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, exercises: workout.exercises }));
-  const currentFormState = JSON.stringify({ scheduledFor, scheduledTime, exercises });
-  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
-
-  const assign = () => {
-    if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
-    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
-    allowNextNavigation();
-    onAssign(scheduledFor, scheduledTime, {
-      ...cloneWorkout(workout),
-      exercises: exercises.map((exercise) => ({ ...exercise })),
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
   return (
-    <main className="content-page narrow-page">
-      <PageHeader back={backPath ?? `/trainer/clients/${student.id}/assign`} eyebrow={student.name} title={title} />
-      <section className="plan-context-card assignment-edit-card">
-        <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
-        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={(value) => { setScheduledFor(value); setError(''); }} onTimeChange={(value) => { setScheduledTime(value); setError(''); }} />
-      </section>
-      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name={submitIcon} /> {submitLabel ?? `Назначить ${student.name}`}</button></div>
-      {discardPrompt}
-    </main>
+    <WorkoutComposer
+      title={title}
+      eyebrow={student.name}
+      backPath={backPath ?? `/trainer/clients/${student.id}/assign`}
+      student={student}
+      workoutLabel={workout.name}
+      initialName={workout.name}
+      initialScheduledFor={initialScheduledFor}
+      initialScheduledTime={initialScheduledTime}
+      initialExercises={workout.exercises}
+      submitLabel={submitLabel ?? `Назначить ${student.name}`}
+      submitIcon={submitIcon}
+      onSubmit={({ scheduledFor, scheduledTime, exercises }) => onAssign(scheduledFor!, scheduledTime!, {
+        ...cloneWorkout(workout),
+        exercises,
+        updatedAt: new Date().toISOString(),
+      })}
+    />
   );
 }
 
@@ -2031,80 +2150,57 @@ function NewAssignmentForStudent({
   backPath: string;
   onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
 }) {
-  const [name, setName] = useState('');
-  const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
-  const [error, setError] = useState('');
-  const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, exercises });
-  const [initialFormState] = useState(() => JSON.stringify({ name: '', scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, exercises: [] }));
-  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
-
-  const assign = () => {
-    if (!name.trim()) return setError('Добавь название тренировки.');
-    if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
-    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
-    const createdAt = new Date().toISOString();
-    allowNextNavigation();
-    onAssign(scheduledFor, scheduledTime, {
-      id: makeId('workout'),
-      name: name.trim(),
-      exercises: exercises.map((exercise) => ({ ...exercise })),
-      createdAt,
-    });
-  };
-
   return (
-    <main className="content-page narrow-page">
-      <PageHeader back={backPath} eyebrow={student.name} title="СОЗДАТЬ ТРЕНИРОВКУ" />
-      <section className="plan-context-card assignment-edit-card new-assignment-card">
-        <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong></div></div>
-        <label className="field-label" htmlFor="new-assignment-name">Название тренировки</label>
-        <input id="new-assignment-name" className="text-input" value={name} onChange={(event) => { setName(event.target.value); setError(''); }} placeholder="Например, Грудь + плечи" autoFocus />
-        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={(value) => { setScheduledFor(value); setError(''); }} onTimeChange={(value) => { setScheduledTime(value); setError(''); }} />
-      </section>
-      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!name.trim() || !scheduledFor || !scheduledTime || !exercises.length} onClick={assign}><Icon name="plus" /> Назначить тренировку</button></div>
-      {discardPrompt}
-    </main>
+    <WorkoutComposer
+      title="СОЗДАТЬ ТРЕНИРОВКУ"
+      eyebrow={student.name}
+      backPath={backPath}
+      student={student}
+      initialName=""
+      nameEditable
+      nameInputId="new-assignment-name"
+      nameAutoFocus
+      initialScheduledFor={initialScheduledFor}
+      initialScheduledTime={initialScheduledTime}
+      contextClassName="assignment-edit-card new-assignment-card"
+      initialExercises={[]}
+      submitLabel="Назначить тренировку"
+      submitIcon="plus"
+      onSubmit={({ name, scheduledFor, scheduledTime, exercises }) => onAssign(scheduledFor!, scheduledTime!, {
+        id: makeId('workout'),
+        name,
+        exercises,
+        createdAt: new Date().toISOString(),
+      })}
+    />
   );
 }
 
 function WorkoutForm({ initial, onSave, backPath }: { initial?: Workout; onSave: (workout: Workout) => void; backPath?: string }) {
-  const [name, setName] = useState(initial?.name ?? '');
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initial?.exercises.map((exercise) => ({ ...exercise })) ?? []);
-  const [error, setError] = useState('');
-  const [initialFormState] = useState(() => JSON.stringify({ name: initial?.name ?? '', exercises: initial?.exercises ?? [] }));
-  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(JSON.stringify({ name, exercises }) !== initialFormState);
-
-  const save = () => {
-    if (!name.trim()) return setError('Добавь название тренировки.');
-    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
-    const now = new Date().toISOString();
-    allowNextNavigation();
-    onSave({
-      id: initial?.id ?? makeId('workout'),
-      name: name.trim(),
-      exercises: exercises.map((exercise) => ({ ...exercise })),
-      createdAt: initial?.createdAt ?? now,
-      updatedAt: initial ? now : undefined,
-    });
-  };
-
   return (
-    <main className="content-page narrow-page">
-      <PageHeader back={backPath ?? (initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts')} eyebrow={initial ? 'Редактирование тренировки' : 'Новая тренировка'} title={initial ? initial.name.toUpperCase() : 'СОЗДАТЬ ТРЕНИРОВКУ'} />
-      <section className="plan-context-card workout-name-card">
-        <label className="field-label" htmlFor="workout-name">Название тренировки</label>
-        <input id="workout-name" className="text-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Грудь + плечи" />
-        {initial && <p className="plan-editor-hint">Изменения применятся только к будущим назначениям.</p>}
-      </section>
-      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="plan-sticky-actions"><button className="primary-button save-workout" type="button" onClick={save}><Icon name="check" /> Сохранить тренировку</button></div>
-      {discardPrompt}
-    </main>
+    <WorkoutComposer
+      title={initial ? initial.name.toUpperCase() : 'СОЗДАТЬ ТРЕНИРОВКУ'}
+      eyebrow={initial ? 'Редактирование тренировки' : 'Новая тренировка'}
+      backPath={backPath ?? (initial ? `/trainer/workouts/${initial.id}` : '/trainer/workouts')}
+      initialName={initial?.name ?? ''}
+      nameEditable
+      nameHint={initial ? 'Изменения применятся только к будущим назначениям.' : undefined}
+      initialExercises={initial?.exercises ?? []}
+      submitLabel="Сохранить тренировку"
+      submitIcon="check"
+      submitClassName="save-workout"
+      disableSubmitUntilReady={false}
+      onSubmit={({ name, exercises }) => {
+        const now = new Date().toISOString();
+        onSave({
+          id: initial?.id ?? makeId('workout'),
+          name,
+          exercises,
+          createdAt: initial?.createdAt ?? now,
+          updatedAt: initial ? now : undefined,
+        });
+      }}
+    />
   );
 }
 
@@ -2490,30 +2586,26 @@ function RepeatAssignment({
   onSave: (scheduledFor: string, scheduledTime: string, workout: Workout) => void;
 }) {
   const student = findStudent(data, assignment.studentId);
-  const [scheduledFor, setScheduledFor] = useState(dateKey());
-  const [scheduledTime, setScheduledTime] = useState(assignment.scheduledTime);
-  const [exercises, setExercises] = useState(() => sourceWorkout.exercises.map((exercise) => ({ ...exercise })));
-  const [initialFormState] = useState(() => JSON.stringify({ scheduledFor: dateKey(), scheduledTime: assignment.scheduledTime, exercises: sourceWorkout.exercises }));
-  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(JSON.stringify({ scheduledFor, scheduledTime, exercises }) !== initialFormState);
   if (!student) return <NotFound />;
 
-  const copyWorkout = () => {
-    if (!scheduledFor || !scheduledTime || !exercises.length) return;
-    allowNextNavigation();
-    onSave(scheduledFor, scheduledTime, { ...cloneWorkout(sourceWorkout), exercises });
-  };
-
   return (
-    <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/assignments/${assignment.id}`} eyebrow={student.name} title="ПОВТОРИТЬ ТРЕНИРОВКУ" />
-      <section className="plan-context-card repeat-assignment-form">
-        <div className="assignment-edit-person"><Avatar student={student} large /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{sourceWorkout.name}</p></div></div>
-        <WorkoutScheduleFields dateLabel="Новая дата" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-      </section>
-      <WorkoutExerciseEditor exercises={exercises} onChange={setExercises} />
-      <div className="plan-sticky-actions"><button className="primary-button plan-submit-button" type="button" disabled={!scheduledFor || !scheduledTime || !exercises.length} onClick={copyWorkout}><Icon name="plus" /> Назначить тренировку</button></div>
-      {discardPrompt}
-    </main>
+    <WorkoutComposer
+      title="ПОВТОРИТЬ ТРЕНИРОВКУ"
+      eyebrow={student.name}
+      backPath={`/trainer/assignments/${assignment.id}`}
+      student={student}
+      workoutLabel={sourceWorkout.name}
+      initialName={sourceWorkout.name}
+      initialScheduledFor={dateKey()}
+      initialScheduledTime={assignment.scheduledTime}
+      dateLabel="Новая дата"
+      contextClassName="repeat-assignment-form"
+      largeStudentAvatar
+      initialExercises={sourceWorkout.exercises}
+      submitLabel="Назначить тренировку"
+      submitIcon="plus"
+      onSubmit={({ scheduledFor, scheduledTime, exercises }) => onSave(scheduledFor!, scheduledTime!, { ...cloneWorkout(sourceWorkout), exercises })}
+    />
   );
 }
 
@@ -2546,63 +2638,46 @@ function AssignWorkout({ data, workout, onAssign }: { data: DemoState; workout: 
 
 
 function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoState; assignment: Assignment; onSave: (assignment: Assignment) => void; onDelete: (assignment: Assignment) => void }) {
-  const [scheduledFor, setScheduledFor] = useState(assignment.scheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(assignment.scheduledTime);
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => assignment.workoutSnapshot.exercises.map((exercise) => ({ ...exercise })));
-  const [error, setError] = useState('');
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
-  const [initialFormState] = useState(() => JSON.stringify({ scheduledFor: assignment.scheduledFor, scheduledTime: assignment.scheduledTime, exercises: assignment.workoutSnapshot.exercises }));
-  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(JSON.stringify({ scheduledFor, scheduledTime, exercises }) !== initialFormState);
-  const save = () => {
-    if (!scheduledFor || !scheduledTime) return setError('Укажи дату и время тренировки.');
-    if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
-    if (!workout) return;
-    const exercisesChanged = JSON.stringify(exercises) !== JSON.stringify(workout.exercises);
-    allowNextNavigation();
-    onSave({
-      ...assignment,
-      scheduledFor,
-      scheduledTime,
-      workoutSnapshot: exercisesChanged ? {
-        ...cloneWorkout(workout),
-        exercises: exercises.map((exercise) => ({ ...exercise })),
-        updatedAt: new Date().toISOString(),
-      } : cloneWorkout(workout),
-      source: exercisesChanged ? 'manual-edit' : assignment.source,
-    });
-  };
-
   if (!student || !workout) return <NotFound />;
 
   return (
-    <main className="content-page narrow-page">
-      <PageHeader back={'/trainer/assignments/' + assignment.id} eyebrow={student.name + ' · ' + workout.name} title="РЕДАКТИРОВАТЬ ТРЕНИРОВКУ" />
-      <section className="plan-context-card assignment-edit-card">
-        <div className="assignment-edit-person"><Avatar student={student} /><div><span>УЧЕНИК</span><strong>{student.name}</strong><p>{workout.name}</p></div></div>
-        <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-      </section>
-      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); setError(''); }} />
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="danger-button plan-delete-button" type="button" onClick={() => setDeleteOpen(true)}><Icon name="trash" /> Удалить назначение</button>
-      <div className="plan-sticky-actions">
-        <button className="primary-button" type="button" disabled={!scheduledFor || !scheduledTime} onClick={save}><Icon name="check" /> Сохранить изменения</button>
-      </div>
-      {deleteOpen && <ConfirmationModal
-        title="Удалить тренировку?"
-        text={`«${workout.name}» исчезнет из расписания ${student.name}.`}
-        confirmLabel="Удалить тренировку"
-        danger
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          allowNextNavigation();
-          setDeleteOpen(false);
-          onDelete(assignment);
-        }}
-      />}
-      {discardPrompt}
-    </main>
+    <WorkoutComposer
+      title="РЕДАКТИРОВАТЬ ТРЕНИРОВКУ"
+      eyebrow={`${student.name} · ${workout.name}`}
+      backPath={`/trainer/assignments/${assignment.id}`}
+      student={student}
+      workoutLabel={workout.name}
+      initialName={workout.name}
+      initialScheduledFor={assignment.scheduledFor}
+      initialScheduledTime={assignment.scheduledTime}
+      initialExercises={assignment.workoutSnapshot.exercises}
+      submitLabel="Сохранить изменения"
+      submitIcon="check"
+      submitClassName=""
+      dangerAction={{
+        label: 'Удалить назначение',
+        title: 'Удалить тренировку?',
+        text: `«${workout.name}» исчезнет из расписания ${student.name}.`,
+        confirmLabel: 'Удалить тренировку',
+        onConfirm: () => onDelete(assignment),
+      }}
+      onSubmit={({ scheduledFor, scheduledTime, exercises }) => {
+        const exercisesChanged = JSON.stringify(exercises) !== JSON.stringify(workout.exercises);
+        onSave({
+          ...assignment,
+          scheduledFor: scheduledFor!,
+          scheduledTime: scheduledTime!,
+          workoutSnapshot: exercisesChanged ? {
+            ...cloneWorkout(workout),
+            exercises,
+            updatedAt: new Date().toISOString(),
+          } : cloneWorkout(workout),
+          source: exercisesChanged ? 'manual-edit' : assignment.source,
+        });
+      }}
+    />
   );
 }
 

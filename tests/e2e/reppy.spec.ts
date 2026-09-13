@@ -452,6 +452,24 @@ test('редактирование шаблона не меняет сущест
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('80 кг × 8');
 });
 
+test('создание, назначение, редактирование и повтор используют единый редактор плана', async ({ page }) => {
+  await openFreshDemo(page);
+
+  for (const route of [
+    '/trainer/workouts/new',
+    '/trainer/workouts/push-day/edit',
+    '/trainer/clients/maria/assign/new',
+    '/trainer/clients/maria/assign/copy/assignment-maria-legs',
+    '/trainer/assignments/assignment-artem-push-today/edit',
+    '/trainer/assignments/assignment-artem-push-today/repeat',
+  ]) {
+    await page.goto(`/#${route}`);
+    await expect(page.locator('main[data-workout-composer]')).toHaveCount(1);
+    await expect(page.locator('.workout-plan-editor')).toHaveCount(1);
+    await expect(page.locator('.plan-sticky-actions .primary-button')).toHaveCount(1);
+  }
+});
+
 
 test('редактирование назначения не создаёт скрытую персональную версию', async ({ page }) => {
   await openFreshDemo(page);
