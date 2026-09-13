@@ -618,11 +618,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .future-schedule-heading > div { display: grid; gap: 5px; }
 .future-schedule-heading h2 { margin: 0; font-size: 22px; letter-spacing: normal; }
 .future-schedule-heading p { margin: 0; color: var(--muted); font-size: 11px; }
-.schedule-view-toggle { display: grid; min-height: 44px; grid-template-columns: 20px auto 38px; align-items: center; gap: 8px; border: 0; border-radius: 0; padding: 2px 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.schedule-view-toggle { display: grid; min-height: 44px; grid-template-columns: 20px auto 38px; align-items: center; gap: 5px; border: 0; border-radius: 0; padding: 2px 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .schedule-view-toggle strong { font-size: 12px; white-space: nowrap; }
 .schedule-view-toggle.active { background: transparent; }
 .schedule-view-icon { display: grid; width: 20px; height: 20px; place-items: center; background: transparent; color: var(--muted); transition: color .18s ease; }
-.schedule-view-icon svg { width: 15px; height: 15px; }
+.schedule-view-icon .ui-icon { width: 19px; height: 19px; }
 .schedule-view-toggle.active .schedule-view-icon { background: transparent; color: var(--lime); }
 .toggle-track { position: relative; width: 38px; height: 23px; flex: 0 0 auto; border-radius: 999px; background: #353a34; transition: background .18s ease; }
 .toggle-track i { position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #a9afa6; transition: transform .18s ease, background .18s ease; }
@@ -1527,8 +1527,8 @@ body.modal-open .bottom-nav { display: none; }
 .exercise-order-controls .move-up .ui-icon, .exercise-order-controls .move-down .ui-icon { transform: rotate(90deg); }
 .active-exercise-actions { display: grid; min-width: 0; }
 .active-exercise-actions button { display: inline-flex; min-width: 0; height: 48px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 12px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
-.active-exercise-footer-actions button { display: inline-flex; min-height: 56px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 17px; padding: 9px 14px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
-.active-exercise-footer-actions > button { gap: 5px; padding-inline: 8px; }
+.active-exercise-footer-actions button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 12px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
+.active-exercise-footer-actions > button { min-width: 144px; gap: 7px; padding-inline: 12px; }
 .active-exercise-actions button .ui-icon, .active-exercise-footer-actions button .ui-icon { width: 19px; height: 19px; flex: 0 0 auto; color: var(--lime); }
 .active-exercise-actions button.has-value:not(.selected) { border-color: rgba(198,255,61,.22); background: var(--brand-soft); }
 .active-comment-field { display: grid; gap: 8px; margin-top: 12px; border-radius: 18px; padding: 14px; background: #090b09; }
@@ -1560,10 +1560,10 @@ body.modal-open .bottom-nav { display: none; }
 .set-metrics { display: grid; min-width: 0; grid-template-columns: 1fr 1fr; gap: 9px; }
 .set-metrics label { min-width: 0; }
 .active-card-sets .set-number span, .active-card-sets .set-card label span { font-size: 10px; }
-.active-exercise-footer-actions { display: grid; grid-template-columns: minmax(218px,1fr) minmax(100px,.52fr); gap: 9px; margin-top: 13px; }
-.set-count-control { display: flex; min-width: 0; min-height: 56px; align-items: center; justify-content: space-between; gap: 10px; }
+.active-exercise-footer-actions { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: 16px; border-top: 1px solid var(--divider); padding-top: 14px; }
+.set-count-control { display: flex; min-width: 0; min-height: 48px; flex: 0 0 auto; align-items: center; justify-content: flex-start; gap: 8px; }
 .set-count-control > span { overflow: hidden; color: #d9ddd6; font-size: var(--button-font-size); font-weight: 800; text-overflow: ellipsis; }
-.set-count-actions { display: flex; align-items: center; gap: 7px; }
+.set-count-actions { display: flex; align-items: center; gap: 6px; }
 .active-exercise-footer-actions .set-count-actions > button { display: grid; width: 44px; min-height: 44px; height: 44px; place-items: center; border-color: rgba(255,255,255,.1); border-radius: 13px; padding: 0; background: rgba(255,255,255,.035); }
 .active-exercise-footer-actions .set-count-actions > button:disabled { cursor: not-allowed; opacity: .28; }
 .active-exercise-footer-actions .set-count-actions > button .ui-icon { width: 17px; height: 17px; }
@@ -1680,7 +1680,6 @@ body.modal-open .bottom-nav { display: none; }
   .active-card-sets .set-card { min-height: 90px; grid-template-columns: 45px minmax(0,1fr) 56px; gap: 7px; }
   .plan-card-sets .plan-set-card { grid-template-columns: 45px minmax(0,1fr); }
   .set-metrics { gap: 6px; }
-  .active-exercise-footer-actions { grid-template-columns: minmax(218px,1fr) minmax(100px,.52fr); }
   .landing-section-heading, .pricing-heading { grid-template-columns: 1fr; align-items: start; gap: 24px; }
   .landing-section-heading .eyebrow { margin-bottom: -8px; }
   .workflow-grid { grid-template-columns: 1fr; }
@@ -2241,11 +2240,13 @@ textarea::placeholder { color: #747b72; opacity: 1; }
   .session-summary > div { min-height: 70px; padding: 10px; }
   .session-summary small { font-size: 9px; }
   .session-summary strong { font-size: 12px; }
-  .active-exercise-footer-actions > button .ui-icon { display: none; }
+  .active-exercise-footer-actions > button .ui-icon { width: 17px; height: 17px; }
 }
 
 @media (max-width: 380px) {
-  .active-exercise-footer-actions { grid-template-columns: 1fr; }
+  .active-exercise-footer-actions { flex-direction: column; align-items: stretch; }
+  .set-count-control { width: 100%; justify-content: space-between; }
+  .active-exercise-footer-actions > button { width: 100%; }
 }
 
 @media (max-width: 360px) {
@@ -2326,14 +2327,20 @@ html[data-theme="light"] .bottom-nav {
   box-shadow: 0 -12px 38px rgba(36,46,32,.1);
 }
 html[data-theme="light"] .bottom-nav button { color: #687166; }
+html[data-theme="light"] .toggle-track { background: #d5dbd1; box-shadow: inset 0 0 0 1px rgba(25,35,23,.08); }
+html[data-theme="light"] .toggle-track i { background: #ffffff; box-shadow: 0 1px 4px rgba(25,35,23,.18); }
+html[data-theme="light"] .schedule-view-toggle.active .toggle-track { background: var(--lime); }
+html[data-theme="light"] .schedule-view-toggle.active .toggle-track i { background: var(--ink); box-shadow: none; }
 
 html[data-theme="light"] :is(.wide-secondary, .back-button, .empty-state button, .details-edit-button) {
   border-color: var(--ui-outline);
   background: var(--control-bg);
   color: #2f372d;
 }
+html[data-theme="light"] :is(.trainer-plan-header > button, .schedule-add-button, .empty-day-plus) { border-color: var(--ui-outline); background: var(--control-bg); }
+html[data-theme="light"] :is(.trainer-plan-header > button, .schedule-add-button):hover { border-color: rgba(25,35,23,.2); background: #eef1e9; }
 html[data-theme="light"] :is(.wide-secondary, .back-button, .empty-state button, .details-edit-button):hover { border-color: rgba(25,35,23,.2); background: #eef1e9; }
-html[data-theme="light"] .primary-button:focus-visible { outline-color: var(--lime-strong); }
+html[data-theme="light"] :is(button, input, select, textarea):focus-visible { outline-color: var(--lime-strong); }
 html[data-theme="light"] .danger-button,
 html[data-theme="light"] .reset-button { border-color: rgba(177,66,52,.22); background: rgba(201,75,58,.07); color: #a84336; }
 
@@ -2350,6 +2357,7 @@ html[data-theme="light"] .today-schedule .plan-session-row { border-bottom-color
 html[data-theme="light"] :is(.activity-row, .workout-row, .session-row, .plan-session-row, .reschedule-notification-row, .student-upcoming-row, .workout-template-row, .picker-list button, .subscription-entry-list > button, .subscription-entry-list > article) { border-bottom-color: var(--divider); }
 html[data-theme="light"] :is(.plan-day-card > header, .readonly-set-list, .readonly-set-list p, .result-exercises header, .result-exercises p, .picker-footer) { border-color: var(--divider); }
 html[data-theme="light"] :is(.client-card, .workout-template-list, .empty-state, .calendar-card, .agenda-list > button, .plan-day-card, .select-student-list > button, .active-exercise-card, .set-card) { border-color: var(--ui-outline); }
+html[data-theme="light"] :is(.student-upcoming > div:last-child, .calendar-shortcut, .exercise-plan-list article) { border-color: var(--divider); }
 html[data-theme="light"] :is(.plan-day-card > header, .plan-day-card.empty-day, .empty-day-action:hover, .remember-version-toggle, .athlete-summary > div, .athlete-summary article, .design-kit-swatches > div) { background: rgba(25,35,23,.025); }
 
 html[data-theme="light"] :is(.schedule-student-list, .exercise-editor, .workout-assignments > button, .mood-grid button, .active-comment-field, .bodyweight-set-label, .plan-context-card .schedule-field, .finish-balance-preview) { background: var(--control-bg); }
@@ -2375,6 +2383,8 @@ html[data-theme="light"] .calendar-grid button.today { border-color: rgba(25,35,
 html[data-theme="light"] .calendar-grid button.selected { background: var(--lime); color: var(--ink); }
 html[data-theme="light"] .calendar-grid button i,
 html[data-theme="light"] .calendar-grid button.selected i { background: var(--lime-strong); }
+html[data-theme="light"] .agenda-list p { color: #596157; }
+html[data-theme="light"] .agenda-tail b { background: var(--surface-2); color: #465043; }
 
 html[data-theme="light"] :is(.recent-card, .profile-hero) { background: linear-gradient(135deg, #ffffff, #eef1e8); color: var(--text-primary); box-shadow: 0 14px 38px rgba(37,47,33,.06); }
 html[data-theme="light"] .workout-card::after { border-color: rgba(25,35,23,.08); }
@@ -2414,6 +2424,7 @@ html[data-theme="light"] :is(.exercise-order-controls button, .active-exercise-a
 html[data-theme="light"] .set-card > button { border-color: #c9d0c5; background: var(--surface-2); color: #6c7569; }
 html[data-theme="light"] .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
 html[data-theme="light"] .set-count-control > span { color: #4e594a; }
+html[data-theme="light"] .exercise-equipment { border-color: var(--ui-outline); background: var(--control-bg); }
 html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider); background: rgba(250,251,247,.94); }
 html[data-theme="light"] .plan-sticky-actions { background: linear-gradient(180deg, rgba(241,242,235,0), rgba(241,242,235,.96) 28%); }
 
@@ -2440,6 +2451,9 @@ html[data-theme="light"] .mood-grid button.selected { border-color: rgba(79,113,
 html[data-theme="light"] .mood-grid button.selected > span { background: var(--lime); color: var(--ink); }
 html[data-theme="light"] .calendar-shortcut > span,
 html[data-theme="light"] .workout-number { color: #60489a; }
+html[data-theme="light"] .student-upcoming .section-heading > span { background: var(--surface-3); color: #596157; }
+html[data-theme="light"] .student-upcoming-row time strong,
+html[data-theme="light"] .schedule-workout-picker-page .page-lead strong { color: #30382e; }
 html[data-theme="light"] .success-screen section b { color: var(--text-primary); }
 html[data-theme="light"] .demo-stats span { background: var(--control-bg); }
 html[data-theme="light"] .demo-stats b { color: var(--text-primary); }
@@ -2456,3 +2470,6 @@ html[data-theme="light"] .history-status.overdue,
 html[data-theme="light"] .design-kit-statuses .attention { background: rgba(168,68,43,.09); color: #a8442b; }
 html[data-theme="light"] .toast { border-color: rgba(79,113,17,.2); background: #eef7da; color: var(--lime-strong); box-shadow: 0 18px 50px rgba(37,47,33,.14); }
 html[data-theme="light"] .design-kit-swatches > div { background: var(--control-bg); }
+html[data-theme="light"] .app-status-banner { box-shadow: 0 15px 38px rgba(37,47,33,.13); }
+html[data-theme="light"] .app-status-banner.error > .ui-icon { color: #a84438; }
+html[data-theme="light"] .app-status-banner.offline > .ui-icon { color: #80600b; }

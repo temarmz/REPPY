@@ -172,6 +172,14 @@ test('светлая тема переключается из компактно
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
   await expect(page.locator('.today-schedule')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
+  await expect(allDaysToggle.locator('.schedule-view-icon .ui-icon')).toHaveCSS('width', '19px');
+  await expect(allDaysToggle.locator('.toggle-track')).toHaveCSS('background-color', 'rgb(213, 219, 209)');
+  const [allDaysIconBox, allDaysLabelBox] = await Promise.all([
+    allDaysToggle.locator('.schedule-view-icon').boundingBox(),
+    allDaysToggle.getByText('Все дни').boundingBox(),
+  ]);
+  expect(Math.round((allDaysLabelBox?.x ?? 0) - ((allDaysIconBox?.x ?? 0) + (allDaysIconBox?.width ?? 0)))).toBeLessThanOrEqual(5);
   await page.screenshot({ path: 'test-results/theme-light-trainer.png', animations: 'disabled' });
 
   await page.goto('/#/trainer/design-kit');
@@ -205,6 +213,14 @@ test('светлая тема переключается из компактно
   await expect(page.locator('.set-count-control').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('.set-count-control > strong')).toHaveCount(0);
   const firstPlanExercise = page.locator('.plan-exercise-card').first();
+  const setCountGroup = firstPlanExercise.getByRole('group', { name: 'Подходы — Жим лёжа' });
+  const [setCountLabelBox, removeSetBox] = await Promise.all([
+    setCountGroup.locator(':scope > span').boundingBox(),
+    setCountGroup.getByRole('button', { name: 'Удалить последний подход — Жим лёжа' }).boundingBox(),
+  ]);
+  expect(Math.round((removeSetBox?.x ?? 0) - ((setCountLabelBox?.x ?? 0) + (setCountLabelBox?.width ?? 0)))).toBeLessThanOrEqual(9);
+  await expect(firstPlanExercise.locator('.active-exercise-footer-actions')).toHaveCSS('border-top-width', '1px');
+  await expect(firstPlanExercise.getByRole('button', { name: 'Ещё упражнение' }).locator('.ui-icon')).toBeVisible();
   await firstPlanExercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
   await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(96, 72, 154)');
   await page.getByRole('button', { name: 'Закрыть описание' }).click();
@@ -845,11 +861,12 @@ test('тренер ведёт занятие, правит его в момен�
     squatCard.getByRole('button', { name: 'Действия — Приседания' }),
   ].map(async (control) => (await control.boundingBox())?.height));
   expect(new Set(controlHeights).size).toBe(1);
-  const footerButtonRows = await Promise.all([
+  const footerControlBoxes = await Promise.all([
     squatCard.getByRole('group', { name: 'Подходы — Приседания' }),
     squatCard.getByRole('button', { name: 'Ещё упражнение' }),
-  ].map(async (control) => Math.round((await control.boundingBox())?.y ?? -1)));
-  expect(new Set(footerButtonRows).size).toBe(1);
+  ].map((control) => control.boundingBox()));
+  const footerControlCenters = footerControlBoxes.map((box) => (box?.y ?? -1) + (box?.height ?? 0) / 2);
+  expect(Math.abs(footerControlCenters[0] - footerControlCenters[1])).toBeLessThanOrEqual(1);
   await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
   await squatCard.getByRole('button', { name: 'Добавить комментарий' }).click();
   const commentField = squatCard.locator('.active-comment-field textarea');
