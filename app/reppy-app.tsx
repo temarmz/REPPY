@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import {
   TRAINER_NAME,
   cloneWorkout,
@@ -39,6 +38,7 @@ import SharedPageHeader from './page-header';
 import EmptyState from './empty-state';
 import MonthDatePicker from './month-date-picker';
 import AppShell, { type AppTheme } from './app-shell';
+import ModalFrame, { MODAL_LAYER_EVENT, hasOpenModalLayers } from './modal-frame';
 import { progressHref } from './exercise-progress';
 import {
   chargeSubscriptionForSession,
@@ -59,10 +59,8 @@ const COPY = {
 };
 
 const NAVIGATION_EVENT = 'reppy:navigate';
-const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 const THEME_PREFERENCE = 'reppy-ui:theme';
-let openModalLayers = 0;
 let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
 let restoringBlockedHistory = false;
 let pendingHistoryBlocker: ((proceed: () => void) => void) | null = null;
@@ -388,7 +386,7 @@ export default function ReppyApp() {
         commitPath();
         return;
       }
-      if (event?.type === 'popstate' && openModalLayers > 0) {
+      if (event?.type === 'popstate' && hasOpenModalLayers()) {
         commitPath();
         return;
       }
@@ -897,7 +895,7 @@ export default function ReppyApp() {
             ...current,
             sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
           }))}
-          onFinish={(sessionId, chargeSubscription) => {
+          onFinish={(sessionId, { chargeSubscription }) => {
             const completedAt = new Date().toISOString();
             setData((current) => {
               const savedSession = current.sessions.find((item) => item.id === sessionId);
@@ -1049,15 +1047,15 @@ export default function ReppyApp() {
             ...current,
             sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
           }))}
-          onFinish={(sessionId) => {
+          onFinish={(sessionId, { chargeSubscription }) => {
             const completedAt = new Date().toISOString();
             setData((current) => {
               const savedSession = current.sessions.find((item) => item.id === sessionId);
               return {
                 ...current,
                 assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
-                sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt, subscriptionChargeStatus: 'charged' } : item),
-                subscriptionEntries: savedSession
+                sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt, subscriptionChargeStatus: chargeSubscription ? 'charged' : 'waived' } : item),
+                subscriptionEntries: chargeSubscription && savedSession
                   ? chargeSubscriptionForSession(current.subscriptionEntries, savedSession, workout.name, completedAt)
                   : current.subscriptionEntries,
               };
@@ -1358,21 +1356,22 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
 
 function ScheduleStudentPicker({ date, students, onClose, onSelect }: { date: string; students: Student[]; onClose: () => void; onSelect: (student: Student) => void }) {
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet schedule-student-picker" role="dialog" aria-modal="true" aria-label={`Кого назначить на ${formatScheduleDay(date)}`} onMouseDown={(event) => event.stopPropagation()}>
-          <div className="sheet-handle" />
-          <div className="sheet-title"><div><span className="eyebrow">{formatScheduleDay(date)}</span><h2>Выбери ученика</h2></div><button type="button" onClick={onClose} aria-label="Закрыть выбор ученика"><Icon name="close" /></button></div>
-          {students.length ? <div className="schedule-student-list">{students.map((student) => (
-            <button key={student.id} type="button" disabled={student.status === 'invited'} onClick={() => onSelect(student)}>
-              <Avatar student={student} />
-              <span><strong>{student.name}</strong><small>{student.status === 'invited' ? 'Сначала ученик должен принять приглашение' : 'Выбрать тренировки'}</small></span>
-              <Icon name="chevron-right" />
-            </button>
-          ))}</div> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
-        </section>
-      </div>
-    </ModalLayer>
+    <ModalFrame
+      title="Выбери ученика"
+      eyebrow={formatScheduleDay(date)}
+      className="schedule-student-picker"
+      ariaLabel={`Кого назначить на ${formatScheduleDay(date)}`}
+      closeLabel="Закрыть выбор ученика"
+      onClose={onClose}
+    >
+      {students.length ? <div className="schedule-student-list">{students.map((student) => (
+        <button key={student.id} type="button" disabled={student.status === 'invited'} onClick={() => onSelect(student)}>
+          <Avatar student={student} />
+          <span><strong>{student.name}</strong><small>{student.status === 'invited' ? 'Сначала ученик должен принять приглашение' : 'Выбрать тренировки'}</small></span>
+          <Icon name="chevron-right" />
+        </button>
+      ))}</div> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
+    </ModalFrame>
   );
 }
 
@@ -1618,16 +1617,10 @@ function SubscriptionHistory({ data, student }: { data: DemoState; student: Stud
 function DatePickerSheet({ title, value, min, onChange, onClose }: { title: string; value: string; min?: string; onChange: (value: string) => void; onClose: () => void }) {
   const [selectedDate, setSelectedDate] = useState(value);
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet date-picker-sheet" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
-          <div className="sheet-handle" />
-          <div className="sheet-title"><h2>{title}</h2><button type="button" onClick={onClose} aria-label="Закрыть выбор даты"><Icon name="close" /></button></div>
-          <MonthDatePicker value={selectedDate} min={min} onChange={setSelectedDate} className="calendar-picker-card" />
-          <button className="primary-button" type="button" onClick={() => { onChange(selectedDate); onClose(); }}><Icon name="check" /> Выбрать дату</button>
-        </section>
-      </div>
-    </ModalLayer>
+    <ModalFrame title={title} className="date-picker-sheet" ariaLabel={title} closeLabel="Закрыть выбор даты" onClose={onClose}>
+      <MonthDatePicker value={selectedDate} min={min} onChange={setSelectedDate} className="calendar-picker-card" />
+      <button className="primary-button" type="button" onClick={() => { onChange(selectedDate); onClose(); }}><Icon name="check" /> Выбрать дату</button>
+    </ModalFrame>
   );
 }
 
@@ -2722,6 +2715,10 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   );
 }
 
+type WorkoutFinishOptions = {
+  chargeSubscription: boolean;
+};
+
 function ActiveWorkout({
   workout,
   session,
@@ -2745,7 +2742,7 @@ function ActiveWorkout({
   onStart: () => void;
   onUpdate: (sessionId: string, results: SetResult[]) => void;
   onWorkoutUpdate: (sessionId: string, workout: Workout) => void;
-  onFinish: (sessionId: string, chargeSubscription: boolean) => void;
+  onFinish: (sessionId: string, options: WorkoutFinishOptions) => void;
   trainerCanWaiveCharge?: boolean;
   balance?: number;
 }) {
@@ -2912,44 +2909,38 @@ function ActiveWorkout({
           updateWorkout(workout.exercises.filter((item) => item.id !== actionExercise.id));
         }}
       />}
-      {finishOpen && trainerCanWaiveCharge && <FinishWorkoutModal
+      {finishOpen && <FinishWorkoutModal
         balance={balance}
         unfinishedCount={unfinishedCount}
         canWaiveCharge={trainerCanWaiveCharge}
         onClose={() => setFinishOpen(false)}
-        onFinish={(chargeSubscription) => {
+        onFinish={(options) => {
           setFinishOpen(false);
-          onFinish(session.id, chargeSubscription);
+          onFinish(session.id, options);
         }}
       />}
 
       <footer className="exercise-navigation single-action">
-        <button className="finish-workout" type="button" onClick={() => trainerCanWaiveCharge ? setFinishOpen(true) : onFinish(session.id, false)}><Icon name="check" /> Завершить тренировку</button>
+        <button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</button>
       </footer>
     </main>
   );
 }
 
-function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose, onFinish }: { balance: number; unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (chargeSubscription: boolean) => void }) {
+function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose, onFinish }: { balance: number; unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (options: WorkoutFinishOptions) => void }) {
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet finish-workout-sheet" role="dialog" aria-modal="true" aria-label="Завершение тренировки" onMouseDown={(event) => event.stopPropagation()}>
-          <div className="sheet-handle" />
-          <div className="sheet-title"><div>{canWaiveCharge && <span className="eyebrow">АБОНЕМЕНТ</span>}<h2>Завершить тренировку</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-          {unfinishedCount > 0 && <div className="finish-incomplete-warning"><Icon name="minus" /><div><strong>Есть незавершённые подходы</strong><small>Не отмечено: {unfinishedCount}. Результат сохранится в текущем виде.</small></div></div>}
-          {canWaiveCharge && <div className={`finish-balance-preview ${subscriptionTone(balance)}`}>
-            <span>СЕЙЧАС</span><strong>{subscriptionBalanceLabel(balance)}</strong>
-            <Icon name="arrow-right" />
-            <span>ПОСЛЕ</span><strong>{subscriptionBalanceLabel(balance - 1)}</strong>
-          </div>}
-          <div className="finish-subscription-actions">
-            <button className="primary-button" type="button" onClick={() => onFinish(true)}><Icon name="check" /> {canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</button>
-            {canWaiveCharge && <button className="wide-secondary" type="button" onClick={() => onFinish(false)}><Icon name="minus" /> Не списывать занятие</button>}
-          </div>
-        </section>
+    <ModalFrame title="Завершить тренировку" eyebrow={canWaiveCharge ? 'АБОНЕМЕНТ' : undefined} className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
+      {unfinishedCount > 0 && <div className="finish-incomplete-warning"><Icon name="minus" /><div><strong>Есть незавершённые подходы</strong><small>Не отмечено: {unfinishedCount}. Результат сохранится в текущем виде.</small></div></div>}
+      {canWaiveCharge && <div className={`finish-balance-preview ${subscriptionTone(balance)}`}>
+        <span>СЕЙЧАС</span><strong>{subscriptionBalanceLabel(balance)}</strong>
+        <Icon name="arrow-right" />
+        <span>ПОСЛЕ</span><strong>{subscriptionBalanceLabel(balance - 1)}</strong>
+      </div>}
+      <div className="finish-subscription-actions">
+        <button className="primary-button" type="button" onClick={() => onFinish({ chargeSubscription: true })}><Icon name="check" /> {canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</button>
+        {canWaiveCharge && <button className="wide-secondary" type="button" onClick={() => onFinish({ chargeSubscription: false })}><Icon name="minus" /> Не списывать занятие</button>}
       </div>
-    </ModalLayer>
+    </ModalFrame>
   );
 }
 
@@ -3068,25 +3059,19 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
   const resolvedEquipment = exercise.equipment ?? definition?.equipment;
   const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet exercise-instruction-sheet" role="dialog" aria-modal="true" aria-label={'Как выполнять — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть описание"><Icon name="close" /></button></div>
-        <div className="exercise-instruction-body">
-          <div className="exercise-instruction-media"><Icon name="workout" /><span>Видео и изображения появятся здесь</span></div>
-          {equipment && <div className="exercise-equipment"><small>ОБОРУДОВАНИЕ</small><strong>{equipment}</strong></div>}
-          <h3>Как выполнять</h3>
-          <p>Займи устойчивое исходное положение и выполни движение плавно, без рывков. Сохраняй контроль корпуса и комфортную амплитуду на протяжении всего подхода.</p>
-          <ul>
-            <li>Перед рабочим весом сделай разминочный подход.</li>
-            <li>Выдыхай на усилии и не задерживай дыхание.</li>
-            <li>Остановись, если появляется резкая боль или теряется техника.</li>
-          </ul>
-        </div>
-        </section>
+    <ModalFrame title={exercise.name} className="exercise-instruction-sheet" ariaLabel={'Как выполнять — ' + exercise.name} closeLabel="Закрыть описание" onClose={onClose}>
+      <div className="exercise-instruction-body">
+        <div className="exercise-instruction-media"><Icon name="workout" /><span>Видео и изображения появятся здесь</span></div>
+        {equipment && <div className="exercise-equipment"><small>ОБОРУДОВАНИЕ</small><strong>{equipment}</strong></div>}
+        <h3>Как выполнять</h3>
+        <p>Займи устойчивое исходное положение и выполни движение плавно, без рывков. Сохраняй контроль корпуса и комфортную амплитуду на протяжении всего подхода.</p>
+        <ul>
+          <li>Перед рабочим весом сделай разминочный подход.</li>
+          <li>Выдыхай на усилии и не задерживай дыхание.</li>
+          <li>Остановись, если появляется резкая боль или теряется техника.</li>
+        </ul>
       </div>
-    </ModalLayer>
+    </ModalFrame>
   );
 }
 
@@ -3102,20 +3087,14 @@ function ExerciseActionsModal({
   onDeleteExercise: () => void;
 }) {
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet exercise-actions-sheet" role="dialog" aria-modal="true" aria-label={'Действия — ' + exercise.name} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <div className="sheet-title"><h2>{exercise.name}</h2><button type="button" onClick={onClose} aria-label="Закрыть действия"><Icon name="close" /></button></div>
-        <div className="exercise-action-list">
-          <button className="danger" type="button" disabled={!canDeleteExercise} onClick={onDeleteExercise}>
-            <Icon name="trash" />
-            <span><strong>Удалить упражнение</strong><small>{canDeleteExercise ? 'Упражнение исчезнет из этой тренировки' : 'Сначала отмени выполненные подходы'}</small></span>
-          </button>
-        </div>
-        </section>
+    <ModalFrame title={exercise.name} className="exercise-actions-sheet" ariaLabel={'Действия — ' + exercise.name} closeLabel="Закрыть действия" onClose={onClose}>
+      <div className="exercise-action-list">
+        <button className="danger" type="button" disabled={!canDeleteExercise} onClick={onDeleteExercise}>
+          <Icon name="trash" />
+          <span><strong>Удалить упражнение</strong><small>{canDeleteExercise ? 'Упражнение исчезнет из этой тренировки' : 'Сначала отмени выполненные подходы'}</small></span>
+        </button>
       </div>
-    </ModalLayer>
+    </ModalFrame>
   );
 }
 
@@ -3152,39 +3131,33 @@ function ActiveExercisePicker({
   };
 
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet exercise-picker-sheet" role="dialog" aria-modal="true" aria-label="Добавить упражнения" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <div className="sheet-title"><div><h2>Добавить упражнения</h2><p>Выбери несколько — окно останется открытым</p></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-        <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
-        <div className="muscle-filter" aria-label="Фильтр по основной мышце">
-          <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
-          {muscleGroups.map((muscle) => <button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</button>)}
-        </div>
-        <div className="picker-list">
-          {canCreateCustom && <section className="custom-exercise-builder">
-            <div><strong>Новое упражнение «{customName}»</strong><small>{selectedMuscle === 'all' ? 'Пользовательское упражнение' : selectedMuscle}</small></div>
-            <div className="custom-load-mode" aria-label="Тип нагрузки">
-              <button className={customLoadMode === 'external' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('external')} aria-pressed={customLoadMode === 'external'}>С весом</button>
-              <button className={customLoadMode === 'bodyweight' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('bodyweight')} aria-pressed={customLoadMode === 'bodyweight'}>Свой вес</button>
-            </div>
-            <div className="custom-load-mode" aria-label="Способ измерения">
-              <button className={customMeasureType === 'reps' ? 'selected' : ''} type="button" onClick={() => setCustomMeasureType('reps')} aria-pressed={customMeasureType === 'reps'}>Повторы</button>
-              <button className={customMeasureType === 'duration' ? 'selected' : ''} type="button" onClick={() => { setCustomMeasureType('duration'); setCustomLoadMode('bodyweight'); }} aria-pressed={customMeasureType === 'duration'}>Секунды</button>
-            </div>
-            <button className="custom-exercise-option" type="button" onClick={() => selectExercise({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode, measureType: customMeasureType }, true)}><Icon name="plus" /> Добавить «{customName}»</button>
-          </section>}
-          {filtered.map((exercise) => {
-            const added = addedIds.has(exercise.id);
-            return <button className={added ? 'added' : ''} key={exercise.id} type="button" disabled={added} aria-pressed={added} onClick={() => selectExercise(exercise)}><span><Icon name={added ? 'check' : 'plus'} /></span><div><strong>{exercise.name}</strong><small>{added ? 'Добавлено' : `${exercise.primaryMuscle} · ${exercise.equipment}`}</small></div></button>;
-          })}
-          {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
-        </div>
-        <footer className="picker-footer"><span aria-live="polite">{addedCount ? `Добавлено: ${addedCount}` : 'Можно выбрать несколько'}</span><button className="primary-button" type="button" onClick={onClose}><Icon name="check" /> Готово</button></footer>
-        </section>
+    <ModalFrame title="Добавить упражнения" subtitle="Выбери несколько — окно останется открытым" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
+      <input className="text-input search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
+      <div className="muscle-filter" aria-label="Фильтр по основной мышце">
+        <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
+        {muscleGroups.map((muscle) => <button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</button>)}
       </div>
-    </ModalLayer>
+      <div className="picker-list">
+        {canCreateCustom && <section className="custom-exercise-builder">
+          <div><strong>Новое упражнение «{customName}»</strong><small>{selectedMuscle === 'all' ? 'Пользовательское упражнение' : selectedMuscle}</small></div>
+          <div className="custom-load-mode" aria-label="Тип нагрузки">
+            <button className={customLoadMode === 'external' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('external')} aria-pressed={customLoadMode === 'external'}>С весом</button>
+            <button className={customLoadMode === 'bodyweight' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('bodyweight')} aria-pressed={customLoadMode === 'bodyweight'}>Свой вес</button>
+          </div>
+          <div className="custom-load-mode" aria-label="Способ измерения">
+            <button className={customMeasureType === 'reps' ? 'selected' : ''} type="button" onClick={() => setCustomMeasureType('reps')} aria-pressed={customMeasureType === 'reps'}>Повторы</button>
+            <button className={customMeasureType === 'duration' ? 'selected' : ''} type="button" onClick={() => { setCustomMeasureType('duration'); setCustomLoadMode('bodyweight'); }} aria-pressed={customMeasureType === 'duration'}>Секунды</button>
+          </div>
+          <button className="custom-exercise-option" type="button" onClick={() => selectExercise({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode, measureType: customMeasureType }, true)}><Icon name="plus" /> Добавить «{customName}»</button>
+        </section>}
+        {filtered.map((exercise) => {
+          const added = addedIds.has(exercise.id);
+          return <button className={added ? 'added' : ''} key={exercise.id} type="button" disabled={added} aria-pressed={added} onClick={() => selectExercise(exercise)}><span><Icon name={added ? 'check' : 'plus'} /></span><div><strong>{exercise.name}</strong><small>{added ? 'Добавлено' : `${exercise.primaryMuscle} · ${exercise.equipment}`}</small></div></button>;
+        })}
+        {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
+      </div>
+      <footer className="picker-footer"><span aria-live="polite">{addedCount ? `Добавлено: ${addedCount}` : 'Можно выбрать несколько'}</span><button className="primary-button" type="button" onClick={onClose}><Icon name="check" /> Готово</button></footer>
+    </ModalFrame>
   );
 }
 
@@ -3334,15 +3307,10 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
 function SettingsModal({ onClose, onReset, onOpenDesignKit }: { onClose: () => void; onReset: () => void; onOpenDesignKit: () => void }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="settings-modal" role="dialog" aria-modal="true" aria-label="Настройки демо" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-title"><div><span className="eyebrow">REPPY V0</span><h2>{resetConfirmationOpen ? 'Сбросить демо-данные?' : 'Настройки демо'}</h2></div><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-        <p>{resetConfirmationOpen ? 'Все изменения в учениках, тренировках и расписании будут удалены.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
-        {resetConfirmationOpen ? <div className="confirmation-actions"><button className="wide-secondary" type="button" onClick={() => setResetConfirmationOpen(false)}>Остаться</button><button className="danger-button" type="button" onClick={onReset}>Сбросить данные</button></div> : <div className="settings-actions"><button className="wide-secondary" type="button" onClick={onOpenDesignKit}><Icon name="workout" /> Открыть дизайн-кит</button><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
-        </section>
-      </div>
-    </ModalLayer>
+    <ModalFrame title={resetConfirmationOpen ? 'Сбросить демо-данные?' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel="Настройки демо" onClose={onClose}>
+      <p>{resetConfirmationOpen ? 'Все изменения в учениках, тренировках и расписании будут удалены.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
+      {resetConfirmationOpen ? <div className="confirmation-actions"><button className="wide-secondary" type="button" onClick={() => setResetConfirmationOpen(false)}>Остаться</button><button className="danger-button" type="button" onClick={onReset}>Сбросить данные</button></div> : <div className="settings-actions"><button className="wide-secondary" type="button" onClick={onOpenDesignKit}><Icon name="workout" /> Открыть дизайн-кит</button><button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button></div>}
+    </ModalFrame>
   );
 }
 
@@ -3362,107 +3330,13 @@ function ConfirmationModal({
   onConfirm: () => void;
 }) {
   return (
-    <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section className="bottom-sheet confirmation-sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirmation-title" aria-describedby="confirmation-description" onMouseDown={(event) => event.stopPropagation()}>
-          <div className="sheet-title"><h2 id="confirmation-title">{title}</h2><button type="button" onClick={onClose} aria-label="Закрыть"><Icon name="close" /></button></div>
-          <p id="confirmation-description">{text}</p>
-          <div className="confirmation-actions">
-            <button className="wide-secondary" type="button" onClick={onClose}>Остаться</button>
-            <button className={danger ? 'danger-button' : 'primary-button'} type="button" onClick={onConfirm}>{confirmLabel}</button>
-          </div>
-        </section>
+    <ModalFrame title={title} description={text} className="confirmation-sheet" role="alertdialog" showHandle={false} onClose={onClose}>
+      <div className="confirmation-actions">
+        <button className="wide-secondary" type="button" onClick={onClose}>Остаться</button>
+        <button className={danger ? 'danger-button' : 'primary-button'} type="button" onClick={onConfirm}>{confirmLabel}</button>
       </div>
-    </ModalLayer>
+    </ModalFrame>
   );
-}
-
-function ModalLayer({ children, onClose }: { children: ReactNode; onClose: () => void }) {
-  const layerRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  const historyCleanupTimer = useRef<number | null>(null);
-  const [modalId] = useState(() => makeId('modal'));
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (historyCleanupTimer.current) {
-      window.clearTimeout(historyCleanupTimer.current);
-      historyCleanupTimer.current = null;
-    }
-    openModalLayers += 1;
-    document.body.classList.add('modal-open');
-    window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: true }));
-    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const appShell = document.querySelector<HTMLElement>('.app-shell');
-    if (appShell) {
-      appShell.inert = true;
-      appShell.setAttribute('aria-hidden', 'true');
-    }
-    const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
-    if (currentState.reppyModal !== modalId) {
-      window.history.pushState({ ...currentState, reppyModal: modalId }, '', window.location.href);
-    }
-    let focusFrame = window.requestAnimationFrame(() => {
-      focusFrame = window.requestAnimationFrame(() => {
-        const root = layerRef.current;
-        const target = root?.querySelector<HTMLElement>('[autofocus], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])');
-        target?.focus({ preventScroll: true });
-      });
-    });
-
-    const focusableElements = () => Array.from(layerRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') ?? [])
-      .filter((element) => !element.hidden && element.getClientRects().length > 0);
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const focusable = focusableElements();
-      if (!focusable.length) {
-        event.preventDefault();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const handleHistoryBack = (event: PopStateEvent) => {
-      if (event.state?.reppyModal === modalId) return;
-      onCloseRef.current();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('popstate', handleHistoryBack, { capture: true });
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('popstate', handleHistoryBack, { capture: true });
-      openModalLayers = Math.max(0, openModalLayers - 1);
-      document.body.classList.toggle('modal-open', openModalLayers > 0);
-      window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: openModalLayers > 0 }));
-      if (appShell && openModalLayers === 0) {
-        appShell.inert = false;
-        appShell.removeAttribute('aria-hidden');
-      }
-      historyCleanupTimer.current = window.setTimeout(() => {
-        historyCleanupTimer.current = null;
-        if (window.history.state?.reppyModal === modalId) window.history.back();
-      }, 0);
-      returnFocus?.focus({ preventScroll: true });
-    };
-  }, [modalId]);
-
-  return createPortal(<div className="modal-layer-root" ref={layerRef}>{children}</div>, document.body);
 }
 
 function NotFound() {

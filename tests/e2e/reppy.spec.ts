@@ -685,7 +685,11 @@ test('результат ученика виден тренеру и не мен
   await expect(page.getByRole('heading', { name: 'Жим гантелей на наклонной скамье' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Следующее упражнение' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
-  await expect(page.getByRole('dialog', { name: 'Завершение тренировки' })).toHaveCount(0);
+  const studentFinishDialog = page.getByRole('dialog', { name: 'Завершение тренировки' });
+  await expect(studentFinishDialog).toHaveCount(1);
+  await expect(studentFinishDialog).toHaveAttribute('data-modal-frame', 'sheet');
+  await expect(studentFinishDialog).toContainText('Есть незавершённые подходы');
+  await studentFinishDialog.getByRole('button', { name: 'Завершить тренировку' }).click();
   await expect(page.getByRole('heading', { name: 'КАК ПРОШЛО?' })).toBeVisible();
   await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
   await page.getByLabel(/Комментарий тренеру/).fill('Тестовый результат ученика');
