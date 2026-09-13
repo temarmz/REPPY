@@ -30,13 +30,11 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
 
 function SetCountControl({
   exerciseName,
-  count,
   canRemove,
   onRemove,
   onAdd,
 }: {
   exerciseName: string;
-  count: number;
   canRemove: boolean;
   onRemove: () => void;
   onAdd: () => void;
@@ -44,9 +42,10 @@ function SetCountControl({
   return (
     <div className="set-count-control" role="group" aria-label={`Подходы — ${exerciseName}`}>
       <span>Подходы</span>
-      <button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></button>
-      <strong aria-live="polite">{count}</strong>
-      <button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></button>
+      <div className="set-count-actions">
+        <button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></button>
+        <button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></button>
+      </div>
     </div>
   );
 }
@@ -180,7 +179,7 @@ export function PlanExerciseCard({
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       toolbar={<ExerciseToolbar exercise={exercise} index={index} totalExercises={totalExercises} commentOpen={commentOpen} onToggleComment={() => setCommentOpen((current) => !current)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>}
+      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>}
     >
       {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
       <section className="active-card-sets plan-card-sets">
@@ -233,7 +232,7 @@ export function ActiveExerciseCard({
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       toolbar={<ExerciseToolbar exercise={exercise} index={index} totalExercises={totalExercises} commentOpen={commentOpen} onToggleComment={() => setCommentOpen((current) => !current)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>}
+      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>}
     >
       {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
       <section className="active-card-sets">

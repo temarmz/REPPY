@@ -125,11 +125,15 @@ test('системные состояния показывают офлайн и
     };
   });
 
+  await context.setOffline(true);
   await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
   const saveError = page.getByRole('alert').filter({ hasText: 'Не удалось сохранить изменения' });
   await expect(saveError).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toHaveCount(0);
   await saveError.getByRole('button', { name: 'Повторить' }).click();
   await expect(saveError).toHaveCount(0);
+  await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toBeVisible();
+  await context.setOffline(false);
   await expect(page.locator('.app-status-banner:not(.preview)')).toHaveCount(0);
 });
 
@@ -198,7 +202,8 @@ test('светлая тема переключается из компактно
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
   await expect(page.locator('.set-count-control > span').first()).toHaveCSS('color', 'rgb(78, 89, 74)');
-  await expect(page.locator('.set-count-control > strong').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
+  await expect(page.locator('.set-count-control').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('.set-count-control > strong')).toHaveCount(0);
   const firstPlanExercise = page.locator('.plan-exercise-card').first();
   await firstPlanExercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
   await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(96, 72, 154)');
@@ -320,6 +325,9 @@ test('тренер видит единые карточки расписания
 
   const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'false');
+  await expect(allDaysToggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(allDaysToggle).toHaveCSS('border-top-width', '0px');
+  await expect(allDaysToggle.locator('.schedule-view-icon')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   const occupiedOnlyDays = page.locator('.schedule-days-list .plan-day-card');
   expect(await occupiedOnlyDays.count()).toBeGreaterThan(0);
   await expect(page.locator('.schedule-days-list .empty-day')).toHaveCount(0);
@@ -539,6 +547,24 @@ test('создание, назначение, редактирование и п
     await expect(page.locator('.workout-plan-editor')).toHaveCount(1);
     await expect(page.locator('.plan-sticky-actions .primary-button')).toHaveCount(1);
   }
+});
+
+test('в редакторе можно удалить последнее упражнение и снова начать с пустого плана', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients/maria/assign/new');
+  await page.getByLabel('Название тренировки').fill('Новая тренировка');
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
+  await picker.getByRole('button', { name: /Жим лёжа/ }).click();
+  await picker.getByRole('button', { name: 'Готово' }).click();
+
+  const card = page.locator('.plan-exercise-card').first();
+  await card.getByRole('button', { name: 'Действия — Жим лёжа' }).click();
+  const deleteExercise = page.getByRole('dialog', { name: 'Действия — Жим лёжа' }).getByRole('button', { name: 'Удалить упражнение' });
+  await expect(deleteExercise).toBeEnabled();
+  await deleteExercise.click();
+  await expect(page.locator('.plan-exercise-card')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Добавить упражнение' })).toBeVisible();
 });
 
 
@@ -834,7 +860,8 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
   await expect(squatCard.getByRole('button', { name: 'Показать комментарий' })).toBeVisible();
 
-  await expect(squatCard.getByRole('group', { name: 'Подходы — Приседания' })).toContainText('4');
+  await expect(squatCard.locator('.set-card')).toHaveCount(4);
+  await expect(squatCard.locator('.set-count-control > strong')).toHaveCount(0);
   await expect(squatCard.getByRole('checkbox', { name: 'Выполнено' })).toHaveCount(0);
   for (const controlName of ['Удалить последний подход — Приседания', 'Добавить подход — Приседания']) {
     const box = await squatCard.getByRole('button', { name: controlName }).boundingBox();

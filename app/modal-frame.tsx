@@ -38,13 +38,22 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
     if (currentState.reppyModal !== modalId) {
       window.history.pushState({ ...currentState, reppyModal: modalId }, '', window.location.href);
     }
+    const focusInitialControl = () => {
+      const root = layerRef.current;
+      const target = root?.querySelector<HTMLElement>('[data-modal-initial-focus]')
+        ?? root?.querySelector<HTMLElement>('[autofocus]')
+        ?? root?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])');
+      target?.focus({ preventScroll: true });
+    };
     let focusFrame = window.requestAnimationFrame(() => {
       focusFrame = window.requestAnimationFrame(() => {
-        const root = layerRef.current;
-        const target = root?.querySelector<HTMLElement>('[autofocus], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])');
-        target?.focus({ preventScroll: true });
+        focusInitialControl();
       });
     });
+    const focusRetryTimer = window.setTimeout(() => {
+      const root = layerRef.current;
+      if (root && !root.contains(document.activeElement)) focusInitialControl();
+    }, 120);
 
     const focusableElements = () => Array.from(layerRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') ?? [])
       .filter((element) => !element.hidden && element.getClientRects().length > 0);
@@ -78,6 +87,7 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
     window.addEventListener('popstate', handleHistoryBack, { capture: true });
     return () => {
       window.cancelAnimationFrame(focusFrame);
+      window.clearTimeout(focusRetryTimer);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('popstate', handleHistoryBack, { capture: true });
       openModalLayers = Math.max(0, openModalLayers - 1);

@@ -60,6 +60,15 @@ test('repository восстанавливает seed после повреждё
   assert.equal(memory.value(), null);
 });
 
+test('repository сохраняет исходную запись, если миграция не удалась', async () => {
+  const saved = JSON.stringify({ schemaVersion: 4 });
+  const memory = createMemoryStorage({ [STORAGE_KEY]: saved });
+  const repository = createLocalStorageRepository(memory.storage);
+
+  await assert.rejects(repository.load());
+  assert.equal(memory.value(), saved);
+});
+
 test('repository не подменяет данные seed-состоянием при недоступном хранилище', async () => {
   const repository = createLocalStorageRepository({
     getItem() {

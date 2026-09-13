@@ -27,17 +27,17 @@ type StatusCopy = {
 };
 
 function resolveStatus(phase: PersistencePhase, online: boolean): StatusCopy | null {
-  if (!online) return {
-    kind: 'offline',
-    icon: 'minus',
-    title: 'Нет сети',
-    detail: 'Изменения сохраняются на этом устройстве',
-  };
   if (phase === 'error') return {
     kind: 'error',
     icon: 'close',
     title: 'Не удалось сохранить изменения',
     detail: 'Проверь соединение и попробуй снова',
+  };
+  if (!online) return {
+    kind: 'offline',
+    icon: 'minus',
+    title: 'Нет сети',
+    detail: 'Изменения сохраняются на этом устройстве',
   };
   if (phase === 'loading') return { kind: 'loading', icon: 'history', title: 'Загружаем данные' };
   if (phase === 'saving') return { kind: 'saving', icon: 'history', title: 'Сохраняем изменения' };

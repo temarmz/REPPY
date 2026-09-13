@@ -24,8 +24,9 @@ export function createLocalStorageRepository(
       const saved = storage.getItem(key);
       if (!saved) return initial;
 
+      let parsed: DemoState;
       try {
-        return migrateDemoState(JSON.parse(saved) as DemoState);
+        parsed = JSON.parse(saved) as DemoState;
       } catch {
         try {
           storage.removeItem(key);
@@ -34,6 +35,7 @@ export function createLocalStorageRepository(
         }
         return initial;
       }
+      return migrateDemoState(parsed);
     },
 
     async save(state) {

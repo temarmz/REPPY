@@ -2282,6 +2282,9 @@ function WorkoutExerciseEditor({
   };
 
   const actionExercise = exercises.find((exercise) => exercise.id === actionExerciseId);
+  const actionDeleteDisabledReason = actionExercise && (minSetsByExerciseId[actionExercise.id] ?? 0) > 0
+    ? 'Сначала отмени выполненные подходы'
+    : undefined;
 
   return (
     <section className="workout-plan-editor">
@@ -2321,7 +2324,7 @@ function WorkoutExerciseEditor({
       {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
-        canDeleteExercise={exercises.length > 1 && (minSetsByExerciseId[actionExercise.id] ?? 0) === 0}
+        deleteDisabledReason={actionDeleteDisabledReason}
         onClose={() => setActionExerciseId(null)}
         onDeleteExercise={() => {
           setActionExerciseId(null);
@@ -2724,6 +2727,11 @@ function ActiveWorkout({
   const actionExercise = workout.exercises.find((exercise) => exercise.id === actionExerciseId);
   const actionResults = actionExercise ? session.results.filter((result) => result.exerciseId === actionExercise.id) : [];
   const actionMinimumSets = Math.max(0, ...actionResults.filter((result) => result.completed).map((result) => result.setNumber));
+  const actionDeleteDisabledReason = actionMinimumSets > 0
+    ? 'Сначала отмени выполненные подходы'
+    : workout.exercises.length <= 1
+      ? 'В тренировке должно остаться хотя бы одно упражнение'
+      : undefined;
 
   return (
     <main className="active-workout-page active-workout-list-page">
@@ -2772,7 +2780,7 @@ function ActiveWorkout({
       {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
-        canDeleteExercise={workout.exercises.length > 1 && actionMinimumSets === 0}
+        deleteDisabledReason={actionDeleteDisabledReason}
         onClose={() => setActionExerciseId(null)}
         onDeleteExercise={() => {
           setActionExerciseId(null);
@@ -2837,21 +2845,21 @@ function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExer
 
 function ExerciseActionsModal({
   exercise,
-  canDeleteExercise,
+  deleteDisabledReason,
   onClose,
   onDeleteExercise,
 }: {
   exercise: WorkoutExercise;
-  canDeleteExercise: boolean;
+  deleteDisabledReason?: string;
   onClose: () => void;
   onDeleteExercise: () => void;
 }) {
   return (
     <ModalFrame title={exercise.name} className="exercise-actions-sheet" ariaLabel={'Действия — ' + exercise.name} closeLabel="Закрыть действия" onClose={onClose}>
       <div className="exercise-action-list">
-        <button className="danger" type="button" disabled={!canDeleteExercise} onClick={onDeleteExercise}>
+        <button className="danger" type="button" disabled={Boolean(deleteDisabledReason)} onClick={onDeleteExercise}>
           <Icon name="trash" />
-          <span><strong>Удалить упражнение</strong><small>{canDeleteExercise ? 'Упражнение исчезнет из этой тренировки' : 'Сначала отмени выполненные подходы'}</small></span>
+          <span><strong>Удалить упражнение</strong><small>{deleteDisabledReason ?? 'Упражнение исчезнет из этой тренировки'}</small></span>
         </button>
       </div>
     </ModalFrame>
@@ -3092,7 +3100,7 @@ function ConfirmationModal({
   return (
     <ModalFrame title={title} description={text} className="confirmation-sheet" role="alertdialog" showHandle={false} onClose={onClose}>
       <div className="confirmation-actions">
-        <ActionButton variant="secondary" autoFocus onClick={onClose}>Остаться</ActionButton>
+        <ActionButton variant="secondary" data-modal-initial-focus onClick={onClose}>Остаться</ActionButton>
         <ActionButton variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</ActionButton>
       </div>
     </ModalFrame>
