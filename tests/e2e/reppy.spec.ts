@@ -665,6 +665,74 @@ test('новая тренировка сохраняется только в н�
   expect(saved.assignments.at(-1)).not.toHaveProperty('source');
 });
 
+test('онлайн-тренировка переиспользует назначение, инструкцию и списание абонемента', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients/artem/assign/new');
+  await page.getByLabel('Название тренировки').fill('Онлайн-техника');
+  await page.getByRole('button', { name: 'Онлайн', exact: true }).click();
+
+  await expect(page.getByRole('group', { name: 'Рекомендованная дата тренировки' })).toBeVisible();
+  await expect(page.locator('.plan-context-card input[type="time"]')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
+  await picker.getByRole('button', { name: /Жим лёжа/ }).click();
+  await picker.getByRole('button', { name: 'Готово' }).click();
+
+  const exercise = page.locator('.plan-exercise-card').first();
+  await exercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
+  const instruction = page.getByRole('dialog', { name: 'Как выполнять — Жим лёжа' });
+  await instruction.getByPlaceholder('Опиши исходное положение, движение, дыхание и требования к технике').fill('Сведи лопатки, упрись стопами в пол и опускай гриф под контролем.');
+  await instruction.locator('input[type="file"]').setInputFiles({
+    name: 'bench-technique.mp4',
+    mimeType: 'video/mp4',
+    buffer: Buffer.from([0, 0, 0, 20, 102, 116, 121, 112]),
+  });
+  await expect(instruction.locator('video')).toBeVisible();
+  await instruction.getByRole('button', { name: 'Сохранить инструкцию' }).click();
+  await expect(instruction).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/online-assignment-editor.png', animations: 'disabled' });
+
+  await page.getByRole('button', { name: 'Назначить тренировку' }).click();
+  await expect(page).toHaveURL(/#\/trainer\/clients\/artem$/);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}'));
+  const assignment = saved.assignments.at(-1);
+  expect(assignment.format).toBe('online');
+  expect(assignment).not.toHaveProperty('scheduledTime');
+  expect(assignment.workoutSnapshot.exercises[0].instructionText).toContain('Сведи лопатки');
+  expect(assignment.workoutSnapshot.exercises[0].instructionVideo.name).toBe('bench-technique.mp4');
+
+  await page.goto(`/#/trainer/assignments/${assignment.id}`);
+  await expect(page.getByRole('button', { name: 'Начать тренировку' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Повторить на другую дату' }).click();
+  await expect(page.getByRole('button', { name: 'Онлайн', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.plan-context-card input[type="time"]')).toHaveCount(0);
+  await page.locator('.plan-exercise-card').first().getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
+  const repeatedInstruction = page.getByRole('dialog', { name: 'Как выполнять — Жим лёжа' });
+  await expect(repeatedInstruction.getByPlaceholder('Опиши исходное положение, движение, дыхание и требования к технике')).toHaveValue(/Сведи лопатки/);
+  await expect(repeatedInstruction.locator('video')).toBeVisible();
+  await repeatedInstruction.getByRole('button', { name: 'Закрыть описание' }).click();
+
+  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await page.goto(`/#/student/assignments/${assignment.id}`);
+  await expect(page.getByText('В удобное время')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Предложить другое время' })).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/online-student-assignment.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
+  const studentInstruction = page.getByRole('dialog', { name: 'Как выполнять — Жим лёжа' });
+  await expect(studentInstruction).toContainText('Сведи лопатки');
+  await expect(studentInstruction.locator('video')).toBeVisible();
+  await expect(studentInstruction.getByRole('button', { name: 'Сохранить инструкцию' })).toHaveCount(0);
+  await studentInstruction.getByRole('button', { name: 'Закрыть описание' }).click();
+
+  await page.getByRole('button', { name: 'Начать тренировку' }).click();
+  await page.getByRole('button', { name: 'Завершить тренировку' }).click();
+  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить тренировку' }).click();
+  await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
+  await page.getByRole('button', { name: 'Сохранить результат' }).click();
+  await expect(page.getByText('Осталось 10 занятий')).toBeVisible();
+});
+
 test('несколько упражнений быстро добавляются на экране шириной 320 px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   await openFreshDemo(page);
@@ -881,8 +949,8 @@ test('тренер ведёт занятие, правит его в момен�
   await squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }).click();
   const instructionDialog = page.getByRole('dialog', { name: 'Как выполнять — Приседания' });
   await expect(instructionDialog).toBeVisible();
-  await expect(instructionDialog).toContainText('Займи устойчивое исходное положение');
-  await expect(instructionDialog).toContainText('Видео и изображения появятся здесь');
+  await expect(instructionDialog).toContainText('Добавь короткое видео с техникой');
+  await expect(instructionDialog.getByPlaceholder('Опиши исходное положение, движение, дыхание и требования к технике')).toBeVisible();
   await expect(instructionDialog).toContainText('ОБОРУДОВАНИЕ');
   await expect(instructionDialog).toContainText('Штанга');
   await instructionDialog.getByRole('button', { name: 'Закрыть описание' }).click();
@@ -1026,5 +1094,5 @@ test('старое сохранённое состояние автоматич�
       hasWorkoutId: Object.hasOwn(saved.assignments[0], 'workoutId'),
       hasSource: Object.hasOwn(saved.assignments[0], 'source'),
     };
-  })).toEqual({ schemaVersion: 5, hasWorkouts: false, hasVersions: false, hasWorkoutId: false, hasSource: false });
+  })).toEqual({ schemaVersion: 6, hasWorkouts: false, hasVersions: false, hasWorkoutId: false, hasSource: false });
 });

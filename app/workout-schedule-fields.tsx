@@ -37,6 +37,7 @@ export default function WorkoutScheduleFields({
   timeLabel = 'Время начала',
   scheduledFor,
   scheduledTime,
+  showTime = true,
   min = dateKey(),
   onDateChange,
   onTimeChange,
@@ -44,15 +45,16 @@ export default function WorkoutScheduleFields({
   dateLabel?: string;
   timeLabel?: string;
   scheduledFor: string;
-  scheduledTime: string;
+  scheduledTime?: string;
+  showTime?: boolean;
   min?: string;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
 }) {
   return (
-    <div className="schedule-fields" data-ui-control="schedule-fields" role="group" aria-label="Дата и время тренировки">
+    <div className={`schedule-fields ${showTime ? '' : 'date-only'}`.trim()} data-ui-control="schedule-fields" role="group" aria-label={showTime ? 'Дата и время тренировки' : 'Рекомендованная дата тренировки'}>
       <DatePickerField className="schedule-field" label={dateLabel} value={scheduledFor} min={min} formatValue={formatCalendarDay} onChange={onDateChange} />
-      <label className="schedule-field time-picker-field"><span>{timeLabel}</span><input type="time" value={scheduledTime} onChange={(event) => onTimeChange(event.target.value)} /></label>
+      {showTime && <label className="schedule-field time-picker-field"><span>{timeLabel}</span><input type="time" value={scheduledTime ?? ''} onChange={(event) => onTimeChange(event.target.value)} /></label>}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
   type SetResult,
   type Student,
   type SubscriptionEntry,
+  type TrainingFormat,
   type Workout,
   type WorkoutExercise,
   type WorkoutSetPlan,
@@ -54,6 +55,11 @@ import {
   updateSubscriptionPayment,
   type PaymentInput,
 } from './subscription-ledger';
+import {
+  clearInstructionVideos,
+  loadInstructionVideo,
+  saveInstructionVideo,
+} from './instruction-video-repository';
 
 const COPY = {
   createWorkout: 'Создать тренировку',
@@ -495,6 +501,7 @@ export default function ReppyApp() {
   });
 
   const resetDemo = () => {
+    void clearInstructionVideos().catch(() => undefined);
     resetData();
     setSettingsOpen(false);
     go('/');
@@ -576,12 +583,13 @@ export default function ReppyApp() {
           workout={sourceWorkout}
           initialScheduledFor={scheduledFor}
           initialScheduledTime={sourceAssignment.scheduledTime}
+          initialFormat={sourceAssignment.format}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
           submitLabel="Назначить тренировку"
           submitIcon="plus"
-          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
-            const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
+          onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
+            const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
             showToast(`Тренировка назначена: ${student.name}`);
             go('/trainer', true);
@@ -596,13 +604,14 @@ export default function ReppyApp() {
           student={student}
           initialScheduledFor={scheduledFor}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
-          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
+          onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
             const assignment: Assignment = {
               id: makeId('assignment'),
               studentId: student.id,
               assignedAt: new Date().toISOString(),
               scheduledFor: nextDate,
               scheduledTime,
+              format,
               status: 'assigned',
               workoutSnapshot,
             };
@@ -680,12 +689,13 @@ export default function ReppyApp() {
           workout={sourceWorkout}
           initialScheduledFor={dateKey()}
           initialScheduledTime={sourceAssignment.scheduledTime}
+          initialFormat={sourceAssignment.format}
           backPath={`/trainer/clients/${student.id}/assign`}
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
           submitLabel="Назначить тренировку"
           submitIcon="plus"
-          onAssign={(nextDate, scheduledTime, workoutSnapshot) => {
-            const assignment = repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime);
+          onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
+            const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
             setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
             showToast(`Тренировка назначена: ${student.name}`);
             go(`/trainer/clients/${student.id}`);
@@ -698,13 +708,14 @@ export default function ReppyApp() {
         <NewAssignmentForStudent
           student={student}
           backPath={`/trainer/clients/${student.id}/assign`}
-          onAssign={(scheduledFor, scheduledTime, workoutSnapshot) => {
+          onAssign={(scheduledFor, scheduledTime, format, workoutSnapshot) => {
             const assignment: Assignment = {
               id: makeId('assignment'),
               studentId: student.id,
               assignedAt: new Date().toISOString(),
               scheduledFor,
               scheduledTime,
+              format,
               status: 'assigned',
               workoutSnapshot,
             };
@@ -755,8 +766,8 @@ export default function ReppyApp() {
           data={data}
           assignment={assignment}
           sourceWorkout={sourceWorkout}
-          onSave={(scheduledFor, scheduledTime, workout) => {
-            const next = repeatAssignment(assignment, workout, scheduledFor, scheduledTime);
+          onSave={(scheduledFor, scheduledTime, format, workout) => {
+            const next = { ...repeatAssignment(assignment, workout, scheduledFor, scheduledTime), format };
             setData((current) => ({ ...current, assignments: [...current.assignments, next] }));
             showToast('Повтор тренировки назначен');
             go(`/trainer/assignments/${next.id}`);
@@ -801,6 +812,7 @@ export default function ReppyApp() {
           student={findStudent(data, assignment.studentId)}
           scheduledFor={assignment.scheduledFor}
           scheduledTime={assignment.scheduledTime}
+          format={assignment.format}
           backPath={`/trainer/assignments/${assignment.id}`}
           trainerCanWaiveCharge
           balance={subscriptionBalance(data.subscriptionEntries, assignment.studentId)}
@@ -909,6 +921,7 @@ export default function ReppyApp() {
           student={findStudent(data, assignment.studentId)}
           scheduledFor={assignment.scheduledFor}
           scheduledTime={assignment.scheduledTime}
+          format={assignment.format}
           backPath="/student"
           onStart={() => {
             if (session) return;
@@ -1035,7 +1048,7 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
           <p>Никаких параллельных таблиц, переписок и потерянных результатов.</p>
         </header>
         <ol className="workflow-grid">
-          <li><span>01</span><Icon name="calendar" /><div><h3>Тренер назначает</h3><p>Выбирает ученика, дату и время, затем адаптирует готовую программу под занятие.</p></div></li>
+          <li><span>01</span><Icon name="calendar" /><div><h3>Тренер назначает</h3><p>Выбирает ученика, дату и формат, затем адаптирует готовую программу под занятие.</p></div></li>
           <li><span>02</span><Icon name="workout" /><div><h3>Ученик выполняет</h3><p>Заранее видит состав, а в зале отмечает подходы, веса и повторы по таймеру.</p></div></li>
           <li><span>03</span><Icon name="success" /><div><h3>Оба видят итог</h3><p>Результат, самочувствие, комментарий и динамика сохраняются сразу после тренировки.</p></div></li>
         </ol>
@@ -1068,9 +1081,9 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
             <div className="role-copy">
               <p className="eyebrow">Для ученика</p>
               <h3>На тренировке ничего не отвлекает</h3>
-              <p>До занятия — дата, время и состав. Во время — текущие подходы и таймер. После — понятная история.</p>
+              <p>До занятия — дата, формат и состав. Во время — текущие подходы, инструкции и таймер. После — понятная история.</p>
               <ul>
-                <li><Icon name="check" /><span><strong>Перед тренировкой</strong>Просмотр программы и запрос другого времени без звонков.</span></li>
+                <li><Icon name="check" /><span><strong>Перед тренировкой</strong>Просмотр программы, персональных видео и запрос другого времени без звонков.</span></li>
                 <li><Icon name="check" /><span><strong>Во время</strong>Вес, повторы, отметки подходов и общий таймер занятия.</span></li>
                 <li><Icon name="check" /><span><strong>После</strong>Самочувствие, комментарий тренеру и личная динамика.</span></li>
               </ul>
@@ -1124,7 +1137,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
   const [assignDate, setAssignDate] = useState<string | null>(null);
   const assignments = data.assignments
     .filter((item) => area === 'trainer' || item.studentId === data.activeStudentId)
-    .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
+    .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)));
   const assignmentCounts = assignments.reduce((counts, assignment) => {
     counts.set(assignment.scheduledFor, (counts.get(assignment.scheduledFor) ?? 0) + 1);
     return counts;
@@ -1160,7 +1173,7 @@ function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 's
           return (
             <button key={assignment.id} type="button" onClick={() => go(target)}>
               <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
-              <div><strong>{area === 'trainer' ? student?.name : workout?.name}</strong><small>{assignment.scheduledTime} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</small>{session?.comment && <p>«{session.comment}»</p>}</div>
+              <div><strong>{area === 'trainer' ? student?.name : workout?.name}</strong><small>{assignmentTimeLabel(assignment)} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</small>{session?.comment && <p>«{session.comment}»</p>}</div>
               <span className="agenda-tail">{assignment.status === 'completed' && <b>{session?.mood ? moodLabel(session.mood) : 'Готово'}</b>}<Icon name="chevron-right" /></span>
             </button>
           );
@@ -1214,6 +1227,22 @@ function dateAfter(value: string, days: number) {
   return dateKey(next);
 }
 
+function assignmentSortValue(assignment: Assignment) {
+  return `${assignment.scheduledFor} ${assignment.scheduledTime ?? '23:59'}`;
+}
+
+function assignmentTimeLabel(assignment: Assignment) {
+  return assignment.format === 'online' ? 'Онлайн' : assignment.scheduledTime ?? 'Без времени';
+}
+
+function assignmentScheduleLabel(assignment: Assignment) {
+  return `${formatCalendarDay(assignment.scheduledFor)} · ${assignmentTimeLabel(assignment)}`;
+}
+
+function assignmentDateTime(assignment: Assignment) {
+  return assignment.scheduledTime ? `${assignment.scheduledFor}T${assignment.scheduledTime}` : assignment.scheduledFor;
+}
+
 function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Assignment }) {
   const student = findStudent(data, assignment.studentId);
   const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
@@ -1224,8 +1253,8 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
     : `/trainer/assignments/${assignment.id}`;
 
   return (
-    <button className="plan-session-row" type="button" onClick={() => go(target)} aria-label={`${student?.name}, ${assignment.scheduledTime}, ${workout?.name}${completed ? ', тренировка завершена' : ''}`}>
-      <time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}>{assignment.scheduledTime}</time>
+    <button className={`plan-session-row ${assignment.format === 'online' ? 'online' : ''}`} type="button" onClick={() => go(target)} aria-label={`${student?.name}, ${assignmentTimeLabel(assignment)}, ${workout?.name}${completed ? ', тренировка завершена' : ''}`}>
+      <time dateTime={assignmentDateTime(assignment)}>{assignmentTimeLabel(assignment)}</time>
       <Avatar student={student} />
       <span><strong>{student?.name}</strong><small>{workout?.name}</small></span>
       <span className="plan-session-status">{completed && <Icon name="check" />}<Icon name="chevron-right" /></span>
@@ -1263,7 +1292,7 @@ function TrainerHome({ data }: { data: DemoState }) {
   const horizonKey = dateKey(horizon);
   const upcoming = data.assignments
     .filter((item) => item.scheduledFor >= todayKey && item.scheduledFor <= horizonKey)
-    .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
+    .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)));
   const todayAssignments = upcoming.filter((item) => item.scheduledFor === todayKey);
   const futureAssignments = upcoming.filter((item) => item.scheduledFor !== todayKey);
   const pendingRequests = data.assignments.filter((item) => item.rescheduleRequest);
@@ -1353,12 +1382,12 @@ function ClientsList({ data }: { data: DemoState }) {
           const balance = subscriptionBalance(data.subscriptionEntries, student.id);
           const assigned = data.assignments
             .filter((item) => item.studentId === student.id && item.status === 'assigned')
-            .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`))[0];
+            .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)))[0];
           const recent = [...data.sessions].reverse().find((item) => item.studentId === student.id && item.completedAt);
           const status = student.status === 'invited'
             ? 'Ожидает приглашения'
             : assigned
-              ? `${formatCalendarDay(assigned.scheduledFor)} · ${assigned.scheduledTime} · ${findAssignmentWorkout(data, assigned)?.name}`
+              ? `${assignmentScheduleLabel(assigned)} · ${findAssignmentWorkout(data, assigned)?.name}`
               : recent
                 ? `Завершил · ${findSessionWorkout(data, recent)?.name}`
                 : 'Нет назначений';
@@ -1384,7 +1413,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   if (!student) return <NotFound />;
   const assignments = data.assignments
     .filter((item) => item.studentId === studentId && item.status === 'assigned')
-    .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
+    .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)));
   const sessions = [...data.sessions].filter((item) => item.studentId === studentId && item.completedAt).reverse();
   return (
     <main className="content-page">
@@ -1397,7 +1426,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
           const workout = findAssignmentWorkout(data, assignment);
           return (
             <button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/assignments/${assignment.id}`)}>
-              <span><strong>{workout?.name}</strong><small>{formatCalendarDay(assignment.scheduledFor)} · {assignment.scheduledTime}</small></span><i><Icon name="chevron-right" /></i>
+              <span><strong>{workout?.name}</strong><small>{assignmentScheduleLabel(assignment)}</small></span><i><Icon name="chevron-right" /></i>
             </button>
           );
         })}</div> : trainerView
@@ -1741,7 +1770,7 @@ function StudentWorkoutHistory({
       const aCompleted = a.status === 'completed' || data.sessions.some((session) => session.assignmentId === a.id && session.completedAt);
       const bCompleted = b.status === 'completed' || data.sessions.some((session) => session.assignmentId === b.id && session.completedAt);
       if (aCompleted !== bCompleted) return aCompleted ? -1 : 1;
-      return `${b.scheduledFor} ${b.scheduledTime}`.localeCompare(`${a.scheduledFor} ${a.scheduledTime}`);
+      return assignmentSortValue(b).localeCompare(assignmentSortValue(a));
     });
   const visibleAssignments = showAllHistory ? previousAssignments : previousAssignments.slice(0, 8);
 
@@ -1762,7 +1791,7 @@ function StudentWorkoutHistory({
             return (
               <button className="workout-history-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
                 <span className="history-copy-icon"><Icon name="copy" /></span>
-                <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{formatCalendarDay(assignment.scheduledFor)} · {assignment.scheduledTime} · {exercisePreview(workout, true)}</p></div>
+                <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{assignmentScheduleLabel(assignment)} · {exercisePreview(workout, true)}</p></div>
                 <Icon name="chevron-right" />
               </button>
             );
@@ -1779,8 +1808,22 @@ type WorkoutComposerValue = {
   name: string;
   scheduledFor?: string;
   scheduledTime?: string;
+  format: TrainingFormat;
   exercises: WorkoutExercise[];
 };
+
+function TrainingFormatField({ value, onChange }: { value: TrainingFormat; onChange: (value: TrainingFormat) => void }) {
+  return (
+    <fieldset className="training-format-field">
+      <legend>Формат</legend>
+      <div>
+        <button type="button" className={value === 'in-person' ? 'selected' : ''} aria-pressed={value === 'in-person'} onClick={() => onChange('in-person')}>Очно</button>
+        <button type="button" className={value === 'online' ? 'selected' : ''} aria-pressed={value === 'online'} onClick={() => onChange('online')}>Онлайн</button>
+      </div>
+      {value === 'online' && <p>Ученик выполнит тренировку самостоятельно в удобное время.</p>}
+    </fieldset>
+  );
+}
 
 type WorkoutComposerDangerAction = {
   label: string;
@@ -1802,6 +1845,7 @@ function WorkoutComposer({
   nameAutoFocus = false,
   initialScheduledFor,
   initialScheduledTime,
+  initialFormat = 'in-person',
   dateLabel,
   timeLabel,
   contextClassName,
@@ -1825,6 +1869,7 @@ function WorkoutComposer({
   nameAutoFocus?: boolean;
   initialScheduledFor?: string;
   initialScheduledTime?: string;
+  initialFormat?: TrainingFormat;
   dateLabel?: string;
   timeLabel?: string;
   contextClassName?: string;
@@ -1837,28 +1882,31 @@ function WorkoutComposer({
   dangerAction?: WorkoutComposerDangerAction;
   onSubmit: (value: WorkoutComposerValue) => void;
 }) {
-  const hasSchedule = initialScheduledFor !== undefined && initialScheduledTime !== undefined;
+  const hasSchedule = initialScheduledFor !== undefined;
   const [name, setName] = useState(initialName);
   const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
   const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
+  const [format, setFormat] = useState<TrainingFormat>(initialFormat);
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initialExercises.map((exercise) => ({ ...exercise })));
   const [error, setError] = useState('');
   const [dangerOpen, setDangerOpen] = useState(false);
-  const [initialFormState] = useState(() => JSON.stringify({ name: initialName, scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, exercises: initialExercises }));
-  const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, exercises });
+  const [initialFormState] = useState(() => JSON.stringify({ name: initialName, scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, format: initialFormat, exercises: initialExercises }));
+  const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, format, exercises });
   const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
-  const ready = Boolean(name.trim() && exercises.length && (!hasSchedule || (scheduledFor && scheduledTime)));
+  const ready = Boolean(name.trim() && exercises.length && (!hasSchedule || (scheduledFor && (format === 'online' || scheduledTime))));
 
   const clearError = () => setError('');
   const submit = () => {
     if (!name.trim()) return setError('Добавь название тренировки.');
-    if (hasSchedule && (!scheduledFor || !scheduledTime)) return setError('Укажи дату и время тренировки.');
+    if (hasSchedule && !scheduledFor) return setError('Укажи рекомендованную дату тренировки.');
+    if (hasSchedule && format === 'in-person' && !scheduledTime) return setError('Укажи дату и время тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
     allowNextNavigation();
     onSubmit({
       name: name.trim(),
       scheduledFor,
-      scheduledTime,
+      scheduledTime: format === 'online' ? undefined : scheduledTime,
+      format,
       exercises: exercises.map((exercise) => ({ ...exercise })),
     });
   };
@@ -1871,7 +1919,8 @@ function WorkoutComposer({
       <section className={`plan-context-card ${contextClassName ?? 'assignment-edit-card'}`}>
         <div className="assignment-edit-person"><Avatar student={student} large={largeStudentAvatar} /><div><span>УЧЕНИК</span><strong>{student.name}</strong>{workoutLabel && <p>{workoutLabel}</p>}</div></div>
         {nameField}
-        {hasSchedule && <WorkoutScheduleFields dateLabel={dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime ?? ''} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
+        {hasSchedule && <TrainingFormatField value={format} onChange={(value) => { setFormat(value); clearError(); }} />}
+        {hasSchedule && <WorkoutScheduleFields dateLabel={format === 'online' ? 'Рекомендованная дата' : dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime} showTime={format === 'in-person'} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
       </section>
       <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
@@ -1899,6 +1948,7 @@ function AssignWorkoutToStudent({
   workout,
   initialScheduledFor = dateKey(),
   initialScheduledTime = '18:00',
+  initialFormat = 'in-person',
   backPath,
   title = 'НАЗНАЧИТЬ ТРЕНИРОВКУ',
   submitLabel,
@@ -1909,11 +1959,12 @@ function AssignWorkoutToStudent({
   workout: Workout;
   initialScheduledFor?: string;
   initialScheduledTime?: string;
+  initialFormat?: TrainingFormat;
   backPath?: string;
   title?: string;
   submitLabel?: string;
   submitIcon?: IconName;
-  onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
+  onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout) => void;
 }) {
   return (
     <WorkoutComposer
@@ -1925,10 +1976,11 @@ function AssignWorkoutToStudent({
       initialName={workout.name}
       initialScheduledFor={initialScheduledFor}
       initialScheduledTime={initialScheduledTime}
+      initialFormat={initialFormat}
       initialExercises={workout.exercises}
       submitLabel={submitLabel ?? `Назначить ${student.name}`}
       submitIcon={submitIcon}
-      onSubmit={({ scheduledFor, scheduledTime, exercises }) => onAssign(scheduledFor!, scheduledTime!, {
+      onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
         ...cloneWorkout(workout),
         exercises,
         updatedAt: new Date().toISOString(),
@@ -1941,14 +1993,16 @@ function NewAssignmentForStudent({
   student,
   initialScheduledFor = dateKey(),
   initialScheduledTime = '18:00',
+  initialFormat = 'in-person',
   backPath,
   onAssign,
 }: {
   student: Student;
   initialScheduledFor?: string;
   initialScheduledTime?: string;
+  initialFormat?: TrainingFormat;
   backPath: string;
-  onAssign: (scheduledFor: string, scheduledTime: string, workoutSnapshot: Workout) => void;
+  onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout) => void;
 }) {
   return (
     <WorkoutComposer
@@ -1962,11 +2016,12 @@ function NewAssignmentForStudent({
       nameAutoFocus
       initialScheduledFor={initialScheduledFor}
       initialScheduledTime={initialScheduledTime}
+      initialFormat={initialFormat}
       contextClassName="assignment-edit-card new-assignment-card"
       initialExercises={[]}
       submitLabel="Назначить тренировку"
       submitIcon="plus"
-      onSubmit={({ name, scheduledFor, scheduledTime, exercises }) => onAssign(scheduledFor!, scheduledTime!, {
+      onSubmit={({ name, scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
         id: makeId('workout'),
         name,
         exercises,
@@ -2002,6 +2057,7 @@ function actualSetLabel(exercise: WorkoutExercise, result: SetResult) {
 }
 
 function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onProgress?: (exercise: WorkoutExercise) => (() => void) | undefined }) {
+  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
   return (
     <section className="readonly-exercise-list">
       {workout.exercises.map((exercise, index) => {
@@ -2011,6 +2067,7 @@ function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onPro
             <header>
               <span>{String(index + 1).padStart(2, '0')}</span>
               <div><h2>{exercise.name}</h2><small>{exerciseMetadata(exercise)}</small></div>
+              <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={() => setInstructionExercise(exercise)} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
             </header>
             <div className="readonly-set-list">
               {getExerciseSetPlans(exercise).map((set, setIndex) => (
@@ -2022,6 +2079,7 @@ function ReadOnlyExerciseList({ workout, onProgress }: { workout: Workout; onPro
           </article>
         );
       })}
+      {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
     </section>
   );
 }
@@ -2137,7 +2195,12 @@ function WorkoutExerciseEditor({
       </div>
 
       {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExercise} />}
-      {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
+      {instructionExercise && <ExerciseInstructionModal
+        exercise={instructionExercise}
+        editable
+        onClose={() => setInstructionExercise(null)}
+        onSave={(patch) => updateExercise(instructionExercise.id, (current) => ({ ...current, ...patch }))}
+      />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
         deleteDisabledReason={actionDeleteDisabledReason}
@@ -2170,8 +2233,8 @@ function AssignmentDetails({
   if (!student || !workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${formatCalendarDay(assignment.scheduledFor)} · ${assignment.scheduledTime}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
-      {assignment.rescheduleRequest && <section className="reschedule-request-card">
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${assignmentScheduleLabel(assignment)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      {assignment.format === 'in-person' && assignment.rescheduleRequest && <section className="reschedule-request-card">
         <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
         <div className="reschedule-request-actions"><ActionButton variant="secondary" icon="close" onClick={onDeclineRequest}>Отклонить</ActionButton><ActionButton icon="check" onClick={onAcceptRequest}>Подтвердить</ActionButton></div>
       </section>}
@@ -2181,7 +2244,7 @@ function AssignmentDetails({
         <button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</button>
       </section>}
       <div className="assignment-detail-actions">
-        {assignment.status === 'assigned' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
+        {assignment.status === 'assigned' && assignment.format === 'in-person' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
         {assignment.status === 'assigned' && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать</ActionButton>}
         <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
       </div>
@@ -2205,10 +2268,10 @@ function StudentAssignmentDetails({
   const workout = findAssignmentWorkout(data, assignment);
   const [requestOpen, setRequestOpen] = useState(false);
   const [scheduledFor, setScheduledFor] = useState(assignment.rescheduleRequest?.scheduledFor ?? assignment.scheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(assignment.rescheduleRequest?.scheduledTime ?? assignment.scheduledTime);
+  const [scheduledTime, setScheduledTime] = useState(assignment.rescheduleRequest?.scheduledTime ?? assignment.scheduledTime ?? '18:00');
   if (!workout) return <NotFound />;
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
-  const canStart = Boolean(activeSession) || assignment.scheduledFor === dateKey();
+  const canStart = assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey();
   const scheduleUnchanged = scheduledFor === assignment.scheduledFor && scheduledTime === assignment.scheduledTime;
   const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
@@ -2218,12 +2281,12 @@ function StudentAssignmentDetails({
       <PageHeader back="/student" eyebrow="Предстоящая тренировка" title={workout.name.toUpperCase()} />
       <section className="student-assignment-schedule">
         <span><Icon name="calendar" /></span>
-        <div><small>ДАТА И ВРЕМЯ</small><strong>{formatScheduleDay(assignment.scheduledFor)}</strong><time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}>{assignment.scheduledTime}</time></div>
+        <div><small>{assignment.format === 'online' ? 'ОНЛАЙН · РЕКОМЕНДОВАННАЯ ДАТА' : 'ДАТА И ВРЕМЯ'}</small><strong>{formatScheduleDay(assignment.scheduledFor)}</strong><time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'В удобное время' : assignmentTimeLabel(assignment)}</time></div>
       </section>
 
-      {assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>}
+      {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
-      {requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
+      {assignment.format === 'in-person' && requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
         <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
         <ActionButton icon="check" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
       </section>}
@@ -2249,7 +2312,7 @@ function RepeatAssignment({
   data: DemoState;
   assignment: Assignment;
   sourceWorkout: Workout;
-  onSave: (scheduledFor: string, scheduledTime: string, workout: Workout) => void;
+  onSave: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workout: Workout) => void;
 }) {
   const student = findStudent(data, assignment.studentId);
   if (!student) return <NotFound />;
@@ -2264,13 +2327,14 @@ function RepeatAssignment({
       initialName={sourceWorkout.name}
       initialScheduledFor={dateKey()}
       initialScheduledTime={assignment.scheduledTime}
+      initialFormat={assignment.format}
       dateLabel="Новая дата"
       contextClassName="repeat-assignment-form"
       largeStudentAvatar
       initialExercises={sourceWorkout.exercises}
       submitLabel="Назначить тренировку"
       submitIcon="plus"
-      onSubmit={({ scheduledFor, scheduledTime, exercises }) => onSave(scheduledFor!, scheduledTime!, { ...cloneWorkout(sourceWorkout), exercises })}
+      onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => onSave(scheduledFor!, scheduledTime, format, { ...cloneWorkout(sourceWorkout), exercises })}
     />
   );
 }
@@ -2291,6 +2355,7 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
       initialName={workout.name}
       initialScheduledFor={assignment.scheduledFor}
       initialScheduledTime={assignment.scheduledTime}
+      initialFormat={assignment.format}
       initialExercises={assignment.workoutSnapshot.exercises}
       submitLabel="Сохранить изменения"
       submitIcon="check"
@@ -2302,12 +2367,14 @@ function EditAssignment({ data, assignment, onSave, onDelete }: { data: DemoStat
         confirmLabel: 'Удалить тренировку',
         onConfirm: () => onDelete(assignment),
       }}
-      onSubmit={({ scheduledFor, scheduledTime, exercises }) => {
+      onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => {
         const exercisesChanged = JSON.stringify(exercises) !== JSON.stringify(workout.exercises);
         onSave({
           ...assignment,
           scheduledFor: scheduledFor!,
-          scheduledTime: scheduledTime!,
+          scheduledTime,
+          format,
+          rescheduleRequest: format === 'online' ? undefined : assignment.rescheduleRequest,
           workoutSnapshot: exercisesChanged ? {
             ...cloneWorkout(workout),
             exercises,
@@ -2323,8 +2390,8 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + 14);
   const assignments = data.assignments
-    .filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned' && item.scheduledFor >= dateKey() && item.scheduledFor <= dateKey(horizon))
-    .sort((a, b) => `${a.scheduledFor} ${a.scheduledTime}`.localeCompare(`${b.scheduledFor} ${b.scheduledTime}`));
+    .filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned' && (item.format === 'online' || item.scheduledFor >= dateKey()) && item.scheduledFor <= dateKey(horizon))
+    .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)));
   const mainAssignment = assignments[0];
   const mainSession = mainAssignment && data.sessions.find((item) => item.assignmentId === mainAssignment.id && !item.completedAt);
   const mainWorkout = mainAssignment && (mainSession ? findSessionWorkout(data, mainSession) : findAssignmentWorkout(data, mainAssignment));
@@ -2342,7 +2409,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
       </section>}
       {mainAssignment ? (
         <section className="student-focus-card">
-          <div className="student-card-top"><time dateTime={`${mainAssignment.scheduledFor}T${mainAssignment.scheduledTime}`}><strong>{formatScheduleDay(mainAssignment.scheduledFor)}</strong><small>{mainAssignment.scheduledTime}</small></time>{mainSession && <b>{mainProgress}%</b>}</div>
+          <div className="student-card-top"><time dateTime={assignmentDateTime(mainAssignment)}><strong>{formatScheduleDay(mainAssignment.scheduledFor)}</strong><small>{assignmentTimeLabel(mainAssignment)}</small></time>{mainSession && <b>{mainProgress}%</b>}</div>
           <div><h2>{mainWorkout?.name}</h2><p>{exercisePreview(mainWorkout)}</p></div>
           {mainSession && <div className="workout-progress"><span style={{ width: `${mainProgress}%` }} /></div>}
           <button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</button>
@@ -2353,7 +2420,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
         <div className="section-heading"><h2>Следующие тренировки</h2></div>
         <div>{laterAssignments.map((assignment) => {
           const workout = findAssignmentWorkout(data, assignment);
-          return <button className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><time dateTime={`${assignment.scheduledFor}T${assignment.scheduledTime}`}><strong>{formatCalendarDay(assignment.scheduledFor)}</strong><small>{assignment.scheduledTime}</small></time><span><strong>{workout?.name}</strong><small>{exercisePreview(workout)}</small></span><Icon name="chevron-right" /></button>;
+          return <button className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><time dateTime={assignmentDateTime(assignment)}><strong>{formatCalendarDay(assignment.scheduledFor)}</strong><small>{assignmentTimeLabel(assignment)}</small></time><span><strong>{workout?.name}</strong><small>{exercisePreview(workout)}</small></span><Icon name="chevron-right" /></button>;
         })}</div>
       </section>}
     </main>
@@ -2370,6 +2437,7 @@ function ActiveWorkout({
   student,
   scheduledFor,
   scheduledTime,
+  format,
   backPath,
   onStart,
   onUpdate,
@@ -2382,7 +2450,8 @@ function ActiveWorkout({
   session?: WorkoutSession;
   student?: Student;
   scheduledFor: string;
-  scheduledTime: string;
+  scheduledTime?: string;
+  format: TrainingFormat;
   backPath: string;
   onStart: () => void;
   onUpdate: (sessionId: string, results: SetResult[]) => void;
@@ -2511,7 +2580,7 @@ function ActiveWorkout({
       <div className="active-sticky-header">
         <header className="active-header">
           <button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></button>
-          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
+          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
           <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
         </header>
         <div className="active-progress" role="progressbar" aria-label="Прогресс тренировки" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: progress + '%' }} /></div>
@@ -2550,7 +2619,12 @@ function ActiveWorkout({
       </section>
 
       {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} />}
-      {instructionExercise && <ExerciseInstructionModal exercise={instructionExercise} onClose={() => setInstructionExercise(null)} />}
+      {instructionExercise && <ExerciseInstructionModal
+        exercise={instructionExercise}
+        editable={trainerCanWaiveCharge}
+        onClose={() => setInstructionExercise(null)}
+        onSave={(patch) => updateWorkout(workout.exercises.map((exercise) => exercise.id === instructionExercise.id ? { ...exercise, ...patch } : exercise))}
+      />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
         deleteDisabledReason={actionDeleteDisabledReason}
@@ -2595,22 +2669,114 @@ function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose,
   );
 }
 
-function ExerciseInstructionModal({ exercise, onClose }: { exercise: WorkoutExercise; onClose: () => void }) {
+const MAX_INSTRUCTION_VIDEO_BYTES = 100 * 1024 * 1024;
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
+  return `${(bytes / (1024 * 1024)).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} МБ`;
+}
+
+function ExerciseInstructionModal({
+  exercise,
+  editable = false,
+  onClose,
+  onSave,
+}: {
+  exercise: WorkoutExercise;
+  editable?: boolean;
+  onClose: () => void;
+  onSave?: (patch: Pick<WorkoutExercise, 'instructionText' | 'instructionVideo'>) => void;
+}) {
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
   const resolvedEquipment = exercise.equipment ?? definition?.equipment;
   const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
+  const [instructionText, setInstructionText] = useState(exercise.instructionText ?? '');
+  const [instructionVideo, setInstructionVideo] = useState(exercise.instructionVideo);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoMissing, setVideoMissing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    void Promise.resolve().then(async () => {
+      if (cancelled) return;
+      setVideoMissing(false);
+      setVideoUrl(null);
+      if (pendingFile) {
+        objectUrl = URL.createObjectURL(pendingFile);
+        setVideoUrl(objectUrl);
+        return;
+      }
+      if (!instructionVideo) return;
+      try {
+        const blob = await loadInstructionVideo(instructionVideo.id);
+        if (cancelled) return;
+        if (!blob) return setVideoMissing(true);
+        objectUrl = URL.createObjectURL(blob);
+        setVideoUrl(objectUrl);
+      } catch {
+        if (!cancelled) setVideoMissing(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [instructionVideo, pendingFile]);
+
+  const chooseVideo = (file?: File) => {
+    setError('');
+    if (!file) return;
+    if (!file.type.startsWith('video/')) return setError('Выбери видеофайл.');
+    if (file.size > MAX_INSTRUCTION_VIDEO_BYTES) return setError('Видео должно быть не больше 100 МБ.');
+    setPendingFile(file);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const nextVideo = pendingFile ? await saveInstructionVideo(pendingFile) : instructionVideo;
+      onSave?.({ instructionText: instructionText.trim() || undefined, instructionVideo: nextVideo });
+      onClose();
+    } catch {
+      setError('Не удалось сохранить видео. Попробуй ещё раз.');
+      setSaving(false);
+    }
+  };
+
+  const instruction = exercise.instructionText?.trim();
   return (
     <ModalFrame title={exercise.name} className="exercise-instruction-sheet" ariaLabel={'Как выполнять — ' + exercise.name} closeLabel="Закрыть описание" onClose={onClose}>
       <div className="exercise-instruction-body">
-        <div className="exercise-instruction-media"><Icon name="workout" /><span>Видео и изображения появятся здесь</span></div>
+        <div className={`exercise-instruction-media ${videoUrl ? 'has-video' : ''}`}>
+          {videoUrl
+            ? <video controls playsInline preload="metadata" src={videoUrl} aria-label={'Видео упражнения — ' + exercise.name} />
+            : <><Icon name="workout" /><span>{videoMissing ? 'Видео недоступно в этом браузере' : editable ? 'Добавь короткое видео с техникой' : 'Тренер пока не добавил видео'}</span></>}
+        </div>
+        {editable && <div className="instruction-video-actions">
+          <label className="wide-secondary">
+            <Icon name={instructionVideo || pendingFile ? 'change' : 'plus'} />
+            <span>{instructionVideo || pendingFile ? 'Заменить видео' : 'Записать или выбрать видео'}</span>
+            <input type="file" accept="video/*" onChange={(event) => chooseVideo(event.target.files?.[0])} />
+          </label>
+          {(instructionVideo || pendingFile) && <button type="button" className="instruction-video-remove" onClick={() => { setInstructionVideo(undefined); setPendingFile(null); setError(''); }}><Icon name="trash" /> Удалить</button>}
+        </div>}
+        {(instructionVideo || pendingFile) && <p className="instruction-video-meta">{pendingFile?.name ?? instructionVideo?.name} · {formatFileSize(pendingFile?.size ?? instructionVideo?.size ?? 0)}</p>}
+        {editable && <p className="instruction-video-helper">Короткий ролик: 2–3 повтора, до 100 МБ.</p>}
         {equipment && <div className="exercise-equipment"><small>ОБОРУДОВАНИЕ</small><strong>{equipment}</strong></div>}
         <h3>Как выполнять</h3>
-        <p>Займи устойчивое исходное положение и выполни движение плавно, без рывков. Сохраняй контроль корпуса и комфортную амплитуду на протяжении всего подхода.</p>
-        <ul>
-          <li>Перед рабочим весом сделай разминочный подход.</li>
-          <li>Выдыхай на усилии и не задерживай дыхание.</li>
-          <li>Остановись, если появляется резкая боль или теряется техника.</li>
-        </ul>
+        {editable
+          ? <textarea className="instruction-textarea" aria-label="Подробное описание упражнения" maxLength={1500} value={instructionText} onChange={(event) => setInstructionText(event.target.value)} placeholder="Опиши исходное положение, движение, дыхание и требования к технике" />
+          : instruction
+            ? <p className="instruction-copy">{instruction}</p>
+            : <p className="instruction-empty">Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли.</p>}
+        {error && <FormError>{error}</FormError>}
+        {editable && <ActionButton icon="check" disabled={saving} onClick={() => void save()}>{saving ? 'Сохраняем…' : 'Сохранить инструкцию'}</ActionButton>}
       </div>
     </ModalFrame>
   );

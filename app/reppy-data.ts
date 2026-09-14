@@ -1,5 +1,14 @@
 export type Role = 'trainer' | 'student';
 export type MoodRating = 'great' | 'good' | 'tired' | 'hard';
+export type TrainingFormat = 'in-person' | 'online';
+
+export type InstructionVideo = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+};
 
 export type Student = {
   id: string;
@@ -23,6 +32,8 @@ export type WorkoutExercise = {
   measureType: 'reps' | 'duration';
   plannedSets: WorkoutSetPlan[];
   coachNote?: string;
+  instructionText?: string;
+  instructionVideo?: InstructionVideo;
 };
 
 export type WorkoutSetPlan = {
@@ -43,7 +54,8 @@ export type Assignment = {
   studentId: string;
   assignedAt: string;
   scheduledFor: string;
-  scheduledTime: string;
+  scheduledTime?: string;
+  format: TrainingFormat;
   status: 'assigned' | 'completed';
   workoutSnapshot: Workout;
   repeatedFromAssignmentId?: string;
@@ -95,7 +107,7 @@ export type SubscriptionEntry = {
 };
 
 export type DemoState = {
-  schemaVersion: 5;
+  schemaVersion: 6;
   loggedIn: boolean;
   role: Role;
   activeStudentId: string;
@@ -215,6 +227,8 @@ export function normalizeWorkoutExercise(exercise: WorkoutExercise | LegacyWorko
     measureType,
     plannedSets: [],
     coachNote: exercise.coachNote,
+    instructionText: exercise.instructionText,
+    instructionVideo: exercise.instructionVideo ? { ...exercise.instructionVideo } : undefined,
   };
   return withExerciseSetPlans(withMetadata, getExerciseSetPlans(exercise));
 }
@@ -322,6 +336,7 @@ function createDemoAssignments(now: string, plans: Workout[]): Assignment[] {
       assignedAt: now,
       scheduledFor: after(days),
       scheduledTime,
+      format: 'in-person',
       status: 'assigned',
       workoutSnapshot: cloneWorkout(workout),
     };
@@ -363,6 +378,7 @@ function createArtemLegHistory(plans: Workout[]): { assignments: Assignment[]; s
       assignedAt: new Date(date.getTime() - 24 * 60 * 60 * 1000).toISOString(),
       scheduledFor: dateKey(date),
       scheduledTime: '19:00',
+      format: 'in-person',
       status: 'completed',
       workoutSnapshot: cloneWorkout(workout),
     };
@@ -447,7 +463,7 @@ export function createInitialState(): DemoState {
   const artemHistory = createArtemLegHistory(plans);
 
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     loggedIn: false,
     role: 'trainer',
     activeStudentId: 'artem',
@@ -480,12 +496,13 @@ const demoHealthDefaults: Record<string, Pick<Student, 'height' | 'weight' | 'ge
   anton: { height: 176, weight: 74, gender: 'male', phone: '+7 925 318-64-09', contraindications: 'Протрузия поясничного отдела. Избегать резкой осевой нагрузки.' },
 };
 
-type PersistedAssignment = Omit<Assignment, 'scheduledFor' | 'scheduledTime' | 'workoutSnapshot'> & {
+type PersistedAssignment = Omit<Assignment, 'scheduledFor' | 'scheduledTime' | 'format' | 'workoutSnapshot'> & {
   scheduledFor?: string;
   scheduledTime?: string;
   workoutSnapshot?: Workout;
   workoutId?: string;
   source?: string;
+  format?: TrainingFormat;
 };
 
 type PersistedWorkoutSession = Omit<WorkoutSession, 'workoutSnapshot' | 'recordedBy'> & {
@@ -537,7 +554,8 @@ export function migrateDemoState(state: PersistedDemoState): DemoState {
       ...currentAssignment,
       studentId: currentId(assignment.studentId),
       scheduledFor: assignment.scheduledFor ?? dateKey(new Date(assignment.assignedAt)),
-      scheduledTime: assignment.scheduledTime ?? '18:00',
+      scheduledTime: assignment.format === 'online' ? undefined : assignment.scheduledTime ?? '18:00',
+      format: assignment.format ?? 'in-person',
       workoutSnapshot: normalizeWorkout(assignment.workoutSnapshot ?? fallback),
     };
   });
@@ -574,7 +592,7 @@ export function migrateDemoState(state: PersistedDemoState): DemoState {
   });
 
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     loggedIn: state.loggedIn,
     role: state.role,
     activeStudentId: currentId(state.activeStudentId),
@@ -714,7 +732,7 @@ export function repeatAssignment(
   source: Assignment,
   sourceWorkout: Workout,
   scheduledFor: string,
-  scheduledTime: string,
+  scheduledTime: string | undefined,
   now = new Date().toISOString(),
 ): Assignment {
   return {
@@ -723,6 +741,7 @@ export function repeatAssignment(
     assignedAt: now,
     scheduledFor,
     scheduledTime,
+    format: source.format ?? 'in-person',
     status: 'assigned',
     workoutSnapshot: {
       ...cloneWorkout(sourceWorkout),

@@ -41,6 +41,7 @@ test('миграция переносит старые шаблоны в сни�
   legacy.workouts = [legacyWorkout];
   legacy.studentWorkoutVersions = [];
   legacy.assignments[0].workoutId = legacyWorkout.id;
+  delete legacy.assignments[0].format;
   delete legacy.assignments[0].workoutSnapshot;
   legacy.sessions.push({
     id: 'legacy-session',
@@ -61,6 +62,7 @@ test('миграция переносит старые шаблоны в сни�
   assert.equal('studentWorkoutVersions' in migrated, false);
   assert.equal('workoutId' in assignment, false);
   assert.equal('source' in assignment, false);
+  assert.equal(assignment.format, 'in-person');
   assert.ok(session?.workoutSnapshot.exercises.length > 0);
   assert.equal('workoutId' in session, false);
   assert.notStrictEqual(session?.workoutSnapshot, assignment.workoutSnapshot);
@@ -70,7 +72,7 @@ test('миграция переносит старые шаблоны в сни�
 
 test('состояние использует явную версию схемы и единый массив подходов', () => {
   const state = createInitialState();
-  assert.equal(state.schemaVersion, 5);
+  assert.equal(state.schemaVersion, 6);
   assert.equal('workouts' in state, false);
   assert.equal('studentWorkoutVersions' in state, false);
   for (const workout of state.assignments.map((assignment) => assignment.workoutSnapshot)) {
@@ -117,7 +119,7 @@ test('миграция удаляет агрегатные поля упражн
   const migrated = migrateDemoState(legacy);
   const migratedExercise = migrated.assignments.find((assignment) => assignment.id === legacy.assignments[0].id).workoutSnapshot.exercises[0];
 
-  assert.equal(migrated.schemaVersion, 5);
+  assert.equal(migrated.schemaVersion, 6);
   assert.deepEqual(getExerciseSetPlans(migratedExercise), [
     { targetReps: 7, targetWeight: 42.5 },
     { targetReps: 7, targetWeight: 42.5 },
@@ -175,6 +177,29 @@ test('повтор копирует тренировку тому же учен�
 
   repeated.workoutSnapshot.exercises[0].plannedSets[0].targetWeight += 20;
   assert.notEqual(getExerciseSetPlans(repeated.workoutSnapshot.exercises[0])[0].targetWeight, getExerciseSetPlans(sourceWorkout.exercises[0])[0].targetWeight);
+});
+
+test('онлайн-формат и инструкция упражнения сохраняются в повторе', () => {
+  const state = createInitialState();
+  const source = structuredClone(state.assignments[0]);
+  source.format = 'online';
+  delete source.scheduledTime;
+  source.workoutSnapshot.exercises[0].instructionText = 'Поставь стопы под коленями и сохрани нейтральную спину.';
+  source.workoutSnapshot.exercises[0].instructionVideo = {
+    id: 'video-technique-1',
+    name: 'Техника.mp4',
+    mimeType: 'video/mp4',
+    size: 2048,
+    createdAt: '2026-09-01T12:00:00.000Z',
+  };
+
+  const repeated = repeatAssignment(source, source.workoutSnapshot, '2026-09-12', undefined, '2026-09-01T12:00:00.000Z');
+
+  assert.equal(repeated.format, 'online');
+  assert.equal(repeated.scheduledTime, undefined);
+  assert.equal(repeated.workoutSnapshot.exercises[0].instructionText, source.workoutSnapshot.exercises[0].instructionText);
+  assert.deepEqual(repeated.workoutSnapshot.exercises[0].instructionVideo, source.workoutSnapshot.exercises[0].instructionVideo);
+  assert.notStrictEqual(repeated.workoutSnapshot.exercises[0].instructionVideo, source.workoutSnapshot.exercises[0].instructionVideo);
 });
 
 test('повтор завершённой тренировки берёт факт выполненных подходов и план остальных', () => {
