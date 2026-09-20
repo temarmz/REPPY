@@ -286,17 +286,16 @@ select is((select count(*)::integer from public.subscription_entries), 1, 'train
 select is((select count(*)::integer from public.instruction_videos), 1, 'trainer sees only their own video metadata');
 select is((select count(*)::integer from public.student_invitations), 1, 'trainer sees only their own invitations');
 
-select is(
-  (
+select is_empty(
+  $$
     with updated as (
       update public.assignments
       set scheduled_for = scheduled_for + 1
       where id = '41000000-0000-4000-8000-000000000001'
       returning id
     )
-    select count(*)::integer from updated
-  ),
-  0,
+    select id from updated
+  $$,
   'completed assignments cannot be changed through the Data API'
 );
 
