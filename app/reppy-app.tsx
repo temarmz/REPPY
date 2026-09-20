@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   TRAINER_NAME,
   cloneWorkout,
@@ -62,6 +62,8 @@ import {
 } from './instruction-video-repository';
 import { useReppyAuth } from './reppy-auth';
 import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen } from './auth-screens';
+import { getSupabaseClient } from './supabase-client';
+import { createSupabaseRepository } from './supabase-repository';
 
 const COPY = {
   createWorkout: 'Создать тренировку',
@@ -346,8 +348,12 @@ function preloadAsset(path: string) {
 }
 
 export default function ReppyApp() {
-  const { data, hydrated, persistencePhase, retryPersistence, reset: resetData, setData } = useReppyData();
   const auth = useReppyAuth();
+  const remoteRepository = useMemo(() => {
+    const client = getSupabaseClient();
+    return client && auth.profile ? createSupabaseRepository(client, auth.profile) : null;
+  }, [auth.profile]);
+  const { data, hydrated, persistencePhase, retryPersistence, reset: resetData, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
@@ -3068,7 +3074,7 @@ function SettingsModal({ accountMode = false, onClose, onReset, onSignOut, onOpe
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   return (
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить локальные данные?' : accountMode ? 'Настройки аккаунта' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel={accountMode ? 'Настройки аккаунта' : 'Настройки демо'} onClose={onClose}>
-      <p>{resetConfirmationOpen ? 'Все локальные изменения в учениках, тренировках и расписании будут удалены.' : accountMode ? 'Аккаунт уже защищён Supabase Auth. Данные тренировок пока сохраняются на этом устройстве.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
+      <p>{resetConfirmationOpen ? 'Все локальные изменения в учениках, тренировках и расписании будут удалены.' : accountMode ? 'Аккаунт защищён Supabase Auth, а данные тренировок синхронизируются через Supabase.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
       {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions"><ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}</div>}
     </ModalFrame>
   );

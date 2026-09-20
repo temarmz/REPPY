@@ -1,6 +1,6 @@
 begin;
 
-select plan(16);
+select plan(21);
 
 insert into auth.users (id)
 values
@@ -43,14 +43,42 @@ select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002
 set local role authenticated;
 
 select lives_ok(
-  $$select public.start_workout_session('40000000-0000-4000-8000-000000000001')$$,
-  'student can start an assigned workout'
+  $$select public.request_assignment_reschedule(
+    '40000000-0000-4000-8000-000000000001',
+    current_date + 1,
+    '20:30'
+  )$$,
+  'student can request a new date and time'
+);
+
+select is(
+  (
+    select reschedule_scheduled_for::text || ' ' || to_char(reschedule_scheduled_time, 'HH24:MI')
+    from public.assignments
+    where id = '40000000-0000-4000-8000-000000000001'
+  ),
+  (current_date + 1)::text || ' 20:30',
+  'reschedule request is stored without changing the assignment schedule'
+);
+
+select lives_ok(
+  $$select public.start_workout_session_with_id(
+    '40000000-0000-4000-8000-000000000001',
+    '50000000-0000-4000-8000-000000000099'
+  )$$,
+  'student can start an assigned workout with a client-generated id'
 );
 
 select is(
   (select count(*)::integer from public.workout_sessions),
   1,
   'starting a workout creates one visible session'
+);
+
+select is(
+  (select id from public.workout_sessions),
+  '50000000-0000-4000-8000-000000000099'::uuid,
+  'session keeps the client-generated id'
 );
 
 select lives_ok(
@@ -105,6 +133,21 @@ select lives_ok(
     false
   )$$,
   'student can complete a workout'
+);
+
+select lives_ok(
+  $$select public.save_session_feedback(
+    '50000000-0000-4000-8000-000000000099',
+    'great',
+    'Strong session'
+  )$$,
+  'student can save feedback for a completed workout'
+);
+
+select is(
+  (select mood::text || ': ' || comment from public.workout_sessions),
+  'great: Strong session',
+  'completed workout feedback is persisted'
 );
 
 select is(

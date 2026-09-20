@@ -23,15 +23,17 @@ function toError(reason: unknown) {
 }
 
 export function useReppyData(
-  repositoryFactory: () => ReppyRepository = createBrowserRepository,
+  requestedRepository?: ReppyRepository | null,
 ): ReppyDataController {
-  const [repository] = useState(repositoryFactory);
+  const [browserRepository] = useState(createBrowserRepository);
+  const repository = requestedRepository ?? browserRepository;
   const [data, setData] = useState<DemoState>(() => createInitialState());
   const [hydrated, setHydrated] = useState(false);
   const [persistencePhase, setPersistencePhase] = useState<PersistencePhase>('loading');
   const [persistenceError, setPersistenceError] = useState<Error | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveAttempt, setSaveAttempt] = useState(0);
+  const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
 
@@ -41,6 +43,7 @@ export function useReppyData(
     void repository.load()
       .then((nextData) => {
         if (cancelled) return;
+        setLoadedRepository(repository);
         setData(nextData);
         setHydrated(true);
         setPersistencePhase('idle');
@@ -58,7 +61,7 @@ export function useReppyData(
   }, [loadAttempt, repository]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || loadedRepository !== repository) return;
     let cancelled = false;
     const version = ++saveVersionRef.current;
     const snapshot = data;
@@ -89,7 +92,7 @@ export function useReppyData(
     return () => {
       cancelled = true;
     };
-  }, [data, hydrated, repository, saveAttempt]);
+  }, [data, hydrated, loadedRepository, repository, saveAttempt]);
 
   const retryPersistence = useCallback(() => {
     if (hydrated) {
@@ -106,5 +109,13 @@ export function useReppyData(
     setPersistenceError(null);
   }, []);
 
-  return { data, hydrated, persistencePhase, persistenceError, retryPersistence, reset, setData };
+  return {
+    data,
+    hydrated: hydrated && loadedRepository === repository,
+    persistencePhase,
+    persistenceError,
+    retryPersistence,
+    reset,
+    setData,
+  };
 }
