@@ -12,9 +12,16 @@
     "lint": "eslint .",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:e2e": "npm run build:pages && playwright test",
-    "typecheck": "tsc --noEmit --incremental false"
+    "typecheck": "tsc --noEmit --incremental false",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "db:reset": "supabase db reset --local",
+    "db:lint": "supabase db lint --local --level warning --fail-on error",
+    "db:test": "supabase test db",
+    "trainer:create": "node --env-file-if-exists=.env.admin.local scripts/create-trainer.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
@@ -26,6 +33,7 @@
     "@vitejs/plugin-react": "6.0.2",
     "eslint": "9.39.4",
     "eslint-plugin-react-hooks": "7.1.1",
+    "supabase": "2.117.0",
     "typescript": "5.9.3",
     "typescript-eslint": "8.68.0",
     "vite": "^8.2.2"

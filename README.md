@@ -44,5 +44,6 @@ npm run test:e2e
 - [ТЗ: абонементы учеников](docs/subscriptions.md)
 - [ТЗ: асинхронные онлайн-тренировки](docs/online-workouts.md)
 - [Актуальный backlog](docs/backlog.md)
+- [Backend: стек, схема и локальный запуск](docs/backend.md)
 - [Архив завершённого ТЗ по модели тренировок](docs/archive/training-assignment-model.md)
 - [Архитектура данных и путь к backend](docs/data-architecture.md)

@@ -1,0 +1,2 @@
+-- Product reference data is installed by migrations so every environment is
+-- consistent. Development users will be added here when auth is connected.

@@ -30,6 +30,8 @@ yarn-error.log*
 
 # local environment
 .env*
+!.env.example
+!.env.admin.example
 
 # deployment and generated files
 .vercel

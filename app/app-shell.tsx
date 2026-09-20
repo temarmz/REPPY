@@ -60,7 +60,7 @@ export default function AppShell({
   displayName: string;
   hideBottomNav: boolean;
   onNavigate: (path: string, replace?: boolean) => void;
-  onSwitchRole: () => void;
+  onSwitchRole?: () => void;
   theme: AppTheme;
   onToggleTheme: () => void;
   onSettings: () => void;
@@ -89,10 +89,10 @@ export default function AppShell({
           <img className="brand-logo" src="logo-text.png" alt="" />
         </button>
         <div className="topbar-actions">
-          <button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${roleToOpen}`} title={`Переключиться в роль ${roleToOpen}`}>
+          {onSwitchRole && <button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${roleToOpen}`} title={`Переключиться в роль ${roleToOpen}`}>
             <span>DEMO</span>
             <Icon name="change" />
-          </button>
+          </button>}
           <button className="theme-switch" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'} title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
           <button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
             {initials(displayName)}
@@ -108,7 +108,7 @@ export default function AppShell({
           <div><strong>{displayName}</strong><small>{area === 'trainer' ? 'Персональный тренер' : 'Ученик'}</small></div>
         </div>
         <nav>{navigation}</nav>
-        <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>
+        {onSwitchRole && <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>}
       </aside>}
 
       <div className="page-wrap page-transition" key={path.split('?')[0]}>{children}</div>

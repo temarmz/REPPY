@@ -945,6 +945,20 @@ body.modal-open .bottom-nav { display: none; }
 .invitation-card h1 { margin: 0; font-size: clamp(39px, 8vw, 64px); line-height: .9; letter-spacing: normal; }
 .invitation-card > p:not(.eyebrow) { margin: 23px 0 31px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 
+.auth-screen { display: grid; min-height: 100svh; place-items: center; padding: 24px; background: radial-gradient(circle at 75% 15%, rgba(198,255,61,.08), transparent 32%), var(--ink); }
+.auth-card { width: min(100%, 500px); border: 1px solid rgba(255,255,255,.08); border-radius: 32px; padding: clamp(26px, 6vw, 48px); background: linear-gradient(145deg, #171b17, #0f120f); box-shadow: 0 30px 90px rgba(0,0,0,.3); }
+.auth-logo { display: block; width: 126px; height: auto; margin: 0 0 52px -17px; }
+.auth-card h1 { margin: 7px 0 0; font-size: clamp(38px, 9vw, 58px); line-height: .92; }
+.auth-description { margin: 19px 0 26px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.auth-form { display: grid; gap: 16px; }
+.auth-form > div { display: grid; gap: 8px; }
+.auth-form .primary-button { width: 100%; margin-top: 4px; }
+.auth-form .primary-button:disabled { cursor: wait; opacity: .6; }
+.auth-text-button { min-height: 44px; margin: 10px auto -10px; border: 0; background: transparent; color: #cbd0c9; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; }
+.form-notice { margin: 0; border-radius: 14px; padding: 12px 14px; background: rgba(198,255,61,.08); color: var(--lime); font-size: 12px; line-height: 1.45; }
+.auth-invitation-card .auth-form { margin-top: 26px; }
+.auth-invitation-card .auth-text-button { margin-bottom: 0; }
+
 .settings-modal { width: min(100%, 520px); max-height: calc(100dvh - 16px); overflow-y: auto; border-radius: 30px; padding: 25px; background: #171b17; }
 .settings-modal .sheet-title { align-items: flex-start; }
 .settings-modal .eyebrow { margin: 0 0 7px; }
