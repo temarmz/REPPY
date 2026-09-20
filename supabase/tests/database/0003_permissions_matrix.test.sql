@@ -1,6 +1,6 @@
 begin;
 
-select plan(34);
+select plan(36);
 
 insert into auth.users (id)
 values
@@ -285,6 +285,32 @@ select is((select count(*)::integer from public.set_results), 1, 'trainer sees o
 select is((select count(*)::integer from public.subscription_entries), 1, 'trainer sees only their own subscription ledger');
 select is((select count(*)::integer from public.instruction_videos), 1, 'trainer sees only their own video metadata');
 select is((select count(*)::integer from public.student_invitations), 1, 'trainer sees only their own invitations');
+
+insert into public.students (id, created_by, name)
+values (
+  '21000000-0000-4000-8000-000000000099',
+  '11000000-0000-4000-8000-000000000001',
+  'Pending Student'
+);
+
+select is(
+  (select count(*)::integer from public.students where id = '21000000-0000-4000-8000-000000000099'),
+  1,
+  'trainer can read a student they created before creating the relationship'
+);
+
+select lives_ok(
+  $$
+    insert into public.students (id, created_by, name)
+    values (
+      '21000000-0000-4000-8000-000000000098',
+      '11000000-0000-4000-8000-000000000001',
+      'Returning Student'
+    )
+    returning id
+  $$,
+  'trainer can create a student through Data API insert returning'
+);
 
 select is_empty(
   $$
