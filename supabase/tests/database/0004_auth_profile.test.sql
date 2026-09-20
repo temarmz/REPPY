@@ -1,6 +1,6 @@
 begin;
 
-select plan(10);
+select plan(11);
 
 select has_trigger(
   'auth',
@@ -58,6 +58,18 @@ select is(
   (select count(*)::integer from public.profiles where id = '12000000-0000-4000-8000-000000000003'),
   0,
   'auth users without trusted app metadata receive no application profile'
+);
+
+update auth.users
+set
+  raw_user_meta_data = '{"display_name":"Delayed Metadata Coach"}',
+  raw_app_meta_data = '{"reppy_role":"trainer"}'
+where id = '12000000-0000-4000-8000-000000000003';
+
+select is(
+  (select role::text from public.profiles where id = '12000000-0000-4000-8000-000000000003'),
+  'trainer',
+  'trusted trainer metadata added after account creation creates the profile'
 );
 
 select throws_ok(
