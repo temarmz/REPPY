@@ -2010,7 +2010,7 @@ function WorkoutComposer({
         {hasSchedule && <TrainingFormatField value={format} onChange={(value) => { setFormat(value); clearError(); }} />}
         {hasSchedule && <WorkoutScheduleFields dateLabel={format === 'online' ? 'Рекомендованная дата' : dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime} showTime={format === 'in-person'} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
       </section>
-      <WorkoutExerciseEditor exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
+      <WorkoutExerciseEditor studentId={student.id} exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
       <div className="plan-sticky-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
@@ -2182,10 +2182,12 @@ type ExercisePickerChoice = {
 };
 
 function WorkoutExerciseEditor({
+  studentId,
   exercises,
   onChange,
   minSetsByExerciseId = {},
 }: {
+  studentId: string;
   exercises: WorkoutExercise[];
   onChange: (exercises: WorkoutExercise[]) => void;
   minSetsByExerciseId?: Record<string, number>;
@@ -2285,6 +2287,7 @@ function WorkoutExerciseEditor({
       {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
+        studentId={studentId}
         editable
         onClose={() => setInstructionExercise(null)}
         onSave={(patch) => updateExercise(instructionExercise.id, (current) => ({ ...current, ...patch }))}
@@ -2709,6 +2712,7 @@ function ActiveWorkout({
       {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
+        studentId={student?.id}
         editable={trainerCanWaiveCharge}
         onClose={() => setInstructionExercise(null)}
         onSave={(patch) => updateWorkout(workout.exercises.map((exercise) => exercise.id === instructionExercise.id ? { ...exercise, ...patch } : exercise))}
@@ -2766,11 +2770,13 @@ function formatFileSize(bytes: number) {
 
 function ExerciseInstructionModal({
   exercise,
+  studentId,
   editable = false,
   onClose,
   onSave,
 }: {
   exercise: WorkoutExercise;
+  studentId?: string;
   editable?: boolean;
   onClose: () => void;
   onSave?: (patch: Pick<WorkoutExercise, 'instructionText' | 'instructionVideo'>) => void;
@@ -2828,7 +2834,7 @@ function ExerciseInstructionModal({
     setSaving(true);
     setError('');
     try {
-      const nextVideo = pendingFile ? await saveInstructionVideo(pendingFile) : instructionVideo;
+      const nextVideo = pendingFile ? await saveInstructionVideo(pendingFile, studentId) : instructionVideo;
       onSave?.({ instructionText: instructionText.trim() || undefined, instructionVideo: nextVideo });
       onClose();
     } catch {

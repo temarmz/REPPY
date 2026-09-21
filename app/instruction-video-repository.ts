@@ -1,4 +1,5 @@
 import type { InstructionVideo } from './reppy-data';
+import { getSupabaseClient } from './supabase-client';
 
 const DATABASE_NAME = 'reppy-instruction-media-v0';
 const STORE_NAME = 'videos';
@@ -24,7 +25,62 @@ function videoId() {
   return `instruction-video-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 }
 
-export async function saveInstructionVideo(file: File): Promise<InstructionVideo> {
+function safeFileName(name: string) {
+  const normalized = name.normalize('NFKC').replace(/[^\p{L}\p{N}._-]+/gu, '-').replace(/^-+|-+$/g, '');
+  return (normalized || 'instruction-video.mp4').slice(-180);
+}
+
+async function authenticatedClient() {
+  const client = getSupabaseClient();
+  if (!client) return null;
+  const { data, error } = await client.auth.getSession();
+  if (error) throw new Error(error.message);
+  return data.session ? { client, userId: data.session.user.id } : null;
+}
+
+export async function saveInstructionVideo(file: File, studentId?: string): Promise<InstructionVideo> {
+  const authenticated = studentId ? await authenticatedClient() : null;
+  if (authenticated) {
+    const { client, userId } = authenticated;
+    const relationshipResult = await client
+      .from('trainer_student_relationships')
+      .select('id')
+      .eq('student_id', studentId)
+      .maybeSingle();
+    if (relationshipResult.error) throw new Error(relationshipResult.error.message);
+    if (!relationshipResult.data) throw new Error('Не найдена связь с учеником для загрузки видео.');
+
+    const id = crypto.randomUUID();
+    const objectPath = `${relationshipResult.data.id}/${id}/${safeFileName(file.name)}`;
+    const uploaded = await client.storage.from('instruction-videos').upload(objectPath, file, {
+      cacheControl: '3600',
+      contentType: file.type || 'video/mp4',
+      upsert: false,
+    });
+    if (uploaded.error) throw new Error(uploaded.error.message);
+
+    const metadata = await client.from('instruction_videos').insert({
+      id,
+      relationship_id: relationshipResult.data.id,
+      uploaded_by: userId,
+      object_path: objectPath,
+      file_name: file.name || 'Видео упражнения',
+      mime_type: file.type || 'video/mp4',
+      byte_size: file.size,
+    });
+    if (metadata.error) {
+      await client.storage.from('instruction-videos').remove([objectPath]);
+      throw new Error(metadata.error.message);
+    }
+    return {
+      id,
+      name: file.name || 'Видео упражнения',
+      mimeType: file.type || 'video/mp4',
+      size: file.size,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
   const video: StoredInstructionVideo = {
     id: videoId(),
     name: file.name || 'Видео упражнения',
@@ -52,6 +108,22 @@ export async function saveInstructionVideo(file: File): Promise<InstructionVideo
 }
 
 export async function loadInstructionVideo(id: string): Promise<Blob | null> {
+  if (!id.startsWith('instruction-video-')) {
+    const authenticated = await authenticatedClient();
+    if (!authenticated) return null;
+    const { client } = authenticated;
+    const metadata = await client
+      .from('instruction_videos')
+      .select('object_path')
+      .eq('id', id)
+      .maybeSingle();
+    if (metadata.error) throw new Error(metadata.error.message);
+    if (!metadata.data) return null;
+    const downloaded = await client.storage.from('instruction-videos').download(metadata.data.object_path);
+    if (downloaded.error) throw new Error(downloaded.error.message);
+    return downloaded.data;
+  }
+
   const database = await openDatabase();
   const stored = await new Promise<StoredInstructionVideo | undefined>((resolve, reject) => {
     const request = database.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id);
