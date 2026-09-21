@@ -225,6 +225,11 @@ test('светлая тема переключается из компактно
   await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(96, 72, 154)');
   await page.getByRole('button', { name: 'Закрыть описание' }).click();
   await page.screenshot({ path: 'test-results/theme-light-assignment-edit.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  const lightAdd = page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Добавить Жим лёжа' });
+  await expect(lightAdd).toHaveCSS('background-color', 'rgb(247, 248, 243)');
+  await expect(lightAdd).toHaveCSS('color', 'rgb(48, 56, 46)');
+  await page.getByRole('button', { name: 'Готово' }).click();
 
   await page.goto('/#/trainer/clients');
   await expect(page.locator('.person-avatar.lime').first()).toHaveCSS('color', 'rgb(79, 113, 17)');
@@ -681,7 +686,8 @@ test('упражнение можно добавить повторно и уб�
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
-  await expect(add).toHaveCSS('background-color', 'rgb(198, 255, 61)');
+  await expect(add).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.08)');
+  await expect(add).toHaveCSS('color', 'rgb(198, 255, 61)');
   await add.click();
   await add.click();
   await expect(picker.getByRole('group', { name: 'Жим лёжа' })).toContainText('2');

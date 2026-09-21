@@ -1498,8 +1498,8 @@ body.modal-open .bottom-nav { display: none; }
 .active-exercise-card-header > div:nth-child(2) { display: grid; min-width: 0; gap: 5px; }
 .active-exercise-card-header h2 { margin: 0; font-size: clamp(22px, 4vw, 28px); letter-spacing: normal; }
 .active-exercise-meta { color: var(--muted); font-size: 12px; font-weight: 700; }
-.active-exercise-corner-actions { display: flex; align-items: center; gap: 12px; }
-.exercise-info-controls { display: flex; align-items: center; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 12px; }
+.active-exercise-corner-actions { display: flex; align-items: center; gap: 16px; }
+.exercise-info-controls { display: flex; align-items: center; gap: 6px; }
 .active-exercise-corner-actions button { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; background: rgba(255,255,255,.04); cursor: pointer; }
 .active-exercise-corner-actions button:disabled { cursor: not-allowed; opacity: .28; }
 .active-exercise-corner-actions .ui-icon { width: 21px; height: 21px; }
@@ -1584,7 +1584,7 @@ body.modal-open .bottom-nav { display: none; }
 .picker-exercise-row small { color: var(--muted); font-size: 11px; }
 .picker-quantity { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 .picker-quantity span { min-width: 20px; text-align: center; font-weight: 800; }
-.picker-list .picker-quantity button { display: grid; width: 44px; min-height: 44px; place-items: center; border: 1px solid var(--lime); border-radius: 13px; padding: 0; background: var(--lime); color: var(--ink); }
+.picker-list .picker-quantity button { display: grid; width: 44px; min-height: 44px; place-items: center; border: 1px solid rgba(255,255,255,.2); border-radius: 13px; padding: 0; background: rgba(255,255,255,.08); color: var(--lime); }
 .picker-list .picker-quantity button .ui-icon { width: 22px; height: 22px; background: currentColor; color: inherit; }
 .picker-list .picker-quantity button:not(:disabled):active { transform: scale(.94); }
 .picker-list .picker-quantity button:disabled { opacity: .35; cursor: not-allowed; }
@@ -1689,7 +1689,7 @@ body.modal-open .bottom-nav { display: none; }
   .active-workout-overview { padding: 24px 3px 18px; }
   .active-exercise-card { border-radius: 23px; padding: 15px; }
   .active-exercise-card-header { grid-template-columns: auto minmax(0,1fr) auto; gap: 9px; }
-  .active-exercise-corner-actions { gap: 4px; }
+  .active-exercise-corner-actions { gap: 16px; }
   .active-exercise-corner-actions button { width: 48px; height: 48px; }
   .active-card-sets .set-card { min-height: 90px; grid-template-columns: 45px minmax(0,1fr) 56px; gap: 7px; }
   .plan-card-sets .plan-set-card { grid-template-columns: 45px minmax(0,1fr); }
@@ -2432,8 +2432,7 @@ html[data-theme="light"] .active-exercise-card,
 html[data-theme="light"] .plan-exercise-card { background: #ffffff; }
 html[data-theme="light"] .active-exercise-card.completed { border-color: rgba(79,113,17,.25); background: linear-gradient(145deg, rgba(184,242,56,.12), #ffffff 44%); }
 html[data-theme="light"] :is(.exercise-order-controls button, .exercise-comment-button, .active-exercise-footer-actions button, .active-exercise-corner-actions button, .exercise-action-list > button, .muscle-filter button, .picker-list .custom-load-mode button) { border-color: var(--ui-outline); background: var(--control-bg); color: #343c32; }
-html[data-theme="light"] .exercise-info-controls { border-left-color: var(--divider); }
-html[data-theme="light"] .picker-list .picker-quantity button:not(:disabled) { border-color: var(--lime-strong); background: var(--lime-strong); color: white; }
+html[data-theme="light"] .picker-list .picker-quantity button { border-color: var(--ui-outline); background: var(--control-bg); color: #30382e; }
 html[data-theme="light"] .set-card > button { border-color: #c9d0c5; background: var(--surface-2); color: #6c7569; }
 html[data-theme="light"] .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
 html[data-theme="light"] .set-count-control > span { color: #4e594a; }
