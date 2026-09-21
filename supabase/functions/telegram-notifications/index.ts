@@ -1,5 +1,17 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+const appOrigin = 'https://temarmz.github.io'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': appOrigin,
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  Vary: 'Origin',
+}
+
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return Response.json(body, { status, headers: corsHeaders })
+}
+
 type Notification = {
   notification_id: string
   notification_kind: 'assignment-reschedule-requested' | 'workout-completed'
@@ -39,27 +51,32 @@ async function sendMessage(botToken: string, notification: Notification): Promis
 }
 
 Deno.serve(async (request) => {
-  if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 })
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders })
+  }
 
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   const authorization = request.headers.get('authorization')
   if (!botToken || !supabaseUrl || !serviceRoleKey || !authorization) {
-    return Response.json({ error: 'Notifications are not configured' }, { status: 503 })
+    return jsonResponse({ error: 'Notifications are not configured' }, 503)
   }
 
   const accessToken = authorization.replace(/^Bearer\s+/i, '')
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
   const { data: userData, error: userError } = await supabase.auth.getUser(accessToken)
-  if (userError || !userData.user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (userError || !userData.user) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   const actorProfileId = userData.user.id
   const { data, error } = await supabase.rpc('claim_telegram_notifications', {
     p_actor_profile_id: actorProfileId,
     p_limit: 10,
   })
-  if (error) return Response.json({ error: 'Could not claim notifications' }, { status: 500 })
+  if (error) return jsonResponse({ error: 'Could not claim notifications' }, 500)
 
   let sent = 0
   for (const notification of (data ?? []) as Notification[]) {
@@ -82,5 +99,5 @@ Deno.serve(async (request) => {
     }
   }
 
-  return Response.json({ claimed: data?.length ?? 0, sent })
+  return jsonResponse({ claimed: data?.length ?? 0, sent })
 })

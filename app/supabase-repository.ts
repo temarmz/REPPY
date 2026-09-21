@@ -144,6 +144,7 @@ export function createSupabaseRepository(
   profile: AuthProfile,
 ): ReppyRepository {
   let baseline: DemoState | null = null;
+  let notificationRecoveryAttempted = false;
   const relationshipByStudent = new Map<string, string>();
   const trainerByStudent = new Map<string, string>();
   const remoteStudentId = new Map<string, string>();
@@ -367,6 +368,14 @@ export function createSupabaseRepository(
       subscriptionEntries,
     };
     baseline = clone(state);
+    if (profile.role === 'student' && !notificationRecoveryAttempted) {
+      notificationRecoveryAttempted = true;
+      void client.functions.invoke('telegram-notifications', { body: {} })
+        .then(({ error }) => {
+          if (error) console.warn('Telegram notification retry was deferred.', error);
+        })
+        .catch((error: unknown) => console.warn('Telegram notification retry was deferred.', error));
+    }
     return state;
   }
 
