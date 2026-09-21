@@ -57,7 +57,7 @@ function ExerciseCardFrame({
   metadata,
   completed = false,
   recentlyChanged,
-  toolbar,
+  orderControls,
   children,
   footer,
   onShowInstruction,
@@ -69,7 +69,7 @@ function ExerciseCardFrame({
   metadata: string;
   completed?: boolean;
   recentlyChanged: boolean;
-  toolbar: ReactNode;
+  orderControls: ReactNode;
   children: ReactNode;
   footer: ReactNode;
   onShowInstruction: () => void;
@@ -93,37 +93,36 @@ function ExerciseCardFrame({
         <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
         <div><h2>{exercise.name}</h2><small className="active-exercise-meta">{metadata}</small></div>
         <div className="active-exercise-corner-actions">
+          {orderControls}
+          <div className="exercise-info-controls">
           <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
           <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
+          </div>
         </div>
       </header>
-      {toolbar}
       {children}
       {footer}
     </article>
   );
 }
 
-function ExerciseToolbar({ exercise, index, totalExercises, commentOpen, onToggleComment, onMoveUp, onMoveDown }: {
+function ExerciseOrderControls({ exercise, index, totalExercises, onMoveUp, onMoveDown }: {
   exercise: WorkoutExercise;
   index: number;
   totalExercises: number;
-  commentOpen: boolean;
-  onToggleComment: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
   return (
-    <div className="exercise-toolbar">
-      <div className="active-exercise-actions">
-        <button className={exercise.coachNote ? 'has-value' : ''} type="button" aria-expanded={commentOpen} onClick={onToggleComment}><Icon name="edit" /> {commentOpen ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button>
-      </div>
-      <div className="exercise-order-controls">
+      <div className="exercise-order-controls" role="group" aria-label={'Порядок — ' + exercise.name}>
         <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
         <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
       </div>
-    </div>
   );
+}
+
+function ExerciseCommentButton({ exercise, open, onToggle }: { exercise: WorkoutExercise; open: boolean; onToggle: () => void }) {
+  return <button className={'exercise-comment-button' + (exercise.coachNote ? ' has-value' : '')} type="button" aria-expanded={open} onClick={onToggle}><Icon name="edit" /> {open ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button>;
 }
 
 function ExerciseComment({ exercise, onNoteChange }: { exercise: WorkoutExercise; onNoteChange: (note: string) => void }) {
@@ -176,10 +175,9 @@ export function PlanExerciseCard({
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
-      toolbar={<ExerciseToolbar exercise={exercise} index={index} totalExercises={totalExercises} commentOpen={commentOpen} onToggleComment={() => setCommentOpen((current) => !current)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
+      orderControls={<ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
+      footer={<footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
     >
-      {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
       <section className="active-card-sets plan-card-sets">
         {plans.map((set, setIndex) => (
           <article className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
@@ -191,6 +189,7 @@ export function PlanExerciseCard({
           </article>
         ))}
       </section>
+      {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
     </ExerciseCardFrame>
   );
 }
@@ -228,10 +227,9 @@ export function ActiveExerciseCard({
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
-      toolbar={<ExerciseToolbar exercise={exercise} index={index} totalExercises={totalExercises} commentOpen={commentOpen} onToggleComment={() => setCommentOpen((current) => !current)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
+      orderControls={<ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
+      footer={<footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
     >
-      {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
       <section className="active-card-sets">
         {results.map((result) => (
           <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
@@ -244,6 +242,7 @@ export function ActiveExerciseCard({
           </article>
         ))}
       </section>
+      {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
     </ExerciseCardFrame>
   );
 }

@@ -2053,7 +2053,7 @@ function WorkoutComposer({
       <WorkoutExerciseEditor studentId={student.id} exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
-      <div className="plan-sticky-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
+      <div className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
       {dangerOpen && dangerAction && <ConfirmationModal
         title={dangerAction.title}
         text={dangerAction.text}
@@ -2733,6 +2733,7 @@ function ActiveWorkout({
         <header className="active-header">
           <button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></button>
           <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
+          <button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></button>
           <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
         </header>
         <div className="active-progress" role="progressbar" aria-label="Прогресс тренировки" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: progress + '%' }} /></div>
@@ -2769,7 +2770,6 @@ function ActiveWorkout({
         })}
       </section>
 
-      <button className="floating-exercise-add active-floating-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></button>
       {pickerAfterId && <ActiveExercisePicker exercises={workout.exercises} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}

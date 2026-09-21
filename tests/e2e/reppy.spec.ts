@@ -666,13 +666,22 @@ test('новая тренировка сохраняется только в н�
 });
 
 test('упражнение можно добавить повторно и убрать из окна выбора', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
   await openFreshDemo(page);
   await page.goto('/#/trainer/clients/maria/assign/new');
   await page.getByLabel('Название тренировки').fill('Круговая тренировка');
+  await expect(page.locator('.plan-submit-actions')).toHaveCSS('position', 'static');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
   const add = picker.getByRole('button', { name: 'Добавить Жим лёжа' });
   const remove = picker.getByRole('button', { name: 'Убрать Жим лёжа' });
+  const addBox = await add.boundingBox();
+  const removeBox = await remove.boundingBox();
+  for (const box of [addBox, removeBox]) {
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+  await expect(add).toHaveCSS('background-color', 'rgb(198, 255, 61)');
   await add.click();
   await add.click();
   await expect(picker.getByRole('group', { name: 'Жим лёжа' })).toContainText('2');
@@ -682,6 +691,11 @@ test('упражнение можно добавить повторно и уб�
   await picker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(1);
   await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(1);
+  const submit = page.getByRole('button', { name: 'Назначить тренировку' });
+  await submit.scrollIntoViewIfNeeded();
+  const submitBox = await submit.boundingBox();
+  const floatingBox = await page.getByRole('button', { name: 'Добавить упражнение' }).boundingBox();
+  expect(submitBox && floatingBox && submitBox.x + submitBox.width).toBeLessThanOrEqual(floatingBox?.x ?? 0);
 });
 
 test('онлайн-тренировка переиспользует назначение, инструкцию и списание абонемента', async ({ page }) => {
@@ -933,12 +947,15 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(firstSquatSetButton).toHaveCSS('color', 'rgb(105, 112, 104)');
   await expect(firstSquatSetButton.locator('.ui-icon')).toHaveAttribute('style', /icon-checkmark\.svg/);
   const controlHeights = await Promise.all([
-    squatCard.getByRole('button', { name: 'Добавить комментарий' }),
     squatCard.getByRole('button', { name: 'Опустить Приседания ниже' }),
     squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }),
     squatCard.getByRole('button', { name: 'Действия — Приседания' }),
   ].map(async (control) => (await control.boundingBox())?.height));
   expect(new Set(controlHeights).size).toBe(1);
+  const commentBox = await squatCard.getByRole('button', { name: 'Добавить комментарий' }).boundingBox();
+  const setsBox = await squatCard.getByRole('group', { name: 'Подходы — Приседания' }).boundingBox();
+  expect(commentBox && setsBox && Math.abs(commentBox.y - setsBox.y)).toBeLessThanOrEqual(2);
+  expect(setsBox && commentBox && setsBox.x - (commentBox.x + commentBox.width)).toBeGreaterThanOrEqual(8);
   await expect(page.getByRole('button', { name: 'Добавить упражнение' })).toBeVisible();
   await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
   await squatCard.getByRole('button', { name: 'Добавить комментарий' }).click();
