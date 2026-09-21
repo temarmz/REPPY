@@ -220,7 +220,7 @@ test('светлая тема переключается из компактно
   ]);
   expect(Math.round((removeSetBox?.x ?? 0) - ((setCountLabelBox?.x ?? 0) + (setCountLabelBox?.width ?? 0)))).toBeLessThanOrEqual(9);
   await expect(firstPlanExercise.locator('.active-exercise-footer-actions')).toHaveCSS('border-top-width', '1px');
-  await expect(firstPlanExercise.getByRole('button', { name: 'Ещё упражнение' }).locator('.ui-icon')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Добавить упражнение' }).locator('.ui-icon')).toBeVisible();
   await firstPlanExercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
   await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(96, 72, 154)');
   await page.getByRole('button', { name: 'Закрыть описание' }).click();
@@ -554,7 +554,7 @@ test('в редакторе можно удалить последнее упр�
   await page.getByLabel('Название тренировки').fill('Новая тренировка');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await picker.getByRole('button', { name: /Жим лёжа/ }).click();
+  await picker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const card = page.locator('.plan-exercise-card').first();
@@ -623,7 +623,7 @@ test('тренер назначает тренировку из профиля �
   await page.getByRole('button', { name: 'Закрыть действия' }).click();
   await expect(page.locator('.bottom-nav')).toBeVisible();
 
-  await firstExercise.getByRole('button', { name: 'Ещё упражнение' }).click();
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   await expect(page.getByRole('dialog', { name: 'Добавить упражнения' })).toBeVisible();
   await expect(page.locator('.bottom-nav')).toHaveCount(0);
   await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
@@ -648,10 +648,10 @@ test('новая тренировка сохраняется только в н�
   await page.getByLabel('Название тренировки').fill('Персональная тренировка Марии');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const exercisePicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await exercisePicker.getByRole('button', { name: /Жим лёжа/ }).click();
+  await exercisePicker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
   await expect(exercisePicker).toBeVisible();
-  await exercisePicker.getByRole('button', { name: /Жим гантелей на наклонной скамье/ }).click();
-  await expect(exercisePicker.getByText('Добавлено: 2')).toBeVisible();
+  await exercisePicker.getByRole('button', { name: 'Добавить Жим гантелей на наклонной скамье' }).click();
+  await expect(exercisePicker.getByText('В тренировке: 2')).toBeVisible();
   await exercisePicker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(2);
   await page.getByRole('button', { name: 'Назначить тренировку' }).click();
@@ -665,6 +665,25 @@ test('новая тренировка сохраняется только в н�
   expect(saved.assignments.at(-1)).not.toHaveProperty('source');
 });
 
+test('упражнение можно добавить повторно и убрать из окна выбора', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients/maria/assign/new');
+  await page.getByLabel('Название тренировки').fill('Круговая тренировка');
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
+  const add = picker.getByRole('button', { name: 'Добавить Жим лёжа' });
+  const remove = picker.getByRole('button', { name: 'Убрать Жим лёжа' });
+  await add.click();
+  await add.click();
+  await expect(picker.getByRole('group', { name: 'Жим лёжа' })).toContainText('2');
+  await expect(page.locator('.plan-exercise-card')).toHaveCount(2);
+  await remove.click();
+  await expect(picker.getByRole('group', { name: 'Жим лёжа' })).toContainText('1');
+  await picker.getByRole('button', { name: 'Готово' }).click();
+  await expect(page.locator('.plan-exercise-card')).toHaveCount(1);
+  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(1);
+});
+
 test('онлайн-тренировка переиспользует назначение, инструкцию и списание абонемента', async ({ page }) => {
   await openFreshDemo(page);
   await page.goto('/#/trainer/clients/artem/assign/new');
@@ -676,7 +695,7 @@ test('онлайн-тренировка переиспользует назна�
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await picker.getByRole('button', { name: /Жим лёжа/ }).click();
+  await picker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const exercise = page.locator('.plan-exercise-card').first();
@@ -739,15 +758,14 @@ test('несколько упражнений быстро добавляютс�
   await page.goto('/#/trainer/assignments/assignment-maria-legs');
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
 
-  const squatCard = page.locator('.active-exercise-card').filter({ hasText: 'Приседания' });
-  await squatCard.getByRole('button', { name: 'Ещё упражнение' }).click();
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
   const done = picker.getByRole('button', { name: 'Готово' });
   expect(await done.evaluate((button) => button.getBoundingClientRect().bottom <= window.innerHeight)).toBe(true);
 
-  await picker.getByRole('button', { name: /Жим лёжа/ }).click();
-  await picker.getByRole('button', { name: /Жим гантелей на наклонной скамье/ }).click();
-  await expect(picker.getByText('Добавлено: 2')).toBeVisible();
+  await picker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
+  await picker.getByRole('button', { name: 'Добавить Жим гантелей на наклонной скамье' }).click();
+  await expect(picker.getByText('В тренировке: 5')).toBeVisible();
   await done.click();
 
   await expect(page.locator('.active-exercise-card')).toHaveCount(5);
@@ -921,12 +939,7 @@ test('тренер ведёт занятие, правит его в момен�
     squatCard.getByRole('button', { name: 'Действия — Приседания' }),
   ].map(async (control) => (await control.boundingBox())?.height));
   expect(new Set(controlHeights).size).toBe(1);
-  const footerControlBoxes = await Promise.all([
-    squatCard.getByRole('group', { name: 'Подходы — Приседания' }),
-    squatCard.getByRole('button', { name: 'Ещё упражнение' }),
-  ].map((control) => control.boundingBox()));
-  const footerControlCenters = footerControlBoxes.map((box) => (box?.y ?? -1) + (box?.height ?? 0) / 2);
-  expect(Math.abs(footerControlCenters[0] - footerControlCenters[1])).toBeLessThanOrEqual(1);
+  await expect(page.getByRole('button', { name: 'Добавить упражнение' })).toBeVisible();
   await expect(squatCard.locator('.active-comment-field')).toHaveCount(0);
   await squatCard.getByRole('button', { name: 'Добавить комментарий' }).click();
   const commentField = squatCard.locator('.active-comment-field textarea');
@@ -955,27 +968,26 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(instructionDialog).toContainText('Штанга');
   await instructionDialog.getByRole('button', { name: 'Закрыть описание' }).click();
 
-  await squatCard.getByRole('button', { name: 'Ещё упражнение' }).click();
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   await expect(page.locator('.exercise-picker-sheet .search-input')).toHaveCSS('font-size', '16px');
   await expect(page.getByRole('searchbox', { name: 'Поиск упражнений' })).toBeVisible();
   await page.getByRole('button', { name: 'Бицепс', exact: true }).click();
-  await page.getByRole('button', { name: /Молотковые сгибания/ }).click();
+  await page.getByRole('button', { name: 'Добавить Молотковые сгибания' }).click();
   const multiPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
   await expect(multiPicker).toBeVisible();
   expect(await multiPicker.getByRole('button', { name: 'Готово' }).evaluate((button) => button.getBoundingClientRect().bottom <= window.innerHeight)).toBe(true);
-  await multiPicker.getByRole('button', { name: /Сгибание рук с гантелями/ }).click();
-  await expect(multiPicker.getByText('Добавлено: 2')).toBeVisible();
+  await multiPicker.getByRole('button', { name: 'Добавить Сгибание рук с гантелями' }).click();
+  await expect(multiPicker.getByText('В тренировке: 5')).toBeVisible();
   await multiPicker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.active-exercise-card')).toHaveCount(5);
-  await expect(page.locator('.active-exercise-card').nth(1)).toContainText('Молотковые сгибания');
-  await expect(page.locator('.active-exercise-card').nth(2)).toContainText('Сгибание рук с гантелями');
-  await expect(page.locator('.active-exercise-card').nth(2)).toHaveClass(/recently-moved/);
+  await expect(page.locator('.active-exercise-card').nth(3)).toContainText('Молотковые сгибания');
+  await expect(page.locator('.active-exercise-card').nth(4)).toContainText('Сгибание рук с гантелями');
+  await expect(page.locator('.active-exercise-card').nth(4)).toHaveClass(/recently-moved/);
   await page.getByRole('button', { name: 'Опустить Молотковые сгибания ниже' }).click();
-  await expect(page.locator('.active-exercise-card').nth(2)).toContainText('Молотковые сгибания');
-  await expect(page.locator('.active-exercise-card').nth(2)).toHaveClass(/recently-moved/);
+  await expect(page.locator('.active-exercise-card').nth(4)).toContainText('Молотковые сгибания');
+  await expect(page.locator('.active-exercise-card').nth(4)).toHaveClass(/recently-moved/);
 
-  const hammerCard = page.locator('.active-exercise-card').filter({ hasText: 'Молотковые сгибания' });
-  await hammerCard.getByRole('button', { name: 'Ещё упражнение' }).click();
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   await page.locator('.exercise-picker-sheet .search-input').fill('Тяга полотенца');
   await page.getByRole('button', { name: 'Добавить «Тяга полотенца»' }).click();
   await page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Готово' }).click();
@@ -983,9 +995,11 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(customCard).toBeVisible();
   await expect(customCard.getByText('Пользовательское упражнение')).toBeVisible();
   await expect(customCard).toHaveClass(/recently-moved/);
-  await expect(customCard.locator('.set-card')).toHaveCount(3);
-  await customCard.getByRole('button', { name: 'Удалить последний подход — Тяга полотенца' }).click();
+  await expect(customCard.locator('.set-card')).toHaveCount(1);
+  await customCard.getByRole('button', { name: 'Добавить подход — Тяга полотенца' }).click();
   await expect(customCard.locator('.set-card')).toHaveCount(2);
+  await customCard.getByRole('button', { name: 'Удалить последний подход — Тяга полотенца' }).click();
+  await expect(customCard.locator('.set-card')).toHaveCount(1);
 
   await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
   let actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
@@ -1043,16 +1057,16 @@ test('упражнение со своим весом не показывает 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const initialPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
   await initialPicker.getByRole('button', { name: 'Спина', exact: true }).click();
-  await initialPicker.getByRole('button', { name: /Подтягивания/ }).click();
+  await initialPicker.getByRole('button', { name: 'Добавить Подтягивания' }).click();
   await initialPicker.getByRole('button', { name: 'Готово' }).click();
   const pullUpsPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Подтягивания' });
   await expect(pullUpsPlan.getByText('Спина · Свой вес')).toBeVisible();
   await expect(pullUpsPlan.getByLabel('КГ')).toHaveCount(0);
   await expect(pullUpsPlan.locator('.active-exercise-meta')).toHaveText('Спина · Свой вес');
 
-  await pullUpsPlan.getByRole('button', { name: 'Ещё упражнение' }).click();
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   await page.getByRole('button', { name: 'Кор', exact: true }).click();
-  await page.getByRole('button', { name: /Планка/ }).click();
+  await page.getByRole('button', { name: 'Добавить Планка' }).click();
   await page.getByRole('button', { name: 'Готово' }).click();
   const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
   await expect(plankPlan.getByLabel('КГ')).toHaveCount(0);

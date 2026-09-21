@@ -144,7 +144,6 @@ type SharedExerciseCardProps = {
   onAddSet: () => void;
   canRemoveSet: boolean;
   onRemoveSet: () => void;
-  onAddAfter: () => void;
 };
 
 export function PlanExerciseCard({
@@ -162,7 +161,6 @@ export function PlanExerciseCard({
   onAddSet,
   canRemoveSet,
   onRemoveSet,
-  onAddAfter,
 }: SharedExerciseCardProps & {
   onSetChange: (index: number, patch: Partial<WorkoutSetPlan>) => void;
 }) {
@@ -179,7 +177,7 @@ export function PlanExerciseCard({
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       toolbar={<ExerciseToolbar exercise={exercise} index={index} totalExercises={totalExercises} commentOpen={commentOpen} onToggleComment={() => setCommentOpen((current) => !current)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>}
+      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
     >
       {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
       <section className="active-card-sets plan-card-sets">
@@ -211,7 +209,6 @@ export function ActiveExerciseCard({
   onAddSet,
   canRemoveSet,
   onRemoveSet,
-  onAddAfter,
   onMoveUp,
   onMoveDown,
 }: SharedExerciseCardProps & {
@@ -232,7 +229,7 @@ export function ActiveExerciseCard({
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       toolbar={<ExerciseToolbar exercise={exercise} index={index} totalExercises={totalExercises} commentOpen={commentOpen} onToggleComment={() => setCommentOpen((current) => !current)} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /><button type="button" onClick={onAddAfter}><Icon name="plus" /> Ещё упражнение</button></footer>}
+      footer={<footer className="active-exercise-footer-actions"><SetCountControl exerciseName={exercise.name} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
     >
       {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
       <section className="active-card-sets">

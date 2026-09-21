@@ -1574,6 +1574,17 @@ body.modal-open .bottom-nav { display: none; }
 .training-format-field button.selected { border-color: rgba(198,255,61,.3); background: var(--lime); color: var(--ink); }
 .training-format-field > p { margin: 0 2px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .workout-plan-editor { margin-top: 26px; }
+.floating-exercise-add { position: fixed; right: max(22px, calc((100vw - 720px) / 2 + 22px)); bottom: calc(94px + env(safe-area-inset-bottom)); z-index: 51; display: grid; width: 60px; height: 60px; place-items: center; border: 0; border-radius: 50%; background: var(--lime); color: var(--ink); box-shadow: 0 8px 28px rgba(0,0,0,.35); cursor: pointer; }
+.floating-exercise-add .ui-icon { width: 27px; height: 27px; }
+.active-floating-add { bottom: calc(94px + env(safe-area-inset-bottom)); }
+.picker-exercise-row { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.07); padding: 8px 4px; }
+.picker-exercise-row > div:first-child { display: grid; min-width: 0; gap: 4px; }
+.picker-exercise-row strong { font-size: var(--button-font-size); }
+.picker-exercise-row small { color: var(--muted); font-size: 11px; }
+.picker-quantity { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.picker-quantity span { min-width: 20px; text-align: center; font-weight: 800; }
+.picker-list .picker-quantity button { display: grid; width: 36px; min-height: 36px; place-items: center; border: 1px solid rgba(198,255,61,.25); border-radius: 11px; padding: 0; background: rgba(198,255,61,.1); color: var(--lime); }
+.picker-list .picker-quantity button:disabled { opacity: .35; cursor: not-allowed; }
 .workout-plan-editor .form-section-heading { margin: 0 0 15px; }
 .plan-exercise-list { gap: 18px; }
 .plan-exercise-card { background: #121512; }

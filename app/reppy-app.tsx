@@ -2261,7 +2261,7 @@ function WorkoutExerciseEditor({
       equipment: choice.equipment,
       loadMode,
       measureType: choice.measureType ?? 'reps',
-      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: choice.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
+      plannedSets: [{ targetReps: choice.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 }],
       coachNote: '',
     });
     const next = exercises.map((exercise) => ({ ...exercise }));
@@ -2286,6 +2286,16 @@ function WorkoutExerciseEditor({
   };
 
   const actionExercise = exercises.find((exercise) => exercise.id === actionExerciseId);
+  const canRemovePickedExercise = (exerciseId: string) => {
+    const item = exercises.findLast((exercise) => exercise.exerciseId === exerciseId);
+    return Boolean(item && (minSetsByExerciseId[item.id] ?? 0) === 0);
+  };
+  const removePickedExercise = (exerciseId: string) => {
+    const index = exercises.findLastIndex((exercise) => exercise.exerciseId === exerciseId);
+    if (index < 0 || (minSetsByExerciseId[exercises[index].id] ?? 0) > 0) return;
+    onChange(exercises.filter((_, current) => current !== index));
+    if (pickerAfterId === exercises[index].id) setPickerAfterId(exercises[index - 1]?.id ?? 'start');
+  };
   const actionDeleteDisabledReason = actionExercise && (minSetsByExerciseId[actionExercise.id] ?? 0) > 0
     ? 'Сначала отмени выполненные подходы'
     : undefined;
@@ -2293,7 +2303,7 @@ function WorkoutExerciseEditor({
   return (
     <section className="workout-plan-editor">
       <div className="form-section-heading"><h2>Упражнения</h2></div>
-      {!exercises.length && <button className="add-exercise empty-plan-action" type="button" onClick={() => setPickerAfterId('start')}><Icon name="plus" /> Добавить упражнение</button>}
+      <button className="floating-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение"><Icon name="plus" /></button>
       <div className="active-exercise-list plan-exercise-list">
         {exercises.map((exercise, index) => (
           <PlanExerciseCard
@@ -2319,12 +2329,11 @@ function WorkoutExerciseEditor({
             })}
             canRemoveSet={getExerciseSetPlans(exercise).length > Math.max(1, minSetsByExerciseId[exercise.id] ?? 1)}
             onRemoveSet={() => updateExercise(exercise.id, (current) => withExerciseSetPlans(current, getExerciseSetPlans(current).slice(0, -1)))}
-            onAddAfter={() => setPickerAfterId(exercise.id)}
           />
         ))}
       </div>
 
-      {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExercise} />}
+      {pickerAfterId && <ActiveExercisePicker exercises={exercises} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={studentId}
@@ -2687,7 +2696,7 @@ function ActiveWorkout({
       equipment: definition.equipment,
       loadMode,
       measureType: definition.measureType ?? 'reps',
-      plannedSets: Array.from({ length: 3 }, () => ({ targetReps: definition.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 })),
+      plannedSets: [{ targetReps: definition.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 }],
       coachNote: '',
     });
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
@@ -2698,6 +2707,18 @@ function ActiveWorkout({
   };
 
   const actionExercise = workout.exercises.find((exercise) => exercise.id === actionExerciseId);
+  const canRemovePickedExercise = (exerciseId: string) => {
+    const item = workout.exercises.findLast((exercise) => exercise.exerciseId === exerciseId);
+    return Boolean(item && workout.exercises.length > 1 && !session.results.some((result) => result.exerciseId === item.id && result.completed));
+  };
+  const removePickedExercise = (exerciseId: string) => {
+    const index = workout.exercises.findLastIndex((exercise) => exercise.exerciseId === exerciseId);
+    if (index < 0 || workout.exercises.length <= 1) return;
+    const item = workout.exercises[index];
+    if (session.results.some((result) => result.exerciseId === item.id && result.completed)) return;
+    updateWorkout(workout.exercises.filter((_, current) => current !== index));
+    if (pickerAfterId === item.id) setPickerAfterId(workout.exercises[index - 1]?.id ?? workout.exercises.find((exercise) => exercise.id !== item.id)?.id ?? null);
+  };
   const actionResults = actionExercise ? session.results.filter((result) => result.exerciseId === actionExercise.id) : [];
   const actionMinimumSets = Math.max(0, ...actionResults.filter((result) => result.completed).map((result) => result.setNumber));
   const actionDeleteDisabledReason = actionMinimumSets > 0
@@ -2741,7 +2762,6 @@ function ActiveWorkout({
               onAddSet={() => updateExerciseSets(exercise.id, (plans, current) => [...plans, { ...(plans.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) }])}
               canRemoveSet={getExerciseSetPlans(exercise).length > minimumSets}
               onRemoveSet={() => updateExerciseSets(exercise.id, (plans) => plans.slice(0, -1))}
-              onAddAfter={() => setPickerAfterId(exercise.id)}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
             />
@@ -2749,7 +2769,8 @@ function ActiveWorkout({
         })}
       </section>
 
-      {pickerAfterId && <ActiveExercisePicker onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} />}
+      <button className="floating-exercise-add active-floating-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></button>
+      {pickerAfterId && <ActiveExercisePicker exercises={workout.exercises} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={student?.id}
@@ -2940,18 +2961,22 @@ function ExerciseActionsModal({
 }
 
 function ActiveExercisePicker({
+  exercises,
   onClose,
   onSelect,
+  onRemove,
+  canRemove,
 }: {
+  exercises: WorkoutExercise[];
   onClose: () => void;
   onSelect: (exercise: ExercisePickerChoice) => void;
+  onRemove: (exerciseId: string) => void;
+  canRemove: (exerciseId: string) => boolean;
 }) {
   const [search, setSearch] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
   const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>('external');
   const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>('reps');
-  const [addedIds, setAddedIds] = useState(() => new Set<string>());
-  const [addedCount, setAddedCount] = useState(0);
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
   const customName = search.trim();
   const canCreateCustom = customName.length >= 2 && !exerciseLibrary.some((exercise) => exercise.name.toLocaleLowerCase('ru') === normalizedSearch);
@@ -2961,18 +2986,12 @@ function ActiveExercisePicker({
     return matchesMuscle && haystack.includes(normalizedSearch);
   });
   const selectExercise = (exercise: ExercisePickerChoice, custom = false) => {
-    if (!custom && addedIds.has(exercise.id)) return;
     onSelect(exercise);
-    setAddedCount((count) => count + 1);
-    if (custom) {
-      setSearch('');
-      return;
-    }
-    setAddedIds((current) => new Set(current).add(exercise.id));
+    if (custom) setSearch('');
   };
 
   return (
-    <ModalFrame title="Добавить упражнения" subtitle="Выбери несколько — окно останется открытым" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
+    <ModalFrame title="Добавить упражнения" subtitle="Добавляй упражнения по кругу кнопкой +, убирай кнопкой −" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
       <input className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
       <div className="muscle-filter" aria-label="Фильтр по основной мышце">
         <button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</button>
@@ -2992,12 +3011,19 @@ function ActiveExercisePicker({
           <button className="custom-exercise-option" type="button" onClick={() => selectExercise({ id: makeId('custom-exercise'), name: customName, primaryMuscle: selectedMuscle === 'all' ? undefined : selectedMuscle, equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое', loadMode: customLoadMode, measureType: customMeasureType }, true)}><Icon name="plus" /> Добавить «{customName}»</button>
         </section>}
         {filtered.map((exercise) => {
-          const added = addedIds.has(exercise.id);
-          return <button className={added ? 'added' : ''} key={exercise.id} type="button" disabled={added} aria-pressed={added} onClick={() => selectExercise(exercise)}><span><Icon name={added ? 'check' : 'plus'} /></span><div><strong>{exercise.name}</strong><small>{added ? 'Добавлено' : `${exercise.primaryMuscle} · ${exercise.equipment}`}</small></div></button>;
+          const count = exercises.filter((item) => item.exerciseId === exercise.id).length;
+          return <div className="picker-exercise-row" key={exercise.id}>
+            <div><strong>{exercise.name}</strong><small>{exercise.primaryMuscle} · {exercise.equipment}</small></div>
+            <div className="picker-quantity" role="group" aria-label={exercise.name}>
+              <button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></button>
+              <span aria-live="polite">{count}</span>
+              <button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></button>
+            </div>
+          </div>;
         })}
         {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
       </div>
-      <footer className="picker-footer"><span aria-live="polite">{addedCount ? `Добавлено: ${addedCount}` : 'Можно выбрать несколько'}</span><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></footer>
+      <footer className="picker-footer"><span aria-live="polite">В тренировке: {exercises.length}</span><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></footer>
     </ModalFrame>
   );
 }
