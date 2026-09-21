@@ -353,7 +353,7 @@ export default function ReppyApp() {
     const client = getSupabaseClient();
     return client && auth.profile ? createSupabaseRepository(client, auth.profile) : null;
   }, [auth.profile]);
-  const { data, hydrated, persistencePhase, retryPersistence, reset: resetData, createStudentInvitation, setData } = useReppyData(remoteRepository);
+  const { data, hydrated, persistencePhase, persistenceError, retryPersistence, reset: resetData, createStudentInvitation, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
@@ -1053,7 +1053,7 @@ export default function ReppyApp() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
-        systemStatus={<AppStatusBanner phase={persistencePhase} online={online} onRetry={retryPersistence} />}
+        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} online={online} onRetry={retryPersistence} />}
       >
         {content}
         {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
