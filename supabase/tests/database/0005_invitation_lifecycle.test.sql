@@ -1,6 +1,6 @@
 begin;
 
-select plan(32);
+select plan(36);
 
 create temporary table invitation_payloads (
   label text primary key,
@@ -84,6 +84,46 @@ select ok(
 
 select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
+
+select lives_ok(
+  $$insert into invitation_payloads (label, payload)
+    values (
+      'atomic',
+      public.create_student_with_invitation(
+        'Atomic Student',
+        'atomic@example.com',
+        'orange',
+        'Europe/Moscow'
+      )
+    )$$,
+  'trainer can atomically create a student and invitation'
+);
+
+select is(
+  (
+    select student.name
+    from public.students student
+    where student.id = (select (payload ->> 'studentId')::uuid from invitation_payloads where label = 'atomic')
+  ),
+  'Atomic Student',
+  'atomic invitation returns the created student id'
+);
+
+select is(
+  (
+    select relationship.status::text || ':' || relationship.timezone
+    from public.trainer_student_relationships relationship
+    where relationship.id = (select (payload ->> 'relationshipId')::uuid from invitation_payloads where label = 'atomic')
+  ),
+  'invited:Europe/Moscow',
+  'atomic invitation creates the invited relationship with its timezone'
+);
+
+select is(
+  (select payload ->> 'targetEmail' from invitation_payloads where label = 'atomic'),
+  'atomic@example.com',
+  'atomic invitation stores the target email'
+);
 
 select lives_ok(
   $$insert into invitation_payloads (label, payload)

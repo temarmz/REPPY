@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { createInitialState, type DemoState } from './reppy-data';
+import { createInitialState, type DemoState, type Student } from './reppy-data';
 import { createLocalStorageRepository, type ReppyRepository } from './reppy-repository';
 
 export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
@@ -11,6 +11,7 @@ type ReppyDataController = {
   persistenceError: Error | null;
   retryPersistence: () => void;
   reset: () => void;
+  createStudentInvitation: ((name: string, email: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
   setData: Dispatch<SetStateAction<DemoState>>;
 };
 
@@ -109,6 +110,15 @@ export function useReppyData(
     setPersistenceError(null);
   }, []);
 
+  const createStudentInvitation = useCallback(async (name: string, email: string) => {
+    if (!repository.createStudentInvitation) throw new Error('Приглашения доступны только в аккаунте тренера.');
+    const invitation = await repository.createStudentInvitation(name, email);
+    setData((current) => current.students.some((student) => student.id === invitation.student.id)
+      ? current
+      : { ...current, students: [...current.students, invitation.student] });
+    return invitation;
+  }, [repository]);
+
   return {
     data,
     hydrated: hydrated && loadedRepository === repository,
@@ -116,6 +126,7 @@ export function useReppyData(
     persistenceError,
     retryPersistence,
     reset,
+    createStudentInvitation: repository.createStudentInvitation ? createStudentInvitation : null,
     setData,
   };
 }

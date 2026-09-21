@@ -2,6 +2,7 @@ import {
   createInitialState,
   migrateDemoState,
   type DemoState,
+  type Student,
 } from './reppy-data.ts';
 
 export const STORAGE_KEY = 'reppy-demo-v0';
@@ -12,6 +13,11 @@ export interface ReppyRepository {
   load(): Promise<DemoState>;
   save(state: DemoState): Promise<void>;
   clear(): Promise<void>;
+  createStudentInvitation?(name: string, email: string): Promise<{
+    student: Student;
+    token: string;
+    expiresAt: string;
+  }>;
 }
 
 export function createLocalStorageRepository(

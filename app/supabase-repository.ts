@@ -533,9 +533,40 @@ export function createSupabaseRepository(
     baseline = clone(state);
   }
 
+  async function createStudentInvitation(name: string, email: string) {
+    if (profile.role !== 'trainer') throw new Error('Только тренер может приглашать учеников.');
+    const result = await client.rpc('create_student_with_invitation', {
+      p_name: name.trim(),
+      p_target_email: email.trim(),
+      p_color: 'orange',
+      p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    });
+    throwIfError(result);
+    const created = result.data as {
+      studentId: string;
+      relationshipId: string;
+      token: string;
+      expiresAt: string;
+    };
+    const student: Student = {
+      id: created.studentId,
+      name: name.trim(),
+      status: 'invited',
+      color: 'orange',
+    };
+    remoteStudentId.set(student.id, student.id);
+    relationshipByStudent.set(student.id, created.relationshipId);
+    trainerByStudent.set(student.id, profile.id);
+    if (baseline && !baseline.students.some((item) => item.id === student.id)) {
+      baseline = { ...baseline, students: [...baseline.students, student] };
+    }
+    return { student, token: created.token, expiresAt: created.expiresAt };
+  }
+
   return {
     load,
     save,
+    createStudentInvitation,
     async clear() {
       baseline = null;
     },

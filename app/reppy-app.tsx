@@ -353,7 +353,7 @@ export default function ReppyApp() {
     const client = getSupabaseClient();
     return client && auth.profile ? createSupabaseRepository(client, auth.profile) : null;
   }, [auth.profile]);
-  const { data, hydrated, persistencePhase, retryPersistence, reset: resetData, setData } = useReppyData(remoteRepository);
+  const { data, hydrated, persistencePhase, retryPersistence, reset: resetData, createStudentInvitation, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
@@ -686,6 +686,7 @@ export default function ReppyApp() {
       content = (
         <InviteStudent
           onCreate={(student) => setData((current) => ({ ...current, students: [...current.students, student] }))}
+          onInvite={createStudentInvitation ?? undefined}
         />
       );
     } else if (subscriptionPaymentMatch) {
@@ -1763,18 +1764,44 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   );
 }
 
-function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
+function InviteStudent({
+  onCreate,
+  onInvite,
+}: {
+  onCreate: (student: Student) => void;
+  onInvite?: (name: string, email: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
+}) {
   const [name, setName] = useState('');
-  const [created, setCreated] = useState<Student | null>(null);
+  const [email, setEmail] = useState('');
+  const [created, setCreated] = useState<{ student: Student; token?: string; expiresAt?: string } | null>(null);
   const [copied, setCopied] = useState(false);
-  const inviteUrl = created && typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}#/invite/${created.id}/${encodeURIComponent(created.name)}` : '';
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const inviteUrl = created && typeof window !== 'undefined'
+    ? created.token
+      ? `${window.location.origin}${window.location.pathname}#/invite/${encodeURIComponent(created.token)}`
+      : `${window.location.origin}${window.location.pathname}#/invite/${created.student.id}/${encodeURIComponent(created.student.name)}`
+    : '';
 
-  const create = () => {
+  const create = async () => {
     const clean = name.trim();
     if (!clean) return;
-    const student: Student = { id: makeId('student'), name: clean, status: 'invited', color: 'orange' };
-    onCreate(student);
-    setCreated(student);
+    setBusy(true);
+    setError('');
+    try {
+      if (onInvite) {
+        const invitation = await onInvite(clean, email);
+        setCreated(invitation);
+        return;
+      }
+      const student: Student = { id: makeId('student'), name: clean, status: 'invited', color: 'orange' };
+      onCreate(student);
+      setCreated({ student });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось создать приглашение.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copy = async () => {
@@ -1792,14 +1819,16 @@ function InviteStudent({ onCreate }: { onCreate: (student: Student) => void }) {
       {!created ? (
         <section className="form-card">
           <TextField id="student-name" label="Имя ученика" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
+          {onInvite && <TextField id="student-email" label="Email ученика" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="student@example.com" />}
           <p className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</p>
-          <ActionButton icon="arrow-right" disabled={!name.trim()} onClick={create}>Продолжить</ActionButton>
+          {error && <FormError>{error}</FormError>}
+          <ActionButton icon="arrow-right" disabled={busy || !name.trim() || Boolean(onInvite && !email.trim())} onClick={() => void create()}>{busy ? 'Создаём…' : 'Продолжить'}</ActionButton>
         </section>
       ) : (
         <section className="invite-ready">
           <div className="success-mark"><Icon name="arrow-up-right" /></div>
-          <h2>{created.name} почти в команде</h2>
-          <p>Отправь эту демо-ссылку ученику. На его устройстве откроется персональный кабинет для проверки интерфейса.</p>
+          <h2>{created.student.name} почти в команде</h2>
+          <p>Отправь эту ссылку ученику. Она привязана к указанному email{created.expiresAt ? ` и действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</p>
           <output>{inviteUrl}</output>
           <ActionButton icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</ActionButton>
           <ActionButton variant="secondary" icon="check" onClick={() => go('/trainer/clients')}>Готово</ActionButton>
