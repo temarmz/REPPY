@@ -2293,6 +2293,8 @@ html[data-theme="light"] {
   --brand-soft: rgba(93,128,18,.1);
   --lime: #b8f238;
   --lime-strong: #4f7111;
+  --field-outline: #82917e;
+  --field-bg: #f3f6ef;
 }
 
 html[data-theme="light"],
@@ -2373,10 +2375,14 @@ html[data-theme="light"] :is(.plan-day-card > header, .plan-day-card.empty-day, 
 
 html[data-theme="light"] :is(.schedule-student-list, .exercise-editor, .workout-assignments > button, .mood-grid button, .active-comment-field, .bodyweight-set-label, .plan-context-card .schedule-field, .finish-balance-preview, .training-format-field > div) { background: var(--control-bg); }
 html[data-theme="light"] :is(.text-input, .schedule-field input, .date-picker-field > button, .athlete-form input, .athlete-form select, .athlete-form textarea, .metric-input input, .set-card input, .coach-note-field textarea, .active-comment-field textarea, .comment-field textarea, .subscription-payment-form input, .subscription-payment-form textarea, .payment-method-field button, .design-kit-textarea-field textarea, .instruction-textarea) {
-  border-color: var(--ui-outline);
-  background: #ffffff;
+  border: 1px solid var(--field-outline);
+  background: var(--field-bg);
   color: var(--text-primary);
   color-scheme: light;
+}
+html[data-theme="light"] :is(.text-input, .schedule-field input, .date-picker-field > button, .athlete-form input, .athlete-form select, .athlete-form textarea, .metric-input input, .set-card input, .coach-note-field textarea, .active-comment-field textarea, .comment-field textarea, .subscription-payment-form input, .subscription-payment-form textarea, .design-kit-textarea-field textarea, .instruction-textarea):focus-visible {
+  border-color: var(--lime-strong);
+  box-shadow: 0 0 0 3px rgba(79,113,17,.18);
 }
 html[data-theme="light"] :is(input, textarea)::placeholder { color: #7b8378; }
 html[data-theme="light"] :is(.field-label, .schedule-field span, .athlete-form label > span, .coach-note-field > span, .active-comment-field span, .comment-field > span, .subscription-payment-form label > span, .payment-method-field legend, .subscription-payment-form .date-picker-field > span, .design-kit-textarea-field > span) { color: #3d463a; }

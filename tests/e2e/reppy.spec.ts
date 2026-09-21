@@ -213,6 +213,10 @@ test('светлая тема переключается из компактно
   await expect(page.locator('.set-count-control').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('.set-count-control > strong')).toHaveCount(0);
   const firstPlanExercise = page.locator('.plan-exercise-card').first();
+  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('border-top-width', '1px');
+  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('border-top-color', 'rgb(130, 145, 126)');
+  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('background-color', 'rgb(243, 246, 239)');
+  await expect(page.locator('.plan-context-card .date-picker-field > button')).toHaveCSS('border-top-color', 'rgb(130, 145, 126)');
   const setCountGroup = firstPlanExercise.getByRole('group', { name: 'Подходы — Жим лёжа' });
   const [setCountLabelBox, removeSetBox] = await Promise.all([
     setCountGroup.locator(':scope > span').boundingBox(),
