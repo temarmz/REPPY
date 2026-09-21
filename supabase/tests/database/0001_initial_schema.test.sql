@@ -1,6 +1,6 @@
 begin;
 
-select plan(29);
+select plan(30);
 
 create table public.default_acl_table_probe (id integer);
 create function public.default_acl_function_probe()
@@ -106,6 +106,26 @@ select is(
   (select count(*)::integer from public.exercise_definitions where owner_id is null),
   28,
   'the canonical exercise library is installed'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from pg_publication_tables published
+    where published.pubname = 'supabase_realtime'
+      and published.schemaname = 'public'
+      and published.tablename in (
+        'students',
+        'trainer_student_relationships',
+        'exercise_definitions',
+        'assignments',
+        'workout_sessions',
+        'set_results',
+        'subscription_entries'
+      )
+  ),
+  7,
+  'client data tables are published through Supabase Realtime'
 );
 
 select * from finish();

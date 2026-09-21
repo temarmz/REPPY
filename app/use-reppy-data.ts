@@ -37,6 +37,7 @@ export function useReppyData(
   const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
+  const refreshSequenceRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +61,43 @@ export function useReppyData(
       cancelled = true;
     };
   }, [loadAttempt, repository]);
+
+  useEffect(() => {
+    if (!hydrated || loadedRepository !== repository || !repository.subscribe) return;
+    let cancelled = false;
+    let refreshTimer: number | undefined;
+
+    const unsubscribe = repository.subscribe(() => {
+      const sequence = ++refreshSequenceRef.current;
+      const expectedSaveVersion = saveVersionRef.current;
+      if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        const refreshRequest = saveQueueRef.current
+          .catch(() => undefined)
+          .then(() => repository.load());
+        saveQueueRef.current = refreshRequest.then(() => undefined);
+        void refreshRequest
+          .then((nextData) => {
+            if (cancelled || sequence !== refreshSequenceRef.current) return;
+            if (expectedSaveVersion !== saveVersionRef.current) return;
+            setData(nextData);
+            setPersistenceError(null);
+            setPersistencePhase('idle');
+          })
+          .catch(() => {
+            // Realtime reconnects automatically. Keep the last confirmed state until
+            // another database event arrives instead of replacing it with partial data.
+          });
+      }, 350);
+    });
+
+    return () => {
+      cancelled = true;
+      refreshSequenceRef.current += 1;
+      if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
+      unsubscribe();
+    };
+  }, [hydrated, loadedRepository, repository]);
 
   useEffect(() => {
     if (!hydrated || loadedRepository !== repository) return;

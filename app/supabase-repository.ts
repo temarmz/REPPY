@@ -91,6 +91,16 @@ type SubscriptionRow = {
 
 type DefinitionRow = { id: string; slug: string | null };
 
+const REALTIME_TABLES = [
+  'students',
+  'trainer_student_relationships',
+  'exercise_definitions',
+  'assignments',
+  'workout_sessions',
+  'set_results',
+  'subscription_entries',
+] as const;
+
 function clone<T>(value: T): T {
   return structuredClone(value);
 }
@@ -618,6 +628,24 @@ export function createSupabaseRepository(
     load,
     save,
     createStudentInvitation,
+    subscribe(onChange) {
+      let active = true;
+      let channel = client.channel(`reppy-sync:${profile.id}:${uuid()}`);
+      for (const table of REALTIME_TABLES) {
+        channel = channel.on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table,
+        }, onChange);
+      }
+      void client.realtime.setAuth().then(() => {
+        if (active) channel.subscribe();
+      }).catch(() => undefined);
+      return () => {
+        active = false;
+        void client.removeChannel(channel);
+      };
+    },
     async clear() {
       baseline = null;
     },

@@ -13,6 +13,7 @@ export interface ReppyRepository {
   load(): Promise<DemoState>;
   save(state: DemoState): Promise<void>;
   clear(): Promise<void>;
+  subscribe?(onChange: () => void): () => void;
   createStudentInvitation?(name: string, email: string): Promise<{
     student: Student;
     token: string;
