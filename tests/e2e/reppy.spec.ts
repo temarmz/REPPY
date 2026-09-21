@@ -544,7 +544,7 @@ test('создание, копирование, редактирование и 
     await page.goto(`/#${route}`);
     await expect(page.locator('main[data-workout-composer]')).toHaveCount(1);
     await expect(page.locator('.workout-plan-editor')).toHaveCount(1);
-    await expect(page.locator('.plan-sticky-actions .primary-button')).toHaveCount(1);
+    await expect(page.locator('.plan-submit-actions .primary-button')).toHaveCount(1);
   }
 });
 
