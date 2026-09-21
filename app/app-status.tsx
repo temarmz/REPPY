@@ -26,7 +26,7 @@ type StatusCopy = {
   detail?: string;
 };
 
-function resolveStatus(phase: PersistencePhase, online: boolean, persistenceError?: Error | null): StatusCopy | null {
+function resolveStatus(phase: PersistencePhase, online: boolean, persistenceError?: Error | null, remote = false): StatusCopy | null {
   if (phase === 'error') return {
     kind: 'error',
     icon: 'close',
@@ -37,7 +37,7 @@ function resolveStatus(phase: PersistencePhase, online: boolean, persistenceErro
     kind: 'offline',
     icon: 'minus',
     title: 'Нет сети',
-    detail: 'Для синхронизации нужно восстановить соединение',
+    detail: remote ? 'Для синхронизации нужно восстановить соединение' : 'Изменения сохраняются на этом устройстве',
   };
   if (phase === 'loading') return { kind: 'loading', icon: 'history', title: 'Загружаем данные' };
   if (phase === 'saving') return { kind: 'saving', icon: 'history', title: 'Сохраняем изменения' };
@@ -49,15 +49,17 @@ export function AppStatusBanner({
   online,
   onRetry,
   error: persistenceError,
+  remote = false,
   preview = false,
 }: {
   phase: PersistencePhase;
   online: boolean;
   onRetry: () => void;
   error?: Error | null;
+  remote?: boolean;
   preview?: boolean;
 }) {
-  const status = resolveStatus(phase, online, persistenceError);
+  const status = resolveStatus(phase, online, persistenceError, remote);
   if (!status) return null;
   const error = status.kind === 'error';
 

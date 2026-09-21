@@ -1053,7 +1053,7 @@ export default function ReppyApp() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
-        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} online={online} onRetry={retryPersistence} />}
+        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} online={online} remote={auth.enabled} onRetry={retryPersistence} />}
       >
         {content}
         {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
