@@ -434,6 +434,7 @@ export function createSupabaseRepository(
       }
     }
 
+    let telegramNotificationCreated = false;
     const previousAssignments = indexById(previous.assignments);
     const nextAssignments = indexById(state.assignments);
     const addedAssignments = state.assignments.filter((item) => !previousAssignments.has(item.id));
@@ -470,6 +471,7 @@ export function createSupabaseRepository(
           });
           throwIfError(requested);
           assignmentRevision.set(assignment.id, (requested.data as AssignmentRow).revision);
+          telegramNotificationCreated = true;
         }
         continue;
       }
@@ -535,6 +537,7 @@ export function createSupabaseRepository(
         });
         throwIfError(completed);
         sessionRevision.set(session.id, (completed.data as SessionRow).revision);
+        if (profile.role === 'student') telegramNotificationCreated = true;
       }
       if (session.completedAt && (!before || before.mood !== session.mood || before.comment !== session.comment)) {
         throwIfError(await client.rpc('save_session_feedback', {
@@ -592,6 +595,10 @@ export function createSupabaseRepository(
     }
 
     baseline = clone(state);
+    if (telegramNotificationCreated) {
+      const delivery = await client.functions.invoke('telegram-notifications', { body: {} });
+      if (delivery.error) console.warn('Telegram notification delivery was deferred.', delivery.error);
+    }
   }
 
   async function createStudentInvitation(name: string, email: string) {
