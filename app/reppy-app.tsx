@@ -56,6 +56,7 @@ import {
   type PaymentInput,
 } from './subscription-ledger';
 import {
+  cleanupOrphanedInstructionVideos,
   clearInstructionVideos,
   loadInstructionVideo,
   saveInstructionVideo,
@@ -363,6 +364,16 @@ export default function ReppyApp() {
   const [modalLayerOpen, setModalLayerOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [theme, setTheme] = useState<AppTheme>(loadThemePreference);
+  const videoCleanupProfile = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!hydrated || auth.profile?.role !== 'trainer') return;
+    if (videoCleanupProfile.current === auth.profile.id) return;
+    videoCleanupProfile.current = auth.profile.id;
+    void cleanupOrphanedInstructionVideos().catch(() => {
+      videoCleanupProfile.current = null;
+    });
+  }, [auth.profile, hydrated]);
 
   useEffect(() => {
     if (!auth.enabled || !hydrated) return;

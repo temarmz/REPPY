@@ -134,6 +134,27 @@ export async function loadInstructionVideo(id: string): Promise<Blob | null> {
   return stored?.blob ?? null;
 }
 
+export async function cleanupOrphanedInstructionVideos(): Promise<number> {
+  const authenticated = await authenticatedClient();
+  if (!authenticated) return 0;
+  const { client } = authenticated;
+  const claimed = await client.rpc('claim_orphan_instruction_videos');
+  if (claimed.error) throw new Error(claimed.error.message);
+
+  const videos = (claimed.data ?? []) as { video_id: string; object_path: string }[];
+  for (let index = 0; index < videos.length; index += 100) {
+    const batch = videos.slice(index, index + 100);
+    const removed = await client.storage.from('instruction-videos').remove(batch.map((video) => video.object_path));
+    if (removed.error) throw new Error(removed.error.message);
+    const finalized = await client.rpc('delete_claimed_instruction_videos', {
+      p_video_ids: batch.map((video) => video.video_id),
+    });
+    if (finalized.error) throw new Error(finalized.error.message);
+    if (finalized.data !== batch.length) throw new Error('Не удалось завершить очистку метаданных видео.');
+  }
+  return videos.length;
+}
+
 export async function clearInstructionVideos(): Promise<void> {
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {
