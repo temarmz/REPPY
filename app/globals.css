@@ -2174,6 +2174,11 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 
 .new-assignment-card .schedule-fields { margin-top: 16px; }
 .settings-actions { display: grid; gap: 9px; }
+.telegram-connection-status { display: grid; min-height: 58px; grid-template-columns: 38px minmax(0,1fr); align-items: center; gap: 12px; border: 1px solid rgba(198,255,61,.22); border-radius: 18px; padding: 10px 16px; background: var(--brand-soft); }
+.telegram-connection-status > .ui-icon { width: 20px; height: 20px; color: var(--lime); }
+.telegram-connection-status > span { display: grid; gap: 3px; }
+.telegram-connection-status strong { font-size: 14px; }
+.telegram-connection-status small { color: var(--muted); font-size: 11px; }
 
 .design-kit-page { padding-bottom: 80px; }
 .design-kit-intro { max-width: 660px; margin: -8px 0 24px; color: var(--muted); font-size: 13px; line-height: 1.55; }

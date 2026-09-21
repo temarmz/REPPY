@@ -20,6 +20,13 @@ type TelegramLinkCode = {
   expires_at: string;
 };
 
+export type TelegramConnection = {
+  connected: boolean;
+  username: string | null;
+  firstName: string | null;
+  linkedAt: string | null;
+};
+
 type AuthStatus = 'disabled' | 'loading' | 'anonymous' | 'authenticated' | 'profile-missing' | 'error';
 
 export function useReppyAuth() {
@@ -156,6 +163,24 @@ export function useReppyAuth() {
     return `https://t.me/reppyappbot?start=${encodeURIComponent(link.code)}`;
   }, [client]);
 
+  const getTelegramConnection = useCallback(async (): Promise<TelegramConnection> => {
+    if (!client) throw new Error('Supabase не настроен.');
+    const { data, error: connectionError } = await client.rpc('get_telegram_connection');
+    if (connectionError) throw new Error(connectionError.message);
+    const connection = (data as Array<{
+      connected: boolean;
+      username: string | null;
+      first_name: string | null;
+      linked_at: string | null;
+    }> | null)?.[0];
+    return {
+      connected: connection?.connected === true,
+      username: connection?.username ?? null,
+      firstName: connection?.first_name ?? null,
+      linkedAt: connection?.linked_at ?? null,
+    };
+  }, [client]);
+
   return {
     enabled: Boolean(supabaseConfig),
     status,
@@ -171,6 +196,7 @@ export function useReppyAuth() {
     previewInvitation,
     acceptInvitation,
     createTelegramLink,
+    getTelegramConnection,
     refreshProfile: () => loadProfile(session),
   };
 }
