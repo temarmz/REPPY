@@ -375,9 +375,6 @@ export function createSupabaseRepository(
       baseline = clone(state);
       return;
     }
-    if (state.role !== profile.role) {
-      throw new Error('Роль интерфейса не совпадает с ролью аккаунта. Обнови страницу.');
-    }
     const previous = baseline;
     const previousStudents = indexById(previous.students);
 
@@ -441,6 +438,9 @@ export function createSupabaseRepository(
     const previousAssignments = indexById(previous.assignments);
     const nextAssignments = indexById(state.assignments);
     const addedAssignments = state.assignments.filter((item) => !previousAssignments.has(item.id));
+    if (profile.role !== 'trainer' && addedAssignments.length > 0) {
+      throw new Error('Только тренер может назначить тренировку.');
+    }
     await ensureExerciseDefinitions(addedAssignments.map((item) => item.workoutSnapshot));
     for (const assignment of addedAssignments) {
       const relationshipId = relationshipByStudent.get(assignment.studentId);

@@ -45,9 +45,10 @@ export function useReppyData(
     void repository.load()
       .then((nextData) => {
         if (cancelled) return;
-        setLoadedRepository(repository);
         setData(nextData);
+        setLoadedRepository(repository);
         setHydrated(true);
+        setPersistenceError(null);
         setPersistencePhase('idle');
       })
       .catch((reason: unknown) => {
