@@ -375,6 +375,9 @@ export function createSupabaseRepository(
       baseline = clone(state);
       return;
     }
+    if (state.role !== profile.role) {
+      throw new Error('Роль интерфейса не совпадает с ролью аккаунта. Обнови страницу.');
+    }
     const previous = baseline;
     const previousStudents = indexById(previous.students);
 

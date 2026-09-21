@@ -475,6 +475,14 @@ export default function ReppyApp() {
   }, [data.loggedIn, data.role, hydrated]);
 
   useEffect(() => {
+    if (!auth.enabled || auth.status !== 'authenticated' || !auth.profile || !hydrated) return;
+    const wrongArea = auth.profile.role === 'student'
+      ? path.startsWith('/trainer')
+      : path.startsWith('/student');
+    if (wrongArea) go(auth.profile.role === 'student' ? '/student' : '/trainer', true);
+  }, [auth.enabled, auth.profile, auth.status, hydrated, path]);
+
+  useEffect(() => {
     if (!hydrated || !assetsReady) return;
     const position = window.history.state?.reppyScroll ?? TOP_SCROLL_POSITION;
     let restoreFrame = 0;
@@ -607,10 +615,26 @@ export default function ReppyApp() {
     return <AccountScreen key="sign-in" recovery={false} initialError={auth.error} onSignIn={auth.signIn} onSendPasswordReset={auth.sendPasswordReset} onUpdatePassword={auth.updatePassword} />;
   }
 
+  const authenticatedRouteMismatch = Boolean(auth.enabled && auth.profile && (
+    (auth.profile.role === 'student' && path.startsWith('/trainer'))
+    || (auth.profile.role === 'trainer' && path.startsWith('/student'))
+  ));
+  if (authenticatedRouteMismatch) {
+    return (
+      <main className="loading-screen" aria-busy="true">
+        <img className="loading-logo" src="logo-full.png" alt="REPPY" />
+        <span className="loading-bar" aria-hidden="true"><i /></span>
+        <p>Открываем твой кабинет…</p>
+      </main>
+    );
+  }
+
   if (!data.loggedIn || path === '/') return <WelcomeScreen onLogin={login} />;
 
   let content: ReactNode;
-  const area: 'trainer' | 'student' = path.startsWith('/student') ? 'student' : 'trainer';
+  const area: 'trainer' | 'student' = auth.enabled && auth.profile
+    ? auth.profile.role
+    : path.startsWith('/student') ? 'student' : 'trainer';
 
   if (area === 'trainer') {
     const [progressPath, progressSearch = ''] = path.split('?');
@@ -1078,10 +1102,10 @@ export default function ReppyApp() {
           setSettingsOpen(false);
           go('/', true);
         } : undefined}
-        onOpenDesignKit={() => {
+        onOpenDesignKit={!auth.enabled || auth.profile?.role === 'trainer' ? () => {
           setSettingsOpen(false);
           go('/trainer/design-kit');
-        }}
+        } : undefined}
         onConnectTelegram={auth.enabled ? async () => {
           const link = await auth.createTelegramLink();
           window.location.assign(link);
@@ -3121,7 +3145,7 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
   );
 }
 
-function SettingsModal({ accountMode = false, onClose, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode?: boolean; onClose: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
+function SettingsModal({ accountMode = false, onClose, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode?: boolean; onClose: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
@@ -3162,7 +3186,7 @@ function SettingsModal({ accountMode = false, onClose, onReset, onSignOut, onOpe
   return (
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить локальные данные?' : accountMode ? 'Настройки аккаунта' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel={accountMode ? 'Настройки аккаунта' : 'Настройки демо'} onClose={onClose}>
       <p>{resetConfirmationOpen ? 'Все локальные изменения в учениках, тренировках и расписании будут удалены.' : accountMode ? 'Аккаунт защищён Supabase Auth, а данные тренировок синхронизируются через Supabase.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
-      {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <div className="telegram-connection-status"><Icon name="check" /><span><strong>Telegram подключён</strong><small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</small></span></div> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}<ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}</div>}
+      {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <div className="telegram-connection-status"><Icon name="check" /><span><strong>Telegram подключён</strong><small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</small></span></div> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}{onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}</div>}
     </ModalFrame>
   );
 }
