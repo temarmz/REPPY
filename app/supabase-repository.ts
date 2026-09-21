@@ -20,6 +20,7 @@ type RelationshipRow = {
   student_id: string;
   status: Student['status'];
   color: Student['color'];
+  updated_at: string;
 };
 
 type StudentRow = {
@@ -31,6 +32,7 @@ type StudentRow = {
   weight_kg: number | string | null;
   gender: Student['gender'] | null;
   contraindications: string | null;
+  updated_at: string;
 };
 
 type AssignmentRow = {
@@ -46,6 +48,7 @@ type AssignmentRow = {
   reschedule_scheduled_for: string | null;
   reschedule_scheduled_time: string | null;
   reschedule_requested_at: string | null;
+  revision: number;
 };
 
 type SessionRow = {
@@ -83,6 +86,7 @@ type SubscriptionRow = {
   comment: string | null;
   session_id: string | null;
   workout_name: string | null;
+  revision: number;
 };
 
 type DefinitionRow = { id: string; slug: string | null };
@@ -103,6 +107,10 @@ function numberOrUndefined(value: number | string | null) {
 
 function throwIfError(result: { error: { message: string } | null }) {
   if (result.error) throw new Error(result.error.message);
+}
+
+function revisionConflict(entity: string) {
+  return new Error(`${entity} уже изменён на другом устройстве. Обнови страницу и повтори действие.`);
 }
 
 function indexById<T extends { id: string }>(items: T[]) {
@@ -135,6 +143,10 @@ export function createSupabaseRepository(
   const remoteExerciseDefinitionId = new Map<string, string>();
   const remoteExerciseInstanceId = new Map<string, string>();
   const sessionRevision = new Map<string, number>();
+  const assignmentRevision = new Map<string, number>();
+  const subscriptionRevision = new Map<string, number>();
+  const studentUpdatedAt = new Map<string, string>();
+  const relationshipUpdatedAt = new Map<string, string>();
 
   const getRemoteId = (mapping: Map<string, string>, localId: string) => {
     const existing = mapping.get(localId);
@@ -188,12 +200,12 @@ export function createSupabaseRepository(
 
   async function load(): Promise<DemoState> {
     const [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult] = await Promise.all([
-      client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color'),
-      client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications'),
-      client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at'),
+      client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color, updated_at'),
+      client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications, updated_at'),
+      client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at, revision'),
       client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, revision'),
       client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
-      client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name'),
+      client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision'),
       client.from('exercise_definitions').select('id, slug'),
     ]);
     for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult]) {
@@ -218,13 +230,21 @@ export function createSupabaseRepository(
       relationshipByStudent.set(relationship.student_id, relationship.id);
       trainerByStudent.set(relationship.student_id, relationship.trainer_id);
       remoteStudentId.set(relationship.student_id, relationship.student_id);
+      relationshipUpdatedAt.set(relationship.student_id, relationship.updated_at);
     }
-    for (const assignment of assignmentRows) remoteAssignmentId.set(assignment.id, assignment.id);
+    for (const student of studentRows) studentUpdatedAt.set(student.id, student.updated_at);
+    for (const assignment of assignmentRows) {
+      remoteAssignmentId.set(assignment.id, assignment.id);
+      assignmentRevision.set(assignment.id, assignment.revision);
+    }
     for (const session of sessionRows) {
       remoteSessionId.set(session.id, session.id);
       sessionRevision.set(session.id, session.revision);
     }
-    for (const entry of subscriptionRows) remoteSubscriptionId.set(entry.id, entry.id);
+    for (const entry of subscriptionRows) {
+      remoteSubscriptionId.set(entry.id, entry.id);
+      subscriptionRevision.set(entry.id, entry.revision);
+    }
 
     const relationshipById = new Map(relationships.map((row) => [row.id, row]));
     const assignmentById = new Map(assignmentRows.map((row) => [row.id, row]));
@@ -375,16 +395,31 @@ export function createSupabaseRepository(
         relationshipByStudent.set(student.id, relationshipId);
         trainerByStudent.set(student.id, profile.id);
       } else if (!same(before, student)) {
-        throwIfError(await client.from('students').update({
+        const studentId = getRemoteId(remoteStudentId, student.id);
+        let updateStudent = client.from('students').update({
           name: student.name,
           phone: student.phone || null,
           height_cm: student.height ?? null,
           weight_kg: student.weight ?? null,
           gender: student.gender ?? null,
           contraindications: student.contraindications || null,
-        }).eq('id', getRemoteId(remoteStudentId, student.id)));
+        }).eq('id', studentId);
+        const expectedUpdatedAt = studentUpdatedAt.get(student.id);
+        if (expectedUpdatedAt) updateStudent = updateStudent.eq('updated_at', expectedUpdatedAt);
+        const updatedStudent = await updateStudent.select('updated_at').maybeSingle();
+        throwIfError(updatedStudent);
+        if (!updatedStudent.data) throw revisionConflict('Профиль ученика');
+        studentUpdatedAt.set(student.id, updatedStudent.data.updated_at);
         if (profile.role === 'trainer' && before.color !== student.color) {
-          throwIfError(await client.from('trainer_student_relationships').update({ color: student.color }).eq('id', relationshipByStudent.get(student.id)!));
+          let updateRelationship = client.from('trainer_student_relationships')
+            .update({ color: student.color })
+            .eq('id', relationshipByStudent.get(student.id)!);
+          const expectedRelationshipUpdatedAt = relationshipUpdatedAt.get(student.id);
+          if (expectedRelationshipUpdatedAt) updateRelationship = updateRelationship.eq('updated_at', expectedRelationshipUpdatedAt);
+          const updatedRelationship = await updateRelationship.select('updated_at').maybeSingle();
+          throwIfError(updatedRelationship);
+          if (!updatedRelationship.data) throw revisionConflict('Карточка ученика');
+          relationshipUpdatedAt.set(student.id, updatedRelationship.data.updated_at);
         }
       }
     }
@@ -411,22 +446,25 @@ export function createSupabaseRepository(
           ? getRemoteId(remoteAssignmentId, assignment.repeatedFromAssignmentId)
           : null,
       }));
+      assignmentRevision.set(assignment.id, 1);
     }
     for (const assignment of state.assignments) {
       const before = previousAssignments.get(assignment.id);
       if (!before || same(before, assignment) || before.status === 'completed') continue;
       if (profile.role === 'student') {
         if (!same(before.rescheduleRequest, assignment.rescheduleRequest) && assignment.rescheduleRequest) {
-          throwIfError(await client.rpc('request_assignment_reschedule', {
+          const requested = await client.rpc('request_assignment_reschedule', {
             p_assignment_id: getRemoteId(remoteAssignmentId, assignment.id),
             p_scheduled_for: assignment.rescheduleRequest.scheduledFor,
             p_scheduled_time: timeForDatabase(assignment.rescheduleRequest.scheduledTime),
-          }));
+          });
+          throwIfError(requested);
+          assignmentRevision.set(assignment.id, (requested.data as AssignmentRow).revision);
         }
         continue;
       }
       await ensureExerciseDefinitions([assignment.workoutSnapshot]);
-      throwIfError(await client.from('assignments').update({
+      let updateAssignment = client.from('assignments').update({
         scheduled_for: assignment.scheduledFor,
         scheduled_time: assignment.format === 'in-person' ? timeForDatabase(assignment.scheduledTime) : null,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -438,7 +476,13 @@ export function createSupabaseRepository(
         reschedule_scheduled_for: assignment.rescheduleRequest?.scheduledFor ?? null,
         reschedule_scheduled_time: timeForDatabase(assignment.rescheduleRequest?.scheduledTime),
         reschedule_requested_at: assignment.rescheduleRequest?.requestedAt ?? null,
-      }).eq('id', getRemoteId(remoteAssignmentId, assignment.id)));
+      }).eq('id', getRemoteId(remoteAssignmentId, assignment.id));
+      const expectedRevision = assignmentRevision.get(assignment.id);
+      if (expectedRevision) updateAssignment = updateAssignment.eq('revision', expectedRevision);
+      const updatedAssignment = await updateAssignment.select('revision').maybeSingle();
+      throwIfError(updatedAssignment);
+      if (!updatedAssignment.data) throw revisionConflict('Назначение');
+      assignmentRevision.set(assignment.id, updatedAssignment.data.revision);
     }
 
     const previousSessions = indexById(previous.sessions);
@@ -519,14 +563,21 @@ export function createSupabaseRepository(
           id: getRemoteId(remoteSubscriptionId, entry.id),
           ...values,
         }));
+        subscriptionRevision.set(entry.id, 1);
       } else if (!same(before, entry)) {
-        throwIfError(await client.from('subscription_entries').update({
+        let updateSubscription = client.from('subscription_entries').update({
           lesson_delta: values.lesson_delta,
           occurred_at: values.occurred_at,
           amount_rub: values.amount_rub,
           payment_method: values.payment_method,
           comment: values.comment,
-        }).eq('id', getRemoteId(remoteSubscriptionId, entry.id)));
+        }).eq('id', getRemoteId(remoteSubscriptionId, entry.id));
+        const expectedRevision = subscriptionRevision.get(entry.id);
+        if (expectedRevision) updateSubscription = updateSubscription.eq('revision', expectedRevision);
+        const updatedSubscription = await updateSubscription.select('revision').maybeSingle();
+        throwIfError(updatedSubscription);
+        if (!updatedSubscription.data) throw revisionConflict('Платёж');
+        subscriptionRevision.set(entry.id, updatedSubscription.data.revision);
       }
     }
 
