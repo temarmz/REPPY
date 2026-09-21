@@ -15,6 +15,11 @@ export type InvitationPreview = {
   expiresAt: string;
 };
 
+type TelegramLinkCode = {
+  code: string;
+  expires_at: string;
+};
+
 type AuthStatus = 'disabled' | 'loading' | 'anonymous' | 'authenticated' | 'profile-missing' | 'error';
 
 export function useReppyAuth() {
@@ -142,6 +147,15 @@ export function useReppyAuth() {
     await loadProfile(data.session);
   }, [client, loadProfile]);
 
+  const createTelegramLink = useCallback(async () => {
+    if (!client) throw new Error('Supabase не настроен.');
+    const { data, error: linkError } = await client.rpc('create_telegram_link_code');
+    if (linkError) throw new Error(linkError.message);
+    const link = (data as TelegramLinkCode[] | null)?.[0];
+    if (!link?.code) throw new Error('Не удалось создать ссылку для Telegram.');
+    return `https://t.me/reppyappbot?start=${encodeURIComponent(link.code)}`;
+  }, [client]);
+
   return {
     enabled: Boolean(supabaseConfig),
     status,
@@ -156,6 +170,7 @@ export function useReppyAuth() {
     signOut,
     previewInvitation,
     acceptInvitation,
+    createTelegramLink,
     refreshProfile: () => loadProfile(session),
   };
 }
