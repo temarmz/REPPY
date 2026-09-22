@@ -112,8 +112,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .brand-logo {
   display: block;
   width: 132px;
-  height: 44px;
+  height: auto;
   object-fit: contain;
+  object-position: left center;
   filter: drop-shadow(0 7px 15px rgba(154, 70, 255, .16));
 }
 
@@ -317,8 +318,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 
 .brand-button { border: 0; padding: 0; background: transparent; cursor: pointer; }
-.welcome-card > .brand-button { margin-left: -22px; }
-.topbar .brand-button { margin-left: -22px; }
+.welcome-card > .brand-button { margin-left: 0; }
+.topbar .brand-button { margin-left: 0; }
 .app-shell { min-height: 100svh; background: var(--app-bg); }
 .topbar {
   position: sticky;
@@ -948,7 +949,7 @@ body.modal-open .bottom-nav { display: none; }
 
 .auth-screen { display: grid; min-height: 100svh; place-items: center; padding: 24px; background: radial-gradient(circle at 75% 15%, rgba(198,255,61,.08), transparent 32%), var(--ink); }
 .auth-card { width: min(100%, 500px); border: 1px solid rgba(255,255,255,.08); border-radius: 32px; padding: clamp(26px, 6vw, 48px); background: linear-gradient(145deg, #171b17, #0f120f); box-shadow: 0 30px 90px rgba(0,0,0,.3); }
-.auth-logo { display: block; width: 126px; height: auto; margin: 0 0 52px -17px; }
+.auth-logo { display: block; width: 126px; height: auto; margin: 0 0 52px; }
 .auth-card h1 { margin: 7px 0 0; font-size: clamp(38px, 9vw, 58px); line-height: .92; }
 .auth-description { margin: 19px 0 26px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .auth-form { display: grid; gap: 16px; }
@@ -990,8 +991,8 @@ body.modal-open .bottom-nav { display: none; }
     top: auto;
   }
   .topbar { padding-right: 17px; padding-left: 17px; }
-  .topbar .brand-button { margin-left: -18px; }
-  .topbar .brand-logo { width: 108px; height: 36px; }
+  .topbar .brand-button { margin-left: 0; }
+  .topbar .brand-logo { width: 108px; height: auto; }
   .role-switch { min-height: 40px; }
   .role-switch > span:first-child { padding: 6px 8px; }
   .theme-switch { width: 40px; height: 40px; flex-basis: 40px; border-radius: 13px; }
@@ -2262,7 +2263,7 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 
 @media (max-width: 360px) {
   .topbar { padding-inline: 10px; }
-  .topbar .brand-button { margin-left: -15px; }
+  .topbar .brand-button { margin-left: 0; }
   .topbar .brand-logo { width: 96px; }
   .topbar-actions { gap: 7px; }
   .role-switch { gap: 5px; padding: 0 7px 0 5px; }
