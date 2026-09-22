@@ -28,7 +28,7 @@ test('лендинг кратко объясняет продукт и не пе
   await expect(page.locator('.price-tier-grid > article')).toHaveCount(4);
   await expect(page.getByText('Для ученика — 0 ₽')).toBeVisible();
 
-  await expect(page.locator('.welcome-card > .brand-button')).toHaveCSS('margin-left', '-22px');
+  await expect(page.locator('.welcome-card > .brand-button')).toHaveCSS('margin-left', '0px');
 
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
