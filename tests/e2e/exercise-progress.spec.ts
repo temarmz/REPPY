@@ -68,7 +68,7 @@ test('график, клавиатура, соседние занятия и п�
   await page.getByRole('button', { name: 'Открыть тренировку' }).click();
   await expect(page).toHaveURL(/sessions\/progress-2$/);
   await expect(page.getByText('Контрольный комментарий к тренировке')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Прогресс упражнения' })).toHaveCount(3);
+  await expect(page.getByRole('button', { name: 'Прогресс упражнения' })).toHaveCount(1);
   const resultProgressButton = page.locator('.result-exercises article').first().getByRole('button', { name: 'Прогресс упражнения' });
   expect(await resultProgressButton.evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
   expect(await resultProgressButton.evaluate((element) => {
@@ -79,11 +79,11 @@ test('график, клавиатура, соседние занятия и п�
   await expect(page.locator('.progress-chart')).toBeVisible();
 });
 
-test('прогресс доступен из каждой карточки назначенной тренировки', async ({ page }) => {
+test('прогресс доступен только у упражнений с завершёнными подходами', async ({ page }) => {
   await seedProgress(page);
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
   const plannedProgressButton = page.getByRole('button', { name: 'Прогресс упражнения' });
-  await expect(plannedProgressButton).toHaveCount(3);
+  await expect(plannedProgressButton).toHaveCount(1);
   expect(await plannedProgressButton.first().evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
   expect(await plannedProgressButton.first().evaluate((element) => {
     const css = getComputedStyle(element);
@@ -116,10 +116,7 @@ test('результат нового занятия появляется в п�
   await seedProgress(page, 0);
   await page.goto('/#/trainer/assignments/assignment-artem-push-today');
   const progressButtons = page.getByRole('button', { name: 'Прогресс упражнения' });
-  await expect(progressButtons).toHaveCount(3);
-  await progressButtons.first().click();
-  await expect(page.getByRole('heading', { name: 'Результаты не найдены', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(progressButtons).toHaveCount(0);
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();

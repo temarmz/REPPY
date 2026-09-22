@@ -969,6 +969,12 @@ body.modal-open .bottom-nav { display: none; }
 .demo-stats span { display: grid; min-height: 80px; place-content: center; justify-items: center; border-radius: 17px; background: #0b0d0b; color: var(--muted); font-size: 9px; }
 .demo-stats b { color: white; font-size: 22px; }
 .settings-modal > p { margin: 20px 2px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.account-details { display: flex; align-items: center; gap: 14px; margin: 20px 0; border: 1px solid var(--ui-outline); border-radius: 18px; padding: 14px; background: var(--surface); }
+.account-avatar { display: grid; width: 48px; height: 48px; flex: 0 0 auto; place-items: center; border-radius: 15px; background: var(--lime); color: #11150e; font-size: 19px; font-weight: 950; }
+.account-details > div { display: grid; min-width: 0; gap: 2px; }
+.account-details strong { font-size: 16px; }
+.account-details small { color: var(--lime); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.account-details div > span { margin-top: 3px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .reset-button { display: inline-flex; width: 100%; min-height: 55px; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(255,93,72,.26); border-radius: 17px; background: rgba(255,93,72,.06); color: #ff887a; cursor: pointer; font-size: var(--button-font-size); font-weight: 850; text-align: center; }
 .reset-button .ui-icon { width: 16px; height: 16px; }
 .toast { position: fixed; top: calc(var(--topbar-height) + 15px); left: calc(50% + 125px); z-index: 200; display: flex; min-height: 48px; align-items: center; gap: 7px; transform: translateX(-50%); border: 1px solid rgba(198,255,61,.25); border-radius: 16px; padding: 15px 18px; background: #1d241a; box-shadow: 0 18px 50px rgba(0,0,0,.35); color: var(--lime); font-size: 12px; font-weight: 800; }
@@ -1935,8 +1941,14 @@ body.modal-open .bottom-nav { display: none; }
 .progress-sets > small { display: block; margin-top: 6px; font-size: 12px; }
 .progress-chart { border: 1px solid var(--ui-outline); background: var(--surface); border-radius: 24px; padding: 20px; }
 .progress-chart-unit { margin: 0 0 8px; font-size: 13px; }
+.progress-chart-legend { display: flex; gap: 18px; margin-bottom: 2px; color: var(--muted); font-size: 11px; }
+.progress-chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.progress-chart-legend span::before { width: 14px; height: 3px; border-radius: 2px; background: var(--lime); content: ''; }
+.progress-chart-legend .sets::before { background: var(--orange); }
 .progress-chart svg { display: block; width: 100%; height: auto; max-height: 280px; color: var(--lime); overflow: visible; }
 .progress-chart text { font-size: 12px; fill: var(--muted); }
+.progress-chart .progress-set-axis { fill: var(--orange); }
+.progress-chart .progress-sets-line, .progress-chart .progress-sets-point { color: var(--orange); }
 .progress-chart g[role="button"] { cursor: pointer; }
 .progress-chart g[role="button"]:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
 .progress-chart g[role="button"]:focus-visible circle:last-child { stroke: var(--lime); stroke-width: 4px; }

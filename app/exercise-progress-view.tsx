@@ -41,18 +41,28 @@ function ProgressChart({ entries, exercise, go }: { entries: ProgressEntry[]; ex
   const selected = entries.find((entry) => entry.session.id === selectedId) ?? entries[0];
   const values = ordered.map((entry) => progressMetric(entry, 'max'));
   const maximum = Math.max(1, ...values) * 1.1;
+  const setValues = ordered.map((entry) => entry.completed);
+  const setMaximum = Math.max(2, Math.ceil(Math.max(...setValues) / 2) * 2);
   const minTime = ordered[0].timestamp;
   const maxTime = ordered[ordered.length - 1].timestamp;
-  const points = ordered.map((entry, index) => ({ x: maxTime === minTime ? chartWidth / 2 : 45 + (entry.timestamp - minTime) / (maxTime - minTime) * (chartWidth - 60), y: 195 - values[index] / maximum * 155, entry }));
+  const plotRight = chartWidth - 45;
+  const points = ordered.map((entry, index) => ({
+    x: maxTime === minTime ? chartWidth / 2 : 45 + (entry.timestamp - minTime) / (maxTime - minTime) * (plotRight - 45),
+    y: 195 - values[index] / maximum * 155,
+    setY: 195 - setValues[index] / setMaximum * 155,
+    entry,
+  }));
   const selectedIndex = entries.indexOf(selected);
   const unit = exercise.loadMode === 'external' && exercise.measureType === 'reps' ? 'кг' : exercise.measureType === 'duration' ? 'сек.' : 'повт.';
   return <section className="progress-chart">
-    <p className="progress-chart-unit">{exercise.measureType === 'duration' ? 'Максимум секунд в подходе' : exercise.loadMode === 'external' ? 'Максимальный вес, кг' : 'Максимум повторений в подходе'}</p>
+    <p className="progress-chart-unit">{exercise.measureType === 'duration' ? 'Максимум секунд и выполненные подходы' : exercise.loadMode === 'external' ? 'Максимальный вес и выполненные подходы' : 'Максимум повторений и выполненные подходы'}</p>
+    <div className="progress-chart-legend" aria-hidden="true"><span className="metric">{unit}</span><span className="sets">Подходы</span></div>
     <svg ref={svgRef} viewBox={`0 0 ${chartWidth} 240`} role="group" aria-label="График результатов по датам">
-      {[0, 0.5, 1].map((fraction) => <g key={fraction}><line x1="45" x2={chartWidth - 15} y1={195 - fraction * 155} y2={195 - fraction * 155} stroke="currentColor" opacity=".15" /><text x="38" y={199 - fraction * 155} textAnchor="end">{progressNumber(Math.round(maximum * fraction * 10) / 10)}</text></g>)}
-      <polyline points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
-      {points.map(({ x, y, entry }, index) => <g key={entry.session.id} role="button" tabIndex={0} aria-label={`${dateLabel(entry)} ${timeLabel(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${unit}`} aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
-        <circle className="progress-point-hitarea" cx={x} cy={y} r="22" fill="transparent" /><circle cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" />
+      {[0, 0.5, 1].map((fraction) => <g key={fraction}><line x1="45" x2={plotRight} y1={195 - fraction * 155} y2={195 - fraction * 155} stroke="currentColor" opacity=".15" /><text x="38" y={199 - fraction * 155} textAnchor="end">{progressNumber(Math.round(maximum * fraction * 10) / 10)}</text><text className="progress-set-axis" x={chartWidth - 38} y={199 - fraction * 155}>{Math.round(setMaximum * fraction)}</text></g>)}
+      <polyline className="progress-metric-line" points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
+      <polyline className="progress-sets-line" points={points.map((point) => `${point.x},${point.setY}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
+      {points.map(({ x, y, setY, entry }, index) => <g key={entry.session.id} role="button" tabIndex={0} aria-label={`${dateLabel(entry)} ${timeLabel(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${unit}, подходов: ${setValues[index]}`} aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
+        <circle className="progress-point-hitarea" cx={x} cy={(y + setY) / 2} r="22" fill="transparent" /><circle className="progress-metric-point" cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" /><rect className="progress-sets-point" x={x - (selected.session.id === entry.session.id ? 6 : 4)} y={setY - (selected.session.id === entry.session.id ? 6 : 4)} width={selected.session.id === entry.session.id ? 12 : 8} height={selected.session.id === entry.session.id ? 12 : 8} rx="2" fill="currentColor" />
       </g>)}
       <text x="45" y="225">{dateLabel(ordered[0])}</text>{ordered.length > 1 && <text x={chartWidth - 15} y="225" textAnchor="end">{dateLabel(ordered[ordered.length - 1])}</text>}
     </svg>
@@ -60,7 +70,7 @@ function ProgressChart({ entries, exercise, go }: { entries: ProgressEntry[]; ex
     <div className="progress-selected">
       <div className="progress-selection-heading">
         <button type="button" className="wide-secondary" aria-label="Предыдущее занятие" disabled={selectedIndex === entries.length - 1} onClick={() => setSelectedId(entries[selectedIndex + 1].session.id)}><Icon name="chevron-left" /></button>
-        <h3>{entryDate(selected, entries)} · {progressNumber(progressMetric(selected, 'max'))} {unit}</h3>
+        <h3>{entryDate(selected, entries)} · {progressNumber(progressMetric(selected, 'max'))} {unit} · {selected.completed} подх.</h3>
         <button type="button" className="wide-secondary" aria-label="Следующее занятие" disabled={selectedIndex === 0} onClick={() => setSelectedId(entries[selectedIndex - 1].session.id)}><Icon name="chevron-right" /></button>
       </div>
       <ResultSets entry={selected} />

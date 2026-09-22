@@ -43,7 +43,7 @@ import ModalFrame, { MODAL_LAYER_EVENT, hasOpenModalLayers } from './modal-frame
 import WorkoutScheduleFields, { DatePickerField } from './workout-schedule-fields';
 import { ActionButton, FormError, TextField } from './ui-controls';
 import { ActiveExerciseCard, PlanExerciseCard } from './workout-exercise-card';
-import { progressHref } from './exercise-progress';
+import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 import {
   chargeSubscriptionForSession,
   createSubscriptionPayment,
@@ -1108,6 +1108,7 @@ export default function ReppyApp() {
       </AppShell>
       {settingsOpen && <SettingsModal
         accountMode={auth.enabled}
+        account={auth.profile ? { displayName: auth.profile.displayName, role: auth.profile.role, email: auth.session?.user.email ?? '' } : undefined}
         onClose={() => setSettingsOpen(false)}
         onReset={resetDemo}
         onSignOut={auth.enabled ? async () => {
@@ -2387,6 +2388,7 @@ function AssignmentDetails({
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
   const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
+  const progressKeys = new Set(collectExerciseProgress(data.sessions, assignment.studentId).map((group) => group.key));
   if (!student || !workout) return <NotFound />;
   return (
     <main className="content-page narrow-page">
@@ -2406,7 +2408,7 @@ function AssignmentDetails({
         <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
       </div>
       <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
-      <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => () => go(progressHref(student.id, exercise))} />
+      <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => progressKeys.has(progressKey(exercise)) ? () => go(progressHref(student.id, exercise)) : undefined} />
     </main>
   );
 }
@@ -3127,6 +3129,7 @@ function SessionResult({
   const [deleteOpen, setDeleteOpen] = useState(false);
   if (!workout) return <NotFound />;
   const completedSets = session.results.filter((result) => result.completed).length;
+  const progressKeys = new Set(collectExerciseProgress(data.sessions, session.studentId).map((group) => group.key));
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <main className="content-page narrow-page">
@@ -3149,7 +3152,7 @@ function SessionResult({
             <article key={exercise.id}>
               <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><small className="result-exercise-meta">{exerciseMetadata(exercise)}</small>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
               <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
-              {trainerView && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise))}>Прогресс упражнения</ActionButton>}
+              {trainerView && progressKeys.has(progressKey(exercise)) && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise))}>Прогресс упражнения</ActionButton>}
             </article>
           );
         })}
@@ -3188,7 +3191,7 @@ function InvitationScreen({ token, inviteName, data, onAccept }: { token: string
   );
 }
 
-function SettingsModal({ accountMode = false, onClose, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode?: boolean; onClose: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
+function SettingsModal({ accountMode = false, account, onClose, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode?: boolean; account?: { displayName: string; role: 'trainer' | 'student'; email: string }; onClose: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
@@ -3228,7 +3231,7 @@ function SettingsModal({ accountMode = false, onClose, onReset, onSignOut, onOpe
 
   return (
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить локальные данные?' : accountMode ? 'Настройки аккаунта' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel={accountMode ? 'Настройки аккаунта' : 'Настройки демо'} onClose={onClose}>
-      <p>{resetConfirmationOpen ? 'Все локальные изменения в учениках, тренировках и расписании будут удалены.' : accountMode ? 'Аккаунт защищён Supabase Auth, а данные тренировок синхронизируются через Supabase.' : 'Сброс вернёт исходных учеников, тренировки и расписание.'}</p>
+      {resetConfirmationOpen ? <p>Все локальные изменения в учениках, тренировках и расписании будут удалены.</p> : accountMode && account ? <section className="account-details" aria-label="Данные аккаунта"><span className="account-avatar">{account.displayName.trim().charAt(0).toUpperCase()}</span><div><strong>{account.displayName}</strong><small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</small>{account.email && <span>{account.email}</span>}</div></section> : !accountMode ? <p>Сброс вернёт исходных учеников, тренировки и расписание.</p> : null}
       {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <div className="telegram-connection-status"><Icon name="check" /><span><strong>Telegram подключён</strong><small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</small></span></div> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}{onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}</div>}
     </ModalFrame>
   );
