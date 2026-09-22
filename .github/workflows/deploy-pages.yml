@@ -15,7 +15,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  backend-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start isolated Supabase
+        run: npm run supabase:start
+      - name: Lint database schema
+        run: npm run db:lint
+      - name: Test database functions and policies
+        run: npm run db:test
+      - name: Test two-account Auth workflow
+        run: npm run test:integration
+      - name: Stop isolated Supabase
+        if: always()
+        run: npm run supabase:stop
+
   deploy:
+    needs: backend-integration
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

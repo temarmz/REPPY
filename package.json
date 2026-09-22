@@ -11,6 +11,7 @@
     "preview": "vite preview --config vite.pages.config.ts",
     "lint": "eslint .",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:integration": "node scripts/run-auth-integration.mjs",
     "test:e2e": "npm run build:pages && playwright test",
     "typecheck": "tsc --noEmit --incremental false",
     "supabase:start": "supabase start",
