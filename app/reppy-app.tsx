@@ -358,7 +358,6 @@ export default function ReppyApp() {
   const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
-  const hydratedPathReady = useRef(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modalLayerOpen, setModalLayerOpen] = useState(false);
@@ -463,16 +462,16 @@ export default function ReppyApp() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated || hydratedPathReady.current) return;
-    hydratedPathReady.current = true;
+    if (!hydrated || (path !== '/' && path !== '/auth/sign-in')) return;
+    const activeRole = auth.enabled
+      ? auth.status === 'authenticated' ? auth.profile?.role : undefined
+      : data.loggedIn ? data.role : undefined;
+    if (!activeRole) return;
 
-    const requestedPath = hashPath();
-    if (requestedPath === '/' && data.loggedIn) {
-      const homePath = data.role === 'trainer' ? '/trainer' : '/student';
-      window.history.replaceState({ reppyEntry: false, reppyScroll: TOP_SCROLL_POSITION }, '', `#${homePath}`);
-      window.dispatchEvent(new Event(NAVIGATION_EVENT));
-    }
-  }, [data.loggedIn, data.role, hydrated]);
+    const homePath = activeRole === 'trainer' ? '/trainer' : '/student';
+    window.history.replaceState({ reppyEntry: false, reppyScroll: TOP_SCROLL_POSITION }, '', `#${homePath}`);
+    window.dispatchEvent(new Event(NAVIGATION_EVENT));
+  }, [auth.enabled, auth.profile, auth.status, data.loggedIn, data.role, hydrated, path]);
 
   useEffect(() => {
     if (!auth.enabled || auth.status !== 'authenticated' || !auth.profile || !hydrated) return;
@@ -611,8 +610,22 @@ export default function ReppyApp() {
     return <MissingProfileScreen onSignOut={auth.signOut} />;
   }
 
+  if (auth.enabled && auth.status === 'anonymous' && path === '/') {
+    return <WelcomeScreen accountMode onLogin={() => go('/auth/sign-in')} />;
+  }
+
   if (auth.enabled && auth.status !== 'authenticated') {
     return <AccountScreen key="sign-in" recovery={false} initialError={auth.error} onSignIn={auth.signIn} onSendPasswordReset={auth.sendPasswordReset} onUpdatePassword={auth.updatePassword} />;
+  }
+
+  if (auth.enabled && (path === '/' || path === '/auth/sign-in')) {
+    return (
+      <main className="loading-screen" aria-busy="true">
+        <img className="loading-logo" src="logo-full.png" alt="REPPY" />
+        <span className="loading-bar" aria-hidden="true"><i /></span>
+        <p>Открываем твой кабинет…</p>
+      </main>
+    );
   }
 
   const authenticatedRouteMismatch = Boolean(auth.enabled && auth.profile && (
@@ -1116,7 +1129,7 @@ export default function ReppyApp() {
   );
 }
 
-function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
+function WelcomeScreen({ onLogin, accountMode = false }: { onLogin: () => void; accountMode?: boolean }) {
   return (
     <main className="welcome-page">
       <section className="welcome-screen">
@@ -1129,10 +1142,12 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
             <p className="welcome-description">Расписание, программы, результаты подходов и абонементы — в одной понятной связи между тренером и учеником.</p>
           </div>
           <button className="primary-button" type="button" onClick={onLogin}>
-            <Icon name="arrow-right" /> Попробовать REPPY
+            <Icon name="arrow-right" /> {accountMode ? 'Войти в REPPY' : 'Попробовать REPPY'}
           </button>
-          <div className="hero-points" aria-label="Преимущества демо">
-            <span>Без регистрации</span><span>Обе роли</span><span>Работает на iPhone</span>
+          <div className="hero-points" aria-label={accountMode ? 'Преимущества REPPY' : 'Преимущества демо'}>
+            {accountMode
+              ? <><span>Тренер и ученик</span><span>Данные синхронизированы</span><span>Работает на iPhone</span></>
+              : <><span>Без регистрации</span><span>Обе роли</span><span>Работает на iPhone</span></>}
           </div>
         </section>
         <figure className="hero-mascot">
@@ -1212,8 +1227,10 @@ function WelcomeScreen({ onLogin }: { onLogin: () => void }) {
       </section>
 
       <section className="landing-cta">
-        <div><p className="eyebrow">Посмотри вживую</p><h2>ПРОЙДИ ПУТЬ ТРЕНЕРА И УЧЕНИКА.</h2><p>Демо уже заполнено примерами: можно назначить тренировку, выполнить её и проверить результат с обеих сторон.</p></div>
-        <button className="primary-button" type="button" onClick={onLogin}><Icon name="arrow-right" /> Открыть демо</button>
+        {accountMode
+          ? <div><p className="eyebrow">Уже с нами?</p><h2>ВЕРНИСЬ К ТРЕНИРОВКАМ.</h2><p>Войди в аккаунт — расписание, ученики и результаты уже ждут в твоём кабинете.</p></div>
+          : <div><p className="eyebrow">Посмотри вживую</p><h2>ПРОЙДИ ПУТЬ ТРЕНЕРА И УЧЕНИКА.</h2><p>Демо уже заполнено примерами: можно назначить тренировку, выполнить её и проверить результат с обеих сторон.</p></div>}
+        <button className="primary-button" type="button" onClick={onLogin}><Icon name="arrow-right" /> {accountMode ? 'Войти в аккаунт' : 'Открыть демо'}</button>
       </section>
     </main>
   );
