@@ -18,7 +18,8 @@
     "db:reset": "supabase db reset --local",
     "db:lint": "supabase db lint --local --level warning --fail-on error",
     "db:test": "supabase test db",
-    "trainer:create": "node --env-file-if-exists=.env.admin.local scripts/create-trainer.mjs"
+    "trainer:create": "node --env-file-if-exists=.env.admin.local scripts/create-trainer.mjs",
+    "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

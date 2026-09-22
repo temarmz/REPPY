@@ -9,9 +9,9 @@
 - Supabase Auth для аккаунтов и пользовательских сессий.
 - Закрытый Supabase Storage bucket `instruction-videos` для видео тренера.
 
-Frontend пока продолжает использовать `LocalStorageRepository`. Наличие схемы backend не меняет поведение опубликованного прототипа до подключения нового repository-адаптера.
+Авторизованные аккаунты используют `SupabaseRepository`: расписание, тренировки, результаты, абонементы и связи тренер–ученик хранятся в PostgreSQL и обновляются через Realtime. `LocalStorageRepository` остаётся только для публичного демо без Supabase-сессии.
 
-Frontend уже умеет подключаться к Supabase Auth, если заданы `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY`. Без этих переменных приложение сохраняет прежний демо-режим. Данные тренировок на этом промежуточном этапе всё ещё обслуживает `LocalStorageRepository`; это явно показывается в настройках аккаунта.
+Frontend подключается к Supabase Auth, если заданы `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY`. Без этих переменных приложение запускает изолированный демо-режим. Сессия и роль аккаунта всегда определяются Supabase Auth и неизменяемой записью `profiles`.
 
 ## Окружения
 
@@ -112,6 +112,24 @@ cp .env.example .env.local
 
 Для GitHub Pages добавьте `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY` как Repository variables в Settings → Secrets and variables → Actions → Variables. Workflow передаёт их только финальной production-сборке; E2E по-прежнему проверяет изолированный демо-режим.
 
+## Серверная доставка Telegram
+
+Триггеры базы записывают события в `telegram_notification_outbox`. Edge Function `telegram-notifications` умеет обрабатывать очередь двумя способами:
+
+- сразу после пользовательского действия — авторизованным запросом приложения;
+- независимо от браузера — заданием Supabase Cron каждые 30 секунд.
+
+Периодический вызов использует `pg_cron`, `pg_net` и значения из Supabase Vault. После применения миграций и деплоя функции выполните один раз в SQL Editor под администратором проекта:
+
+```sql
+select public.configure_telegram_notification_delivery(
+  'https://PROJECT_REF.supabase.co',
+  'YOUR_PUBLISHABLE_KEY'
+);
+```
+
+Publishable key допустимо использовать для этого вызова: функция сверяет его с ключами текущего Supabase-проекта, не возвращает содержимое очереди и выполняет только идемпотентную доставку уже созданных сервером событий. Таблица outbox и claim/finalize RPC недоступны ролям `anon` и `authenticated`.
+
 Первичное подключение hosted-проекта и применение миграций:
 
 ```bash
@@ -138,6 +156,6 @@ npm run supabase:stop
 
 ## Следующий этап
 
-1. Расширить `ReppyRepository` предметными операциями вместо сохранения целого `DemoState`.
-2. Перенести текущую SQL-матрицу RLS в E2E-сценарии с реальными Auth-сессиями preview-окружения.
-3. Перенести административное создание тренера из локального server-only скрипта в защищённый операционный backend перед самостоятельной регистрацией тренеров.
+1. Перенести текущую SQL-матрицу RLS в E2E-сценарии с реальными Auth-сессиями preview-окружения.
+2. Расширить `ReppyRepository` явными предметными операциями вместо вычисления изменений целого `DemoState`.
+3. Реализовать самостоятельный onboarding тренера, включая регистрацию через Telegram, в защищённом операционном backend.

@@ -14,6 +14,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
 
 type Notification = {
   notification_id: string
+  actor_profile_id?: string
   notification_kind:
     | 'assignment-reschedule-requested'
     | 'assignment-reschedule-accepted'
@@ -24,6 +25,40 @@ type Notification = {
     | 'workout-completed'
   notification_payload: Record<string, unknown>
   telegram_chat_id: number
+}
+
+function isExpectedPublishableKey(received: string | null): boolean {
+  if (!received) return false
+
+  const configuredKeys: string[] = []
+  const legacyKey = Deno.env.get('SUPABASE_ANON_KEY')
+  if (legacyKey) configuredKeys.push(legacyKey)
+
+  const publishedKeys = Deno.env.get('SUPABASE_PUBLISHABLE_KEYS')
+  if (publishedKeys) {
+    try {
+      const parsed = JSON.parse(publishedKeys) as Record<string, unknown>
+      configuredKeys.push(...Object.values(parsed).filter((value): value is string => typeof value === 'string'))
+    } catch {
+      return false
+    }
+  }
+
+  return configuredKeys.some((expected) => expected === received)
+}
+
+function serviceRoleKey(): string | null {
+  const secretKeys = Deno.env.get('SUPABASE_SECRET_KEYS')
+  if (secretKeys) {
+    try {
+      const parsed = JSON.parse(secretKeys) as Record<string, unknown>
+      const defaultKey = parsed.default
+      if (typeof defaultKey === 'string' && defaultKey) return defaultKey
+    } catch {
+      return null
+    }
+  }
+  return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 }
 
 function textValue(payload: Record<string, unknown>, key: string, fallback: string): string {
@@ -98,31 +133,41 @@ Deno.serve(async (request) => {
 
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const serverKey = serviceRoleKey()
   const authorization = request.headers.get('authorization')
-  if (!botToken || !supabaseUrl || !serviceRoleKey || !authorization) {
+  const apiKey = request.headers.get('apikey')
+  if (!botToken || !supabaseUrl || !serverKey) {
     return jsonResponse({ error: 'Notifications are not configured' }, 503)
   }
 
-  const accessToken = authorization.replace(/^Bearer\s+/i, '')
-  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
-  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken)
-  if (userError || !userData.user) return jsonResponse({ error: 'Unauthorized' }, 401)
+  const supabase = createClient(supabaseUrl, serverKey, { auth: { persistSession: false } })
+  let actorProfileId: string | null = null
+  if (authorization) {
+    const accessToken = authorization.replace(/^Bearer\s+/i, '')
+    const { data: userData } = await supabase.auth.getUser(accessToken)
+    actorProfileId = userData.user?.id ?? null
+  }
 
-  const actorProfileId = userData.user.id
-  const { data, error } = await supabase.rpc('claim_telegram_notifications', {
-    p_actor_profile_id: actorProfileId,
-    p_limit: 10,
-  })
+  const scheduledDelivery = !actorProfileId && isExpectedPublishableKey(apiKey)
+  if (!actorProfileId && !scheduledDelivery) return jsonResponse({ error: 'Unauthorized' }, 401)
+
+  const { data, error } = scheduledDelivery
+    ? await supabase.rpc('claim_due_telegram_notifications', { p_limit: 25 })
+    : await supabase.rpc('claim_telegram_notifications', {
+        p_actor_profile_id: actorProfileId,
+        p_limit: 10,
+      })
   if (error) return jsonResponse({ error: 'Could not claim notifications' }, 500)
 
   let sent = 0
   for (const notification of (data ?? []) as Notification[]) {
+    const notificationActorId = notification.actor_profile_id ?? actorProfileId
+    if (!notificationActorId) continue
     try {
       await sendMessage(botToken, notification)
       await supabase.rpc('finish_telegram_notification', {
         p_notification_id: notification.notification_id,
-        p_actor_profile_id: actorProfileId,
+        p_actor_profile_id: notificationActorId,
         p_success: true,
         p_error: null,
       })
@@ -130,12 +175,12 @@ Deno.serve(async (request) => {
     } catch (deliveryError) {
       await supabase.rpc('finish_telegram_notification', {
         p_notification_id: notification.notification_id,
-        p_actor_profile_id: actorProfileId,
+        p_actor_profile_id: notificationActorId,
         p_success: false,
         p_error: deliveryError instanceof Error ? deliveryError.message : 'Unknown delivery error',
       })
     }
   }
 
-  return jsonResponse({ claimed: data?.length ?? 0, sent })
+  return jsonResponse({ ok: true, claimed: data?.length ?? 0, sent })
 })
