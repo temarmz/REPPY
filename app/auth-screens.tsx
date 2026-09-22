@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import EmptyState from './empty-state';
-import type { AuthProfile, InvitationPreview } from './reppy-auth';
+import type { AuthProfile, InvitationPreview, TrainerRegistrationStatus } from './reppy-auth';
 import { ActionButton, FormError, TextField } from './ui-controls';
 
 function AuthBrand() {
@@ -16,6 +16,15 @@ function readableAuthError(reason: unknown) {
   if (normalized.includes('password should be')) return 'Пароль должен содержать не меньше 8 символов.';
   if (normalized.includes('invitation is not available')) return 'Приглашение недействительно или уже использовано.';
   return message;
+}
+
+function loadTrainerRegistrationCredentials(token?: string) {
+  if (!token) return {};
+  try {
+    return JSON.parse(window.sessionStorage.getItem(`reppy-trainer-registration:${token}`) ?? '{}') as { name?: string; email?: string };
+  } catch {
+    return {};
+  }
 }
 
 export function AccountScreen({
@@ -80,6 +89,130 @@ export function AccountScreen({
         </form>
         {mode === 'sign-in' && <button className="auth-text-button" type="button" onClick={() => setMode('forgot')}>Не помню пароль</button>}
         {mode === 'forgot' && <button className="auth-text-button" type="button" onClick={() => setMode('sign-in')}>Вернуться ко входу</button>}
+      </section>
+    </main>
+  );
+}
+
+export function TrainerRegistrationScreen({
+  inviteCode,
+  registrationToken,
+  signedIn,
+  onStart,
+  onStatus,
+  onSignUp,
+  onActivate,
+  onComplete,
+  onHome,
+}: {
+  inviteCode: string;
+  registrationToken?: string;
+  signedIn: boolean;
+  onStart: (inviteCode: string, displayName: string, email: string) => Promise<{ token: string; expiresAt: string }>;
+  onStatus: (token: string) => Promise<TrainerRegistrationStatus>;
+  onSignUp: (email: string, password: string, inviteCode: string, registrationToken: string) => Promise<{ confirmationRequired: boolean }>;
+  onActivate: (token: string) => Promise<void>;
+  onComplete: () => void;
+  onHome: () => void;
+}) {
+  const [name, setName] = useState(() => loadTrainerRegistrationCredentials(registrationToken).name ?? '');
+  const [email, setEmail] = useState(() => loadTrainerRegistrationCredentials(registrationToken).email ?? '');
+  const [password, setPassword] = useState('');
+  const [status, setStatus] = useState<TrainerRegistrationStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (!registrationToken) return;
+    let active = true;
+    const refresh = () => void onStatus(registrationToken)
+      .then((next) => { if (active) setStatus(next); })
+      .catch(() => { if (active) setError('Ссылка регистрации недействительна или устарела.'); });
+    refresh();
+    const interval = window.setInterval(refresh, 3000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [onStatus, registrationToken]);
+
+  const start = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const registration = await onStart(inviteCode, name, email);
+      try {
+        window.sessionStorage.setItem(
+          `reppy-trainer-registration:${registration.token}`,
+          JSON.stringify({ name, email }),
+        );
+      } catch {
+        // The registration URL still carries the opaque token for a same-page flow.
+      }
+      window.location.hash = `/trainer/register/${encodeURIComponent(inviteCode)}/${encodeURIComponent(registration.token)}`;
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createAccount = async () => {
+    if (!registrationToken) return;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await onSignUp(email, password, inviteCode, registrationToken);
+      if (result.confirmationRequired) setNotice('Подтверди email по ссылке из письма — затем вернись на эту страницу.');
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const activate = async () => {
+    if (!registrationToken) return;
+    setBusy(true);
+    setError('');
+    try {
+      await onActivate(registrationToken);
+      try { window.sessionStorage.removeItem(`reppy-trainer-registration:${registrationToken}`); } catch { /* ignore */ }
+      onComplete();
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const botUrl = registrationToken ? `https://t.me/reppyappbot?start=trainer_${registrationToken}` : '';
+  return (
+    <main className="invitation-screen">
+      <section className="invitation-card auth-invitation-card">
+        <AuthBrand />
+        <p className="eyebrow">Регистрация тренера</p>
+        <h1>СОЗДАЙ КАБИНЕТ ТРЕНЕРА</h1>
+        {!registrationToken ? <form className="auth-form" onSubmit={start}>
+          <div><TextField id="trainer-name" label="Ваше имя" autoComplete="name" minLength={2} required value={name} onChange={(event) => setName(event.target.value)} /></div>
+          <div><TextField id="trainer-email" label="Email из приглашения" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+          {error && <FormError>{error}</FormError>}
+          <ActionButton icon="arrow-right" type="submit" disabled={busy}>{busy ? 'Подождите…' : 'Продолжить'}</ActionButton>
+        </form> : <div className="auth-form">
+          {!status?.telegramVerified ? <>
+            <p>Подтверди Telegram: открой бота по ссылке, нажми Start и вернись сюда. Страница обновится сама.</p>
+            <a className="primary-button" href={botUrl}>Открыть Telegram</a>
+          </> : !signedIn ? <>
+            <p>Telegram подтверждён. Теперь задай пароль для аккаунта REPPY.</p>
+            <div><TextField id="trainer-password" label="Пароль" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+            <ActionButton icon="arrow-right" disabled={busy || password.length < 8} onClick={createAccount}>{busy ? 'Создаём…' : 'Создать аккаунт'}</ActionButton>
+          </> : <>
+            <p>Telegram и email подтверждены. Осталось активировать кабинет тренера.</p>
+            <ActionButton icon="check" disabled={busy} onClick={activate}>{busy ? 'Активируем…' : 'Открыть кабинет'}</ActionButton>
+          </>}
+          {error && <FormError>{error}</FormError>}
+          {notice && <p className="form-notice" role="status">{notice}</p>}
+        </div>}
+        <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
       </section>
     </main>
   );
@@ -193,7 +326,7 @@ export function MissingProfileScreen({ onSignOut }: { onSignOut: () => Promise<v
     <main className="auth-screen">
       <section className="auth-card">
         <AuthBrand />
-        <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть ссылку-приглашение тренера. Аккаунт тренера создаётся администратором REPPY." action="Выйти" onAction={() => void onSignOut()} />
+        <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть приглашение тренера. Тренер завершает регистрацию по одноразовой ссылке от REPPY." action="Выйти" onAction={() => void onSignOut()} />
       </section>
     </main>
   );

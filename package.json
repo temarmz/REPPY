@@ -20,6 +20,9 @@
     "db:lint": "supabase db lint --local --level warning --fail-on error",
     "db:test": "supabase test db",
     "trainer:create": "node --env-file-if-exists=.env.admin.local scripts/create-trainer.mjs",
+    "trainer:invite": "node --env-file-if-exists=.env.admin.local scripts/create-trainer-invitation.mjs",
+    "test-accounts:preview": "node --env-file-if-exists=.env.admin.local scripts/reset-test-accounts.mjs",
+    "test-accounts:delete": "node --env-file-if-exists=.env.admin.local scripts/reset-test-accounts.mjs --execute",
     "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs"
   },
   "dependencies": {

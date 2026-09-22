@@ -59,13 +59,36 @@ Deno.serve(async (request) => {
     return new Response('ok')
   }
 
+  const trainerRegistrationToken = message.text?.match(/^\/start\s+trainer_([a-f0-9]{48})$/i)?.[1]?.toLowerCase()
   const startCode = message.text?.match(/^\/start\s+([a-f0-9]{48})$/i)?.[1]?.toLowerCase()
-  if (!startCode) {
+  if (!trainerRegistrationToken && !startCode) {
     await sendMessage(botToken, chatId, 'Привет! Открой REPPY, выбери «Подключить Telegram» и перейди по выданной ссылке.')
     return new Response('ok')
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
+  if (trainerRegistrationToken) {
+    const { data: status, error } = await supabase.rpc('verify_trainer_registration', {
+      p_token: trainerRegistrationToken,
+      p_telegram_user_id: telegramUserId,
+      p_chat_id: chatId,
+      p_username: message.from?.username ?? null,
+      p_first_name: firstName,
+    })
+
+    if (error) throw error
+    await sendMessage(
+      botToken,
+      chatId,
+      status === 'verified'
+        ? 'Telegram подтверждён. Вернитесь в REPPY и завершите создание аккаунта тренера.'
+        : status === 'telegram-already-linked'
+          ? 'Этот Telegram уже подключён к другому аккаунту REPPY. Сначала удалите старую тестовую привязку.'
+          : 'Ссылка регистрации уже использована или устарела. Запросите новую у администратора REPPY.',
+    )
+    return new Response('ok')
+  }
+
   const { data: linked, error } = await supabase.rpc('consume_telegram_link_code', {
     p_code: startCode,
     p_telegram_user_id: telegramUserId,

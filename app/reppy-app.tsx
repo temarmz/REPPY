@@ -62,7 +62,7 @@ import {
   saveInstructionVideo,
 } from './instruction-video-repository';
 import { useReppyAuth, type TelegramConnection } from './reppy-auth';
-import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen } from './auth-screens';
+import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen, TrainerRegistrationScreen } from './auth-screens';
 import { getSupabaseClient } from './supabase-client';
 import { createSupabaseRepository } from './supabase-repository';
 
@@ -597,6 +597,22 @@ export default function ReppyApp() {
         }}
       />
     );
+  }
+
+  const trainerRegistrationMatch = path.match(/^\/trainer\/register\/([a-f0-9]{48})(?:\/([a-f0-9]{48}))?$/i);
+  if (auth.enabled && trainerRegistrationMatch) {
+    return <TrainerRegistrationScreen
+      key={trainerRegistrationMatch[2] ?? trainerRegistrationMatch[1]}
+      inviteCode={trainerRegistrationMatch[1].toLowerCase()}
+      registrationToken={trainerRegistrationMatch[2]?.toLowerCase()}
+      signedIn={Boolean(auth.session)}
+      onStart={auth.startTrainerRegistration}
+      onStatus={auth.getTrainerRegistrationStatus}
+      onSignUp={auth.signUpTrainer}
+      onActivate={auth.activateTrainerRegistration}
+      onComplete={() => go('/trainer', true)}
+      onHome={() => go('/', true)}
+    />;
   }
 
   if (auth.enabled && (path === '/auth/recovery' || auth.recovery)) {
