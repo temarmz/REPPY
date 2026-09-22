@@ -18,6 +18,9 @@ type Notification = {
     | 'assignment-reschedule-requested'
     | 'assignment-reschedule-accepted'
     | 'assignment-reschedule-declined'
+    | 'assignment-created'
+    | 'assignment-updated'
+    | 'assignment-canceled'
     | 'workout-completed'
   notification_payload: Record<string, unknown>
   telegram_chat_id: number
@@ -26,6 +29,13 @@ type Notification = {
 function textValue(payload: Record<string, unknown>, key: string, fallback: string): string {
   const value = payload[key]
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
+}
+
+function scheduleText(payload: Record<string, unknown>): string {
+  const date = textValue(payload, 'scheduledFor', '')
+  const time = textValue(payload, 'scheduledTime', '').slice(0, 5)
+  const format = textValue(payload, 'format', 'in-person')
+  return format === 'online' ? `${date} · онлайн` : `${date}${time ? ` в ${time}` : ''}`
 }
 
 function notificationText(notification: Notification): string {
@@ -49,6 +59,18 @@ function notificationText(notification: Notification): string {
     const date = textValue(payload, 'scheduledFor', '')
     const time = textValue(payload, 'scheduledTime', '').slice(0, 5)
     return `↩️ Тренер отклонил перенос тренировки «${workoutName}». Она остаётся на ${date}${time ? ` в ${time}` : ''}.`
+  }
+
+  if (notification.notification_kind === 'assignment-created') {
+    return `📅 Тренер назначил тренировку «${workoutName}» на ${scheduleText(payload)}. Подробности уже в REPPY.`
+  }
+
+  if (notification.notification_kind === 'assignment-updated') {
+    return `✏️ Тренер изменил тренировку «${workoutName}». Актуальное расписание: ${scheduleText(payload)}.`
+  }
+
+  if (notification.notification_kind === 'assignment-canceled') {
+    return `🚫 Тренер отменил тренировку «${workoutName}», запланированную на ${scheduleText(payload)}.`
   }
 
   return `✅ ${studentName} завершил(а) тренировку «${workoutName}». Результаты уже доступны в REPPY.`

@@ -470,6 +470,7 @@ export function createSupabaseRepository(
           : null,
       }));
       assignmentRevision.set(assignment.id, 1);
+      telegramNotificationCreated = true;
     }
     for (const assignment of state.assignments) {
       const before = previousAssignments.get(assignment.id);
@@ -486,9 +487,6 @@ export function createSupabaseRepository(
           telegramNotificationCreated = true;
         }
         continue;
-      }
-      if (before.rescheduleRequest && !assignment.rescheduleRequest) {
-        telegramNotificationCreated = true;
       }
       await ensureExerciseDefinitions([assignment.workoutSnapshot]);
       let updateAssignment = client.from('assignments').update({
@@ -510,6 +508,7 @@ export function createSupabaseRepository(
       throwIfError(updatedAssignment);
       if (!updatedAssignment.data) throw revisionConflict('Назначение');
       assignmentRevision.set(assignment.id, updatedAssignment.data.revision);
+      telegramNotificationCreated = true;
     }
 
     const previousSessions = indexById(previous.sessions);
@@ -569,6 +568,7 @@ export function createSupabaseRepository(
     for (const removed of previous.assignments.filter((item) => !nextAssignments.has(item.id))) {
       if (previous.sessions.some((session) => session.assignmentId === removed.id)) continue;
       throwIfError(await client.from('assignments').delete().eq('id', getRemoteId(remoteAssignmentId, removed.id)));
+      telegramNotificationCreated = true;
     }
 
     const previousEntries = indexById(previous.subscriptionEntries);
