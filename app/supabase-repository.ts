@@ -368,7 +368,7 @@ export function createSupabaseRepository(
       subscriptionEntries,
     };
     baseline = clone(state);
-    if (profile.role === 'student' && !notificationRecoveryAttempted) {
+    if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
       void client.functions.invoke('telegram-notifications', { body: {} })
         .then(({ error }) => {
@@ -486,6 +486,9 @@ export function createSupabaseRepository(
           telegramNotificationCreated = true;
         }
         continue;
+      }
+      if (before.rescheduleRequest && !assignment.rescheduleRequest) {
+        telegramNotificationCreated = true;
       }
       await ensureExerciseDefinitions([assignment.workoutSnapshot]);
       let updateAssignment = client.from('assignments').update({

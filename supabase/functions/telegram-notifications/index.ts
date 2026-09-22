@@ -14,7 +14,11 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
 
 type Notification = {
   notification_id: string
-  notification_kind: 'assignment-reschedule-requested' | 'workout-completed'
+  notification_kind:
+    | 'assignment-reschedule-requested'
+    | 'assignment-reschedule-accepted'
+    | 'assignment-reschedule-declined'
+    | 'workout-completed'
   notification_payload: Record<string, unknown>
   telegram_chat_id: number
 }
@@ -33,6 +37,18 @@ function notificationText(notification: Notification): string {
     const date = textValue(payload, 'scheduledFor', '')
     const time = textValue(payload, 'scheduledTime', '').slice(0, 5)
     return `🔄 ${studentName} просит перенести тренировку «${workoutName}» на ${date}${time ? ` в ${time}` : ''}. Открой REPPY, чтобы проверить запрос.`
+  }
+
+  if (notification.notification_kind === 'assignment-reschedule-accepted') {
+    const date = textValue(payload, 'scheduledFor', '')
+    const time = textValue(payload, 'scheduledTime', '').slice(0, 5)
+    return `✅ Тренер подтвердил перенос тренировки «${workoutName}» на ${date}${time ? ` в ${time}` : ''}. Новое время уже в REPPY.`
+  }
+
+  if (notification.notification_kind === 'assignment-reschedule-declined') {
+    const date = textValue(payload, 'scheduledFor', '')
+    const time = textValue(payload, 'scheduledTime', '').slice(0, 5)
+    return `↩️ Тренер отклонил перенос тренировки «${workoutName}». Она остаётся на ${date}${time ? ` в ${time}` : ''}.`
   }
 
   return `✅ ${studentName} завершил(а) тренировку «${workoutName}». Результаты уже доступны в REPPY.`
