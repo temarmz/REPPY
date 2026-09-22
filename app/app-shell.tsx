@@ -86,7 +86,7 @@ export default function AppShell({
     <div className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
       {!focusMode && <header className="topbar">
         <button className="brand-mark brand-button" type="button" onClick={() => onNavigate('/')} aria-label="REPPY — на стартовый экран">
-          <img className="brand-logo" src="logo-text.png" alt="" />
+          <img className="brand-logo" src="logo-wordmark.png" alt="" />
         </button>
         <div className="topbar-actions">
           {onSwitchRole && <button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${roleToOpen}`} title={`Переключиться в роль ${roleToOpen}`}>

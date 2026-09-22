@@ -4,7 +4,7 @@ import type { AuthProfile, InvitationPreview } from './reppy-auth';
 import { ActionButton, FormError, TextField } from './ui-controls';
 
 function AuthBrand() {
-  return <img className="auth-logo" src="logo-text.png" alt="REPPY" />;
+  return <img className="auth-logo" src="logo-wordmark.png" alt="REPPY" />;
 }
 
 function readableAuthError(reason: unknown) {
