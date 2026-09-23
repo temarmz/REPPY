@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import EmptyState from './empty-state';
 import type { AuthProfile, InvitationPreview, TrainerRegistrationStatus } from './reppy-auth';
 import { ActionButton, FormError, TextField } from './ui-controls';
@@ -123,16 +123,28 @@ export function TrainerRegistrationScreen({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
+  const refreshTelegramStatus = useCallback(async () => {
+    if (!registrationToken) return;
+    try {
+      const next = await onStatus(registrationToken);
+      setStatus(next);
+      setError('');
+    } catch {
+      setError('Ссылка регистрации недействительна или устарела.');
+    }
+  }, [onStatus, registrationToken]);
+
   useEffect(() => {
     if (!registrationToken) return;
-    let active = true;
-    const refresh = () => void onStatus(registrationToken)
-      .then((next) => { if (active) setStatus(next); })
-      .catch(() => { if (active) setError('Ссылка регистрации недействительна или устарела.'); });
-    refresh();
-    const interval = window.setInterval(refresh, 3000);
-    return () => { active = false; window.clearInterval(interval); };
-  }, [onStatus, registrationToken]);
+    const initialCheck = window.setTimeout(() => void refreshTelegramStatus(), 0);
+    const interval = window.setInterval(() => void refreshTelegramStatus(), 3000);
+    window.addEventListener('focus', refreshTelegramStatus);
+    return () => {
+      window.clearTimeout(initialCheck);
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshTelegramStatus);
+    };
+  }, [refreshTelegramStatus, registrationToken]);
 
   const start = async (event: FormEvent) => {
     event.preventDefault();
@@ -199,8 +211,9 @@ export function TrainerRegistrationScreen({
           <ActionButton icon="arrow-right" type="submit" disabled={busy}>{busy ? 'Подождите…' : 'Продолжить'}</ActionButton>
         </form> : <div className="auth-form">
           {!status?.telegramVerified ? <>
-            <p>Подтверди Telegram: открой бота по ссылке, нажми Start и вернись сюда. Страница обновится сама.</p>
+            <p>Подтверди Telegram: открой бота по ссылке, нажми Start и вернись сюда.</p>
             <a className="primary-button" href={botUrl}>Открыть Telegram</a>
+            <ActionButton variant="secondary" icon="check" disabled={busy} onClick={() => void refreshTelegramStatus()}>Я подтвердил Telegram</ActionButton>
           </> : !signedIn ? <>
             <p>Telegram подтверждён. Теперь задай пароль для аккаунта REPPY.</p>
             <div><TextField id="trainer-password" label="Пароль" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
