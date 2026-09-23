@@ -100,6 +100,7 @@ export function TrainerRegistrationScreen({
   signedIn,
   onStart,
   onStatus,
+  onRestart,
   onSignUp,
   onActivate,
   onComplete,
@@ -110,6 +111,7 @@ export function TrainerRegistrationScreen({
   signedIn: boolean;
   onStart: (inviteCode: string, displayName: string, email: string) => Promise<{ token: string; expiresAt: string }>;
   onStatus: (token: string) => Promise<TrainerRegistrationStatus>;
+  onRestart: (token: string) => Promise<{ token: string; expiresAt: string }>;
   onSignUp: (email: string, password: string, inviteCode: string, registrationToken: string) => Promise<{ confirmationRequired: boolean }>;
   onActivate: (token: string) => Promise<void>;
   onComplete: () => void;
@@ -183,23 +185,27 @@ export function TrainerRegistrationScreen({
   };
 
   const restartTelegramVerification = async () => {
-    if (!name || !email) {
-      setError('Не найдены имя и email регистрации. Открой исходную ссылку-приглашение ещё раз.');
-      return;
-    }
+    if (!registrationToken) return;
     setBusy(true);
     setError('');
     try {
-      const registration = await onStart(inviteCode, name, email);
-      window.sessionStorage.setItem(
-        `reppy-trainer-registration:${registration.token}`,
-        JSON.stringify({ name, email }),
-      );
+      const registration = await onRestart(registrationToken);
       window.location.hash = `/trainer/register/${encodeURIComponent(inviteCode)}/${encodeURIComponent(registration.token)}`;
     } catch (reason) {
       setError(readableAuthError(reason));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const copyTelegramCommand = async () => {
+    if (!registrationToken) return;
+    try {
+      await navigator.clipboard.writeText(`/start trainer_${registrationToken}`);
+      setNotice('Команда скопирована. Вставь её в чат с ботом REPPY и отправь.');
+      setError('');
+    } catch {
+      setError('Не удалось скопировать команду. Выдели и скопируй её вручную.');
     }
   };
 
@@ -234,6 +240,9 @@ export function TrainerRegistrationScreen({
           {!status?.telegramVerified ? <>
             <p>Подтверди Telegram: открой бота по ссылке, нажми Start и вернись сюда.</p>
             <a className="primary-button" href={botUrl}>Открыть Telegram</a>
+            <p className="auth-description">Если Telegram открыл бота без готовой команды, отправь ему эту команду:</p>
+            <code>/start trainer_{registrationToken}</code>
+            <button className="auth-text-button" type="button" onClick={() => void copyTelegramCommand()}>Скопировать команду</button>
             <ActionButton variant="secondary" icon="check" disabled={busy} onClick={() => void refreshTelegramStatus()}>Я подтвердил Telegram</ActionButton>
             <button className="auth-text-button" type="button" disabled={busy} onClick={() => void restartTelegramVerification()}>Создать новую ссылку Telegram</button>
           </> : !signedIn ? <>

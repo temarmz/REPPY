@@ -608,6 +608,7 @@ export default function ReppyApp() {
       signedIn={Boolean(auth.session)}
       onStart={auth.startTrainerRegistration}
       onStatus={auth.getTrainerRegistrationStatus}
+      onRestart={auth.restartTrainerRegistration}
       onSignUp={auth.signUpTrainer}
       onActivate={auth.activateTrainerRegistration}
       onComplete={() => go('/trainer', true)}

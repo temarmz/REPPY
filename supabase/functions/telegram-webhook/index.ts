@@ -76,7 +76,11 @@ Deno.serve(async (request) => {
       p_first_name: firstName,
     })
 
-    if (error) throw error
+    if (error) {
+      console.error('Trainer Telegram verification failed', error)
+      await sendMessage(botToken, chatId, 'Не удалось подтвердить Telegram. Вернись в REPPY, создай новую ссылку и отправь боту команду из неё.')
+      return new Response('ok')
+    }
     await sendMessage(
       botToken,
       chatId,

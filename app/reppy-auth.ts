@@ -149,6 +149,15 @@ export function useReppyAuth() {
     };
   }, [client]);
 
+  const restartTrainerRegistration = useCallback(async (token: string) => {
+    if (!client) throw new Error('Supabase не настроен.');
+    const { data, error: restartError } = await client.rpc('restart_trainer_registration', { p_token: token });
+    if (restartError) throw new Error(restartError.message);
+    const registration = data as { token?: string; expiresAt?: string } | null;
+    if (!registration?.token) throw new Error('Не удалось обновить ссылку Telegram.');
+    return { token: registration.token, expiresAt: registration.expiresAt ?? '' };
+  }, [client]);
+
   const signUpTrainer = useCallback(async (email: string, password: string, inviteCode: string, registrationToken: string) => {
     if (!client) return { confirmationRequired: false };
     const { data, error: signUpError } = await client.auth.signUp({
@@ -245,6 +254,7 @@ export function useReppyAuth() {
     signUpStudent,
     startTrainerRegistration,
     getTrainerRegistrationStatus,
+    restartTrainerRegistration,
     signUpTrainer,
     activateTrainerRegistration,
     sendPasswordReset,

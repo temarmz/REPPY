@@ -1,6 +1,6 @@
 begin;
 
-select plan(17);
+select plan(19);
 
 create temporary table trainer_registration_payloads (
   label text primary key,
@@ -17,6 +17,11 @@ select ok(
 select ok(
   has_function_privilege('anon', 'public.start_trainer_registration(text, text, text)', 'execute'),
   'an invited trainer can start registration before authentication'
+);
+
+select ok(
+  has_function_privilege('anon', 'public.restart_trainer_registration(text)', 'execute'),
+  'a pending registration can renew its Telegram verification link'
 );
 
 select ok(
@@ -78,16 +83,36 @@ select is(
   'the bot can verify the pending registration'
 );
 
+reset role;
+set local role anon;
+
+insert into trainer_registration_payloads (label, payload)
+values (
+  'replacement-attempt',
+  public.restart_trainer_registration(
+    (select payload ->> 'token' from trainer_registration_payloads where label = 'attempt')
+  )
+);
+
+select is(
+  (select char_length(payload ->> 'token') from trainer_registration_payloads where label = 'replacement-attempt'),
+  48,
+  'renewing the link preserves registration details without exposing them to the browser'
+);
+
+reset role;
+set local role service_role;
+
 select is(
   public.verify_trainer_registration(
-    (select payload ->> 'token' from trainer_registration_payloads where label = 'attempt'),
+    (select payload ->> 'token' from trainer_registration_payloads where label = 'replacement-attempt'),
     991001,
     991001,
     'newcoach',
     'Новый'
   ),
   'verified',
-  'Telegram verification is idempotent for the same pending registration'
+  'the same Telegram can confirm a replacement pending registration'
 );
 
 reset role;
@@ -96,7 +121,7 @@ set local role anon;
 select is(
   (select payload ->> 'telegramVerified' from (
     select public.get_trainer_registration_status(payload ->> 'token') as payload
-    from trainer_registration_payloads where label = 'attempt'
+    from trainer_registration_payloads where label = 'replacement-attempt'
   ) status),
   'true',
   'registration status reveals only that Telegram verification succeeded'
@@ -112,7 +137,7 @@ set local role authenticated;
 
 select lives_ok(
   $$select public.activate_trainer_registration(
-    (select payload ->> 'token' from trainer_registration_payloads where label = 'attempt')
+    (select payload ->> 'token' from trainer_registration_payloads where label = 'replacement-attempt')
   )$$,
   'verified Auth account can activate its trainer profile'
 );
@@ -147,7 +172,7 @@ set local role authenticated;
 
 select lives_ok(
   $$select public.activate_trainer_registration(
-    (select payload ->> 'token' from trainer_registration_payloads where label = 'attempt')
+    (select payload ->> 'token' from trainer_registration_payloads where label = 'replacement-attempt')
   )$$,
   'activation is idempotent for the same Auth account'
 );
