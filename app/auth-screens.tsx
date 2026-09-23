@@ -182,6 +182,27 @@ export function TrainerRegistrationScreen({
     }
   };
 
+  const restartTelegramVerification = async () => {
+    if (!name || !email) {
+      setError('Не найдены имя и email регистрации. Открой исходную ссылку-приглашение ещё раз.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const registration = await onStart(inviteCode, name, email);
+      window.sessionStorage.setItem(
+        `reppy-trainer-registration:${registration.token}`,
+        JSON.stringify({ name, email }),
+      );
+      window.location.hash = `/trainer/register/${encodeURIComponent(inviteCode)}/${encodeURIComponent(registration.token)}`;
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const activate = async () => {
     if (!registrationToken) return;
     setBusy(true);
@@ -214,6 +235,7 @@ export function TrainerRegistrationScreen({
             <p>Подтверди Telegram: открой бота по ссылке, нажми Start и вернись сюда.</p>
             <a className="primary-button" href={botUrl}>Открыть Telegram</a>
             <ActionButton variant="secondary" icon="check" disabled={busy} onClick={() => void refreshTelegramStatus()}>Я подтвердил Telegram</ActionButton>
+            <button className="auth-text-button" type="button" disabled={busy} onClick={() => void restartTelegramVerification()}>Создать новую ссылку Telegram</button>
           </> : !signedIn ? <>
             <p>Telegram подтверждён. Теперь задай пароль для аккаунта REPPY.</p>
             <div><TextField id="trainer-password" label="Пароль" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
