@@ -23,6 +23,7 @@
     "trainer:invite": "node --env-file-if-exists=.env.admin.local scripts/create-trainer-invitation.mjs",
     "test-accounts:preview": "node --env-file-if-exists=.env.admin.local scripts/reset-test-accounts.mjs",
     "test-accounts:delete": "node --env-file-if-exists=.env.admin.local scripts/reset-test-accounts.mjs --execute",
+    "backend:health": "node --env-file-if-exists=.env.admin.local scripts/check-backend-health.mjs",
     "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs"
   },
   "dependencies": {

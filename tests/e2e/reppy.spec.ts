@@ -859,7 +859,9 @@ test('тренер удаляет отдельное пополнение или
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/artem\/subscription$/);
   await expect(paymentRows).toHaveCount(paymentsBefore - 1);
-  await page.getByRole('button', { name: 'Удалить абонемент полностью' }).click();
+  const dangerZone = page.getByLabel('Удаление абонемента');
+  await expect(dangerZone).toContainText('Тренировки и результаты ученика останутся на месте');
+  await dangerZone.getByRole('button', { name: 'Удалить полностью' }).click();
   const subscriptionDialog = page.getByRole('alertdialog', { name: 'Удалить абонемент полностью?' });
   await expect(subscriptionDialog).toContainText('Тренировки и их результаты сохранятся');
   await subscriptionDialog.getByRole('button', { name: 'Удалить абонемент' }).click();

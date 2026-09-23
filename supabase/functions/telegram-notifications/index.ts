@@ -136,9 +136,19 @@ Deno.serve(async (request) => {
   const serverKey = serviceRoleKey()
   const authorization = request.headers.get('authorization')
   const apiKey = request.headers.get('apikey')
-  if (!botToken || !supabaseUrl || !serverKey) {
+  if (!supabaseUrl || !serverKey) {
     return jsonResponse({ error: 'Notifications are not configured' }, 503)
   }
+
+  let requestBody: Record<string, unknown>
+  try { requestBody = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON' }, 400) }
+  const serviceAuthorization = authorization?.replace(/^Bearer\s+/i, '')
+  const trustedHealthCheck = requestBody.action === 'health'
+    && (serviceAuthorization === serverKey || apiKey === serverKey)
+  if (trustedHealthCheck) {
+    return jsonResponse({ ok: true, configured: Boolean(botToken) }, botToken ? 200 : 503)
+  }
+  if (!botToken) return jsonResponse({ error: 'Notifications are not configured' }, 503)
 
   const supabase = createClient(supabaseUrl, serverKey, { auth: { persistSession: false } })
   let actorProfileId: string | null = null

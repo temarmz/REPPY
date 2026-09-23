@@ -1686,7 +1686,10 @@ function SubscriptionHistory({ data, student, onDelete }: { data: DemoState; stu
             : <article key={entry.id}>{content}</article>;
         })}
       </section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
-      {entries.length > 0 && <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить абонемент полностью</ActionButton>}
+      {entries.length > 0 && <section className="subscription-danger-zone" aria-label="Удаление абонемента">
+        <div><strong>Удаление абонемента</strong><small>Тренировки и результаты ученика останутся на месте.</small></div>
+        <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить полностью</ActionButton>
+      </section>}
       {deleteOpen && <ConfirmationModal
         title="Удалить абонемент полностью?"
         text="Баланс и вся история оплат, списаний и возвратов будут удалены. Тренировки и их результаты сохранятся."

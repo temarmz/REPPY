@@ -2051,6 +2051,16 @@ body.modal-open .bottom-nav { display: none; }
 .subscription-entry-list small, .subscription-entry-list i { color: var(--muted); font-size: 11px; font-style: normal; line-height: 1.4; }
 .subscription-entry-list p { margin: 2px 0 0; color: #cdd1ca; font-size: 12px; line-height: 1.45; }
 .subscription-entry-list > button > .ui-icon { width: 17px; height: 17px; color: var(--muted); }
+.subscription-danger-zone { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 20px; margin-top: 24px; border: 1px solid rgba(255,120,104,.14); border-radius: 22px; padding: 18px 20px; background: rgba(255,120,104,.035); }
+.subscription-danger-zone > div { display: grid; gap: 5px; }
+.subscription-danger-zone strong { font-size: 14px; }
+.subscription-danger-zone small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.subscription-danger-zone .danger-button { min-height: 48px; padding-inline: 18px; white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .subscription-danger-zone { grid-template-columns: 1fr; gap: 14px; }
+  .subscription-danger-zone .danger-button { width: 100%; }
+}
 
 .subscription-payment-form { display: grid; gap: 20px; border: 1px solid var(--ui-outline); border-radius: 26px; padding: clamp(20px, 4vw, 28px); background: var(--surface); }
 .subscription-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
