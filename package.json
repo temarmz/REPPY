@@ -24,6 +24,8 @@
     "test-accounts:preview": "node --env-file-if-exists=.env.admin.local scripts/reset-test-accounts.mjs",
     "test-accounts:delete": "node --env-file-if-exists=.env.admin.local scripts/reset-test-accounts.mjs --execute",
     "backend:health": "node --env-file-if-exists=.env.admin.local scripts/check-backend-health.mjs",
+    "backup:create": "node --env-file-if-exists=.env.admin.local scripts/create-supabase-backup.mjs",
+    "backup:verify": "node scripts/verify-supabase-backup.mjs",
     "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs"
   },
   "dependencies": {
