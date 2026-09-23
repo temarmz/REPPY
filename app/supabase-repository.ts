@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  TRAINER_ID,
   exerciseLibrary,
   type Assignment,
   type DemoState,
@@ -342,7 +343,9 @@ export function createSupabaseRepository(
       if (!relationship) return [];
       return [{
         id: entry.id,
-        trainerId: relationship.trainer_id,
+        // DemoState uses one stable local trainer id. Remote relationship UUIDs
+        // are kept in the repository maps and must not leak into ledger filters.
+        trainerId: TRAINER_ID,
         studentId: relationship.student_id,
         kind: entry.kind,
         lessonDelta: entry.lesson_delta,
