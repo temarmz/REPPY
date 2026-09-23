@@ -844,6 +844,31 @@ test('тренер пополняет и исправляет абонемент
   await expect(page.getByLabel('Последние пополнения')).toContainText('12 000 ₽ · наличные');
 });
 
+test('тренер удаляет отдельное пополнение или весь абонемент без удаления тренировок', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients/artem/subscription');
+
+  const paymentRows = page.locator('.subscription-entry-list > button');
+  const paymentsBefore = await paymentRows.count();
+  expect(paymentsBefore).toBeGreaterThan(1);
+  await paymentRows.first().click();
+  await page.getByRole('button', { name: 'Удалить это пополнение' }).click();
+  const paymentDialog = page.getByRole('alertdialog', { name: 'Удалить пополнение?' });
+  await expect(paymentDialog).toContainText('Списания тренировок сохранятся');
+  await paymentDialog.getByRole('button', { name: 'Удалить пополнение' }).click();
+
+  await expect(page).toHaveURL(/#\/trainer\/clients\/artem\/subscription$/);
+  await expect(paymentRows).toHaveCount(paymentsBefore - 1);
+  await page.getByRole('button', { name: 'Удалить абонемент полностью' }).click();
+  const subscriptionDialog = page.getByRole('alertdialog', { name: 'Удалить абонемент полностью?' });
+  await expect(subscriptionDialog).toContainText('Тренировки и их результаты сохранятся');
+  await subscriptionDialog.getByRole('button', { name: 'Удалить абонемент' }).click();
+
+  await expect(page).toHaveURL(/#\/trainer\/clients\/artem$/);
+  await expect(page.getByLabel('Абонемент')).toContainText('Абонемент не добавлен');
+  await expect(page.getByRole('heading', { name: 'Последняя активность' })).toBeVisible();
+});
+
 test('главная ученика не показывает отсутствующий абонемент, но профиль его показывает', async ({ page }) => {
   await openFreshDemo(page);
   await page.evaluate(() => {

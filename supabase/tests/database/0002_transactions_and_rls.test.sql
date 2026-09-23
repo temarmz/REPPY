@@ -158,8 +158,8 @@ select is(
 
 select is(
   (select count(*)::integer from public.subscription_entries),
-  0,
-  'student cannot read the full subscription ledger'
+  1,
+  'student can read the subscription ledger for their own relationship'
 );
 
 select lives_ok(

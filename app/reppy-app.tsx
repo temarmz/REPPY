@@ -788,6 +788,14 @@ export default function ReppyApp() {
             showToast('Пополнение исправлено');
             go(`/trainer/clients/${student.id}/subscription`);
           }}
+          onDelete={() => {
+            setData((current) => ({
+              ...current,
+              subscriptionEntries: current.subscriptionEntries.filter((entry) => entry.id !== payment.id),
+            }));
+            showToast('Пополнение удалено');
+            go(`/trainer/clients/${student.id}/subscription`);
+          }}
         />
       ) : <NotFound />;
     } else if (subscriptionNewMatch) {
@@ -809,7 +817,18 @@ export default function ReppyApp() {
       ) : <NotFound />;
     } else if (subscriptionMatch) {
       const student = findStudent(data, subscriptionMatch[1]);
-      content = student ? <SubscriptionHistory data={data} student={student} /> : <NotFound />;
+      content = student ? <SubscriptionHistory
+        data={data}
+        student={student}
+        onDelete={() => {
+          setData((current) => ({
+            ...current,
+            subscriptionEntries: current.subscriptionEntries.filter((entry) => entry.studentId !== student.id),
+          }));
+          showToast('Абонемент и его история удалены');
+          go(`/trainer/clients/${student.id}`);
+        }}
+      /> : <NotFound />;
     } else if (clientAssignCopyMatch) {
       const [studentId, sourceAssignmentId] = clientAssignCopyMatch.slice(1);
       const student = findStudent(data, studentId);
@@ -1627,7 +1646,8 @@ function SubscriptionCard({ data, student, trainerView }: { data: DemoState; stu
   );
 }
 
-function SubscriptionHistory({ data, student }: { data: DemoState; student: Student }) {
+function SubscriptionHistory({ data, student, onDelete }: { data: DemoState; student: Student; onDelete: () => void }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const entries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
   const balance = subscriptionBalance(data.subscriptionEntries, student.id);
   const hasEntries = entries.length > 0;
@@ -1666,6 +1686,18 @@ function SubscriptionHistory({ data, student }: { data: DemoState; student: Stud
             : <article key={entry.id}>{content}</article>;
         })}
       </section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
+      {entries.length > 0 && <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить абонемент полностью</ActionButton>}
+      {deleteOpen && <ConfirmationModal
+        title="Удалить абонемент полностью?"
+        text="Баланс и вся история оплат, списаний и возвратов будут удалены. Тренировки и их результаты сохранятся."
+        confirmLabel="Удалить абонемент"
+        danger
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          onDelete();
+        }}
+      />}
     </main>
   );
 }
@@ -1759,12 +1791,15 @@ function SubscriptionPaymentForm({
   initial,
   defaults,
   onSave,
+  onDelete,
 }: {
   student: Student;
   initial?: SubscriptionEntry;
   defaults?: SubscriptionEntry;
   onSave: (input: PaymentInput) => void;
+  onDelete?: () => void;
 }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const source = initial ?? defaults;
   const [lessons, setLessons] = useState(String(source?.lessonDelta ?? 8));
   const [amountRub, setAmountRub] = useState(String(source?.amountRub ?? 11400));
@@ -1799,7 +1834,19 @@ function SubscriptionPaymentForm({
         <label><span>Комментарий <small>необязательно</small></span><textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><i>{comment.length}/240</i></label>
         {error && <FormError>{error}</FormError>}
         <ActionButton icon="check" onClick={save}>{initial ? 'Сохранить изменения' : 'Добавить пополнение'}</ActionButton>
+        {initial && onDelete && <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить это пополнение</ActionButton>}
       </section>
+      {deleteOpen && <ConfirmationModal
+        title="Удалить пополнение?"
+        text="Операция исчезнет из истории, а баланс будет пересчитан. Списания тренировок сохранятся."
+        confirmLabel="Удалить пополнение"
+        danger
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          onDelete?.();
+        }}
+      />}
     </main>
   );
 }

@@ -578,6 +578,27 @@ export function createSupabaseRepository(
     }
 
     const previousEntries = indexById(previous.subscriptionEntries);
+    const nextEntries = indexById(state.subscriptionEntries);
+    const clearedStudents = new Set<string>();
+    for (const removed of previous.subscriptionEntries.filter((entry) => !nextEntries.has(entry.id))) {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может удалять абонемент.');
+      const relationshipId = relationshipByStudent.get(removed.studentId);
+      if (!relationshipId) throw new Error('Не найдена связь абонемента с учеником.');
+      const remainingForStudent = state.subscriptionEntries.some((entry) => entry.studentId === removed.studentId);
+      if (!remainingForStudent) {
+        if (clearedStudents.has(removed.studentId)) continue;
+        throwIfError(await client.rpc('delete_subscription', { p_relationship_id: relationshipId }));
+        clearedStudents.add(removed.studentId);
+        continue;
+      }
+      if (removed.kind !== 'payment') throw new Error('Системные операции абонемента нельзя удалить отдельно.');
+      throwIfError(await client.rpc('delete_subscription_payment', {
+        p_entry_id: getRemoteId(remoteSubscriptionId, removed.id),
+        p_expected_revision: subscriptionRevision.get(removed.id) ?? 1,
+      }));
+      remoteSubscriptionId.delete(removed.id);
+      subscriptionRevision.delete(removed.id);
+    }
     for (const entry of state.subscriptionEntries) {
       const before = previousEntries.get(entry.id);
       if (entry.kind !== 'payment') continue;

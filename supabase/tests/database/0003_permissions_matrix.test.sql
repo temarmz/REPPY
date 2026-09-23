@@ -267,7 +267,7 @@ select is((select count(*)::integer from public.exercise_definitions), 28, 'stud
 select is((select count(*)::integer from public.assignments), 1, 'student sees only their own assignments');
 select is((select count(*)::integer from public.workout_sessions), 1, 'student sees only their own sessions');
 select is((select count(*)::integer from public.set_results), 1, 'student sees only their own set results');
-select is((select count(*)::integer from public.subscription_entries), 0, 'student cannot read the subscription ledger');
+select is((select count(*)::integer from public.subscription_entries), 1, 'student sees only their own subscription ledger');
 select is((select count(*)::integer from public.instruction_videos), 1, 'student sees only videos for their relationship');
 select is((select count(*)::integer from public.student_invitations), 0, 'student cannot read invitation secrets');
 
