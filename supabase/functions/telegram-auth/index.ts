@@ -39,13 +39,11 @@ async function verifyTelegramIdToken(idToken: string, nonce: string, clientId: s
   })
   if (payload.nonce !== nonce) throw new Error('Invalid Telegram nonce')
 
-  const rawId = typeof payload.id === 'number' ? payload.id : Number(payload.sub)
-  const firstName = typeof payload.given_name === 'string' && payload.given_name.trim()
-    ? payload.given_name.trim()
-    : typeof payload.name === 'string' && payload.name.trim()
-      ? payload.name.trim().split(/\s+/)[0]
-      : ''
-  const displayName = typeof payload.name === 'string' ? payload.name.trim() : firstName
+  const textClaim = (...values: unknown[]) => values.find((value) => typeof value === 'string' && value.trim())?.toString().trim() ?? ''
+  const rawId = Number(payload.id ?? payload.sub)
+  const firstName = textClaim(payload.given_name, payload.first_name, textClaim(payload.name).split(/\s+/)[0])
+  const lastName = textClaim(payload.family_name, payload.last_name)
+  const displayName = textClaim(payload.name, [firstName, lastName].filter(Boolean).join(' '), firstName)
   if (!Number.isSafeInteger(rawId) || rawId <= 0 || !firstName || !displayName) {
     throw new Error('Telegram profile is incomplete')
   }
@@ -53,7 +51,7 @@ async function verifyTelegramIdToken(idToken: string, nonce: string, clientId: s
     id: rawId,
     firstName,
     displayName: displayName.slice(0, 120),
-    username: typeof payload.preferred_username === 'string' ? payload.preferred_username.trim() || null : null,
+    username: textClaim(payload.preferred_username, payload.username) || null,
   }
 }
 
