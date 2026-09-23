@@ -1,23 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-type TelegramLoginResult = {
-  id_token?: string;
-  error?: string;
-};
-
-type TelegramLoginApi = {
-  auth: (
-    options: { client_id: number; scope: Array<'profile' | 'write'>; lang: string; nonce: string },
-    callback: (result: TelegramLoginResult) => void,
-  ) => void;
-};
-
-declare global {
-  interface Window {
-    Telegram?: { Login?: TelegramLoginApi };
-  }
-}
-
 export type PendingTelegramRegistration = {
   idToken: string;
   nonce: string;
@@ -31,22 +13,6 @@ type TelegramAuthResponse = {
   telegram?: { displayName?: string; username?: string | null };
   error?: string;
 };
-
-let sdkPromise: Promise<void> | null = null;
-
-function loadTelegramSdk() {
-  if (window.Telegram?.Login) return Promise.resolve();
-  if (sdkPromise) return sdkPromise;
-  sdkPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://oauth.telegram.org/js/telegram-login.js';
-    script.async = true;
-    script.onload = () => window.Telegram?.Login ? resolve() : reject(new Error('Telegram Login не загрузился.'));
-    script.onerror = () => reject(new Error('Не удалось загрузить Telegram Login.'));
-    document.head.appendChild(script);
-  });
-  return sdkPromise;
-}
 
 function randomNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -73,18 +39,65 @@ async function callTelegramAuth(client: SupabaseClient, body: Record<string, unk
 }
 
 async function authorizeTelegram(client: SupabaseClient) {
-  const config = await callTelegramAuth(client, { action: 'config' });
-  const clientId = Number((config as TelegramAuthResponse & { clientId?: string }).clientId);
-  if (!Number.isSafeInteger(clientId) || clientId <= 0) throw new Error('Telegram Login ещё не настроен.');
-  await loadTelegramSdk();
+  const width = 550;
+  const height = 650;
+  const left = Math.max(0, window.screenX + (window.outerWidth - width) / 2);
+  const top = Math.max(0, (window.screen.height - height) / 2);
+  const popup = window.open(
+    'about:blank',
+    'telegram_oidc_login',
+    `width=${width},height=${height},left=${left},top=${top},status=0,location=0,menubar=0,toolbar=0`,
+  );
+  if (!popup) throw new Error('Браузер заблокировал окно Telegram. Разреши всплывающие окна для REPPY.');
+
   const nonce = randomNonce();
-  const idToken = await new Promise<string>((resolve, reject) => {
-    window.Telegram?.Login?.auth(
-      { client_id: clientId, scope: ['profile', 'write'], lang: 'ru', nonce },
-      (result) => result.id_token ? resolve(result.id_token) : reject(new Error(result.error || 'Вход через Telegram отменён.')),
-    );
-  });
-  return { idToken, nonce };
+  try {
+    const config = await callTelegramAuth(client, { action: 'config' });
+    const clientId = Number((config as TelegramAuthResponse & { clientId?: string }).clientId);
+    if (!Number.isSafeInteger(clientId) || clientId <= 0) throw new Error('Telegram Login ещё не настроен.');
+
+    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    const authUrl = new URL('https://oauth.telegram.org/auth');
+    authUrl.search = new URLSearchParams({
+      response_type: 'post_message',
+      client_id: String(clientId),
+      redirect_uri: redirectUri,
+      scope: 'openid profile telegram:bot_access',
+      nonce,
+      lang: 'ru',
+    }).toString();
+
+    const idToken = await new Promise<string>((resolve, reject) => {
+      let settled = false;
+      const finish = (action: () => void) => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage);
+        window.clearInterval(closeCheck);
+        action();
+      };
+      const onMessage = (event: MessageEvent) => {
+        if (event.origin !== 'https://oauth.telegram.org' || event.source !== popup) return;
+        let data = event.data as { event?: string; result?: string; error?: string };
+        if (typeof event.data === 'string') {
+          try { data = JSON.parse(event.data) as typeof data; } catch { return; }
+        }
+        if (data?.event !== 'auth_result') return;
+        if (typeof data.result === 'string') finish(() => resolve(data.result!));
+        else finish(() => reject(new Error(data.error || 'Telegram не подтвердил вход.')));
+      };
+      const closeCheck = window.setInterval(() => {
+        if (popup.closed) finish(() => reject(new Error('Вход через Telegram отменён.')));
+      }, 250);
+      window.addEventListener('message', onMessage);
+      popup.location.replace(authUrl.toString());
+      popup.focus();
+    });
+    return { idToken, nonce };
+  } catch (error) {
+    popup.close();
+    throw error;
+  }
 }
 
 async function applySession(client: SupabaseClient, tokenHash?: string) {
