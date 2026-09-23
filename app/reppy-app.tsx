@@ -62,7 +62,7 @@ import {
   saveInstructionVideo,
 } from './instruction-video-repository';
 import { useReppyAuth, type TelegramConnection } from './reppy-auth';
-import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen, TrainerRegistrationScreen } from './auth-screens';
+import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen, TelegramTrainerRegistrationScreen, TrainerRegistrationScreen } from './auth-screens';
 import { getSupabaseClient } from './supabase-client';
 import { createSupabaseRepository } from './supabase-repository';
 
@@ -567,8 +567,10 @@ export default function ReppyApp() {
           signedIn={Boolean(auth.session)}
           profile={auth.profile}
           onPreview={auth.previewInvitation}
-          onSignIn={auth.signIn}
-          onSignUp={auth.signUpStudent}
+          onTelegramAccept={async (token) => {
+            await auth.acceptStudentInvitationWithTelegram(token);
+            go('/student', true);
+          }}
           onAccept={async (token) => {
             await auth.acceptInvitation(token);
             go('/student', true);
@@ -599,6 +601,18 @@ export default function ReppyApp() {
     );
   }
 
+  if (auth.enabled && path === '/auth/register-trainer') {
+    return <TelegramTrainerRegistrationScreen
+      onStart={auth.startTelegramTrainerRegistration}
+      onComplete={async (pending, displayName) => {
+        await auth.finishTelegramTrainerRegistration(pending, displayName);
+        go('/trainer', true);
+      }}
+      onSignIn={() => go('/auth/sign-in', true)}
+      onHome={() => go('/', true)}
+    />;
+  }
+
   const trainerRegistrationMatch = path.match(/^\/trainer\/register\/([a-f0-9]{48})(?:\/([a-f0-9]{48}))?$/i);
   if (auth.enabled && trainerRegistrationMatch) {
     return <TrainerRegistrationScreen
@@ -616,13 +630,6 @@ export default function ReppyApp() {
     />;
   }
 
-  if (auth.enabled && (path === '/auth/recovery' || auth.recovery)) {
-    return <AccountScreen key="recovery" recovery initialError={auth.error} onSignIn={auth.signIn} onSendPasswordReset={auth.sendPasswordReset} onUpdatePassword={async (password) => {
-      await auth.updatePassword(password);
-      go('/', true);
-    }} />;
-  }
-
   if (auth.enabled && auth.status === 'profile-missing') {
     return <MissingProfileScreen onSignOut={auth.signOut} />;
   }
@@ -632,7 +639,13 @@ export default function ReppyApp() {
   }
 
   if (auth.enabled && auth.status !== 'authenticated') {
-    return <AccountScreen key="sign-in" recovery={false} initialError={auth.error} onSignIn={auth.signIn} onSendPasswordReset={auth.sendPasswordReset} onUpdatePassword={auth.updatePassword} />;
+    return <AccountScreen
+      key="sign-in"
+      initialError={auth.error}
+      onTelegramSignIn={auth.signInWithTelegram}
+      onCreateTrainer={() => go('/auth/register-trainer', true)}
+      onHome={() => go('/', true)}
+    />;
   }
 
   if (auth.enabled && (path === '/' || path === '/auth/sign-in')) {

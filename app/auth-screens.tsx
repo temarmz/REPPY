@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import EmptyState from './empty-state';
 import type { AuthProfile, InvitationPreview, TrainerRegistrationStatus } from './reppy-auth';
+import type { PendingTelegramRegistration } from './telegram-login';
 import { ActionButton, FormError, TextField } from './ui-controls';
 
 function AuthBrand() {
@@ -28,40 +29,24 @@ function loadTrainerRegistrationCredentials(token?: string) {
 }
 
 export function AccountScreen({
-  recovery,
   initialError,
-  onSignIn,
-  onSendPasswordReset,
-  onUpdatePassword,
+  onTelegramSignIn,
+  onCreateTrainer,
+  onHome,
 }: {
-  recovery: boolean;
   initialError?: string;
-  onSignIn: (email: string, password: string) => Promise<void>;
-  onSendPasswordReset: (email: string) => Promise<void>;
-  onUpdatePassword: (password: string) => Promise<void>;
+  onTelegramSignIn: () => Promise<void>;
+  onCreateTrainer: () => void;
+  onHome: () => void;
 }) {
-  const [mode, setMode] = useState<'sign-in' | 'forgot' | 'recovery'>(recovery ? 'recovery' : 'sign-in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError ?? '');
-  const [notice, setNotice] = useState('');
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const signIn = async () => {
     setBusy(true);
     setError('');
-    setNotice('');
     try {
-      if (mode === 'sign-in') {
-        await onSignIn(email, password);
-      } else if (mode === 'forgot') {
-        await onSendPasswordReset(email);
-        setNotice('Письмо для восстановления отправлено. Проверь почту.');
-      } else {
-        await onUpdatePassword(password);
-        setNotice('Пароль обновлён. Можно продолжать работу.');
-      }
+      await onTelegramSignIn();
     } catch (reason) {
       setError(readableAuthError(reason));
     } finally {
@@ -74,21 +59,82 @@ export function AccountScreen({
       <section className="auth-card">
         <AuthBrand />
         <p className="eyebrow">Аккаунт REPPY</p>
-        <h1>{mode === 'sign-in' ? 'ВОЙТИ' : mode === 'forgot' ? 'ВОССТАНОВИТЬ ПАРОЛЬ' : 'НОВЫЙ ПАРОЛЬ'}</h1>
-        <p className="auth-description">
-          {mode === 'sign-in' && 'Используй аккаунт тренера или ученика.'}
-          {mode === 'forgot' && 'Отправим на email безопасную ссылку для смены пароля.'}
-          {mode === 'recovery' && 'Придумай новый пароль длиной не меньше 8 символов.'}
-        </p>
-        <form className="auth-form" onSubmit={submit}>
-          {mode !== 'recovery' && <div><TextField id="auth-email" label="Email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></div>}
-          {mode !== 'forgot' && <div><TextField id="auth-password" label={mode === 'recovery' ? 'Новый пароль' : 'Пароль'} type="password" autoComplete={mode === 'recovery' ? 'new-password' : 'current-password'} minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></div>}
+        <h1>ВОЙТИ</h1>
+        <p className="auth-description">Один безопасный вход для тренера и ученика — через Telegram.</p>
+        <div className="auth-form">
           {error && <FormError>{error}</FormError>}
-          {notice && <p className="form-notice" role="status">{notice}</p>}
-          <ActionButton icon="arrow-right" type="submit" disabled={busy}>{busy ? 'Подождите…' : mode === 'sign-in' ? 'Войти' : mode === 'forgot' ? 'Отправить ссылку' : 'Сохранить пароль'}</ActionButton>
-        </form>
-        {mode === 'sign-in' && <button className="auth-text-button" type="button" onClick={() => setMode('forgot')}>Не помню пароль</button>}
-        {mode === 'forgot' && <button className="auth-text-button" type="button" onClick={() => setMode('sign-in')}>Вернуться ко входу</button>}
+          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Войти через Telegram'}</ActionButton>
+          <button className="auth-text-button" type="button" disabled={busy} onClick={onCreateTrainer}>Нет аккаунта? Создать кабинет тренера</button>
+        </div>
+        <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
+      </section>
+    </main>
+  );
+}
+
+export function TelegramTrainerRegistrationScreen({
+  onStart,
+  onComplete,
+  onSignIn,
+  onHome,
+}: {
+  onStart: () => Promise<PendingTelegramRegistration>;
+  onComplete: (pending: PendingTelegramRegistration, displayName: string) => Promise<void>;
+  onSignIn: () => void;
+  onHome: () => void;
+}) {
+  const [pending, setPending] = useState<PendingTelegramRegistration | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const authorize = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const registration = await onStart();
+      setPending(registration);
+      setDisplayName(registration.displayName);
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const create = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!pending) return;
+    setBusy(true);
+    setError('');
+    try {
+      await onComplete(pending, displayName);
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <main className="auth-screen">
+      <section className="auth-card">
+        <AuthBrand />
+        <p className="eyebrow">Регистрация тренера</p>
+        <h1>СОЗДАТЬ КАБИНЕТ</h1>
+        {!pending ? <div className="auth-form">
+          <p className="auth-description">Telegram подтвердит личность и станет единственным способом входа в REPPY.</p>
+          {error && <FormError>{error}</FormError>}
+          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void authorize()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
+          <button className="auth-text-button" type="button" onClick={onSignIn}>Уже есть аккаунт? Войти</button>
+        </div> : <form className="auth-form" onSubmit={create}>
+          <p className="auth-description">Проверь имя — так тебя будут видеть ученики.</p>
+          <div><TextField id="trainer-telegram-name" label="Имя тренера" autoComplete="name" minLength={2} maxLength={120} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></div>
+          {pending.username && <p className="form-notice">Telegram: @{pending.username}</p>}
+          {error && <FormError>{error}</FormError>}
+          <ActionButton icon="check" type="submit" disabled={busy || displayName.trim().length < 2}>{busy ? 'Создаём кабинет…' : 'Создать кабинет тренера'}</ActionButton>
+        </form>}
+        <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
       </section>
     </main>
   );
@@ -267,8 +313,7 @@ export function SupabaseInvitationScreen({
   signedIn,
   profile,
   onPreview,
-  onSignIn,
-  onSignUp,
+  onTelegramAccept,
   onAccept,
   onHome,
 }: {
@@ -276,19 +321,14 @@ export function SupabaseInvitationScreen({
   signedIn: boolean;
   profile: AuthProfile | null;
   onPreview: (token: string) => Promise<InvitationPreview>;
-  onSignIn: (email: string, password: string) => Promise<void>;
-  onSignUp: (email: string, password: string, token: string) => Promise<{ confirmationRequired: boolean }>;
+  onTelegramAccept: (token: string) => Promise<void>;
   onAccept: (token: string) => Promise<void>;
   onHome: () => void;
 }) {
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [previewError, setPreviewError] = useState(false);
-  const [mode, setMode] = useState<'sign-up' | 'sign-in'>('sign-up');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -298,18 +338,11 @@ export function SupabaseInvitationScreen({
     return () => { active = false; };
   }, [onPreview, token]);
 
-  const submitCredentials = async (event: FormEvent) => {
-    event.preventDefault();
+  const acceptWithTelegram = async () => {
     setBusy(true);
     setError('');
-    setNotice('');
     try {
-      if (mode === 'sign-in') {
-        await onSignIn(email, password);
-      } else {
-        const result = await onSignUp(email, password, token);
-        if (result.confirmationRequired) setNotice('Подтверди email по ссылке из письма, затем вернись сюда.');
-      }
+      await onTelegramAccept(token);
     } catch (reason) {
       setError(readableAuthError(reason));
     } finally {
@@ -351,14 +384,11 @@ export function SupabaseInvitationScreen({
             <ActionButton icon="check" disabled={busy || profile?.role === 'trainer'} onClick={accept}>{busy ? 'Принимаем…' : 'Принять приглашение'}</ActionButton>
           </div>
         ) : (
-          <form className="auth-form" onSubmit={submitCredentials}>
-            <div><TextField id="invite-email" label="Email из приглашения" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></div>
-            <div><TextField id="invite-password" label="Пароль" type="password" autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+          <div className="auth-form">
+            <p>Подтверди личность через Telegram — имя ученика уже указал тренер.</p>
             {error && <FormError>{error}</FormError>}
-            {notice && <p className="form-notice" role="status">{notice}</p>}
-            <ActionButton icon="arrow-right" type="submit" disabled={busy}>{busy ? 'Подождите…' : mode === 'sign-up' ? 'Создать аккаунт' : 'Войти и принять'}</ActionButton>
-            <button className="auth-text-button" type="button" onClick={() => setMode((current) => current === 'sign-up' ? 'sign-in' : 'sign-up')}>{mode === 'sign-up' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Создать'}</button>
-          </form>
+            <ActionButton icon="arrow-right" disabled={busy} onClick={() => void acceptWithTelegram()}>{busy ? 'Открываем Telegram…' : 'Принять через Telegram'}</ActionButton>
+          </div>
         )}
       </section>
     </main>

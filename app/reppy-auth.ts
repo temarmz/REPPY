@@ -2,6 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { Role } from './reppy-data';
 import { authRedirectUrl, getSupabaseClient, supabaseConfig } from './supabase-client';
+import {
+  acceptInvitationWithTelegram,
+  completeTelegramTrainerRegistration,
+  previewTelegramTrainerRegistration,
+  telegramSignIn,
+  type PendingTelegramRegistration,
+} from './telegram-login';
 
 export type AuthProfile = {
   id: string;
@@ -108,6 +115,32 @@ export function useReppyAuth() {
     const { error: signInError } = await client.auth.signInWithPassword({ email: email.trim(), password });
     if (signInError) throw new Error(signInError.message);
   }, [client]);
+
+  const signInWithTelegram = useCallback(async () => {
+    if (!client) throw new Error('Supabase не настроен.');
+    setError('');
+    await telegramSignIn(client);
+  }, [client]);
+
+  const startTelegramTrainerRegistration = useCallback(async () => {
+    if (!client) throw new Error('Supabase не настроен.');
+    setError('');
+    return previewTelegramTrainerRegistration(client);
+  }, [client]);
+
+  const finishTelegramTrainerRegistration = useCallback(async (pending: PendingTelegramRegistration, displayName: string) => {
+    if (!client) throw new Error('Supabase не настроен.');
+    setError('');
+    await completeTelegramTrainerRegistration(client, pending, displayName);
+  }, [client]);
+
+  const acceptStudentInvitationWithTelegram = useCallback(async (token: string) => {
+    if (!client) throw new Error('Supabase не настроен.');
+    setError('');
+    await acceptInvitationWithTelegram(client, token);
+    const { data } = await client.auth.getSession();
+    await loadProfile(data.session);
+  }, [client, loadProfile]);
 
   const signUpStudent = useCallback(async (email: string, password: string, invitationToken: string) => {
     if (!client) return { confirmationRequired: false };
@@ -251,6 +284,10 @@ export function useReppyAuth() {
     error,
     recovery,
     signIn,
+    signInWithTelegram,
+    startTelegramTrainerRegistration,
+    finishTelegramTrainerRegistration,
+    acceptStudentInvitationWithTelegram,
     signUpStudent,
     startTrainerRegistration,
     getTrainerRegistrationStatus,
