@@ -14,6 +14,11 @@ type TelegramAuthResponse = {
   error?: string;
 };
 
+// OAuth client IDs are public identifiers. Keeping this value in the browser
+// lets us open Telegram synchronously from the click handler, which prevents
+// Safari and embedded browsers from blocking or losing the popup.
+const TELEGRAM_OIDC_CLIENT_ID = 8840817445;
+
 function randomNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -38,35 +43,31 @@ async function callTelegramAuth(client: SupabaseClient, body: Record<string, unk
   return data;
 }
 
-async function authorizeTelegram(client: SupabaseClient) {
+async function authorizeTelegram() {
   const width = 550;
   const height = 650;
   const left = Math.max(0, window.screenX + (window.outerWidth - width) / 2);
   const top = Math.max(0, (window.screen.height - height) / 2);
+  const nonce = randomNonce();
+  const redirectUri = `${window.location.origin}${window.location.pathname}`;
+  const authUrl = new URL('https://oauth.telegram.org/auth');
+  authUrl.search = new URLSearchParams({
+    response_type: 'post_message',
+    client_id: String(TELEGRAM_OIDC_CLIENT_ID),
+    redirect_uri: redirectUri,
+    scope: 'openid profile telegram:bot_access',
+    nonce,
+    lang: 'ru',
+  }).toString();
+
   const popup = window.open(
-    'about:blank',
+    authUrl.toString(),
     'telegram_oidc_login',
     `width=${width},height=${height},left=${left},top=${top},status=0,location=0,menubar=0,toolbar=0`,
   );
   if (!popup) throw new Error('Браузер заблокировал окно Telegram. Разреши всплывающие окна для REPPY.');
 
-  const nonce = randomNonce();
   try {
-    const config = await callTelegramAuth(client, { action: 'config' });
-    const clientId = Number((config as TelegramAuthResponse & { clientId?: string }).clientId);
-    if (!Number.isSafeInteger(clientId) || clientId <= 0) throw new Error('Telegram Login ещё не настроен.');
-
-    const redirectUri = `${window.location.origin}${window.location.pathname}`;
-    const authUrl = new URL('https://oauth.telegram.org/auth');
-    authUrl.search = new URLSearchParams({
-      response_type: 'post_message',
-      client_id: String(clientId),
-      redirect_uri: redirectUri,
-      scope: 'openid profile telegram:bot_access',
-      nonce,
-      lang: 'ru',
-    }).toString();
-
     const idToken = await new Promise<string>((resolve, reject) => {
       let settled = false;
       const finish = (action: () => void) => {
@@ -90,7 +91,6 @@ async function authorizeTelegram(client: SupabaseClient) {
         if (popup.closed) finish(() => reject(new Error('Вход через Telegram отменён.')));
       }, 250);
       window.addEventListener('message', onMessage);
-      popup.location.replace(authUrl.toString());
       popup.focus();
     });
     return { idToken, nonce };
@@ -107,7 +107,7 @@ async function applySession(client: SupabaseClient, tokenHash?: string) {
 }
 
 export async function telegramSignIn(client: SupabaseClient) {
-  const authorization = await authorizeTelegram(client);
+  const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, { action: 'login', ...authorization });
   if (result.status === 'registration-required') {
     throw new Error('Аккаунт не найден. Создай кабинет тренера или открой приглашение от тренера.');
@@ -116,7 +116,7 @@ export async function telegramSignIn(client: SupabaseClient) {
 }
 
 export async function previewTelegramTrainerRegistration(client: SupabaseClient): Promise<PendingTelegramRegistration> {
-  const authorization = await authorizeTelegram(client);
+  const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, { action: 'preview-trainer-registration', ...authorization });
   return {
     ...authorization,
@@ -140,7 +140,7 @@ export async function completeTelegramTrainerRegistration(
 }
 
 export async function acceptInvitationWithTelegram(client: SupabaseClient, invitationToken: string) {
-  const authorization = await authorizeTelegram(client);
+  const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, {
     action: 'accept-student-invitation',
     invitationToken,
