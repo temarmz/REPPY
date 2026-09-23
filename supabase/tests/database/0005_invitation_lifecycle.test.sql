@@ -262,7 +262,7 @@ select throws_ok(
     (select payload ->> 'token' from invitation_payloads where label = 'first')
   )$$,
   'P0002',
-  'Invitation is not available',
+  'Invitation is not available: revoked',
   'a reissued token is no longer usable'
 );
 
@@ -417,7 +417,7 @@ select throws_ok(
     (select payload ->> 'token' from invitation_payloads where label = 'revoked')
   )$$,
   'P0002',
-  'Invitation is not available',
+  'Invitation is not available: revoked',
   'a revoked invitation cannot be previewed'
 );
 
@@ -440,7 +440,7 @@ set local role anon;
 select throws_ok(
   $$select public.get_student_invitation_preview(repeat('e', 43))$$,
   'P0002',
-  'Invitation is not available',
+  'Invitation is not available: expired',
   'an expired invitation cannot be previewed'
 );
 

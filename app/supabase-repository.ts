@@ -210,13 +210,16 @@ export function createSupabaseRepository(
   }
 
   async function load(): Promise<DemoState> {
+    const subscriptionsQuery = profile.role === 'trainer'
+      ? client.rpc('get_trainer_subscription_entries')
+      : client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision');
     const [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult] = await Promise.all([
       client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color, updated_at'),
       client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications, updated_at'),
       client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at, revision'),
       client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, revision'),
       client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
-      client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision'),
+      subscriptionsQuery,
       client.from('exercise_definitions').select('id, slug'),
     ]);
     for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult]) {

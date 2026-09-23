@@ -8,10 +8,12 @@ export type PendingTelegramRegistration = {
 };
 
 type TelegramAuthResponse = {
+  code?: string;
   status?: 'authenticated' | 'registration-required';
   tokenHash?: string;
   telegram?: { displayName?: string; username?: string | null };
   error?: string;
+  retryAfterSeconds?: number;
 };
 
 // OAuth client IDs are public identifiers. Keeping this value in the browser
@@ -31,6 +33,10 @@ async function callTelegramAuth(client: SupabaseClient, body: Record<string, unk
     if (context) {
       try {
         const payload = await context.json() as TelegramAuthResponse;
+        if (payload.code === 'rate_limited') {
+          const seconds = Math.max(1, Number(payload.retryAfterSeconds) || 60);
+          throw new Error(`Слишком много попыток. Повторите через ${seconds} сек.`);
+        }
         throw new Error(payload.error || 'Не удалось войти через Telegram.');
       } catch (reason) {
         if (reason instanceof Error && reason.message !== 'Unexpected end of JSON input') throw reason;
@@ -41,6 +47,14 @@ async function callTelegramAuth(client: SupabaseClient, body: Record<string, unk
   if (!data) throw new Error('Telegram не вернул данные входа.');
   if (data.error) throw new Error(data.error);
   return data;
+}
+
+function telegramAuthorizationError(reason?: string) {
+  const normalized = reason?.toLowerCase() ?? '';
+  if (normalized.includes('cancel') || normalized.includes('closed') || normalized.includes('denied')) {
+    return new Error('Вход через Telegram отменён. Можно безопасно попробовать ещё раз.');
+  }
+  return new Error(reason || 'Telegram не подтвердил вход. Попробуйте ещё раз.');
 }
 
 async function authorizeTelegram() {
@@ -85,10 +99,10 @@ async function authorizeTelegram() {
         }
         if (data?.event !== 'auth_result') return;
         if (typeof data.result === 'string') finish(() => resolve(data.result!));
-        else finish(() => reject(new Error(data.error || 'Telegram не подтвердил вход.')));
+        else finish(() => reject(telegramAuthorizationError(data.error)));
       };
       const closeCheck = window.setInterval(() => {
-        if (popup.closed) finish(() => reject(new Error('Вход через Telegram отменён.')));
+        if (popup.closed) finish(() => reject(telegramAuthorizationError('popup_closed')));
       }, 250);
       window.addEventListener('message', onMessage);
       popup.focus();

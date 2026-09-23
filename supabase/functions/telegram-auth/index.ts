@@ -16,8 +16,50 @@ type TelegramIdentity = {
   username: string | null
 }
 
+type RateLimitResult = {
+  allowed?: boolean
+  retryAfterSeconds?: number
+}
+
+const rateRules: Record<string, { limit: number; windowSeconds: number; blockSeconds: number }> = {
+  config: { limit: 120, windowSeconds: 60, blockSeconds: 60 },
+  login: { limit: 20, windowSeconds: 300, blockSeconds: 300 },
+  'preview-trainer-registration': { limit: 10, windowSeconds: 600, blockSeconds: 600 },
+  'register-trainer': { limit: 6, windowSeconds: 600, blockSeconds: 900 },
+  'accept-student-invitation': { limit: 6, windowSeconds: 600, blockSeconds: 900 },
+}
+
 function json(body: Record<string, unknown>, status = 200) {
   return Response.json(body, { status, headers: corsHeaders })
+}
+
+function failure(code: string, error: string, status: number, extra: Record<string, unknown> = {}) {
+  return json({ code, error, ...extra }, status)
+}
+
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function enforceRateLimit(
+  admin: ReturnType<typeof createClient>,
+  request: Request,
+  action: string,
+) {
+  const rule = rateRules[action] ?? { limit: 10, windowSeconds: 300, blockSeconds: 600 }
+  const address = request.headers.get('cf-connecting-ip')
+    ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? 'unknown'
+  const key = await sha256(`${action}:${address}`)
+  const { data, error } = await admin.rpc('consume_telegram_auth_rate_limit', {
+    p_key: key,
+    p_limit: rule.limit,
+    p_window_seconds: rule.windowSeconds,
+    p_block_seconds: rule.blockSeconds,
+  })
+  if (error) throw error
+  return data as RateLimitResult
 }
 
 function serviceRoleKey(): string | null {
@@ -57,34 +99,52 @@ async function verifyTelegramIdToken(idToken: string, nonce: string, clientId: s
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
-  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+  if (request.method !== 'POST') return failure('method_not_allowed', 'Method not allowed', 405)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceKey = serviceRoleKey()
   const clientId = Deno.env.get('TELEGRAM_OIDC_CLIENT_ID')
-  if (!supabaseUrl || !serviceKey || !clientId) return json({ error: 'Telegram Login is not configured' }, 503)
+  if (!supabaseUrl || !serviceKey || !clientId) return failure('not_configured', 'Telegram Login is not configured', 503)
 
   let body: Record<string, unknown>
-  try { body = await request.json() } catch { return json({ error: 'Invalid JSON' }, 400) }
-  if (body.action === 'config') return json({ clientId })
+  try { body = await request.json() } catch { return failure('invalid_json', 'Invalid JSON', 400) }
+  const action = typeof body.action === 'string' ? body.action : ''
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+  try {
+    const rate = await enforceRateLimit(admin, request, action)
+    if (rate.allowed !== true) {
+      return failure(
+        'rate_limited',
+        'Слишком много попыток. Подождите немного и повторите.',
+        429,
+        { retryAfterSeconds: Math.max(1, Number(rate.retryAfterSeconds) || 60) },
+      )
+    }
+  } catch (error) {
+    console.error('Telegram auth rate limiter failed', error)
+    return failure('rate_limit_unavailable', 'Вход временно недоступен. Повторите через минуту.', 503)
+  }
+  if (action === 'config') return json({ clientId })
+  if (!['login', 'preview-trainer-registration', 'register-trainer', 'accept-student-invitation'].includes(action)) {
+    return failure('unsupported_action', 'Unsupported action', 400)
+  }
 
   const idToken = typeof body.idToken === 'string' ? body.idToken : ''
   const nonce = typeof body.nonce === 'string' ? body.nonce : ''
-  if (!idToken || nonce.length < 32 || nonce.length > 128) return json({ error: 'Invalid Telegram request' }, 400)
+  if (!idToken || nonce.length < 32 || nonce.length > 128) return failure('invalid_request', 'Invalid Telegram request', 400)
 
   let telegram: TelegramIdentity
   try { telegram = await verifyTelegramIdToken(idToken, nonce, clientId) } catch (error) {
     console.error('Telegram OIDC verification failed', error)
-    return json({ error: 'Telegram verification failed' }, 401)
+    return failure('verification_failed', 'Не удалось подтвердить данные Telegram. Закройте окно входа и повторите.', 401)
   }
 
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
   const { data: linkedAccount, error: linkedError } = await admin
     .from('telegram_accounts')
     .select('profile_id')
     .eq('telegram_user_id', telegram.id)
     .maybeSingle()
-  if (linkedError) return json({ error: 'Unable to load REPPY account' }, 500)
+  if (linkedError) return failure('account_lookup_failed', 'Unable to load REPPY account', 500)
 
   const sessionFor = async (userId: string) => {
     const { data: userData, error: userError } = await admin.auth.admin.getUserById(userId)
@@ -96,12 +156,19 @@ Deno.serve(async (request) => {
   }
 
   if (linkedAccount?.profile_id) {
+    if (action !== 'login') {
+      return failure(
+        'telegram_already_linked',
+        'Этот Telegram уже связан с аккаунтом REPPY. Вернитесь на экран входа.',
+        409,
+      )
+    }
     try { return json({ status: 'authenticated', ...(await sessionFor(linkedAccount.profile_id)) }) }
-    catch (error) { console.error('Telegram session issue failed', error); return json({ error: 'Unable to open REPPY account' }, 500) }
+    catch (error) { console.error('Telegram session issue failed', error); return failure('session_failed', 'Unable to open REPPY account', 500) }
   }
 
-  if (body.action === 'login') return json({ status: 'registration-required', telegram }, 404)
-  if (body.action === 'preview-trainer-registration') return json({ status: 'registration-required', telegram })
+  if (action === 'login') return json({ code: 'account_not_found', status: 'registration-required', telegram })
+  if (action === 'preview-trainer-registration') return json({ status: 'registration-required', telegram })
 
   const syntheticEmail = `telegram-${telegram.id}@users.reppy.invalid`
   const createUser = async (role?: 'trainer') => admin.auth.admin.createUser({
@@ -111,16 +178,16 @@ Deno.serve(async (request) => {
     user_metadata: { display_name: telegram.displayName },
   })
 
-  if (body.action === 'register-trainer') {
+  if (action === 'register-trainer') {
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
-    if (displayName.length < 2 || displayName.length > 120) return json({ error: 'Укажите имя длиной от 2 до 120 символов.' }, 400)
+    if (displayName.length < 2 || displayName.length > 120) return failure('invalid_display_name', 'Укажите имя длиной от 2 до 120 символов.', 400)
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email: syntheticEmail,
       email_confirm: true,
       app_metadata: { reppy_role: 'trainer', telegram_user_id: String(telegram.id) },
       user_metadata: { display_name: displayName },
     })
-    if (createError || !created.user) return json({ error: 'Не удалось создать кабинет тренера.' }, 409)
+    if (createError || !created.user) return failure('trainer_already_exists', 'Аккаунт для этого Telegram уже создан. Попробуйте войти.', 409)
     const { error: telegramError } = await admin.from('telegram_accounts').insert({
       profile_id: created.user.id,
       telegram_user_id: telegram.id,
@@ -130,17 +197,17 @@ Deno.serve(async (request) => {
     })
     if (telegramError) {
       await admin.auth.admin.deleteUser(created.user.id)
-      return json({ error: 'Не удалось связать Telegram с кабинетом.' }, 409)
+      return failure('telegram_already_linked', 'Этот Telegram уже связан с другим аккаунтом REPPY.', 409)
     }
     try { return json({ status: 'authenticated', ...(await sessionFor(created.user.id)) }) }
-    catch (error) { console.error('Trainer session issue failed', error); return json({ error: 'Кабинет создан, но вход не выполнен.' }, 500) }
+    catch (error) { console.error('Trainer session issue failed', error); return failure('session_failed', 'Кабинет создан, но вход не выполнен.', 500) }
   }
 
-  if (body.action === 'accept-student-invitation') {
+  if (action === 'accept-student-invitation') {
     const invitationToken = typeof body.invitationToken === 'string' ? body.invitationToken : ''
-    if (invitationToken.length < 40 || invitationToken.length > 128) return json({ error: 'Приглашение недействительно.' }, 400)
+    if (invitationToken.length < 40 || invitationToken.length > 128) return failure('invitation_invalid', 'Приглашение недействительно.', 400)
     const { data: created, error: createError } = await createUser()
-    if (createError || !created.user) return json({ error: 'Не удалось создать аккаунт ученика.' }, 409)
+    if (createError || !created.user) return failure('student_already_exists', 'Аккаунт для этого Telegram уже создан. Войдите через Telegram.', 409)
     const { error: acceptError } = await admin.rpc('accept_student_invitation_from_telegram', {
       p_token: invitationToken,
       p_user_id: created.user.id,
@@ -151,11 +218,16 @@ Deno.serve(async (request) => {
     })
     if (acceptError) {
       await admin.auth.admin.deleteUser(created.user.id)
-      return json({ error: 'Приглашение недействительно или уже использовано.' }, 409)
+      const message = acceptError.message.toLowerCase()
+      if (message.includes('expired')) return failure('invitation_expired', 'Срок действия приглашения истёк. Попросите тренера создать новую ссылку.', 410)
+      if (message.includes('revoked')) return failure('invitation_revoked', 'Тренер отозвал это приглашение. Попросите новую ссылку.', 410)
+      if (message.includes('used')) return failure('invitation_used', 'Это приглашение уже использовано. Войдите через Telegram или попросите тренера о новом приглашении.', 409)
+      if (message.includes('already linked')) return failure('telegram_already_linked', 'Этот Telegram уже связан с аккаунтом REPPY.', 409)
+      return failure('invitation_invalid', 'Приглашение недействительно.', 409)
     }
     try { return json({ status: 'authenticated', ...(await sessionFor(created.user.id)) }) }
-    catch (error) { console.error('Student session issue failed', error); return json({ error: 'Аккаунт создан, но вход не выполнен.' }, 500) }
+    catch (error) { console.error('Student session issue failed', error); return failure('session_failed', 'Аккаунт создан, но вход не выполнен.', 500) }
   }
 
-  return json({ error: 'Unsupported action' }, 400)
+  return failure('unsupported_action', 'Unsupported action', 400)
 })

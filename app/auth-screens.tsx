@@ -15,6 +15,9 @@ function readableAuthError(reason: unknown) {
   if (normalized.includes('email not confirmed')) return 'Сначала подтверди email по ссылке из письма.';
   if (normalized.includes('user already registered')) return 'Аккаунт с таким email уже существует. Войди в него.';
   if (normalized.includes('password should be')) return 'Пароль должен содержать не меньше 8 символов.';
+  if (normalized.includes('invitation is not available: expired')) return 'Срок действия приглашения истёк. Попроси тренера создать новую ссылку.';
+  if (normalized.includes('invitation is not available: revoked')) return 'Тренер отозвал это приглашение. Попроси новую ссылку.';
+  if (normalized.includes('invitation is not available: used')) return 'Это приглашение уже использовано. Войди через Telegram.';
   if (normalized.includes('invitation is not available')) return 'Приглашение недействительно или уже использовано.';
   return message;
 }
@@ -326,7 +329,7 @@ export function SupabaseInvitationScreen({
   onHome: () => void;
 }) {
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
-  const [previewError, setPreviewError] = useState(false);
+  const [previewError, setPreviewError] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -334,7 +337,7 @@ export function SupabaseInvitationScreen({
     let active = true;
     void onPreview(token)
       .then((value) => { if (active) setPreview(value); })
-      .catch(() => { if (active) setPreviewError(true); });
+      .catch((reason: unknown) => { if (active) setPreviewError(readableAuthError(reason)); });
     return () => { active = false; };
   }, [onPreview, token]);
 
@@ -363,7 +366,7 @@ export function SupabaseInvitationScreen({
   };
 
   if (previewError) {
-    return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка не работает" text="Попроси тренера создать новое приглашение." action="На главную" onAction={onHome} /></main>;
+    return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка не работает" text={previewError} action="На главную" onAction={onHome} /></main>;
   }
   if (!preview) {
     return <main className="loading-screen" aria-busy="true"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Проверяем приглашение…</p></main>;
