@@ -14,7 +14,14 @@ type TelegramAuthResponse = {
   telegram?: { displayName?: string; username?: string | null };
   error?: string;
   retryAfterSeconds?: number;
+  redirectFlowConfigured?: boolean;
+  idToken?: string;
 };
+
+type RedirectIntent = { action: 'login' } | { action: 'accept-student-invitation'; invitationToken: string };
+type PendingRedirect = RedirectIntent & { state: string; nonce: string; verifier: string; returnHash: string; startedAt: number };
+const REDIRECT_STORAGE_KEY = 'reppy-telegram-oidc';
+const REDIRECT_URI = 'https://temarmz.github.io/REPPY/';
 
 // OAuth client IDs are public identifiers. Keeping this value in the browser
 // lets us open Telegram synchronously from the click handler, which prevents
@@ -24,6 +31,57 @@ const TELEGRAM_OIDC_CLIENT_ID = 8840817445;
 function randomNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function base64Url(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function randomUrlToken(size = 32) {
+  return base64Url(crypto.getRandomValues(new Uint8Array(size)));
+}
+
+function loadPendingRedirect(): PendingRedirect | null {
+  try { return JSON.parse(window.sessionStorage.getItem(REDIRECT_STORAGE_KEY) ?? 'null') as PendingRedirect | null; }
+  catch { return null; }
+}
+
+export function hasTelegramRedirectCallback(action?: RedirectIntent['action']) {
+  const query = new URLSearchParams(window.location.search);
+  const pending = loadPendingRedirect();
+  return Boolean(query.get('code') && query.get('state') && pending && (!action || pending.action === action));
+}
+
+export function restoreTelegramCallbackRoute() {
+  if (!hasTelegramRedirectCallback() || window.location.hash) return;
+  const pending = loadPendingRedirect();
+  if (pending?.returnHash) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${pending.returnHash}`);
+}
+
+async function beginRedirectAuthorization(intent: RedirectIntent) {
+  const verifier = randomUrlToken(64);
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const pending: PendingRedirect = {
+    ...intent,
+    state: randomUrlToken(),
+    nonce: randomNonce(),
+    verifier,
+    returnHash: window.location.hash || (intent.action === 'login' ? '#/auth/sign-in' : '#/'),
+    startedAt: Date.now(),
+  };
+  window.sessionStorage.setItem(REDIRECT_STORAGE_KEY, JSON.stringify(pending));
+  const authUrl = new URL('https://oauth.telegram.org/auth');
+  authUrl.search = new URLSearchParams({
+    response_type: 'code', client_id: String(TELEGRAM_OIDC_CLIENT_ID), redirect_uri: REDIRECT_URI,
+    scope: 'openid profile telegram:bot_access', state: pending.state, nonce: pending.nonce,
+    code_challenge: base64Url(new Uint8Array(digest)), code_challenge_method: 'S256', lang: 'ru',
+  }).toString();
+  window.location.assign(authUrl.toString());
+}
+
+async function redirectFlowEnabled(client: SupabaseClient) {
+  const config = await callTelegramAuth(client, { action: 'config' });
+  return config.redirectFlowConfigured === true;
 }
 
 async function callTelegramAuth(client: SupabaseClient, body: Record<string, unknown>) {
@@ -141,6 +199,10 @@ async function applySession(client: SupabaseClient, tokenHash?: string) {
 }
 
 export async function telegramSignIn(client: SupabaseClient) {
+  if (await redirectFlowEnabled(client)) {
+    await beginRedirectAuthorization({ action: 'login' });
+    return null;
+  }
   const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, { action: 'login', ...authorization });
   if (result.status === 'registration-required') {
@@ -169,6 +231,10 @@ export async function completeTelegramTrainerRegistration(
 }
 
 export async function acceptInvitationWithTelegram(client: SupabaseClient, invitationToken: string) {
+  if (await redirectFlowEnabled(client)) {
+    await beginRedirectAuthorization({ action: 'accept-student-invitation', invitationToken });
+    return;
+  }
   const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, {
     action: 'accept-student-invitation',
@@ -176,4 +242,36 @@ export async function acceptInvitationWithTelegram(client: SupabaseClient, invit
     ...authorization,
   });
   await applySession(client, result.tokenHash);
+}
+
+let redirectCompletion: Promise<PendingTelegramRegistration | null> | null = null;
+
+export function completeTelegramRedirect(client: SupabaseClient) {
+  if (redirectCompletion) return redirectCompletion;
+  redirectCompletion = (async () => {
+    const pending = loadPendingRedirect();
+    const query = new URLSearchParams(window.location.search);
+    const code = query.get('code') ?? '';
+    const state = query.get('state') ?? '';
+    if (!pending || !code || state !== pending.state || Date.now() - pending.startedAt > 10 * 60_000) {
+      throw new Error('Ответ Telegram устарел или повреждён. Попробуй войти ещё раз.');
+    }
+    const exchange = await callTelegramAuth(client, {
+      action: 'exchange-code', code, verifier: pending.verifier, nonce: pending.nonce, redirectUri: REDIRECT_URI,
+    });
+    if (!exchange.idToken) throw new Error('Telegram не вернул подтверждение входа.');
+    const cleanUrl = `${window.location.pathname}${pending.returnHash}`;
+    window.history.replaceState(null, '', cleanUrl);
+    window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
+    const authorization = { idToken: exchange.idToken, nonce: pending.nonce };
+    const result = await callTelegramAuth(client, pending.action === 'login'
+      ? { action: 'login', ...authorization }
+      : { action: 'accept-student-invitation', invitationToken: pending.invitationToken, ...authorization });
+    if (result.status === 'registration-required') {
+      return { ...authorization, displayName: result.telegram?.displayName || '', username: result.telegram?.username ?? null };
+    }
+    await applySession(client, result.tokenHash);
+    return null;
+  })();
+  return redirectCompletion;
 }

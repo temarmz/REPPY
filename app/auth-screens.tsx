@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import EmptyState from './empty-state';
 import type { AuthProfile, InvitationPreview, TrainerRegistrationStatus } from './reppy-auth';
 import type { PendingTelegramRegistration } from './telegram-login';
+import { hasTelegramRedirectCallback } from './telegram-login';
 import { ActionButton, FormError, TextField } from './ui-controls';
 
 function AuthBrand() {
@@ -35,17 +36,33 @@ export function AccountScreen({
   initialError,
   onTelegramSignIn,
   onCompleteRegistration,
+  onResumeTelegram,
   onHome,
 }: {
   initialError?: string;
   onTelegramSignIn: () => Promise<PendingTelegramRegistration | null>;
   onCompleteRegistration: (pending: PendingTelegramRegistration, displayName: string) => Promise<void>;
+  onResumeTelegram: () => Promise<PendingTelegramRegistration | null>;
   onHome: () => void;
 }) {
   const [pending, setPending] = useState<PendingTelegramRegistration | null>(null);
   const [displayName, setDisplayName] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(() => hasTelegramRedirectCallback('login'));
   const [error, setError] = useState(initialError ?? '');
+
+  useEffect(() => {
+    if (!hasTelegramRedirectCallback('login')) return;
+    let active = true;
+    void onResumeTelegram()
+      .then((registration) => {
+        if (!active || !registration) return;
+        setPending(registration);
+        setDisplayName(registration.displayName);
+      })
+      .catch((reason: unknown) => { if (active) setError(readableAuthError(reason)); })
+      .finally(() => { if (active) setBusy(false); });
+    return () => { active = false; };
+  }, [onResumeTelegram]);
 
   const signIn = async () => {
     setBusy(true);
@@ -277,6 +294,7 @@ export function SupabaseInvitationScreen({
   profile,
   onPreview,
   onTelegramAccept,
+  onResumeTelegram,
   onAccept,
   onHome,
 }: {
@@ -285,13 +303,14 @@ export function SupabaseInvitationScreen({
   profile: AuthProfile | null;
   onPreview: (token: string) => Promise<InvitationPreview>;
   onTelegramAccept: (token: string) => Promise<void>;
+  onResumeTelegram: () => Promise<PendingTelegramRegistration | null>;
   onAccept: (token: string) => Promise<void>;
   onHome: () => void;
 }) {
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [previewError, setPreviewError] = useState('');
   const [expired, setExpired] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(() => hasTelegramRedirectCallback('accept-student-invitation'));
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -301,6 +320,15 @@ export function SupabaseInvitationScreen({
       .catch((reason: unknown) => { if (active) setPreviewError(readableAuthError(reason)); });
     return () => { active = false; };
   }, [onPreview, token]);
+
+  useEffect(() => {
+    if (!hasTelegramRedirectCallback('accept-student-invitation')) return;
+    let active = true;
+    void onResumeTelegram()
+      .catch((reason: unknown) => { if (active) setError(readableAuthError(reason)); })
+      .finally(() => { if (active) setBusy(false); });
+    return () => { active = false; };
+  }, [onResumeTelegram]);
 
   useEffect(() => {
     if (!preview) return;

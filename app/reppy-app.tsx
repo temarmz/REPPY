@@ -555,6 +555,11 @@ export default function ReppyApp() {
             await auth.acceptStudentInvitationWithTelegram(token);
             go('/student', true);
           }}
+          onResumeTelegram={async () => {
+            const result = await auth.resumeTelegramRedirect();
+            go('/student', true);
+            return result;
+          }}
           onAccept={async (token) => {
             await auth.acceptInvitation(token);
             go('/student', true);
@@ -591,6 +596,7 @@ export default function ReppyApp() {
       initialError={auth.error}
       onTelegramSignIn={auth.signInWithTelegram}
       onCompleteRegistration={auth.finishTelegramTrainerRegistration}
+      onResumeTelegram={auth.resumeTelegramRedirect}
       onHome={() => go('/', true)}
     />;
   }
@@ -626,6 +632,7 @@ export default function ReppyApp() {
       initialError={auth.error}
       onTelegramSignIn={auth.signInWithTelegram}
       onCompleteRegistration={auth.finishTelegramTrainerRegistration}
+      onResumeTelegram={auth.resumeTelegramRedirect}
       onHome={() => go('/', true)}
     />;
   }

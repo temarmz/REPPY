@@ -23,6 +23,7 @@ type RateLimitResult = {
 
 const rateRules: Record<string, { limit: number; windowSeconds: number; blockSeconds: number }> = {
   config: { limit: 120, windowSeconds: 60, blockSeconds: 60 },
+  'exchange-code': { limit: 20, windowSeconds: 300, blockSeconds: 300 },
   login: { limit: 20, windowSeconds: 300, blockSeconds: 300 },
   'preview-trainer-registration': { limit: 10, windowSeconds: 600, blockSeconds: 600 },
   'register-trainer': { limit: 6, windowSeconds: 600, blockSeconds: 900 },
@@ -104,6 +105,7 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceKey = serviceRoleKey()
   const clientId = Deno.env.get('TELEGRAM_OIDC_CLIENT_ID')
+  const clientSecret = Deno.env.get('TELEGRAM_OIDC_CLIENT_SECRET')
   if (!supabaseUrl || !serviceKey || !clientId) return failure('not_configured', 'Telegram Login is not configured', 503)
 
   let body: Record<string, unknown>
@@ -124,7 +126,44 @@ Deno.serve(async (request) => {
     console.error('Telegram auth rate limiter failed', error)
     return failure('rate_limit_unavailable', 'Вход временно недоступен. Повторите через минуту.', 503)
   }
-  if (action === 'config') return json({ clientId })
+  if (action === 'config') return json({ clientId, redirectFlowConfigured: Boolean(clientSecret) })
+  if (action === 'exchange-code') {
+    const code = typeof body.code === 'string' ? body.code : ''
+    const verifier = typeof body.verifier === 'string' ? body.verifier : ''
+    const nonce = typeof body.nonce === 'string' ? body.nonce : ''
+    const redirectUri = typeof body.redirectUri === 'string' ? body.redirectUri : ''
+    if (!clientSecret) return failure('not_configured', 'Мобильный вход Telegram пока не настроен.', 503)
+    if (!code || !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier) || nonce.length < 32 || nonce.length > 128
+      || redirectUri !== 'https://temarmz.github.io/REPPY/') {
+      return failure('invalid_request', 'Invalid Telegram authorization response', 400)
+    }
+    try {
+      const tokenResponse = await fetch('https://oauth.telegram.org/token', {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          code_verifier: verifier,
+        }),
+      })
+      const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string }
+      if (!tokenResponse.ok || !tokenData.id_token) {
+        console.error('Telegram code exchange failed', tokenResponse.status, tokenData.error)
+        return failure('exchange_failed', 'Telegram не завершил вход. Попробуйте ещё раз.', 401)
+      }
+      await verifyTelegramIdToken(tokenData.id_token, nonce, clientId)
+      return json({ idToken: tokenData.id_token })
+    } catch (error) {
+      console.error('Telegram code exchange failed', error)
+      return failure('exchange_failed', 'Telegram не завершил вход. Попробуйте ещё раз.', 401)
+    }
+  }
   if (!['login', 'preview-trainer-registration', 'register-trainer', 'accept-student-invitation'].includes(action)) {
     return failure('unsupported_action', 'Unsupported action', 400)
   }

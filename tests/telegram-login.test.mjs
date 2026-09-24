@@ -40,7 +40,7 @@ test('единый Telegram-вход принимает ответ после з
   const popup = installTelegramWindow('telegram-id-token', { replacePopupProxy: true });
   const client = {
     functions: {
-      invoke: async () => ({
+      invoke: async (_name, { body }) => body.action === 'config' ? ({ data: { redirectFlowConfigured: false }, error: null }) : ({
         data: {
           status: 'registration-required',
           telegram: { displayName: 'Новый тренер', username: 'new_trainer' },
@@ -66,7 +66,9 @@ test('единый Telegram-вход сразу применяет сессию 
   let appliedToken = '';
   const client = {
     functions: {
-      invoke: async () => ({ data: { status: 'authenticated', tokenHash: 'session-token' }, error: null }),
+      invoke: async (_name, { body }) => body.action === 'config'
+        ? ({ data: { redirectFlowConfigured: false }, error: null })
+        : ({ data: { status: 'authenticated', tokenHash: 'session-token' }, error: null }),
     },
     auth: {
       verifyOtp: async ({ token_hash }) => {
@@ -80,4 +82,38 @@ test('единый Telegram-вход сразу применяет сессию 
 
   assert.equal(pending, null);
   assert.equal(appliedToken, 'session-token');
+});
+
+test('мобильный вход использует полный redirect с PKCE вместо popup', async (t) => {
+  const previousWindow = globalThis.window;
+  const values = new Map();
+  let assigned = '';
+  let popupOpened = false;
+  t.after(() => { globalThis.window = previousWindow; });
+  globalThis.window = {
+    location: {
+      origin: 'https://temarmz.github.io', pathname: '/REPPY/', search: '', hash: '#/auth/sign-in',
+      assign(value) { assigned = value; },
+    },
+    sessionStorage: {
+      getItem(key) { return values.get(key) ?? null; },
+      setItem(key, value) { values.set(key, value); },
+      removeItem(key) { values.delete(key); },
+    },
+    open() { popupOpened = true; return null; },
+  };
+  const client = {
+    functions: { invoke: async () => ({ data: { redirectFlowConfigured: true }, error: null }) },
+    auth: { verifyOtp: async () => assert.fail('До возврата из Telegram сессия не применяется') },
+  };
+
+  await telegramSignIn(client);
+
+  const url = new URL(assigned);
+  assert.equal(url.origin, 'https://oauth.telegram.org');
+  assert.equal(url.searchParams.get('response_type'), 'code');
+  assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
+  assert.ok(url.searchParams.get('code_challenge'));
+  assert.equal(popupOpened, false);
+  assert.ok(values.get('reppy-telegram-oidc'));
 });

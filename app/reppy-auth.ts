@@ -5,6 +5,7 @@ import { authRedirectUrl, getSupabaseClient, supabaseConfig } from './supabase-c
 import {
   acceptInvitationWithTelegram,
   completeTelegramTrainerRegistration,
+  completeTelegramRedirect,
   telegramSignIn,
   type PendingTelegramRegistration,
 } from './telegram-login';
@@ -133,6 +134,14 @@ export function useReppyAuth() {
     await acceptInvitationWithTelegram(client, token);
     const { data } = await client.auth.getSession();
     await loadProfile(data.session);
+  }, [client, loadProfile]);
+
+  const resumeTelegramRedirect = useCallback(async () => {
+    if (!client) throw new Error('Supabase не настроен.');
+    const result = await completeTelegramRedirect(client);
+    const { data } = await client.auth.getSession();
+    await loadProfile(data.session);
+    return result;
   }, [client, loadProfile]);
 
   const signUpStudent = useCallback(async (email: string, password: string, invitationToken: string) => {
@@ -280,6 +289,7 @@ export function useReppyAuth() {
     signInWithTelegram,
     finishTelegramTrainerRegistration,
     acceptStudentInvitationWithTelegram,
+    resumeTelegramRedirect,
     signUpStudent,
     startTrainerRegistration,
     getTrainerRegistrationStatus,
