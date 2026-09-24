@@ -1146,7 +1146,11 @@ export default function ReppyApp() {
       </AppShell>
       {settingsOpen && <SettingsModal
         accountMode={auth.enabled}
-        account={auth.profile ? { displayName: auth.profile.displayName, role: auth.profile.role, email: auth.session?.user.email ?? '' } : undefined}
+        account={auth.profile ? {
+          displayName: auth.profile.displayName,
+          role: auth.profile.role,
+          email: auth.session?.user.email?.endsWith('@users.reppy.invalid') ? '' : auth.session?.user.email ?? '',
+        } : undefined}
         onClose={() => setSettingsOpen(false)}
         onReset={resetDemo}
         onSignOut={auth.enabled ? async () => {

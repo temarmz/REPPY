@@ -195,7 +195,7 @@ test('цвет текста различает динамику без допо�
   await seedProgress(page);
   const section = progressSection(page);
   await expect(section.locator('.progress-trend')).toHaveCount(0);
-  await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', 'rgb(198, 255, 61)');
+  await expect(section.locator('.progress-comparison-change')).toHaveCSS('color', 'rgb(183, 232, 90)');
   await expect(section).not.toContainText('Лучшие подходы');
   for (const scenario of [
     { weight: 77.5, reps: 8, trend: 'Без изменений', color: 'rgb(151, 157, 149)' },

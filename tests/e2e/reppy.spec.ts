@@ -719,7 +719,7 @@ test('упражнение можно добавить повторно и уб�
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
   await expect(add).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.08)');
-  await expect(add).toHaveCSS('color', 'rgb(198, 255, 61)');
+  await expect(add).toHaveCSS('color', 'rgb(183, 232, 90)');
   await add.click();
   await add.click();
   await expect(picker.getByRole('group', { name: 'Жим лёжа', exact: true })).toContainText('2');
@@ -1013,7 +1013,7 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(page.getByRole('progressbar', { name: 'Прогресс тренировки' })).toHaveAttribute('aria-valuenow', '0');
   await expect(page.locator('.save-state[role="status"]')).toHaveText('Сохранено');
   await expect(page.getByRole('button', { name: 'Редактировать тренировку' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Завершить тренировку' })).toHaveCSS('background-color', 'rgb(198, 255, 61)');
+  await expect(page.getByRole('button', { name: 'Завершить тренировку' })).toHaveCSS('background-color', 'rgb(183, 232, 90)');
   await expect(page.locator('.active-sticky-header')).toHaveCSS('position', 'sticky');
   const safeAreaCover = await page.locator('.active-sticky-header').evaluate((element) => {
     const style = getComputedStyle(element, '::before');
