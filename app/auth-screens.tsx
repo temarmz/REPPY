@@ -87,6 +87,7 @@ export function AccountScreen({
           <p className="auth-description">Продолжи через Telegram. Если аккаунт уже есть — мы откроем его. Если нет — сразу предложим создать кабинет тренера.</p>
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
+          <p className="auth-description">На iPhone нажми «Открыть Telegram», подтверди вход и вернись в открывшееся окно Safari.</p>
           <p className="auth-description">Ученику нужна ссылка-приглашение от тренера.</p>
         </div> : <form className="auth-form" onSubmit={create}>
           <p className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</p>

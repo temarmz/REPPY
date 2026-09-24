@@ -74,13 +74,8 @@ async function authorizeTelegram() {
     lang: 'ru',
   }).toString();
 
-  const popup = window.open(
-    authUrl.toString(),
-    'telegram_oidc_login',
-    `width=${width},height=${height},left=${left},top=${top},status=0,location=0,menubar=0,toolbar=0`,
-  );
-  if (!popup) throw new Error('Браузер заблокировал окно Telegram. Разреши всплывающие окна для REPPY.');
-
+  let popup: Window | null = null;
+  const closePopup = () => popup?.close();
   try {
     const idToken = await new Promise<string>((resolve, reject) => {
       let settled = false;
@@ -94,7 +89,10 @@ async function authorizeTelegram() {
         action();
       };
       const onMessage = (event: MessageEvent) => {
-        if (event.origin !== 'https://oauth.telegram.org' || event.source !== popup) return;
+        // iOS Safari may recreate the popup WindowProxy after switching to
+        // the Telegram app. The exact origin and the server-verified nonce
+        // authenticate the response; object identity is not reliable there.
+        if (event.origin !== 'https://oauth.telegram.org') return;
         let data = event.data as { event?: string; result?: string; error?: string };
         if (typeof event.data === 'string') {
           try { data = JSON.parse(event.data) as typeof data; } catch { return; }
@@ -104,7 +102,7 @@ async function authorizeTelegram() {
         else finish(() => reject(telegramAuthorizationError(data.error)));
       };
       const closeCheck = window.setInterval(() => {
-        if (!popup.closed) {
+        if (!popup?.closed) {
           popupClosedAt = 0;
           return;
         }
@@ -117,12 +115,21 @@ async function authorizeTelegram() {
         finish(() => reject(new Error('Telegram не ответил. Закрой окно входа и попробуй ещё раз.')));
       }, 90_000);
       window.addEventListener('message', onMessage);
+      popup = window.open(
+        authUrl.toString(),
+        'telegram_oidc_login',
+        `width=${width},height=${height},left=${left},top=${top},status=0,location=0,menubar=0,toolbar=0`,
+      );
+      if (!popup) {
+        finish(() => reject(new Error('Браузер заблокировал окно Telegram. Разреши всплывающие окна для REPPY.')));
+        return;
+      }
       popup.focus();
     });
-    popup.close();
+    closePopup();
     return { idToken, nonce };
   } catch (error) {
-    popup.close();
+    closePopup();
     throw error;
   }
 }

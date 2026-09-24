@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { telegramSignIn } from '../app/telegram-login.ts';
 
-function installTelegramWindow(result = 'telegram-id-token') {
+function installTelegramWindow(result = 'telegram-id-token', { replacePopupProxy = false } = {}) {
   const popup = {
     closed: false,
     close() { this.closed = true; },
@@ -25,7 +25,7 @@ function installTelegramWindow(result = 'telegram-id-token') {
       listeners.add(listener);
       setTimeout(() => listener({
         origin: 'https://oauth.telegram.org',
-        source: popup,
+        source: replacePopupProxy ? {} : popup,
         data: { event: 'auth_result', result },
       }), 0);
     },
@@ -34,10 +34,10 @@ function installTelegramWindow(result = 'telegram-id-token') {
   return popup;
 }
 
-test('единый Telegram-вход возвращает данные регистрации, если аккаунта ещё нет', async (t) => {
+test('единый Telegram-вход принимает ответ после замены popup-окна мобильным Safari', async (t) => {
   const previousWindow = globalThis.window;
   t.after(() => { globalThis.window = previousWindow; });
-  const popup = installTelegramWindow();
+  const popup = installTelegramWindow('telegram-id-token', { replacePopupProxy: true });
   const client = {
     functions: {
       invoke: async () => ({
