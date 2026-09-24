@@ -7,6 +7,7 @@ if (missing.length) throw new Error(`Заполните ${missing.join(', ')} в
 const emails = [...new Set(process.env.REPPY_TEST_ACCOUNT_EMAILS.split(',').map((value) => value.trim().toLowerCase()).filter(Boolean))];
 if (!emails.length) throw new Error('REPPY_TEST_ACCOUNT_EMAILS должен содержать хотя бы один email.');
 const execute = process.argv.includes('--execute');
+const includeTelegramAccounts = process.argv.includes('--include-telegram');
 if (execute && process.env.REPPY_CONFIRM_TEST_RESET !== 'DELETE') {
   throw new Error('Для удаления явно установите REPPY_CONFIRM_TEST_RESET=DELETE в .env.admin.local.');
 }
@@ -22,7 +23,11 @@ const del = async (table, column, values) => {
 };
 
 const users = fail(await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 }), 'Чтение Auth-пользователей').users
-  .filter((user) => user.email && emails.includes(user.email.toLowerCase()));
+  .filter((user) => {
+    const email = user.email?.toLowerCase() ?? '';
+    return emails.includes(email)
+      || (includeTelegramAccounts && /^telegram-\d+@users\.reppy\.invalid$/.test(email));
+  });
 const profileIds = users.map((user) => user.id);
 const students = profileIds.length
   ? fail(await supabase.from('students').select('id').or(`account_id.in.(${profileIds.join(',')}),created_by.in.(${profileIds.join(',')})`), 'Чтение учеников')
@@ -47,7 +52,7 @@ const videos = relationshipIds.length
   ? fail(await supabase.from('instruction_videos').select('id, object_path').in('relationship_id', relationshipIds), 'Чтение видео')
   : [];
 
-console.log(JSON.stringify({ emails, authUsers: users.length, profiles: profileIds.length, students: studentIds.length, relationships: relationshipIds.length, assignments: assignmentIds.length, sessions: sessionIds.length, videos: videos.length }, null, 2));
+console.log(JSON.stringify({ emails, includeTelegramAccounts, authUsers: users.length, profiles: profileIds.length, students: studentIds.length, relationships: relationshipIds.length, assignments: assignmentIds.length, sessions: sessionIds.length, videos: videos.length }, null, 2));
 if (!execute) {
   console.log('Это только предпросмотр. Для удаления запустите npm run test-accounts:delete.');
   process.exit(0);
