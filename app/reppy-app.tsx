@@ -1885,13 +1885,13 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
         <label><span>Противопоказания и особенности</span><textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><small>Опиши всё, что тренеру важно учитывать при составлении плана.</small></label>
         <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
         {compact && <ActionButton variant="secondary" onClick={() => setEditing(false)}>Отмена</ActionButton>}
-      </div> : <><button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</button><div className="athlete-summary">
-        <div><span>Рост</span><strong>{student.height ? `${student.height} см` : 'Не указан'}</strong></div>
-        <div><span>Вес</span><strong>{student.weight ? `${student.weight} кг` : 'Не указан'}</strong></div>
-        <div><span>Пол</span><strong>{genderLabel}</strong></div>
-        <div><span>Телефон</span><strong>{student.phone || 'Не указан'}</strong></div>
-        <article><span>Противопоказания и особенности</span><p>{student.contraindications || 'Не указаны'}</p></article>
-      </div></>)}
+      </div> : <><button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</button><dl className="athlete-summary">
+        <div><dt>Рост</dt><dd>{student.height ? `${student.height} см` : 'Не указан'}</dd></div>
+        <div><dt>Вес</dt><dd>{student.weight ? `${student.weight} кг` : 'Не указан'}</dd></div>
+        <div><dt>Пол</dt><dd>{genderLabel}</dd></div>
+        <div><dt>Телефон</dt><dd>{student.phone || 'Не указан'}</dd></div>
+        <div className="athlete-summary-wide"><dt>Противопоказания и особенности</dt><dd>{student.contraindications || 'Не указаны'}</dd></div>
+      </dl></>)}
     </section>
   );
 }
@@ -3203,11 +3203,11 @@ function SessionResult({
   return (
     <main className="content-page narrow-page">
       <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
-      <section className="session-summary" aria-label="Итоги тренировки">
-        <div><small>ДЛИТЕЛЬНОСТЬ</small><strong>{elapsed}</strong></div>
-        <div><small>ПОДХОДЫ</small><strong>{completedSets} из {session.results.length}</strong></div>
-        <div><small>УПРАЖНЕНИЯ</small><strong>{workout.exercises.length}</strong></div>
-      </section>
+      <dl className="session-summary" aria-label="Итоги тренировки">
+        <div><dt>ДЛИТЕЛЬНОСТЬ</dt><dd>{elapsed}</dd></div>
+        <div><dt>ПОДХОДЫ</dt><dd>{completedSets} из {session.results.length}</dd></div>
+        <div><dt>УПРАЖНЕНИЯ</dt><dd>{workout.exercises.length}</dd></div>
+      </dl>
       {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
       {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
       {trainerView && <div className="session-result-actions">

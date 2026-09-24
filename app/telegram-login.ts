@@ -87,20 +87,27 @@ async function redirectFlowEnabled(client: SupabaseClient) {
 async function callTelegramAuth(client: SupabaseClient, body: Record<string, unknown>) {
   const { data, error } = await client.functions.invoke<TelegramAuthResponse>('telegram-auth', { body });
   if (error) {
-    const context = 'context' in error ? (error as { context?: Response }).context : undefined;
-    if (context) {
+    const context = typeof error === 'object' && error && 'context' in error
+      ? (error as { context?: unknown }).context
+      : undefined;
+    let payload: TelegramAuthResponse | null = null;
+    if (context && typeof context === 'object') {
       try {
-        const payload = await context.json() as TelegramAuthResponse;
-        if (payload.code === 'rate_limited') {
-          const seconds = Math.max(1, Number(payload.retryAfterSeconds) || 60);
-          throw new Error(`Слишком много попыток. Повторите через ${seconds} сек.`);
+        if ('json' in context && typeof context.json === 'function') {
+          payload = await context.json() as TelegramAuthResponse;
+        } else if ('body' in context) {
+          const rawBody = (context as { body?: unknown }).body;
+          payload = typeof rawBody === 'string'
+            ? JSON.parse(rawBody) as TelegramAuthResponse
+            : rawBody && typeof rawBody === 'object' ? rawBody as TelegramAuthResponse : null;
         }
-        throw new Error(payload.error || 'Не удалось войти через Telegram.');
-      } catch (reason) {
-        if (reason instanceof Error && reason.message !== 'Unexpected end of JSON input') throw reason;
-      }
+      } catch { /* Malformed error bodies must not leak parser errors to the UI. */ }
     }
-    throw new Error(error.message || 'Не удалось войти через Telegram.');
+    if (payload?.code === 'rate_limited') {
+      const seconds = Math.max(1, Number(payload.retryAfterSeconds) || 60);
+      throw new Error(`Слишком много попыток. Повторите через ${seconds} сек.`);
+    }
+    throw new Error(payload?.error || 'Не удалось связаться с Telegram. Проверь соединение и попробуй ещё раз.');
   }
   if (!data) throw new Error('Telegram не вернул данные входа.');
   if (data.error) throw new Error(data.error);

@@ -1369,13 +1369,11 @@ body.modal-open .bottom-nav { display: none; }
 .athlete-details .section-heading { margin-bottom: 12px; }
 .athlete-details .section-heading h2 { color: #b9beb7; font-size: 17px; }
 .athlete-details .section-heading button { min-height: 38px; font-size: var(--button-font-size); }
-.athlete-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.athlete-summary > div, .athlete-summary article { border-radius: 17px; padding: 14px; background: rgba(255,255,255,.035); }
-.athlete-summary > div { display: grid; min-height: 76px; align-content: center; gap: 6px; }
-.athlete-summary span { color: #777e76; font-size: 11px; font-weight: 750; }
-.athlete-summary strong { color: #cdd1ca; font-size: 15px; }
-.athlete-summary article { grid-column: 1 / -1; }
-.athlete-summary article p { margin: 8px 0 0; color: #aeb4ac; font-size: 13px; line-height: 1.55; }
+.athlete-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px 28px; margin: 4px 2px 0; }
+.athlete-summary > div { display: grid; min-width: 0; gap: 5px; }
+.athlete-summary dt { color: #777e76; font-size: 11px; font-weight: 750; }
+.athlete-summary dd { margin: 0; color: #cdd1ca; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.athlete-summary .athlete-summary-wide { grid-column: 1 / -1; border-top: 1px solid var(--divider); padding-top: 17px; }
 .athlete-form { display: grid; gap: 14px; border-radius: 26px; padding: 22px; background: var(--surface); }
 .athlete-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .athlete-form label { display: grid; gap: 8px; }
@@ -1706,7 +1704,6 @@ body.modal-open .bottom-nav { display: none; }
   .landing-cta { grid-template-columns: 1fr; align-items: start; }
   .pricing-section { border-radius: 30px; }
   .athlete-summary { grid-template-columns: 1fr 1fr; }
-  .athlete-summary > div:last-of-type { grid-column: 1 / -1; }
   .student-plan-heading { display: grid; align-items: start; }
   .student-plan-heading span { text-align: left; }
   .student-focus-card { min-height: 310px; border-radius: 26px; padding: 22px; }
@@ -1742,8 +1739,7 @@ body.modal-open .bottom-nav { display: none; }
   .student-free-note { align-items: flex-start; }
   .student-free-note > span { display: grid; gap: 4px; }
   .student-free-note strong { margin-right: 0; }
-  .athlete-form-grid, .athlete-summary { grid-template-columns: 1fr; }
-  .athlete-summary > div:last-of-type { grid-column: auto; }
+  .athlete-form-grid { grid-template-columns: 1fr; }
   .trainer-plan-header { display: grid; gap: 17px; }
   .trainer-plan-header > button { width: 100%; justify-content: center; }
   .today-schedule > header > b { min-width: 50px; height: 50px; border-radius: 16px; font-size: 21px; }
@@ -2196,10 +2192,12 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 .system-state-screen p { max-width: 390px; margin: 0 0 8px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .system-state-screen .primary-button { width: min(100%, 320px); }
 
-.session-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin-bottom: 13px; }
-.session-summary > div { display: grid; min-height: 76px; align-content: center; gap: 7px; border: 1px solid var(--ui-outline); border-radius: 18px; padding: 13px; background: var(--surface); }
-.session-summary small { color: var(--muted); font-size: 10px; font-weight: 850; }
-.session-summary strong { font-family: var(--app-font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.session-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); margin: 0 0 20px; border-bottom: 1px solid var(--divider); padding: 2px 0 20px; }
+.session-summary > div { display: grid; min-width: 0; gap: 6px; padding: 0 14px; }
+.session-summary > div:first-child { padding-left: 2px; }
+.session-summary > div + div { border-left: 1px solid var(--divider); }
+.session-summary dt { color: var(--muted); font-size: 10px; font-weight: 850; }
+.session-summary dd { margin: 0; font-family: var(--app-font-mono); font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .result-exercise-meta { color: var(--muted); font-size: 11px; font-weight: 700; }
 
 .new-assignment-card .schedule-fields { margin-top: 16px; }
@@ -2267,10 +2265,9 @@ textarea::placeholder { color: #747b72; opacity: 1; }
   .design-kit-button-grid { grid-template-columns: 1fr; }
   .design-kit-system-states { grid-template-columns: 1fr; }
   .confirmation-actions { grid-template-columns: 1fr; }
-  .session-summary { gap: 6px; }
-  .session-summary > div { min-height: 70px; padding: 10px; }
-  .session-summary small { font-size: 9px; }
-  .session-summary strong { font-size: 12px; }
+  .session-summary > div { padding-inline: 9px; }
+  .session-summary dt { font-size: 9px; }
+  .session-summary dd { font-size: 12px; }
   .active-exercise-footer-actions > button .ui-icon { width: 17px; height: 17px; }
 }
 
@@ -2391,7 +2388,7 @@ html[data-theme="light"] :is(.activity-row, .workout-row, .session-row, .plan-se
 html[data-theme="light"] :is(.plan-day-card > header, .readonly-set-list, .readonly-set-list p, .result-exercises header, .result-exercises p, .picker-footer) { border-color: var(--divider); }
 html[data-theme="light"] :is(.client-card, .workout-history-list, .empty-state, .calendar-card, .agenda-list > button, .plan-day-card, .active-exercise-card, .set-card) { border-color: var(--ui-outline); }
 html[data-theme="light"] :is(.student-upcoming > div:last-child, .calendar-shortcut, .exercise-plan-list article) { border-color: var(--divider); }
-html[data-theme="light"] :is(.plan-day-card > header, .plan-day-card.empty-day, .empty-day-action:hover, .athlete-summary > div, .athlete-summary article, .design-kit-swatches > div) { background: rgba(25,35,23,.025); }
+html[data-theme="light"] :is(.plan-day-card > header, .plan-day-card.empty-day, .empty-day-action:hover, .design-kit-swatches > div) { background: rgba(25,35,23,.025); }
 
 html[data-theme="light"] :is(.schedule-student-list, .exercise-editor, .workout-assignments > button, .mood-grid button, .active-comment-field, .bodyweight-set-label, .plan-context-card .schedule-field, .finish-balance-preview, .training-format-field > div) { background: var(--control-bg); }
 html[data-theme="light"] :is(.text-input, .schedule-field input, .date-picker-field > button, .athlete-form input, .athlete-form select, .athlete-form textarea, .metric-input input, .set-card input, .coach-note-field textarea, .active-comment-field textarea, .comment-field textarea, .subscription-payment-form input, .subscription-payment-form textarea, .payment-method-field button, .design-kit-textarea-field textarea, .instruction-textarea) {
@@ -2472,9 +2469,8 @@ html[data-theme="light"] :is(.readonly-coach-note, .reschedule-request-card p, .
 html[data-theme="light"] .readonly-exercise-card h2 { border-top-color: rgba(79,113,17,.14); color: #465043; }
 html[data-theme="light"] .athlete-details { border-top-color: var(--divider); }
 html[data-theme="light"] .athlete-details .section-heading h2 { color: #30382e; }
-html[data-theme="light"] .athlete-summary span { color: #596157; }
-html[data-theme="light"] .athlete-summary strong { color: var(--text-primary); }
-html[data-theme="light"] .athlete-summary article p { color: #566054; }
+html[data-theme="light"] .athlete-summary dt { color: #596157; }
+html[data-theme="light"] .athlete-summary dd { color: var(--text-primary); }
 html[data-theme="light"] .success-mood { border-top-color: var(--divider); color: #465043; }
 html[data-theme="light"] .session-feedback p { background: var(--control-bg); color: #465043; }
 html[data-theme="light"] .exercise-instruction-media { border-color: rgba(96,72,154,.22); background: rgba(122,76,255,.07); color: #60489a; }

@@ -263,7 +263,8 @@ test('светлая тема переключается из компактно
 
   await page.goto('/#/student/profile');
   await expect(page.locator('.athlete-details .section-heading h2')).toHaveCSS('color', 'rgb(48, 56, 46)');
-  await expect(page.locator('.athlete-summary strong').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
+  await expect(page.locator('.athlete-summary dd').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
+  await expect(page.locator('.athlete-summary > div').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
   await page.goto('/#/student/finish/session-artem-legs-history-5');
   await page.getByRole('button', { name: 'Отлично' }).click();
@@ -1002,6 +1003,8 @@ test('результат ученика виден тренеру и не мен
   await result.click();
 
   await expect(page.getByText('Тестовый результат ученика')).toBeVisible();
+  await expect(page.locator('.session-summary dt')).toHaveCount(3);
+  await expect(page.locator('.session-summary > div').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('.result-exercises article').first()).toContainText('80 кг × 8');
 });
 test('тренер ведёт занятие, правит его в моменте и удаляет завершённый результат', async ({ page }) => {

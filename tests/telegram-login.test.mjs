@@ -117,3 +117,13 @@ test('мобильный вход использует полный redirect с 
   assert.equal(popupOpened, false);
   assert.ok(values.get('reppy-telegram-oidc'));
 });
+
+test('ошибка Telegram без Response.json не показывает техническую JS-ошибку', async () => {
+  const client = {
+    functions: {
+      invoke: async () => ({ data: null, error: { message: 'FunctionsHttpError', context: { status: 500 } } }),
+    },
+  };
+
+  await assert.rejects(() => telegramSignIn(client), /Не удалось связаться с Telegram/);
+});
