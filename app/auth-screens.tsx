@@ -101,10 +101,8 @@ export function AccountScreen({
         <p className="eyebrow">Аккаунт REPPY</p>
         <h1>ВОЙТИ ИЛИ СОЗДАТЬ</h1>
         {!pending ? <div className="auth-form">
-          <p className="auth-description">Продолжи через Telegram. Если аккаунт уже есть — мы откроем его. Если нет — сразу предложим создать кабинет тренера.</p>
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
-          <p className="auth-description">На iPhone нажми «Открыть Telegram», подтверди вход и вернись в открывшееся окно Safari.</p>
           <p className="auth-description">Ученику нужна ссылка-приглашение от тренера.</p>
         </div> : <form className="auth-form" onSubmit={create}>
           <p className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</p>
@@ -114,7 +112,7 @@ export function AccountScreen({
           <ActionButton icon="check" type="submit" disabled={busy || displayName.trim().length < 2}>{busy ? 'Создаём кабинет…' : 'Создать кабинет тренера'}</ActionButton>
           <button className="auth-text-button" type="button" disabled={busy} onClick={() => { setPending(null); setError(''); }}>Использовать другой Telegram</button>
         </form>}
-        <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
+        <ActionButton variant="secondary" icon="home" onClick={onHome}>На главную</ActionButton>
       </section>
     </main>
   );
@@ -282,7 +280,7 @@ export function TrainerRegistrationScreen({
           {error && <FormError>{error}</FormError>}
           {notice && <p className="form-notice" role="status">{notice}</p>}
         </div>}
-        <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
+        <ActionButton variant="secondary" icon="home" onClick={onHome}>На главную</ActionButton>
       </section>
     </main>
   );

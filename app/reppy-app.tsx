@@ -2512,11 +2512,6 @@ function StudentAssignmentDetails({
   return (
     <main className="content-page narrow-page student-assignment-page">
       <PageHeader back="/student" eyebrow="Предстоящая тренировка" title={workout.name.toUpperCase()} />
-      <section className="student-assignment-schedule">
-        <span><Icon name="calendar" /></span>
-        <div><small>{assignment.format === 'online' ? 'ОНЛАЙН · РЕКОМЕНДОВАННАЯ ДАТА' : 'ДАТА И ВРЕМЯ'}</small><strong>{formatScheduleDay(assignment.scheduledFor)}</strong><time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'В удобное время' : assignmentTimeLabel(assignment)}</time></div>
-      </section>
-
       {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
       {assignment.format === 'in-person' && requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">

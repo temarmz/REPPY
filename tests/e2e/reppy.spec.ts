@@ -786,7 +786,7 @@ test('онлайн-тренировка переиспользует назна�
 
   await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
   await page.goto(`/#/student/assignments/${assignment.id}`);
-  await expect(page.getByText('В удобное время')).toBeVisible();
+  await expect(page.locator('.student-assignment-schedule')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Предложить другое время' })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/online-student-assignment.png', animations: 'disabled' });
   await page.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();

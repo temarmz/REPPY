@@ -956,6 +956,7 @@ body.modal-open .bottom-nav { display: none; }
 .auth-form > div { display: grid; gap: 8px; }
 .auth-form .primary-button { width: 100%; margin-top: 4px; }
 .auth-form .primary-button:disabled { cursor: wait; opacity: .6; }
+.auth-card > .wide-secondary, .auth-invitation-card > .wide-secondary { margin-top: 18px; }
 .auth-text-button { min-height: 44px; margin: 10px auto -10px; border: 0; background: transparent; color: #cbd0c9; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; }
 .form-notice { margin: 0; border-radius: 14px; padding: 12px 14px; background: rgba(198,255,61,.08); color: var(--lime); font-size: 12px; line-height: 1.45; }
 .auth-invitation-card .auth-form { margin-top: 26px; }
@@ -1424,13 +1425,6 @@ body.modal-open .bottom-nav { display: none; }
 .reschedule-request-card p { display: flex; align-items: baseline; gap: 8px; margin: 3px 0 0; color: #dce0d8; font-size: 14px; }
 .reschedule-request-card time { color: var(--lime); font-weight: 900; }
 .reschedule-request-actions { display: grid; grid-template-columns: 1fr 1.15fr; gap: 9px; }
-.student-assignment-schedule { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 16px; border: 1px solid var(--ui-outline); border-radius: 25px; padding: 18px; background: var(--surface); }
-.student-assignment-schedule > span { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 17px; background: var(--brand-soft); color: var(--lime); }
-.student-assignment-schedule > span .ui-icon { width: 23px; height: 23px; }
-.student-assignment-schedule > div { display: grid; min-width: 0; gap: 5px; }
-.student-assignment-schedule small { color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .1em; }
-.student-assignment-schedule strong { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
-.student-assignment-schedule time { color: var(--lime); font-size: 14px; font-weight: 900; }
 .student-reschedule-button, .student-start-button { margin-top: 12px; }
 .student-reschedule-form { display: grid; gap: 12px; margin-top: 12px; border: 1px solid var(--ui-outline); border-radius: 26px; padding: 16px; background: var(--surface); }
 .student-reschedule-form .schedule-fields { margin-top: 0; }
@@ -1649,7 +1643,6 @@ body.modal-open .bottom-nav { display: none; }
 .success-screen section b,
 .result-exercises p strong,
 .price-tier-grid article > strong,
-.student-assignment-schedule time,
 .reschedule-request-card time {
   font-family: var(--app-font-mono);
   font-variant-numeric: tabular-nums;
@@ -2472,8 +2465,8 @@ html[data-theme="light"] .set-count-control > span { color: #4e594a; }
 html[data-theme="light"] .exercise-equipment { border-color: var(--ui-outline); background: var(--control-bg); }
 html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider); background: rgba(250,251,247,.94); }
 
-html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .student-assignment-schedule time, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .progress-chart svg, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
-html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state > span, .history-copy-icon, .student-assignment-schedule > span, .student-request-status > .ui-icon, .exercise-coach-note .ui-icon, .active-coach-note > .ui-icon, .active-edit-toggle .ui-icon, .exercise-comment-button .ui-icon, .active-exercise-footer-actions button .ui-icon, .result-coach-note .ui-icon, .readonly-coach-note .ui-icon, .student-subscription-status > span, .subscription-entry-delta.positive, .session-subscription-status > .ui-icon, .feedback-intro > span, .success-mood .ui-icon, .session-feedback strong .ui-icon) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .progress-chart svg, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state > span, .history-copy-icon, .student-request-status > .ui-icon, .exercise-coach-note .ui-icon, .active-coach-note > .ui-icon, .active-edit-toggle .ui-icon, .exercise-comment-button .ui-icon, .active-exercise-footer-actions button .ui-icon, .result-coach-note .ui-icon, .readonly-coach-note .ui-icon, .student-subscription-status > span, .subscription-entry-delta.positive, .session-subscription-status > .ui-icon, .feedback-intro > span, .success-mood .ui-icon, .session-feedback strong .ui-icon) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .agenda-status, .history-status.completed, .reschedule-request-card > div:first-child > span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.readonly-coach-note, .reschedule-request-card p, .student-request-status p, .exercise-coach-note, .active-coach-note strong, .exercise-instruction-body p, .subscription-entry-list p, .confirmation-sheet > p) { color: #465043 !important; }
 html[data-theme="light"] .readonly-exercise-card h2 { border-top-color: rgba(79,113,17,.14); color: #465043; }
