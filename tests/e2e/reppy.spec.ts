@@ -263,6 +263,8 @@ test('светлая тема переключается из компактно
 
   await page.goto('/#/student/profile');
   await expect(page.locator('.athlete-details .section-heading h2')).toHaveCSS('color', 'rgb(48, 56, 46)');
+  await expect(page.getByRole('button', { name: 'Редактировать', exact: true })).toBeVisible();
+  await expect(page.locator('.details-edit-button')).toHaveCount(0);
   await expect(page.locator('.athlete-summary dd').first()).toHaveCSS('color', 'rgb(23, 27, 22)');
   await expect(page.locator('.athlete-summary > div').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
@@ -788,6 +790,7 @@ test('онлайн-тренировка переиспользует назна�
   await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
   await page.goto(`/#/student/assignments/${assignment.id}`);
   await expect(page.locator('.student-assignment-schedule')).toHaveCount(0);
+  await expect(page.locator('.student-assignment-meta')).toContainText('Онлайн · в удобное время');
   await expect(page.getByRole('button', { name: 'Предложить другое время' })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/online-student-assignment.png', animations: 'disabled' });
   await page.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();

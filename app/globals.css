@@ -952,7 +952,9 @@ body.modal-open .bottom-nav { display: none; }
 .auth-logo { display: block; width: 126px; height: auto; margin: 0 0 52px; }
 .auth-card h1 { margin: 7px 0 0; font-size: clamp(38px, 9vw, 58px); line-height: .92; }
 .auth-description { margin: 19px 0 26px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.auth-card h1 + .auth-form { margin-top: clamp(30px, 7vw, 44px); }
 .auth-form { display: grid; gap: 16px; }
+.auth-form .auth-description { margin: 0; }
 .auth-form > div { display: grid; gap: 8px; }
 .auth-form .primary-button { width: 100%; margin-top: 4px; }
 .auth-form .primary-button:disabled { cursor: wait; opacity: .6; }
@@ -1369,6 +1371,8 @@ body.modal-open .bottom-nav { display: none; }
 .athlete-details .section-heading { margin-bottom: 12px; }
 .athlete-details .section-heading h2 { color: #b9beb7; font-size: 17px; }
 .athlete-details .section-heading button { min-height: 38px; font-size: var(--button-font-size); }
+.athlete-heading-edit { display: inline-flex; align-items: center; gap: 6px; }
+.athlete-heading-edit .ui-icon { width: 15px; height: 15px; }
 .athlete-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px 28px; margin: 4px 2px 0; }
 .athlete-summary > div { display: grid; min-width: 0; gap: 5px; }
 .athlete-summary dt { color: #777e76; font-size: 11px; font-weight: 750; }
@@ -1424,6 +1428,10 @@ body.modal-open .bottom-nav { display: none; }
 .reschedule-request-card time { color: var(--lime); font-weight: 900; }
 .reschedule-request-actions { display: grid; grid-template-columns: 1fr 1.15fr; gap: 9px; }
 .student-reschedule-button, .student-start-button { margin-top: 12px; }
+.student-assignment-page .page-header { margin-bottom: 14px; }
+.student-assignment-meta { display: flex; align-items: center; gap: 7px; margin: 0 0 24px; color: var(--muted); font-size: 13px; font-weight: 750; }
+.student-assignment-meta .ui-icon { width: 17px; height: 17px; color: var(--lime); }
+.student-assignment-meta time { color: var(--text-primary); font-family: var(--app-font-mono); font-variant-numeric: tabular-nums; }
 .student-reschedule-form { display: grid; gap: 12px; margin-top: 12px; border: 1px solid var(--ui-outline); border-radius: 26px; padding: 16px; background: var(--surface); }
 .student-reschedule-form .schedule-fields { margin-top: 0; }
 .student-request-status { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 12px; margin-top: 12px; border: 1px solid rgba(198,255,61,.14); border-radius: 22px; padding: 16px; background: var(--brand-soft); }
