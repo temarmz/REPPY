@@ -62,7 +62,7 @@ import {
   saveInstructionVideo,
 } from './instruction-video-repository';
 import { useReppyAuth, type TelegramConnection } from './reppy-auth';
-import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen, TelegramTrainerRegistrationScreen, TrainerRegistrationScreen } from './auth-screens';
+import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen, TrainerRegistrationScreen } from './auth-screens';
 import { getSupabaseClient } from './supabase-client';
 import { createSupabaseRepository } from './supabase-repository';
 
@@ -586,13 +586,11 @@ export default function ReppyApp() {
   }
 
   if (auth.enabled && path === '/auth/register-trainer') {
-    return <TelegramTrainerRegistrationScreen
-      onStart={auth.startTelegramTrainerRegistration}
-      onComplete={async (pending, displayName) => {
-        await auth.finishTelegramTrainerRegistration(pending, displayName);
-        go('/trainer', true);
-      }}
-      onSignIn={() => go('/auth/sign-in', true)}
+    return <AccountScreen
+      key="unified-auth"
+      initialError={auth.error}
+      onTelegramSignIn={auth.signInWithTelegram}
+      onCompleteRegistration={auth.finishTelegramTrainerRegistration}
       onHome={() => go('/', true)}
     />;
   }
@@ -624,10 +622,10 @@ export default function ReppyApp() {
 
   if (auth.enabled && auth.status !== 'authenticated') {
     return <AccountScreen
-      key="sign-in"
+      key="unified-auth"
       initialError={auth.error}
       onTelegramSignIn={auth.signInWithTelegram}
-      onCreateTrainer={() => go('/auth/register-trainer', true)}
+      onCompleteRegistration={auth.finishTelegramTrainerRegistration}
       onHome={() => go('/', true)}
     />;
   }

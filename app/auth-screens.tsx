@@ -34,14 +34,16 @@ function loadTrainerRegistrationCredentials(token?: string) {
 export function AccountScreen({
   initialError,
   onTelegramSignIn,
-  onCreateTrainer,
+  onCompleteRegistration,
   onHome,
 }: {
   initialError?: string;
-  onTelegramSignIn: () => Promise<void>;
-  onCreateTrainer: () => void;
+  onTelegramSignIn: () => Promise<PendingTelegramRegistration | null>;
+  onCompleteRegistration: (pending: PendingTelegramRegistration, displayName: string) => Promise<void>;
   onHome: () => void;
 }) {
+  const [pending, setPending] = useState<PendingTelegramRegistration | null>(null);
+  const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError ?? '');
 
@@ -49,55 +51,11 @@ export function AccountScreen({
     setBusy(true);
     setError('');
     try {
-      await onTelegramSignIn();
-    } catch (reason) {
-      setError(readableAuthError(reason));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <main className="auth-screen">
-      <section className="auth-card">
-        <AuthBrand />
-        <p className="eyebrow">Аккаунт REPPY</p>
-        <h1>ВОЙТИ</h1>
-        <p className="auth-description">Один безопасный вход для тренера и ученика — через Telegram.</p>
-        <div className="auth-form">
-          {error && <FormError>{error}</FormError>}
-          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Войти через Telegram'}</ActionButton>
-          <button className="auth-text-button" type="button" disabled={busy} onClick={onCreateTrainer}>Нет аккаунта? Создать кабинет тренера</button>
-        </div>
-        <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
-      </section>
-    </main>
-  );
-}
-
-export function TelegramTrainerRegistrationScreen({
-  onStart,
-  onComplete,
-  onSignIn,
-  onHome,
-}: {
-  onStart: () => Promise<PendingTelegramRegistration>;
-  onComplete: (pending: PendingTelegramRegistration, displayName: string) => Promise<void>;
-  onSignIn: () => void;
-  onHome: () => void;
-}) {
-  const [pending, setPending] = useState<PendingTelegramRegistration | null>(null);
-  const [displayName, setDisplayName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const authorize = async () => {
-    setBusy(true);
-    setError('');
-    try {
-      const registration = await onStart();
-      setPending(registration);
-      setDisplayName(registration.displayName);
+      const registration = await onTelegramSignIn();
+      if (registration) {
+        setPending(registration);
+        setDisplayName(registration.displayName);
+      }
     } catch (reason) {
       setError(readableAuthError(reason));
     } finally {
@@ -111,7 +69,7 @@ export function TelegramTrainerRegistrationScreen({
     setBusy(true);
     setError('');
     try {
-      await onComplete(pending, displayName);
+      await onCompleteRegistration(pending, displayName);
     } catch (reason) {
       setError(readableAuthError(reason));
     } finally {
@@ -123,19 +81,20 @@ export function TelegramTrainerRegistrationScreen({
     <main className="auth-screen">
       <section className="auth-card">
         <AuthBrand />
-        <p className="eyebrow">Регистрация тренера</p>
-        <h1>СОЗДАТЬ КАБИНЕТ</h1>
+        <p className="eyebrow">Аккаунт REPPY</p>
+        <h1>ВОЙТИ ИЛИ СОЗДАТЬ</h1>
         {!pending ? <div className="auth-form">
-          <p className="auth-description">Telegram подтвердит личность и станет единственным способом входа в REPPY.</p>
+          <p className="auth-description">Продолжи через Telegram. Если аккаунт уже есть — мы откроем его. Если нет — сразу предложим создать кабинет тренера.</p>
           {error && <FormError>{error}</FormError>}
-          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void authorize()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
-          <button className="auth-text-button" type="button" onClick={onSignIn}>Уже есть аккаунт? Войти</button>
+          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
+          <p className="auth-description">Ученику нужна ссылка-приглашение от тренера.</p>
         </div> : <form className="auth-form" onSubmit={create}>
-          <p className="auth-description">Проверь имя — так тебя будут видеть ученики.</p>
+          <p className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</p>
           <div><TextField id="trainer-telegram-name" label="Имя тренера" autoComplete="name" minLength={2} maxLength={120} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></div>
           {pending.username && <p className="form-notice">Telegram: @{pending.username}</p>}
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="check" type="submit" disabled={busy || displayName.trim().length < 2}>{busy ? 'Создаём кабинет…' : 'Создать кабинет тренера'}</ActionButton>
+          <button className="auth-text-button" type="button" disabled={busy} onClick={() => { setPending(null); setError(''); }}>Использовать другой Telegram</button>
         </form>}
         <button className="auth-text-button" type="button" onClick={onHome}>На главную</button>
       </section>
@@ -330,6 +289,7 @@ export function SupabaseInvitationScreen({
 }) {
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [previewError, setPreviewError] = useState('');
+  const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -341,10 +301,21 @@ export function SupabaseInvitationScreen({
     return () => { active = false; };
   }, [onPreview, token]);
 
+  useEffect(() => {
+    if (!preview) return;
+    const remaining = new Date(preview.expiresAt).getTime() - Date.now();
+    const timer = window.setTimeout(
+      () => setExpired(true),
+      Math.min(Math.max(remaining + 50, 0), 2_147_483_647),
+    );
+    return () => window.clearTimeout(timer);
+  }, [preview]);
+
   const acceptWithTelegram = async () => {
     setBusy(true);
     setError('');
     try {
+      await onPreview(token);
       await onTelegramAccept(token);
     } catch (reason) {
       setError(readableAuthError(reason));
@@ -367,6 +338,9 @@ export function SupabaseInvitationScreen({
 
   if (previewError) {
     return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка не работает" text={previewError} action="На главную" onAction={onHome} /></main>;
+  }
+  if (expired) {
+    return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка устарела" text="Срок действия приглашения истёк. Попроси тренера создать новую ссылку." action="На главную" onAction={onHome} /></main>;
   }
   if (!preview) {
     return <main className="loading-screen" aria-busy="true"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Проверяем приглашение…</p></main>;

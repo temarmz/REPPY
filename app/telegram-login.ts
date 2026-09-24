@@ -84,11 +84,13 @@ async function authorizeTelegram() {
   try {
     const idToken = await new Promise<string>((resolve, reject) => {
       let settled = false;
+      let popupClosedAt = 0;
       const finish = (action: () => void) => {
         if (settled) return;
         settled = true;
         window.removeEventListener('message', onMessage);
         window.clearInterval(closeCheck);
+        window.clearTimeout(responseTimeout);
         action();
       };
       const onMessage = (event: MessageEvent) => {
@@ -102,11 +104,22 @@ async function authorizeTelegram() {
         else finish(() => reject(telegramAuthorizationError(data.error)));
       };
       const closeCheck = window.setInterval(() => {
-        if (popup.closed) finish(() => reject(telegramAuthorizationError('popup_closed')));
+        if (!popup.closed) {
+          popupClosedAt = 0;
+          return;
+        }
+        // Safari can report the popup as closed just before delivering its
+        // final postMessage. Give that message a short chance to arrive.
+        if (!popupClosedAt) popupClosedAt = Date.now();
+        if (Date.now() - popupClosedAt >= 750) finish(() => reject(telegramAuthorizationError('popup_closed')));
       }, 250);
+      const responseTimeout = window.setTimeout(() => {
+        finish(() => reject(new Error('Telegram не ответил. Закрой окно входа и попробуй ещё раз.')));
+      }, 90_000);
       window.addEventListener('message', onMessage);
       popup.focus();
     });
+    popup.close();
     return { idToken, nonce };
   } catch (error) {
     popup.close();
@@ -124,19 +137,14 @@ export async function telegramSignIn(client: SupabaseClient) {
   const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, { action: 'login', ...authorization });
   if (result.status === 'registration-required') {
-    throw new Error('Аккаунт не найден. Создай кабинет тренера или открой приглашение от тренера.');
+    return {
+      ...authorization,
+      displayName: result.telegram?.displayName || '',
+      username: result.telegram?.username ?? null,
+    } satisfies PendingTelegramRegistration;
   }
   await applySession(client, result.tokenHash);
-}
-
-export async function previewTelegramTrainerRegistration(client: SupabaseClient): Promise<PendingTelegramRegistration> {
-  const authorization = await authorizeTelegram();
-  const result = await callTelegramAuth(client, { action: 'preview-trainer-registration', ...authorization });
-  return {
-    ...authorization,
-    displayName: result.telegram?.displayName || '',
-    username: result.telegram?.username ?? null,
-  };
+  return null;
 }
 
 export async function completeTelegramTrainerRegistration(

@@ -156,7 +156,7 @@ Deno.serve(async (request) => {
   }
 
   if (linkedAccount?.profile_id) {
-    if (action !== 'login') {
+    if (action !== 'login' && action !== 'register-trainer') {
       return failure(
         'telegram_already_linked',
         'Этот Telegram уже связан с аккаунтом REPPY. Вернитесь на экран входа.',
