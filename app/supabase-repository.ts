@@ -11,7 +11,7 @@ import {
   type WorkoutExercise,
   type WorkoutSession,
 } from './reppy-data';
-import type { ReppyRepository } from './reppy-repository';
+import { ReppyConflictError, type ReppyRepository } from './reppy-repository';
 
 type AuthProfile = { id: string; role: Role };
 
@@ -116,12 +116,16 @@ function numberOrUndefined(value: number | string | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function throwIfError(result: { error: { message: string } | null }) {
-  if (result.error) throw new Error(result.error.message);
+function throwIfError(result: { error: { message: string; code?: string } | null }) {
+  if (!result.error) return;
+  if (result.error.code === '40001' || /revision conflict/i.test(result.error.message)) {
+    throw new ReppyConflictError('Тренировка уже изменена на другом устройстве.');
+  }
+  throw new Error(result.error.message);
 }
 
 function revisionConflict(entity: string) {
-  return new Error(`${entity} уже изменён на другом устройстве. Обнови страницу и повтори действие.`);
+  return new ReppyConflictError(`${entity} уже изменён на другом устройстве.`);
 }
 
 function indexById<T extends { id: string }>(items: T[]) {

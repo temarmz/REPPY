@@ -78,7 +78,6 @@ const THEME_PREFERENCE = 'reppy-ui:theme';
 let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
 let restoringBlockedHistory = false;
 let pendingHistoryBlocker: ((proceed: () => void) => void) | null = null;
-let pendingModalReplacement: string | null = null;
 
 function loadAllDaysPreference() {
   if (typeof window === 'undefined') return false;
@@ -156,11 +155,6 @@ function performNavigation(path: string, replace = false) {
   saveCurrentScrollPosition();
   const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
   const { reppyModal: _modalEntry, ...navigationState } = previousState;
-  if (replace && _modalEntry) {
-    pendingModalReplacement = path;
-    window.history.back();
-    return;
-  }
   if (replace || _modalEntry) {
     window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
   } else {
@@ -354,7 +348,7 @@ export default function ReppyApp() {
     const client = getSupabaseClient();
     return client && auth.profile ? createSupabaseRepository(client, auth.profile) : null;
   }, [auth.profile]);
-  const { data, hydrated, persistencePhase, persistenceError, retryPersistence, reset: resetData, createStudentInvitation, setData } = useReppyData(remoteRepository);
+  const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
@@ -413,16 +407,6 @@ export default function ReppyApp() {
     };
     const handleNavigation = (event?: Event) => {
       if (event?.type === 'hashchange' && restoringBlockedHistory) return;
-      if (event?.type === 'popstate' && pendingModalReplacement) {
-        const replacementPath = pendingModalReplacement;
-        pendingModalReplacement = null;
-        const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
-        const navigationState = { ...currentState };
-        delete navigationState.reppyModal;
-        window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${replacementPath}`);
-        commitPath();
-        return;
-      }
       if (event?.type === 'popstate' && hasOpenModalLayers()) {
         commitPath();
         return;
@@ -786,7 +770,7 @@ export default function ReppyApp() {
               )),
             }));
             showToast('Пополнение исправлено');
-            go(`/trainer/clients/${student.id}/subscription`);
+            go(`/trainer/clients/${student.id}/subscription`, true);
           }}
           onDelete={() => {
             setData((current) => ({
@@ -794,7 +778,7 @@ export default function ReppyApp() {
               subscriptionEntries: current.subscriptionEntries.filter((entry) => entry.id !== payment.id),
             }));
             showToast('Пополнение удалено');
-            go(`/trainer/clients/${student.id}/subscription`);
+            go(`/trainer/clients/${student.id}/subscription`, true);
           }}
         />
       ) : <NotFound />;
@@ -811,7 +795,7 @@ export default function ReppyApp() {
               subscriptionEntries: [...current.subscriptionEntries, createSubscriptionPayment(student.id, input)],
             }));
             showToast(`Абонемент пополнен на ${input.lessons} ${lessonWord(input.lessons)}`);
-            go(`/trainer/clients/${student.id}`);
+            go(`/trainer/clients/${student.id}`, true);
           }}
         />
       ) : <NotFound />;
@@ -1150,7 +1134,7 @@ export default function ReppyApp() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
-        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} online={online} remote={auth.enabled} onRetry={retryPersistence} />}
+        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} />}
       >
         {content}
         {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
@@ -1294,8 +1278,8 @@ function Brand() {
   );
 }
 
-function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, back }: { eyebrow?: string; preserveEyebrowCase?: boolean; title: string; action?: ReactNode; back?: string }) {
-  return <SharedPageHeader eyebrow={eyebrow} preserveEyebrowCase={preserveEyebrowCase} title={title} action={action} onBack={back ? () => goBack(back) : undefined} />;
+function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, back, semanticBack = false }: { eyebrow?: string; preserveEyebrowCase?: boolean; title: string; action?: ReactNode; back?: string; semanticBack?: boolean }) {
+  return <SharedPageHeader eyebrow={eyebrow} preserveEyebrowCase={preserveEyebrowCase} title={title} action={action} onBack={back ? () => semanticBack ? go(back, true) : goBack(back) : undefined} />;
 }
 
 function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
@@ -1584,7 +1568,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
   const sessions = [...data.sessions].filter((item) => item.studentId === studentId && item.completedAt).reverse();
   return (
     <main className="content-page">
-      {trainerView && <div className="student-profile-intro"><PageHeader back="/trainer/clients" title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></div>}
+      {trainerView && <div className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></div>}
       <SubscriptionCard data={data} student={student} trainerView={trainerView} />
       {trainerView && <section className="profile-schedule">
         <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
@@ -1659,7 +1643,7 @@ function SubscriptionHistory({ data, student, onDelete }: { data: DemoState; stu
   });
   return (
     <main className="content-page narrow-page subscription-history-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={student.name} title="ИСТОРИЯ АБОНЕМЕНТА" />
+      <PageHeader back={`/trainer/clients/${student.id}`} semanticBack eyebrow={student.name} title="ИСТОРИЯ АБОНЕМЕНТА" />
       <section className={`subscription-history-summary ${subscriptionTone(balance, hasEntries)}`}>
         <span>ТЕКУЩИЙ БАЛАНС</span>
         <strong>{subscriptionBalanceLabel(balance, hasEntries)}</strong>
@@ -1769,6 +1753,7 @@ function DesignKitScreen() {
           <AppStatusBanner phase="saving" online onRetry={() => undefined} preview />
           <AppStatusBanner phase="idle" online={false} onRetry={() => undefined} preview />
           <AppStatusBanner phase="error" online onRetry={() => undefined} preview />
+          <AppStatusBanner phase="error" online conflict onRetry={() => undefined} onReload={() => undefined} preview />
         </div>
       </section>
 
@@ -1820,7 +1805,7 @@ function SubscriptionPaymentForm({
   };
   return (
     <main className="content-page narrow-page subscription-payment-page">
-      <PageHeader back={initial ? `/trainer/clients/${student.id}/subscription` : `/trainer/clients/${student.id}`} eyebrow={student.name} title={initial ? 'ИСПРАВИТЬ ПОПОЛНЕНИЕ' : 'ДОБАВИТЬ АБОНЕМЕНТ'} />
+      <PageHeader back={initial ? `/trainer/clients/${student.id}/subscription` : `/trainer/clients/${student.id}`} semanticBack eyebrow={student.name} title={initial ? 'ИСПРАВИТЬ ПОПОЛНЕНИЕ' : 'ДОБАВИТЬ АБОНЕМЕНТ'} />
       <section className="subscription-payment-form">
         <div className="subscription-form-grid">
           <label><span>Количество занятий</span><input type="number" min="1" step="1" inputMode="numeric" value={lessons} onChange={(event) => { setLessons(event.target.value); setError(''); }} /></label>
@@ -3213,7 +3198,7 @@ function SessionResult({
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <main className="content-page narrow-page">
-      <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <PageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       <section className="session-summary" aria-label="Итоги тренировки">
         <div><small>ДЛИТЕЛЬНОСТЬ</small><strong>{elapsed}</strong></div>
         <div><small>ПОДХОДЫ</small><strong>{completedSets} из {session.results.length}</strong></div>

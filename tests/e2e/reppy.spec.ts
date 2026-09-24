@@ -93,7 +93,7 @@ test('внутренний дизайн-кит собирает реальные
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('системные состояния показывают офлайн и позволяют повторить сохранение', async ({ page, context }) => {
+test('системные состояния показывают конфликт и повторяют сохранение после возвращения сети', async ({ page, context }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openFreshDemo(page);
   await page.goto('/#/trainer/design-kit');
@@ -103,6 +103,8 @@ test('системные состояния показывают офлайн и
   await expect(samples).toContainText('Сохраняем изменения');
   await expect(samples).toContainText('Нет сети');
   await expect(samples).toContainText('Не удалось сохранить изменения');
+  await expect(samples).toContainText('Данные изменились на другом устройстве');
+  await expect(samples.getByRole('button', { name: 'Загрузить актуальные' })).toBeVisible();
   await samples.scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'test-results/design-kit-system-states.png', animations: 'disabled' });
 
@@ -130,10 +132,8 @@ test('системные состояния показывают офлайн и
   const saveError = page.getByRole('alert').filter({ hasText: 'Не удалось сохранить изменения' });
   await expect(saveError).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toHaveCount(0);
-  await saveError.getByRole('button', { name: 'Повторить' }).click();
-  await expect(saveError).toHaveCount(0);
-  await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toBeVisible();
   await context.setOffline(false);
+  await expect(saveError).toHaveCount(0);
   await expect(page.locator('.app-status-banner:not(.preview)')).toHaveCount(0);
 });
 
@@ -230,7 +230,7 @@ test('светлая тема переключается из компактно
   await page.getByRole('button', { name: 'Закрыть описание' }).click();
   await page.screenshot({ path: 'test-results/theme-light-assignment-edit.png', animations: 'disabled' });
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
-  const lightAdd = page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Добавить Жим лёжа' });
+  const lightAdd = page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Добавить Жим лёжа', exact: true });
   await expect(lightAdd).toHaveCSS('background-color', 'rgb(247, 248, 243)');
   await expect(lightAdd).toHaveCSS('color', 'rgb(48, 56, 46)');
   await page.getByRole('button', { name: 'Готово' }).click();
@@ -476,6 +476,34 @@ test('вложенные экраны остаются у каноническо
   await expect(page.locator('.bottom-nav [aria-current="page"]')).toHaveCount(1);
 });
 
+test('нижнее меню остаётся кликабельным после вложенных экранов и закрытия модалки', async ({ page }) => {
+  await openFreshDemo(page);
+  const bottomNav = page.locator('.bottom-nav');
+
+  await page.getByRole('button', { name: 'Открыть настройки' }).click();
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await bottomNav.getByRole('button', { name: 'Календарь' }).tap();
+  await expect(page).toHaveURL(/#\/trainer\/calendar$/);
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    await bottomNav.getByRole('button', { name: 'Ученики' }).tap();
+    await expect(page).toHaveURL(/#\/trainer\/clients$/);
+    await expect(bottomNav.getByRole('button', { name: 'Ученики' })).toHaveAttribute('aria-current', 'page');
+
+    await bottomNav.getByRole('button', { name: 'Главная' }).tap();
+    await expect(page).toHaveURL(/#\/trainer$/);
+    await expect(bottomNav.getByRole('button', { name: 'Главная' })).toHaveAttribute('aria-current', 'page');
+
+    await bottomNav.getByRole('button', { name: 'Календарь' }).tap();
+    await expect(page).toHaveURL(/#\/trainer\/calendar$/);
+    await expect(bottomNav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
+  }
+
+  await page.goto('/#/trainer/clients/artem/subscription');
+  await bottomNav.getByRole('button', { name: 'Ученики' }).tap();
+  await expect(page).toHaveURL(/#\/trainer\/clients$/);
+});
+
 test('устаревшие маршруты общих тренировок больше не открываются', async ({ page }) => {
   await openFreshDemo(page);
 
@@ -563,7 +591,7 @@ test('в редакторе можно удалить последнее упр�
   await page.getByLabel('Название тренировки').fill('Новая тренировка');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await picker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
+  await picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true }).click();
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const card = page.locator('.plan-exercise-card').first();
@@ -657,7 +685,7 @@ test('новая тренировка сохраняется только в н�
   await page.getByLabel('Название тренировки').fill('Персональная тренировка Марии');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const exercisePicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await exercisePicker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
+  await exercisePicker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true }).click();
   await expect(exercisePicker).toBeVisible();
   await exercisePicker.getByRole('button', { name: 'Добавить Жим гантелей на наклонной скамье' }).click();
   await expect(exercisePicker.getByText('В тренировке: 2')).toBeVisible();
@@ -682,8 +710,8 @@ test('упражнение можно добавить повторно и уб�
   await expect(page.locator('.plan-submit-actions')).toHaveCSS('position', 'static');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  const add = picker.getByRole('button', { name: 'Добавить Жим лёжа' });
-  const remove = picker.getByRole('button', { name: 'Убрать Жим лёжа' });
+  const add = picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true });
+  const remove = picker.getByRole('button', { name: 'Убрать Жим лёжа', exact: true });
   const addBox = await add.boundingBox();
   const removeBox = await remove.boundingBox();
   for (const box of [addBox, removeBox]) {
@@ -694,10 +722,10 @@ test('упражнение можно добавить повторно и уб�
   await expect(add).toHaveCSS('color', 'rgb(198, 255, 61)');
   await add.click();
   await add.click();
-  await expect(picker.getByRole('group', { name: 'Жим лёжа' })).toContainText('2');
+  await expect(picker.getByRole('group', { name: 'Жим лёжа', exact: true })).toContainText('2');
   await expect(page.locator('.plan-exercise-card')).toHaveCount(2);
   await remove.click();
-  await expect(picker.getByRole('group', { name: 'Жим лёжа' })).toContainText('1');
+  await expect(picker.getByRole('group', { name: 'Жим лёжа', exact: true })).toContainText('1');
   await picker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(1);
   await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(1);
@@ -719,7 +747,7 @@ test('онлайн-тренировка переиспользует назна�
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await picker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
+  await picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true }).click();
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const exercise = page.locator('.plan-exercise-card').first();
@@ -787,7 +815,7 @@ test('несколько упражнений быстро добавляютс�
   const done = picker.getByRole('button', { name: 'Готово' });
   expect(await done.evaluate((button) => button.getBoundingClientRect().bottom <= window.innerHeight)).toBe(true);
 
-  await picker.getByRole('button', { name: 'Добавить Жим лёжа' }).click();
+  await picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true }).click();
   await picker.getByRole('button', { name: 'Добавить Жим гантелей на наклонной скамье' }).click();
   await expect(picker.getByText('В тренировке: 5')).toBeVisible();
   await done.click();
@@ -842,6 +870,25 @@ test('тренер пополняет и исправляет абонемент
   await page.goto('/#/student/profile');
   await expect(page.getByLabel('Абонемент')).toContainText('Осталось 17 занятий');
   await expect(page.getByLabel('Последние пополнения')).toContainText('12 000 ₽ · наличные');
+});
+
+test('выход из истории абонемента не зацикливается между историей и платежом', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients/artem');
+  await page.getByLabel('Абонемент').getByRole('button', { name: 'История' }).click();
+  await page.locator('.subscription-entry-list > button').first().click();
+  await page.getByLabel(/Комментарий/).fill('Проверка истории');
+  await page.getByRole('button', { name: 'Сохранить изменения' }).click();
+
+  await expect(page).toHaveURL(/#\/trainer\/clients\/artem\/subscription$/);
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/trainer\/clients\/artem$/);
+  await expect(page.getByLabel('Абонемент')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/trainer\/clients$/);
+  await expect(page.getByRole('button', { name: 'Пригласить ученика' })).toBeVisible();
+  await expect(page.locator('.client-card')).toHaveCount(3);
 });
 
 test('тренер удаляет отдельное пополнение или весь абонемент без удаления тренировок', async ({ page }) => {

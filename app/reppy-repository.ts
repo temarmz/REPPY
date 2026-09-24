@@ -7,6 +7,22 @@ import {
 
 export const STORAGE_KEY = 'reppy-demo-v0';
 
+export class ReppyConflictError extends Error {
+  readonly code = 'REPPY_CONFLICT';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'ReppyConflictError';
+  }
+}
+
+export function isReppyConflictError(reason: unknown): reason is ReppyConflictError {
+  return reason instanceof Error && (
+    reason instanceof ReppyConflictError
+    || (reason as Error & { code?: string }).code === 'REPPY_CONFLICT'
+  );
+}
+
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export interface ReppyRepository {

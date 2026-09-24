@@ -20,13 +20,19 @@ export function useOnlineStatus() {
 }
 
 type StatusCopy = {
-  kind: 'loading' | 'saving' | 'offline' | 'error';
+  kind: 'loading' | 'saving' | 'offline' | 'error' | 'conflict';
   icon: IconName;
   title: string;
   detail?: string;
 };
 
-function resolveStatus(phase: PersistencePhase, online: boolean, persistenceError?: Error | null, remote = false): StatusCopy | null {
+function resolveStatus(phase: PersistencePhase, online: boolean, persistenceError?: Error | null, remote = false, conflict = false): StatusCopy | null {
+  if (phase === 'error' && conflict) return {
+    kind: 'conflict',
+    icon: 'history',
+    title: 'Данные изменились на другом устройстве',
+    detail: 'Загрузи актуальную версию. Несохранённые изменения на этом устройстве не будут применены.',
+  };
   if (phase === 'error') return {
     kind: 'error',
     icon: 'close',
@@ -51,6 +57,8 @@ export function AppStatusBanner({
   error: persistenceError,
   remote = false,
   preview = false,
+  conflict = false,
+  onReload,
 }: {
   phase: PersistencePhase;
   online: boolean;
@@ -58,16 +66,19 @@ export function AppStatusBanner({
   error?: Error | null;
   remote?: boolean;
   preview?: boolean;
+  conflict?: boolean;
+  onReload?: () => void;
 }) {
-  const status = resolveStatus(phase, online, persistenceError, remote);
+  const status = resolveStatus(phase, online, persistenceError, remote, conflict);
   if (!status) return null;
-  const error = status.kind === 'error';
+  const error = status.kind === 'error' || status.kind === 'conflict';
 
   return (
     <aside className={`app-status-banner ${status.kind} ${preview ? 'preview' : ''}`.trim()} role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'}>
       <Icon name={status.icon} />
       <span><strong>{status.title}</strong>{status.detail && <small>{status.detail}</small>}</span>
-      {error && <button type="button" onClick={onRetry}>Повторить</button>}
+      {status.kind === 'error' && <button type="button" onClick={onRetry}>Повторить</button>}
+      {status.kind === 'conflict' && onReload && <button type="button" onClick={onReload}>Загрузить актуальные</button>}
     </aside>
   );
 }

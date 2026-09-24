@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { createInitialState, type DemoState, type Student } from './reppy-data';
-import { createLocalStorageRepository, type ReppyRepository } from './reppy-repository';
+import { createLocalStorageRepository, isReppyConflictError, type ReppyRepository } from './reppy-repository';
 
 export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
 
@@ -9,7 +9,9 @@ type ReppyDataController = {
   hydrated: boolean;
   persistencePhase: PersistencePhase;
   persistenceError: Error | null;
+  persistenceConflict: boolean;
   retryPersistence: () => void;
+  reloadCurrentData: () => void;
   reset: () => void;
   createStudentInvitation: ((name: string, email: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
   setData: Dispatch<SetStateAction<DemoState>>;
@@ -34,6 +36,7 @@ export function useReppyData(
   const [persistenceError, setPersistenceError] = useState<Error | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveAttempt, setSaveAttempt] = useState(0);
+  const [reloadAttempt, setReloadAttempt] = useState(0);
   const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
@@ -134,6 +137,38 @@ export function useReppyData(
     };
   }, [data, hydrated, loadedRepository, repository, saveAttempt]);
 
+  useEffect(() => {
+    if (!hydrated || persistencePhase !== 'error' || isReppyConflictError(persistenceError)) return;
+    if (navigator.onLine) return;
+    const retryWhenOnline = () => setSaveAttempt((current) => current + 1);
+    window.addEventListener('online', retryWhenOnline, { once: true });
+    return () => window.removeEventListener('online', retryWhenOnline);
+  }, [hydrated, persistenceError, persistencePhase]);
+
+  useEffect(() => {
+    if (!hydrated || loadedRepository !== repository || reloadAttempt === 0) return;
+    let cancelled = false;
+    const request = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => repository.load());
+    saveQueueRef.current = request.then(() => undefined);
+    void request
+      .then((nextData) => {
+        if (cancelled) return;
+        setData(nextData);
+        setPersistenceError(null);
+        setPersistencePhase('idle');
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) return;
+        setPersistenceError(toError(reason));
+        setPersistencePhase('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, loadedRepository, reloadAttempt, repository]);
+
   const retryPersistence = useCallback(() => {
     if (hydrated) {
       setSaveAttempt((current) => current + 1);
@@ -147,6 +182,12 @@ export function useReppyData(
   const reset = useCallback(() => {
     setData(createInitialState());
     setPersistenceError(null);
+  }, []);
+
+  const reloadCurrentData = useCallback(() => {
+    setPersistenceError(null);
+    setPersistencePhase('loading');
+    setReloadAttempt((current) => current + 1);
   }, []);
 
   const createStudentInvitation = useCallback(async (name: string, email: string) => {
@@ -163,7 +204,9 @@ export function useReppyData(
     hydrated: hydrated && loadedRepository === repository,
     persistencePhase,
     persistenceError,
+    persistenceConflict: isReppyConflictError(persistenceError),
     retryPersistence,
+    reloadCurrentData,
     reset,
     createStudentInvitation: repository.createStudentInvitation ? createStudentInvitation : null,
     setData,

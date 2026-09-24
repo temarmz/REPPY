@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createInitialState } from '../app/reppy-data.ts';
-import { STORAGE_KEY, createLocalStorageRepository } from '../app/reppy-repository.ts';
+import {
+  ReppyConflictError,
+  STORAGE_KEY,
+  createLocalStorageRepository,
+  isReppyConflictError,
+} from '../app/reppy-repository.ts';
 
 function createMemoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));
@@ -98,4 +103,13 @@ test('repository сохраняет и очищает состояние чер�
 
   await repository.clear();
   assert.equal(memory.value(), null);
+});
+
+test('конфликт версий имеет отдельный безопасно распознаваемый тип', () => {
+  const error = new ReppyConflictError('Назначение изменено на другом устройстве.');
+
+  assert.equal(error.name, 'ReppyConflictError');
+  assert.equal(error.code, 'REPPY_CONFLICT');
+  assert.equal(isReppyConflictError(error), true);
+  assert.equal(isReppyConflictError(new Error('Обычная ошибка сети')), false);
 });
