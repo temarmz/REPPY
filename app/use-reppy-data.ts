@@ -52,6 +52,17 @@ export function useReppyData(
   }, [data]);
 
   useEffect(() => {
+    if (!repository.execute) return;
+    const protectPendingCommands = (event: BeforeUnloadEvent) => {
+      if (commandQueueRef.current.length === 0) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', protectPendingCommands);
+    return () => window.removeEventListener('beforeunload', protectPendingCommands);
+  }, [repository]);
+
+  useEffect(() => {
     let cancelled = false;
 
     void repository.load()

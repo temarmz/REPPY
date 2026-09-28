@@ -147,6 +147,7 @@ export type ExerciseDefinition = {
   name: string;
   primaryMuscle: MuscleGroup;
   equipment: string;
+  loadMode?: 'external' | 'bodyweight';
   measureType?: 'reps' | 'duration';
 };
 
@@ -217,6 +218,26 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'reverse-crunch', name: 'Обратные скручивания', primaryMuscle: 'Кор', equipment: 'Свой вес' },
   { id: 'russian-twist', name: 'Русские скручивания', primaryMuscle: 'Кор', equipment: 'Медбол' },
   { id: 'pallof-press', name: 'Жим Паллофа', primaryMuscle: 'Кор', equipment: 'Блок' },
+  { id: 'decline-dumbbell-press', name: 'Жим гантелей на скамье с отрицательным наклоном', primaryMuscle: 'Грудь', equipment: 'Гантели' },
+  { id: 'dumbbell-fly', name: 'Разведение гантелей лёжа', primaryMuscle: 'Грудь', equipment: 'Гантели' },
+  { id: 'neutral-grip-pulldown', name: 'Тяга верхнего блока нейтральным хватом', primaryMuscle: 'Спина', equipment: 'Блок' },
+  { id: 'machine-row', name: 'Тяга в рычажном тренажёре', primaryMuscle: 'Спина', equipment: 'Тренажёр' },
+  { id: 'front-raise', name: 'Подъём гантелей перед собой', primaryMuscle: 'Плечи', equipment: 'Гантели' },
+  { id: 'upright-row', name: 'Тяга штанги к подбородку', primaryMuscle: 'Плечи', equipment: 'Штанга' },
+  { id: 'incline-dumbbell-curl', name: 'Сгибание рук с гантелями на наклонной скамье', primaryMuscle: 'Бицепс', equipment: 'Гантели' },
+  { id: 'concentration-curl', name: 'Концентрированное сгибание руки', primaryMuscle: 'Бицепс', equipment: 'Гантель' },
+  { id: 'triceps-kickback', name: 'Разгибание руки с гантелью в наклоне', primaryMuscle: 'Трицепс', equipment: 'Гантель' },
+  { id: 'bench-dip', name: 'Обратные отжимания от скамьи', primaryMuscle: 'Трицепс', equipment: 'Свой вес' },
+  { id: 'smith-squat', name: 'Приседания в машине Смита', primaryMuscle: 'Квадрицепс', equipment: 'Тренажёр' },
+  { id: 'split-squat', name: 'Сплит-приседания', primaryMuscle: 'Квадрицепс', equipment: 'Гантели' },
+  { id: 'glute-bridge', name: 'Ягодичный мост без опоры', primaryMuscle: 'Ягодицы', equipment: 'Свой вес' },
+  { id: 'cable-pull-through', name: 'Тяга блока между ног', primaryMuscle: 'Ягодицы', equipment: 'Блок' },
+  { id: 'seated-leg-curl', name: 'Сгибание ног сидя', primaryMuscle: 'Задняя поверхность бедра', equipment: 'Тренажёр' },
+  { id: 'good-morning', name: 'Наклоны со штангой', primaryMuscle: 'Задняя поверхность бедра', equipment: 'Штанга' },
+  { id: 'single-leg-calf-raise', name: 'Подъём на носок одной ногой', primaryMuscle: 'Икры', equipment: 'Свой вес' },
+  { id: 'calf-press', name: 'Жим носками в тренажёре', primaryMuscle: 'Икры', equipment: 'Тренажёр' },
+  { id: 'ab-wheel', name: 'Раскатывание ролика', primaryMuscle: 'Кор', equipment: 'Ролик', loadMode: 'bodyweight' },
+  { id: 'cable-crunch', name: 'Скручивания на верхнем блоке', primaryMuscle: 'Кор', equipment: 'Блок' },
 ];
 
 type LegacyWorkoutExercise = Omit<WorkoutExercise, 'loadMode' | 'measureType' | 'plannedSets'> & {
@@ -253,7 +274,7 @@ export function withExerciseSetPlans(exercise: WorkoutExercise, plannedSets: Wor
 
 export function normalizeWorkoutExercise(exercise: WorkoutExercise | LegacyWorkoutExercise): WorkoutExercise {
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
-  const loadMode = exercise.loadMode ?? (definition?.equipment === 'Свой вес' ? 'bodyweight' : 'external');
+  const loadMode = exercise.loadMode ?? definition?.loadMode ?? (definition?.equipment === 'Свой вес' ? 'bodyweight' : 'external');
   const measureType = exercise.measureType ?? definition?.measureType ?? 'reps';
   const withMetadata: WorkoutExercise = {
     id: exercise.id,
@@ -278,14 +299,17 @@ const workoutExercise = (
   sets: number,
   targetReps: number,
   targetWeight: number,
-): WorkoutExercise => normalizeWorkoutExercise({
-  id,
-  exerciseId,
-  name,
-  loadMode: exerciseLibrary.find((exercise) => exercise.id === exerciseId)?.equipment === 'Свой вес' ? 'bodyweight' : 'external',
-  measureType: exerciseLibrary.find((exercise) => exercise.id === exerciseId)?.measureType ?? 'reps',
-  plannedSets: Array.from({ length: sets }, () => ({ targetReps, targetWeight })),
-});
+): WorkoutExercise => {
+  const definition = exerciseLibrary.find((exercise) => exercise.id === exerciseId);
+  return normalizeWorkoutExercise({
+    id,
+    exerciseId,
+    name,
+    loadMode: definition?.loadMode ?? (definition?.equipment === 'Свой вес' ? 'bodyweight' : 'external'),
+    measureType: definition?.measureType ?? 'reps',
+    plannedSets: Array.from({ length: sets }, () => ({ targetReps, targetWeight })),
+  });
+};
 
 const demoWorkoutNames: Record<string, string> = {
   'push-day': 'Грудь и плечи',

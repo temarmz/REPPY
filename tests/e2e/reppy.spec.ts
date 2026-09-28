@@ -1083,7 +1083,7 @@ test('тренер ведёт занятие, правит его в момен�
   const multiPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
   await expect(multiPicker).toBeVisible();
   expect(await multiPicker.getByRole('button', { name: 'Готово' }).evaluate((button) => button.getBoundingClientRect().bottom <= window.innerHeight)).toBe(true);
-  await multiPicker.getByRole('button', { name: 'Добавить Сгибание рук с гантелями' }).click();
+  await multiPicker.getByRole('button', { name: 'Добавить Сгибание рук с гантелями', exact: true }).click();
   await expect(multiPicker.getByText('В тренировке: 5')).toBeVisible();
   await multiPicker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.active-exercise-card')).toHaveCount(5);

@@ -292,12 +292,13 @@ test('миграция распознаёт упражнения со своим
 });
 
 test('библиотека упражнений покрывает основные мышечные группы', () => {
-  assert.equal(exerciseLibrary.length, 66);
+  assert.equal(exerciseLibrary.length, 86);
   assert.equal(new Set(exerciseLibrary.map((exercise) => exercise.id)).size, exerciseLibrary.length);
   for (const muscle of muscleGroups) {
-    assert.ok(exerciseLibrary.filter((exercise) => exercise.primaryMuscle === muscle).length >= 3, `Недостаточно упражнений для категории «${muscle}»`);
+    assert.ok(exerciseLibrary.filter((exercise) => exercise.primaryMuscle === muscle).length >= 5, `Недостаточно упражнений для категории «${muscle}»`);
   }
   assert.ok(exerciseLibrary.every((exercise) => exercise.equipment));
   assert.equal(exerciseLibrary.find((exercise) => exercise.id === 'side-plank')?.measureType, 'duration');
   assert.equal(exerciseLibrary.find((exercise) => exercise.id === 'nordic-curl')?.equipment, 'Свой вес');
+  assert.equal(exerciseLibrary.find((exercise) => exercise.id === 'ab-wheel')?.loadMode, 'bodyweight');
 });
