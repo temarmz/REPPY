@@ -1,0 +1,61 @@
+name: Monitor production backend
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-backend-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Backend and Telegram health
+    runs-on: ubuntu-latest
+    environment: production-ops
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check production backend
+        id: health
+        continue-on-error: true
+        run: npm run backend:health
+        env:
+          SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Open one operator alert
+        if: steps.health.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALERT_TITLE: '[monitoring] REPPY backend health check failed'
+        run: |
+          issue_number="$(gh issue list --state open --search "${ALERT_TITLE} in:title" --json number --jq '.[0].number // empty')"
+          if [ -z "${issue_number}" ]; then
+            gh issue create \
+              --title "${ALERT_TITLE}" \
+              --body "Production health-check failed. Review the workflow logs: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              --assignee "${GITHUB_REPOSITORY_OWNER}"
+          fi
+      - name: Close recovered operator alert
+        if: steps.health.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALERT_TITLE: '[monitoring] REPPY backend health check failed'
+        run: |
+          issue_number="$(gh issue list --state open --search "${ALERT_TITLE} in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "${issue_number}" ]; then
+            gh issue close "${issue_number}" --comment "Backend health-check recovered: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+      - name: Fail unhealthy run
+        if: steps.health.outcome == 'failure'
+        run: exit 1
