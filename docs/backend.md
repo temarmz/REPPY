@@ -21,6 +21,18 @@ Frontend подключается к Supabase Auth, если заданы `VITE_
 | Preview | интеграционные и E2E-проверки | отдельный hosted-проект без production-данных |
 | Production | рабочее приложение | hosted-проект; ручной проверяемый backup и локальный restore-drill настроены, ежедневная автоматизация ещё не подключена |
 
+### Hosted preview
+
+Для сквозной проверки используется отдельный Supabase-проект без production-данных. В GitHub Environment `preview` задаются:
+
+- variable `PREVIEW_SUPABASE_URL`;
+- secret `PREVIEW_SUPABASE_ANON_KEY`;
+- secret `PREVIEW_SUPABASE_SERVICE_ROLE_KEY`.
+
+После применения всех миграций workflow `Verify hosted Supabase preview` запускается вручную через GitHub Actions. Он создаёт временные аккаунты тренера и ученика, проходит приглашение, тренировку и RLS-проверки и удаляет тестовых Auth-пользователей. Проверка production health и очереди Telegram остаётся отдельной: изолированный preview не получает production-секреты Telegram.
+
+Hosted-тест имеет обязательный предохранитель: `SUPABASE_URL` должен дословно совпадать с `REPPY_PREVIEW_SUPABASE_URL`, а `REPPY_INTEGRATION_TARGET` — иметь значение `preview`. Production URL нельзя сохранять в preview environment.
+
 Миграции из `supabase/migrations` являются единственным источником схемы для всех окружений. Секреты и `service_role` не сохраняются в репозитории и никогда не передаются браузеру.
 
 ## Основная модель

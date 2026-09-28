@@ -1,0 +1,32 @@
+name: Verify hosted Supabase preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosted-preview-integration
+  cancel-in-progress: false
+
+jobs:
+  integration:
+    name: Preview Auth and workout lifecycle
+    runs-on: ubuntu-latest
+    environment: preview
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test two-account workflow against preview
+        run: npm run test:integration:preview
+        env:
+          SUPABASE_URL: ${{ vars.PREVIEW_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PREVIEW_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PREVIEW_SUPABASE_SERVICE_ROLE_KEY }}
+          REPPY_PREVIEW_SUPABASE_URL: ${{ vars.PREVIEW_SUPABASE_URL }}

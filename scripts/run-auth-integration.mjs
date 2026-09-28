@@ -4,6 +4,15 @@ const requiredEnvironment = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERV
 const hasExplicitEnvironment = requiredEnvironment.every((name) => process.env[name]?.trim());
 const environment = { ...process.env };
 
+function isLocalSupabaseUrl(value) {
+  try {
+    const hostname = new URL(value).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'host.docker.internal';
+  } catch {
+    return false;
+  }
+}
+
 if (!hasExplicitEnvironment) {
   const status = spawnSync('npx', ['supabase', 'status', '-o', 'env'], {
     encoding: 'utf8',
@@ -28,6 +37,19 @@ if (!hasExplicitEnvironment) {
 const missing = requiredEnvironment.filter((name) => !environment[name]?.trim());
 if (missing.length) {
   throw new Error(`Не удалось получить ${missing.join(', ')} из локального Supabase.`);
+}
+
+if (hasExplicitEnvironment && !isLocalSupabaseUrl(environment.SUPABASE_URL)) {
+  const expectedUrl = environment.REPPY_PREVIEW_SUPABASE_URL?.replace(/\/$/, '');
+  const actualUrl = environment.SUPABASE_URL.replace(/\/$/, '');
+  if (environment.REPPY_INTEGRATION_TARGET !== 'preview' || !expectedUrl || actualUrl !== expectedUrl) {
+    throw new Error([
+      'Hosted integration tests are disabled for this project.',
+      'To run them against the isolated preview project, set REPPY_INTEGRATION_TARGET=preview',
+      'and REPPY_PREVIEW_SUPABASE_URL to the same exact URL as SUPABASE_URL.',
+      'Never use the production Supabase URL for these tests.',
+    ].join('\n'));
+  }
 }
 
 const result = spawnSync(process.execPath, ['--test', 'tests/integration/two-account-auth.test.mjs'], {

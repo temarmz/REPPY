@@ -40,9 +40,9 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
 
   const admin = client(serviceRoleKey);
   const suffix = crypto.randomUUID();
-  const trainerEmail = `trainer-${suffix}@example.test`;
-  const studentEmail = `student-${suffix}@example.test`;
-  const outsiderEmail = `outsider-${suffix}@example.test`;
+  const trainerEmail = `trainer-${suffix}@example.com`;
+  const studentEmail = `student-${suffix}@example.com`;
+  const outsiderEmail = `outsider-${suffix}@example.com`;
   const createdUserIds = [];
 
   t.after(async () => {
@@ -82,23 +82,17 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   assert.equal(preview.studentName, 'Тестовый ученик');
   assert.equal(preview.trainerName, 'Тестовый тренер');
 
-  const student = client();
-  const signUp = assertSuccess(await student.auth.signUp({
+  const createdStudent = assertSuccess(await admin.auth.admin.createUser({
     email: studentEmail,
     password: 'Integration-test-password-2026!',
-  }), 'register student');
-  assert.ok(signUp.user?.id, 'student Auth user was created');
-  createdUserIds.push(signUp.user.id);
-  if (!signUp.session) {
-    assertSuccess(await admin.auth.admin.updateUserById(signUp.user.id, { email_confirm: true }), 'confirm student email');
-    assertSuccess(await student.auth.signInWithPassword({
-      email: studentEmail,
-      password: 'Integration-test-password-2026!',
-    }), 'sign in confirmed student');
-  }
+    email_confirm: true,
+  }), 'register student').user;
+  assert.ok(createdStudent.id, 'student Auth user was created');
+  createdUserIds.push(createdStudent.id);
+  const student = await signIn(studentEmail);
 
   const profileBeforeAcceptance = assertSuccess(
-    await student.from('profiles').select('id').eq('id', signUp.user.id).maybeSingle(),
+    await student.from('profiles').select('id').eq('id', createdStudent.id).maybeSingle(),
     'check profile before invitation acceptance',
   );
   assert.equal(profileBeforeAcceptance, null);
@@ -111,11 +105,11 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   assert.equal(relationship.status, 'active');
 
   const studentProfile = assertSuccess(
-    await student.from('profiles').select('id, role, display_name').eq('id', signUp.user.id).single(),
+    await student.from('profiles').select('id, role, display_name').eq('id', createdStudent.id).single(),
     'load student profile',
   );
   assert.deepEqual(studentProfile, {
-    id: signUp.user.id,
+    id: createdStudent.id,
     role: 'student',
     display_name: 'Тестовый ученик',
   });
@@ -208,7 +202,7 @@ test('operator invitation creates a trainer only after Telegram verification', a
   assert.ok(url && anonKey && serviceRoleKey, 'Supabase integration environment is required');
 
   const admin = client(serviceRoleKey);
-  const email = `telegram-coach-${crypto.randomUUID()}@example.test`;
+  const email = `telegram-coach-${crypto.randomUUID()}@example.com`;
   let userId = '';
   t.after(async () => {
     if (userId) await admin.auth.admin.deleteUser(userId);
@@ -248,19 +242,17 @@ test('operator invitation creates a trainer only after Telegram verification', a
     p_first_name: 'Тренер',
   }), 'verify valid Telegram account'), 'verified');
 
-  const signUp = assertSuccess(await browser.auth.signUp({
+  const createdTrainer = assertSuccess(await admin.auth.admin.createUser({
     email,
     password: 'Integration-test-password-2026!',
-  }), 'create regular Auth account for trainer');
-  assert.ok(signUp.user?.id);
-  userId = signUp.user.id;
-  if (!signUp.session) {
-    assertSuccess(await admin.auth.admin.updateUserById(userId, { email_confirm: true }), 'confirm trainer email');
-    assertSuccess(await browser.auth.signInWithPassword({
-      email,
-      password: 'Integration-test-password-2026!',
-    }), 'sign in trainer after confirmation');
-  }
+    email_confirm: true,
+  }), 'create regular Auth account for trainer').user;
+  assert.ok(createdTrainer.id);
+  userId = createdTrainer.id;
+  assertSuccess(await browser.auth.signInWithPassword({
+    email,
+    password: 'Integration-test-password-2026!',
+  }), 'sign in trainer after confirmation');
 
   const profile = assertSuccess(
     await browser.rpc('activate_trainer_registration', { p_token: registration.token }),
