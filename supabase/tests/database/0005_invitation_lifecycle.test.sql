@@ -66,14 +66,12 @@ insert into public.student_invitations (
   id,
   relationship_id,
   token_hash,
-  target_email,
   expires_at
 )
 values (
   'b1000000-0000-4000-8000-000000000001',
   '33000000-0000-4000-8000-000000000003',
   extensions.digest(repeat('e', 43), 'sha256'),
-  'expired@example.com',
   now() - interval '1 minute'
 );
 
@@ -91,7 +89,6 @@ select lives_ok(
       'atomic',
       public.create_student_with_invitation(
         'Atomic Student',
-        'atomic@example.com',
         'orange',
         'Europe/Moscow'
       )
@@ -119,10 +116,9 @@ select is(
   'atomic invitation creates the invited relationship with its timezone'
 );
 
-select is(
-  (select payload ->> 'targetEmail' from invitation_payloads where label = 'atomic'),
-  'atomic@example.com',
-  'atomic invitation stores the target email'
+select ok(
+  not ((select payload from invitation_payloads where label = 'atomic') ? 'targetEmail'),
+  'atomic invitation does not expose legacy email data'
 );
 
 select lives_ok(
@@ -130,8 +126,7 @@ select lives_ok(
     values (
       'first',
       public.create_student_invitation(
-        '33000000-0000-4000-8000-000000000001',
-        ' Student@Example.COM '
+        '33000000-0000-4000-8000-000000000001'
       )
     )$$,
   'trainer can create an invitation'
@@ -143,10 +138,9 @@ select is(
   'invitation token contains 256 bits encoded as base64url'
 );
 
-select is(
-  (select payload ->> 'targetEmail' from invitation_payloads where label = 'first'),
-  'student@example.com',
-  'the invited email is normalized before storage'
+select ok(
+  not ((select payload from invitation_payloads where label = 'first') ? 'targetEmail'),
+  'the invitation contains no target email'
 );
 
 select throws_like(
@@ -160,8 +154,7 @@ select lives_ok(
     values (
       'second',
       public.create_student_invitation(
-        '33000000-0000-4000-8000-000000000001',
-        'student@example.com'
+        '33000000-0000-4000-8000-000000000001'
       )
     )$$,
   'trainer can reissue an invitation'
@@ -204,12 +197,10 @@ select throws_like(
   $$insert into public.student_invitations (
       relationship_id,
       token_hash,
-      target_email,
       expires_at
     ) values (
       '33000000-0000-4000-8000-000000000001',
       extensions.digest(repeat('u', 43), 'sha256'),
-      'other@example.com',
       now() + interval '1 day'
     )$$,
   '%student_invitations_one_open_idx%',
@@ -221,8 +212,7 @@ set local role authenticated;
 
 select throws_ok(
   $$select public.create_student_invitation(
-    '33000000-0000-4000-8000-000000000001',
-    'student@example.com'
+    '33000000-0000-4000-8000-000000000001'
   )$$,
   '42501',
   'Invitation can only be created for an unregistered student',
@@ -270,17 +260,15 @@ reset role;
 select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000003', true);
 set local role authenticated;
 
-select throws_ok(
+select lives_ok(
   $$select public.accept_student_invitation(
     (select payload ->> 'token' from invitation_payloads where label = 'second')
   )$$,
-  'P0002',
-  'Invitation is not available',
-  'an account with another confirmed email cannot accept the invitation'
+  'any authenticated account without a profile can accept the bearer invitation'
 );
 
 reset role;
-select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000003', true);
 set local role authenticated;
 
 select lives_ok(
@@ -293,14 +281,14 @@ select lives_ok(
 reset role;
 
 select is(
-  (select role::text from public.profiles where id = '13000000-0000-4000-8000-000000000002'),
+  (select role::text from public.profiles where id = '13000000-0000-4000-8000-000000000003'),
   'student',
   'acceptance creates a fixed student profile'
 );
 
 select is(
   (select account_id from public.students where id = '23000000-0000-4000-8000-000000000001'),
-  '13000000-0000-4000-8000-000000000002'::uuid,
+  '13000000-0000-4000-8000-000000000003'::uuid,
   'acceptance links the Auth account to the existing student record'
 );
 
@@ -320,11 +308,11 @@ select is(
       where label = 'second'
     )
   ),
-  '13000000-0000-4000-8000-000000000002'::uuid,
+  '13000000-0000-4000-8000-000000000003'::uuid,
   'acceptance records which Auth user consumed the token'
 );
 
-select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000003', true);
 set local role authenticated;
 
 select lives_ok(
@@ -335,7 +323,7 @@ select lives_ok(
 );
 
 reset role;
-select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000003', true);
+select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000002', true);
 set local role authenticated;
 
 select throws_ok(
@@ -356,8 +344,7 @@ select lives_ok(
     values (
       'profiled',
       public.create_student_invitation(
-        '33000000-0000-4000-8000-000000000002',
-        'invite-trainer@example.com'
+        '33000000-0000-4000-8000-000000000002'
       )
     )$$,
   'trainer can create an invitation for an existing profile'
@@ -377,8 +364,7 @@ select lives_ok(
     values (
       'revoked',
       public.create_student_invitation(
-        '33000000-0000-4000-8000-000000000002',
-        'student@example.net'
+        '33000000-0000-4000-8000-000000000002'
       )
     )$$,
   'trainer can reissue the invitation for an unconfirmed account'
@@ -388,13 +374,12 @@ reset role;
 select set_config('request.jwt.claim.sub', '13000000-0000-4000-8000-000000000005', true);
 set local role authenticated;
 
-select throws_ok(
-  $$select public.accept_student_invitation(
+select is(
+  (select public.get_student_invitation_preview(
     (select payload ->> 'token' from invitation_payloads where label = 'revoked')
-  )$$,
-  'P0002',
-  'Invitation is not available',
-  'an unconfirmed matching email cannot accept the invitation'
+  ) ->> 'studentName'),
+  'Revoked Student',
+  'invitation preview is independent of Auth email state'
 );
 
 reset role;

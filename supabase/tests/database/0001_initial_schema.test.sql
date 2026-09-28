@@ -48,7 +48,7 @@ select has_function('public', 'save_session_progress', array['uuid', 'bigint', '
 select has_function('public', 'complete_workout_session', array['uuid', 'boolean'], 'completion RPC exists');
 select has_function('public', 'archive_workout_session', array['uuid'], 'archive RPC exists');
 select has_function('public', 'get_subscription_summary', array['uuid'], 'subscription summary RPC exists');
-select has_function('public', 'create_student_invitation', array['uuid', 'text'], 'invitation creation RPC exists');
+select has_function('public', 'create_student_invitation', array['uuid'], 'invitation creation RPC exists');
 select has_function('public', 'get_student_invitation_preview', array['text'], 'invitation preview RPC exists');
 select has_function('public', 'accept_student_invitation', array['text'], 'invitation acceptance RPC exists');
 select has_function('public', 'revoke_student_invitation', array['uuid'], 'invitation revocation RPC exists');
@@ -70,14 +70,14 @@ select ok(
 
 select ok(
   has_function_privilege('anon', 'public.get_student_invitation_preview(text)', 'execute')
-    and not has_function_privilege('anon', 'public.create_student_invitation(uuid, text)', 'execute')
+    and not has_function_privilege('anon', 'public.create_student_invitation(uuid)', 'execute')
     and not has_function_privilege('anon', 'public.accept_student_invitation(text)', 'execute')
     and not has_function_privilege('anon', 'public.revoke_student_invitation(uuid)', 'execute'),
   'anonymous users can preview an invitation but cannot mutate it'
 );
 
 select ok(
-  has_function_privilege('authenticated', 'public.create_student_invitation(uuid, text)', 'execute')
+  has_function_privilege('authenticated', 'public.create_student_invitation(uuid)', 'execute')
     and has_function_privilege('authenticated', 'public.get_student_invitation_preview(text)', 'execute')
     and has_function_privilege('authenticated', 'public.accept_student_invitation(text)', 'execute')
     and has_function_privilege('authenticated', 'public.revoke_student_invitation(uuid)', 'execute'),

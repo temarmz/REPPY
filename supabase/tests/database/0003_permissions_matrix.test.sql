@@ -220,20 +220,18 @@ values
     1024
   );
 
-insert into public.student_invitations (id, relationship_id, token_hash, target_email, expires_at)
+insert into public.student_invitations (id, relationship_id, token_hash, expires_at)
 values
   (
     'a1000000-0000-4000-8000-000000000001',
     '31000000-0000-4000-8000-000000000001',
     decode(repeat('11', 32), 'hex'),
-    'student-a@example.com',
     now() + interval '1 day'
   ),
   (
     'a1000000-0000-4000-8000-000000000002',
     '31000000-0000-4000-8000-000000000002',
     decode(repeat('22', 32), 'hex'),
-    'student-b@example.com',
     now() + interval '1 day'
   );
 

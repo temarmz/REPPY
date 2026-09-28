@@ -68,11 +68,9 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
 
   const invitation = assertSuccess(await trainer.rpc('create_student_with_invitation', {
     p_name: 'Тестовый ученик',
-    p_target_email: studentEmail,
     p_color: 'lime',
     p_timezone: 'Europe/Moscow',
   }), 'create student invitation');
-  assert.equal(invitation.targetEmail, studentEmail);
   assert.match(invitation.token, /^[A-Za-z0-9_-]{40,128}$/);
 
   const preview = assertSuccess(
@@ -196,75 +194,4 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
     'outsider queries workout session',
   );
   assert.deepEqual(outsiderSessions, []);
-});
-
-test('operator invitation creates a trainer only after Telegram verification', async (t) => {
-  assert.ok(url && anonKey && serviceRoleKey, 'Supabase integration environment is required');
-
-  const admin = client(serviceRoleKey);
-  const email = `telegram-coach-${crypto.randomUUID()}@example.com`;
-  let userId = '';
-  t.after(async () => {
-    if (userId) await admin.auth.admin.deleteUser(userId);
-  });
-
-  const invitation = assertSuccess(await admin.rpc('issue_trainer_registration_invitation', {
-    p_target_email: email,
-  }), 'operator issues trainer invitation');
-  const browser = client();
-  const registration = assertSuccess(await browser.rpc('start_trainer_registration', {
-    p_invite_code: invitation.code,
-    p_display_name: 'Тренер из Telegram',
-    p_email: email,
-  }), 'trainer starts registration');
-
-  const beforeVerification = assertSuccess(
-    await browser.rpc('get_trainer_registration_status', { p_token: registration.token }),
-    'load initial trainer registration status',
-  );
-  assert.equal(beforeVerification.telegramVerified, false);
-
-  const telegramStatus = assertSuccess(await admin.rpc('verify_trainer_registration', {
-    p_token: registration.token,
-    p_telegram_user_id: Math.floor(Math.random() * 900000000) + 100000000,
-    p_chat_id: 0,
-    p_username: 'integration_coach',
-    p_first_name: 'Тренер',
-  }), 'verify Telegram account');
-  assert.equal(telegramStatus, 'unavailable', 'chat id must equal the Telegram user id');
-
-  const telegramUserId = Math.floor(Math.random() * 900000000) + 100000000;
-  assert.equal(assertSuccess(await admin.rpc('verify_trainer_registration', {
-    p_token: registration.token,
-    p_telegram_user_id: telegramUserId,
-    p_chat_id: telegramUserId,
-    p_username: 'integration_coach',
-    p_first_name: 'Тренер',
-  }), 'verify valid Telegram account'), 'verified');
-
-  const createdTrainer = assertSuccess(await admin.auth.admin.createUser({
-    email,
-    password: 'Integration-test-password-2026!',
-    email_confirm: true,
-  }), 'create regular Auth account for trainer').user;
-  assert.ok(createdTrainer.id);
-  userId = createdTrainer.id;
-  assertSuccess(await browser.auth.signInWithPassword({
-    email,
-    password: 'Integration-test-password-2026!',
-  }), 'sign in trainer after confirmation');
-
-  const profile = assertSuccess(
-    await browser.rpc('activate_trainer_registration', { p_token: registration.token }),
-    'activate verified trainer',
-  );
-  assert.equal(profile.role, 'trainer');
-  assert.equal(profile.display_name, 'Тренер из Telegram');
-
-  const connection = assertSuccess(
-    await browser.rpc('get_telegram_connection'),
-    'read automatically linked Telegram account',
-  );
-  assert.equal(connection[0].connected, true);
-  assert.equal(connection[0].username, 'integration_coach');
 });

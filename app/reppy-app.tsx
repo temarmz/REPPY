@@ -15,7 +15,6 @@ import {
   muscleGroups,
   normalizeWorkoutExercise,
   repeatAssignment,
-  updateSessionWorkout,
   withExerciseSetPlans,
   type Assignment,
   type DemoState,
@@ -45,11 +44,9 @@ import { ActionButton, FormError, TextField } from './ui-controls';
 import { ActiveExerciseCard, PlanExerciseCard } from './workout-exercise-card';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 import {
-  chargeSubscriptionForSession,
   createSubscriptionPayment,
   isSessionCharged,
   recentSubscriptionPayments,
-  refundSubscriptionForSession,
   subscriptionBalance,
   subscriptionEntriesFor,
   updateSubscriptionPayment,
@@ -62,7 +59,7 @@ import {
   saveInstructionVideo,
 } from './instruction-video-repository';
 import { useReppyAuth, type TelegramConnection } from './reppy-auth';
-import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen, TrainerRegistrationScreen } from './auth-screens';
+import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen } from './auth-screens';
 import { getSupabaseClient } from './supabase-client';
 import { createSupabaseRepository } from './supabase-repository';
 
@@ -348,7 +345,7 @@ export default function ReppyApp() {
     const client = getSupabaseClient();
     return client && auth.profile ? createSupabaseRepository(client, auth.profile) : null;
   }, [auth.profile]);
-  const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, setData } = useReppyData(remoteRepository);
+  const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, dispatch, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const [path, setPath] = useState('/');
   const currentPathRef = useRef('/');
@@ -601,23 +598,6 @@ export default function ReppyApp() {
     />;
   }
 
-  const trainerRegistrationMatch = path.match(/^\/trainer\/register\/([a-f0-9]{48})(?:\/([a-f0-9]{48}))?$/i);
-  if (auth.enabled && trainerRegistrationMatch) {
-    return <TrainerRegistrationScreen
-      key={trainerRegistrationMatch[2] ?? trainerRegistrationMatch[1]}
-      inviteCode={trainerRegistrationMatch[1].toLowerCase()}
-      registrationToken={trainerRegistrationMatch[2]?.toLowerCase()}
-      signedIn={Boolean(auth.session)}
-      onStart={auth.startTrainerRegistration}
-      onStatus={auth.getTrainerRegistrationStatus}
-      onRestart={auth.restartTrainerRegistration}
-      onSignUp={auth.signUpTrainer}
-      onActivate={auth.activateTrainerRegistration}
-      onComplete={() => go('/trainer', true)}
-      onHome={() => go('/', true)}
-    />;
-  }
-
   if (auth.enabled && auth.status === 'profile-missing') {
     return <MissingProfileScreen onSignOut={auth.signOut} />;
   }
@@ -710,7 +690,7 @@ export default function ReppyApp() {
           submitIcon="plus"
           onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
             const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
-            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            dispatch({ type: 'assignment.create', assignment });
             showToast(`Тренировка назначена: ${student.name}`);
             go('/trainer', true);
           }}
@@ -735,7 +715,7 @@ export default function ReppyApp() {
               status: 'assigned',
               workoutSnapshot,
             };
-            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            dispatch({ type: 'assignment.create', assignment });
             showToast(`Тренировка назначена: ${student.name}`);
             go('/trainer', true);
           }}
@@ -752,7 +732,7 @@ export default function ReppyApp() {
     } else if (path === '/trainer/clients/invite') {
       content = (
         <InviteStudent
-          onCreate={(student) => setData((current) => ({ ...current, students: [...current.students, student] }))}
+          onCreate={(student) => dispatch({ type: 'student.create', student })}
           onInvite={createStudentInvitation ?? undefined}
         />
       );
@@ -768,20 +748,12 @@ export default function ReppyApp() {
           student={student}
           initial={payment}
           onSave={(input) => {
-            setData((current) => ({
-              ...current,
-              subscriptionEntries: current.subscriptionEntries.map((entry) => (
-                entry.id === payment.id ? updateSubscriptionPayment(entry, input) : entry
-              )),
-            }));
+            dispatch({ type: 'subscription.payment.update', entry: updateSubscriptionPayment(payment, input) });
             showToast('Пополнение исправлено');
             go(`/trainer/clients/${student.id}/subscription`, true);
           }}
           onDelete={() => {
-            setData((current) => ({
-              ...current,
-              subscriptionEntries: current.subscriptionEntries.filter((entry) => entry.id !== payment.id),
-            }));
+            dispatch({ type: 'subscription.payment.delete', entryId: payment.id });
             showToast('Пополнение удалено');
             go(`/trainer/clients/${student.id}/subscription`, true);
           }}
@@ -795,10 +767,7 @@ export default function ReppyApp() {
           student={student}
           defaults={lastPayment}
           onSave={(input) => {
-            setData((current) => ({
-              ...current,
-              subscriptionEntries: [...current.subscriptionEntries, createSubscriptionPayment(student.id, input)],
-            }));
+            dispatch({ type: 'subscription.payment.create', entry: createSubscriptionPayment(student.id, input) });
             showToast(`Абонемент пополнен на ${input.lessons} ${lessonWord(input.lessons)}`);
             go(`/trainer/clients/${student.id}`, true);
           }}
@@ -810,10 +779,7 @@ export default function ReppyApp() {
         data={data}
         student={student}
         onDelete={() => {
-          setData((current) => ({
-            ...current,
-            subscriptionEntries: current.subscriptionEntries.filter((entry) => entry.studentId !== student.id),
-          }));
+          dispatch({ type: 'subscription.clear', studentId: student.id });
           showToast('Абонемент и его история удалены');
           go(`/trainer/clients/${student.id}`);
         }}
@@ -836,7 +802,7 @@ export default function ReppyApp() {
           submitIcon="plus"
           onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
             const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
-            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            dispatch({ type: 'assignment.create', assignment });
             showToast(`Тренировка назначена: ${student.name}`);
             go(`/trainer/clients/${student.id}`);
           }}
@@ -859,7 +825,7 @@ export default function ReppyApp() {
               status: 'assigned',
               workoutSnapshot,
             };
-            setData((current) => ({ ...current, assignments: [...current.assignments, assignment] }));
+            dispatch({ type: 'assignment.create', assignment });
             showToast(`Тренировка назначена: ${student.name}`);
             go(`/trainer/clients/${student.id}`);
           }}
@@ -870,7 +836,7 @@ export default function ReppyApp() {
       content = student ? <StudentWorkoutHistory data={data} student={student} scheduledFor={dateKey()} backPath={`/trainer/clients/${student.id}`} routeBase={`/trainer/clients/${student.id}/assign`} /> : <NotFound />;
     } else if (clientMatch || progressMatch) {
       content = <StudentProfile data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView onUpdate={(updated) => {
-        setData((current) => ({ ...current, students: current.students.map((item) => item.id === updated.id ? updated : item) }));
+        dispatch({ type: 'student.update', student: updated });
         showToast('Профиль ученика сохранён');
       }} />;
     } else if (assignmentEditMatch) {
@@ -880,19 +846,16 @@ export default function ReppyApp() {
           data={data}
           assignment={assignment}
           onSave={(updated) => {
-            setData((current) => ({
-              ...current,
-              assignments: current.assignments.map((item) => item.id === updated.id ? updated : item),
-            }));
+            dispatch({ type: 'assignment.update', assignment: updated });
             showToast('Назначение сохранено');
             go(`/trainer/assignments/${updated.id}`);
           }}
           onDelete={(deleted) => {
-            setData((current) => ({
-              ...current,
-              assignments: current.assignments.filter((item) => item.id !== deleted.id),
-              sessions: current.sessions.filter((item) => item.assignmentId !== deleted.id),
-            }));
+            dispatch({
+              type: 'assignment.delete',
+              assignmentId: deleted.id,
+              sessionId: data.sessions.find((session) => session.assignmentId === deleted.id)?.id,
+            });
             showToast('Тренировка удалена из расписания');
             go(`/trainer/clients/${deleted.studentId}`);
           }}
@@ -908,7 +871,7 @@ export default function ReppyApp() {
           sourceWorkout={sourceWorkout}
           onSave={(scheduledFor, scheduledTime, format, workout) => {
             const next = { ...repeatAssignment(assignment, workout, scheduledFor, scheduledTime), format };
-            setData((current) => ({ ...current, assignments: [...current.assignments, next] }));
+            dispatch({ type: 'assignment.create', assignment: next });
             showToast('Повтор тренировки назначен');
             go(`/trainer/assignments/${next.id}`);
           }}
@@ -922,22 +885,16 @@ export default function ReppyApp() {
         onAcceptRequest={() => {
           const request = assignment.rescheduleRequest;
           if (!request) return;
-          setData((current) => ({
-            ...current,
-            assignments: current.assignments.map((item) => item.id === assignment.id ? {
-              ...item,
-              scheduledFor: request.scheduledFor,
-              scheduledTime: request.scheduledTime,
-              rescheduleRequest: undefined,
-            } : item),
-          }));
+          dispatch({ type: 'assignment.update', assignment: {
+            ...assignment,
+            scheduledFor: request.scheduledFor,
+            scheduledTime: request.scheduledTime,
+            rescheduleRequest: undefined,
+          } });
           showToast('Новое время подтверждено');
         }}
         onDeclineRequest={() => {
-          setData((current) => ({
-            ...current,
-            assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, rescheduleRequest: undefined } : item),
-          }));
+          dispatch({ type: 'assignment.update', assignment: { ...assignment, rescheduleRequest: undefined } });
           showToast('Запрос отклонён');
         }}
       /> : <NotFound />;
@@ -959,29 +916,13 @@ export default function ReppyApp() {
           onStart={() => {
             if (session) return;
             const nextSession = createWorkoutSession(assignment, workout, 'trainer');
-            setData((current) => ({ ...current, sessions: [...current.sessions, nextSession] }));
+            dispatch({ type: 'session.start', session: nextSession });
           }}
-          onUpdate={(sessionId, results) => setData((current) => ({
-            ...current,
-            sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, results } : item),
-          }))}
-          onWorkoutUpdate={(sessionId, nextWorkout) => setData((current) => ({
-            ...current,
-            sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
-          }))}
+          onUpdate={(sessionId, results) => dispatch({ type: 'session.progress', sessionId, results })}
+          onWorkoutUpdate={(sessionId, nextWorkout) => dispatch({ type: 'session.progress', sessionId, workoutSnapshot: nextWorkout })}
           onFinish={(sessionId, { chargeSubscription }) => {
             const completedAt = new Date().toISOString();
-            setData((current) => {
-              const savedSession = current.sessions.find((item) => item.id === sessionId);
-              return {
-                ...current,
-                assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
-                sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt, subscriptionChargeStatus: chargeSubscription ? 'charged' : 'waived' } : item),
-                subscriptionEntries: chargeSubscription && savedSession
-                  ? chargeSubscriptionForSession(current.subscriptionEntries, savedSession, workout.name, completedAt)
-                  : current.subscriptionEntries,
-              };
-            });
+            dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt, chargeSubscription, workoutName: workout.name });
             showToast(chargeSubscription ? 'Тренировка завершена, занятие списано' : 'Тренировка завершена без списания');
             go(`/trainer/sessions/${sessionId}`, true);
           }}
@@ -995,12 +936,7 @@ export default function ReppyApp() {
         trainerView
         onRepeat={() => go(`/trainer/assignments/${session.assignmentId}/repeat`)}
         onDelete={() => {
-          setData((current) => ({
-            ...current,
-            assignments: current.assignments.filter((item) => item.id !== session.assignmentId),
-            sessions: current.sessions.filter((item) => item.assignmentId !== session.assignmentId),
-            subscriptionEntries: refundSubscriptionForSession(current.subscriptionEntries, session, session.workoutSnapshot.name),
-          }));
+          dispatch({ type: 'session.archive', session, workoutName: session.workoutSnapshot.name });
           showToast('Завершённая тренировка удалена');
           go(`/trainer/clients/${session.studentId}`);
         }}
@@ -1021,7 +957,7 @@ export default function ReppyApp() {
       content = <WorkoutCalendar data={data} area="student" />;
     } else if (path === '/student/profile') {
       content = <StudentProfile data={data} studentId={data.activeStudentId} onUpdate={(updated) => {
-        setData((current) => ({ ...current, students: current.students.map((item) => item.id === updated.id ? updated : item) }));
+        dispatch({ type: 'student.update', student: updated });
         showToast('Профиль сохранён');
       }} />;
     } else if (path === '/student/history') {
@@ -1032,13 +968,10 @@ export default function ReppyApp() {
         data={data}
         assignment={assignment}
         onRequest={(scheduledFor, scheduledTime) => {
-          setData((current) => ({
-            ...current,
-            assignments: current.assignments.map((item) => item.id === assignment.id ? {
-              ...item,
-              rescheduleRequest: { scheduledFor, scheduledTime, requestedAt: new Date().toISOString() },
-            } : item),
-          }));
+          dispatch({ type: 'assignment.update', assignment: {
+            ...assignment,
+            rescheduleRequest: { scheduledFor, scheduledTime, requestedAt: new Date().toISOString() },
+          } });
           showToast('Новое время отправлено тренеру');
         }}
         onStart={() => go(`/student/workout/${assignment.id}`)}
@@ -1066,29 +999,13 @@ export default function ReppyApp() {
           onStart={() => {
             if (session) return;
             const nextSession = createWorkoutSession(assignment, workout, 'student');
-            setData((current) => ({ ...current, sessions: [...current.sessions, nextSession] }));
+            dispatch({ type: 'session.start', session: nextSession });
           }}
-          onUpdate={(sessionId, results) => setData((current) => ({
-            ...current,
-            sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, results } : item),
-          }))}
-          onWorkoutUpdate={(sessionId, nextWorkout) => setData((current) => ({
-            ...current,
-            sessions: current.sessions.map((item) => item.id === sessionId ? updateSessionWorkout(item, nextWorkout) : item),
-          }))}
+          onUpdate={(sessionId, results) => dispatch({ type: 'session.progress', sessionId, results })}
+          onWorkoutUpdate={(sessionId, nextWorkout) => dispatch({ type: 'session.progress', sessionId, workoutSnapshot: nextWorkout })}
           onFinish={(sessionId, { chargeSubscription }) => {
             const completedAt = new Date().toISOString();
-            setData((current) => {
-              const savedSession = current.sessions.find((item) => item.id === sessionId);
-              return {
-                ...current,
-                assignments: current.assignments.map((item) => item.id === assignment.id ? { ...item, status: 'completed' } : item),
-                sessions: current.sessions.map((item) => item.id === sessionId ? { ...item, completedAt, subscriptionChargeStatus: chargeSubscription ? 'charged' : 'waived' } : item),
-                subscriptionEntries: chargeSubscription && savedSession
-                  ? chargeSubscriptionForSession(current.subscriptionEntries, savedSession, workout.name, completedAt)
-                  : current.subscriptionEntries,
-              };
-            });
+            dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt, chargeSubscription, workoutName: workout.name });
             go(`/student/finish/${sessionId}`);
           }}
         />
@@ -1100,11 +1017,7 @@ export default function ReppyApp() {
           data={data}
           session={session}
           onComplete={(mood, comment) => {
-            setData((current) => ({
-              ...current,
-              assignments: current.assignments.map((item) => item.id === session.assignmentId ? { ...item, status: 'completed' } : item),
-              sessions: current.sessions.map((item) => item.id === session.id ? { ...item, completedAt: item.completedAt ?? new Date().toISOString(), mood, comment: comment.trim() } : item),
-            }));
+            dispatch({ type: 'session.feedback', sessionId: session.id, mood, comment });
             go(`/student/success/${session.id}`);
           }}
         />
@@ -1901,10 +1814,9 @@ function InviteStudent({
   onInvite,
 }: {
   onCreate: (student: Student) => void;
-  onInvite?: (name: string, email: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
+  onInvite?: (name: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
 }) {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [created, setCreated] = useState<{ student: Student; token?: string; expiresAt?: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1922,7 +1834,7 @@ function InviteStudent({
     setError('');
     try {
       if (onInvite) {
-        const invitation = await onInvite(clean, email);
+        const invitation = await onInvite(clean);
         setCreated(invitation);
         return;
       }
@@ -1951,16 +1863,15 @@ function InviteStudent({
       {!created ? (
         <section className="form-card">
           <TextField id="student-name" label="Имя ученика" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
-          {onInvite && <TextField id="student-email" label="Email ученика" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="student@example.com" />}
           <p className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</p>
           {error && <FormError>{error}</FormError>}
-          <ActionButton icon="arrow-right" disabled={busy || !name.trim() || Boolean(onInvite && !email.trim())} onClick={() => void create()}>{busy ? 'Создаём…' : 'Продолжить'}</ActionButton>
+          <ActionButton icon="arrow-right" disabled={busy || !name.trim()} onClick={() => void create()}>{busy ? 'Создаём…' : 'Продолжить'}</ActionButton>
         </section>
       ) : (
         <section className="invite-ready">
           <div className="success-mark"><Icon name="arrow-up-right" /></div>
           <h2>{created.student.name} почти в команде</h2>
-          <p>Отправь эту ссылку ученику. Она привязана к указанному email{created.expiresAt ? ` и действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</p>
+          <p>Отправь эту одноразовую ссылку ученику{created.expiresAt ? ` — она действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</p>
           <output>{inviteUrl}</output>
           <ActionButton icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</ActionButton>
           <ActionButton variant="secondary" icon="check" onClick={() => go('/trainer/clients')}>Готово</ActionButton>

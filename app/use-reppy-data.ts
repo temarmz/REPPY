@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { createInitialState, type DemoState, type Student } from './reppy-data';
+import { applyReppyCommand, type ReppyCommand } from './reppy-commands';
 import { createLocalStorageRepository, isReppyConflictError, type ReppyRepository } from './reppy-repository';
 
 export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
@@ -13,7 +14,8 @@ type ReppyDataController = {
   retryPersistence: () => void;
   reloadCurrentData: () => void;
   reset: () => void;
-  createStudentInvitation: ((name: string, email: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
+  createStudentInvitation: ((name: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
+  dispatch: (command: ReppyCommand) => void;
   setData: Dispatch<SetStateAction<DemoState>>;
 };
 
@@ -38,9 +40,16 @@ export function useReppyData(
   const [saveAttempt, setSaveAttempt] = useState(0);
   const [reloadAttempt, setReloadAttempt] = useState(0);
   const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
+  const dataRef = useRef(data);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
   const refreshSequenceRef = useRef(0);
+  const commandQueueRef = useRef<Array<{ command: ReppyCommand; state: DemoState }>>([]);
+  const commandRunningRef = useRef(false);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +57,7 @@ export function useReppyData(
     void repository.load()
       .then((nextData) => {
         if (cancelled) return;
+        dataRef.current = nextData;
         setData(nextData);
         setLoadedRepository(repository);
         setHydrated(true);
@@ -84,6 +94,8 @@ export function useReppyData(
           .then((nextData) => {
             if (cancelled || sequence !== refreshSequenceRef.current) return;
             if (expectedSaveVersion !== saveVersionRef.current) return;
+            if (commandQueueRef.current.length > 0) return;
+            dataRef.current = nextData;
             setData(nextData);
             setPersistenceError(null);
             setPersistencePhase('idle');
@@ -105,6 +117,7 @@ export function useReppyData(
 
   useEffect(() => {
     if (!hydrated || loadedRepository !== repository) return;
+    if (repository.execute) return;
     let cancelled = false;
     const version = ++saveVersionRef.current;
     const snapshot = data;
@@ -155,6 +168,7 @@ export function useReppyData(
     void request
       .then((nextData) => {
         if (cancelled) return;
+        dataRef.current = nextData;
         setData(nextData);
         setPersistenceError(null);
         setPersistencePhase('idle');
@@ -171,31 +185,79 @@ export function useReppyData(
 
   const retryPersistence = useCallback(() => {
     if (hydrated) {
+      if (repository.execute && commandQueueRef.current.length > 0) {
+        setSaveAttempt((current) => current + 1);
+        return;
+      }
       setSaveAttempt((current) => current + 1);
       return;
     }
     setPersistenceError(null);
     setPersistencePhase('loading');
     setLoadAttempt((current) => current + 1);
-  }, [hydrated]);
+  }, [hydrated, repository]);
+
+  const drainCommandQueue = useCallback(() => {
+    if (!repository.execute || commandRunningRef.current) return;
+    commandRunningRef.current = true;
+    const run = async () => {
+      while (commandQueueRef.current.length > 0) {
+        const pending = commandQueueRef.current[0];
+        setPersistenceError(null);
+        setPersistencePhase('saving');
+        try {
+          await repository.execute!(pending.command, pending.state);
+          commandQueueRef.current.shift();
+        } catch (reason) {
+          setPersistenceError(toError(reason));
+          setPersistencePhase('error');
+          commandRunningRef.current = false;
+          return;
+        }
+      }
+      setPersistenceError(null);
+      setPersistencePhase('idle');
+      commandRunningRef.current = false;
+    };
+    void run();
+  }, [repository]);
+
+  useEffect(() => {
+    if (saveAttempt === 0 || !repository.execute || commandQueueRef.current.length === 0) return;
+    drainCommandQueue();
+  }, [drainCommandQueue, repository, saveAttempt]);
+
+  const dispatch = useCallback((command: ReppyCommand) => {
+    const nextData = applyReppyCommand(dataRef.current, command);
+    dataRef.current = nextData;
+    setData(nextData);
+    if (!repository.execute) return;
+    saveVersionRef.current += 1;
+    commandQueueRef.current.push({ command, state: nextData });
+    drainCommandQueue();
+  }, [drainCommandQueue, repository]);
 
   const reset = useCallback(() => {
-    setData(createInitialState());
+    const initial = createInitialState();
+    commandQueueRef.current = [];
+    dataRef.current = initial;
+    setData(initial);
     setPersistenceError(null);
   }, []);
 
   const reloadCurrentData = useCallback(() => {
+    commandQueueRef.current = [];
     setPersistenceError(null);
     setPersistencePhase('loading');
     setReloadAttempt((current) => current + 1);
   }, []);
 
-  const createStudentInvitation = useCallback(async (name: string, email: string) => {
+  const createStudentInvitation = useCallback(async (name: string) => {
     if (!repository.createStudentInvitation) throw new Error('Приглашения доступны только в аккаунте тренера.');
-    const invitation = await repository.createStudentInvitation(name, email);
-    setData((current) => current.students.some((student) => student.id === invitation.student.id)
-      ? current
-      : { ...current, students: [...current.students, invitation.student] });
+    const invitation = await repository.createStudentInvitation(name);
+    const nextData = applyReppyCommand(dataRef.current, { type: 'student.create', student: invitation.student });
+    dataRef.current = nextData;
+    setData(nextData);
     return invitation;
   }, [repository]);
 
@@ -209,6 +271,7 @@ export function useReppyData(
     reloadCurrentData,
     reset,
     createStudentInvitation: repository.createStudentInvitation ? createStudentInvitation : null,
+    dispatch,
     setData,
   };
 }

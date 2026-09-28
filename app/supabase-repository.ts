@@ -11,6 +11,7 @@ import {
   type WorkoutExercise,
   type WorkoutSession,
 } from './reppy-data';
+import type { ReppyCommand } from './reppy-commands';
 import { ReppyConflictError, type ReppyRepository } from './reppy-repository';
 
 type AuthProfile = { id: string; role: Role };
@@ -106,10 +107,6 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function same(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
 function numberOrUndefined(value: number | string | null) {
   if (value === null || value === '') return undefined;
   const parsed = Number(value);
@@ -128,10 +125,6 @@ function revisionConflict(entity: string) {
   return new ReppyConflictError(`${entity} уже изменён на другом устройстве.`);
 }
 
-function indexById<T extends { id: string }>(items: T[]) {
-  return new Map(items.map((item) => [item.id, item]));
-}
-
 function uuid() {
   return crypto.randomUUID();
 }
@@ -148,7 +141,6 @@ export function createSupabaseRepository(
   client: SupabaseClient,
   profile: AuthProfile,
 ): ReppyRepository {
-  let baseline: DemoState | null = null;
   let notificationRecoveryAttempted = false;
   const relationshipByStudent = new Map<string, string>();
   const trainerByStudent = new Map<string, string>();
@@ -377,7 +369,6 @@ export function createSupabaseRepository(
       sessions,
       subscriptionEntries,
     };
-    baseline = clone(state);
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
       void client.functions.invoke('telegram-notifications', { body: {} })
@@ -389,84 +380,72 @@ export function createSupabaseRepository(
     return state;
   }
 
-  async function save(state: DemoState) {
-    if (!baseline) {
-      baseline = clone(state);
-      return;
-    }
-    const previous = baseline;
-    const previousStudents = indexById(previous.students);
+  async function save() {
+    // Hosted persistence is command-based. LocalStorageRepository still saves snapshots.
+  }
 
-    for (const student of state.students) {
-      const before = previousStudents.get(student.id);
-      if (!before) {
-        if (profile.role !== 'trainer') throw new Error('Только тренер может добавить ученика.');
-        const studentId = getRemoteId(remoteStudentId, student.id);
-        const relationshipId = uuid();
-        throwIfError(await client.from('students').insert({
-          id: studentId,
-          created_by: profile.id,
-          name: student.name,
-          phone: student.phone || null,
-          height_cm: student.height ?? null,
-          weight_kg: student.weight ?? null,
-          gender: student.gender ?? null,
-          contraindications: student.contraindications || null,
-        }));
-        throwIfError(await client.from('trainer_student_relationships').insert({
-          id: relationshipId,
-          trainer_id: profile.id,
-          student_id: studentId,
-          status: 'invited',
-          color: student.color,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-        }));
-        relationshipByStudent.set(student.id, relationshipId);
-        trainerByStudent.set(student.id, profile.id);
-      } else if (!same(before, student)) {
-        const studentId = getRemoteId(remoteStudentId, student.id);
-        let updateStudent = client.from('students').update({
-          name: student.name,
-          phone: student.phone || null,
-          height_cm: student.height ?? null,
-          weight_kg: student.weight ?? null,
-          gender: student.gender ?? null,
-          contraindications: student.contraindications || null,
-        }).eq('id', studentId);
-        const expectedUpdatedAt = studentUpdatedAt.get(student.id);
-        if (expectedUpdatedAt) updateStudent = updateStudent.eq('updated_at', expectedUpdatedAt);
-        const updatedStudent = await updateStudent.select('updated_at').maybeSingle();
-        throwIfError(updatedStudent);
-        if (!updatedStudent.data) throw revisionConflict('Профиль ученика');
-        studentUpdatedAt.set(student.id, updatedStudent.data.updated_at);
-        if (profile.role === 'trainer' && before.color !== student.color) {
-          let updateRelationship = client.from('trainer_student_relationships')
-            .update({ color: student.color })
-            .eq('id', relationshipByStudent.get(student.id)!);
-          const expectedRelationshipUpdatedAt = relationshipUpdatedAt.get(student.id);
-          if (expectedRelationshipUpdatedAt) updateRelationship = updateRelationship.eq('updated_at', expectedRelationshipUpdatedAt);
-          const updatedRelationship = await updateRelationship.select('updated_at').maybeSingle();
-          throwIfError(updatedRelationship);
-          if (!updatedRelationship.data) throw revisionConflict('Карточка ученика');
-          relationshipUpdatedAt.set(student.id, updatedRelationship.data.updated_at);
-        }
-      }
-    }
-
+  async function execute(command: ReppyCommand, state: DemoState) {
     let telegramNotificationCreated = false;
-    const previousAssignments = indexById(previous.assignments);
-    const nextAssignments = indexById(state.assignments);
-    const addedAssignments = state.assignments.filter((item) => !previousAssignments.has(item.id));
-    if (profile.role !== 'trainer' && addedAssignments.length > 0) {
-      throw new Error('Только тренер может назначить тренировку.');
-    }
-    await ensureExerciseDefinitions(addedAssignments.map((item) => item.workoutSnapshot));
-    for (const assignment of addedAssignments) {
+    if (command.type === 'student.create') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может добавить ученика.');
+      const student = command.student;
+      const studentId = getRemoteId(remoteStudentId, student.id);
+      const relationshipId = uuid();
+      throwIfError(await client.from('students').insert({
+        id: studentId,
+        created_by: profile.id,
+        name: student.name,
+        phone: student.phone || null,
+        height_cm: student.height ?? null,
+        weight_kg: student.weight ?? null,
+        gender: student.gender ?? null,
+        contraindications: student.contraindications || null,
+      }));
+      throwIfError(await client.from('trainer_student_relationships').insert({
+        id: relationshipId,
+        trainer_id: profile.id,
+        student_id: studentId,
+        status: 'invited',
+        color: student.color,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      }));
+      relationshipByStudent.set(student.id, relationshipId);
+      trainerByStudent.set(student.id, profile.id);
+    } else if (command.type === 'student.update') {
+      const student = command.student;
+      let updateStudent = client.from('students').update({
+        name: student.name,
+        phone: student.phone || null,
+        height_cm: student.height ?? null,
+        weight_kg: student.weight ?? null,
+        gender: student.gender ?? null,
+        contraindications: student.contraindications || null,
+      }).eq('id', getRemoteId(remoteStudentId, student.id));
+      const expectedUpdatedAt = studentUpdatedAt.get(student.id);
+      if (expectedUpdatedAt) updateStudent = updateStudent.eq('updated_at', expectedUpdatedAt);
+      const updatedStudent = await updateStudent.select('updated_at').maybeSingle();
+      throwIfError(updatedStudent);
+      if (!updatedStudent.data) throw revisionConflict('Профиль ученика');
+      studentUpdatedAt.set(student.id, updatedStudent.data.updated_at);
+      if (profile.role === 'trainer') {
+        let updateRelationship = client.from('trainer_student_relationships')
+          .update({ color: student.color })
+          .eq('id', relationshipByStudent.get(student.id)!);
+        const expectedRelationshipUpdatedAt = relationshipUpdatedAt.get(student.id);
+        if (expectedRelationshipUpdatedAt) updateRelationship = updateRelationship.eq('updated_at', expectedRelationshipUpdatedAt);
+        const updatedRelationship = await updateRelationship.select('updated_at').maybeSingle();
+        throwIfError(updatedRelationship);
+        if (!updatedRelationship.data) throw revisionConflict('Карточка ученика');
+        relationshipUpdatedAt.set(student.id, updatedRelationship.data.updated_at);
+      }
+    } else if (command.type === 'assignment.create') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может назначить тренировку.');
+      const assignment = command.assignment;
+      await ensureExerciseDefinitions([assignment.workoutSnapshot]);
       const relationshipId = relationshipByStudent.get(assignment.studentId);
       if (!relationshipId) throw new Error('Не найдена связь тренера с учеником.');
-      const assignmentId = getRemoteId(remoteAssignmentId, assignment.id);
       throwIfError(await client.from('assignments').insert({
-        id: assignmentId,
+        id: getRemoteId(remoteAssignmentId, assignment.id),
         relationship_id: relationshipId,
         assigned_at: assignment.assignedAt,
         scheduled_for: assignment.scheduledFor,
@@ -481,131 +460,125 @@ export function createSupabaseRepository(
       }));
       assignmentRevision.set(assignment.id, 1);
       telegramNotificationCreated = true;
-    }
-    for (const assignment of state.assignments) {
-      const before = previousAssignments.get(assignment.id);
-      if (!before || same(before, assignment) || before.status === 'completed') continue;
+    } else if (command.type === 'assignment.update') {
+      const assignment = command.assignment;
       if (profile.role === 'student') {
-        if (!same(before.rescheduleRequest, assignment.rescheduleRequest) && assignment.rescheduleRequest) {
-          const requested = await client.rpc('request_assignment_reschedule', {
-            p_assignment_id: getRemoteId(remoteAssignmentId, assignment.id),
-            p_scheduled_for: assignment.rescheduleRequest.scheduledFor,
-            p_scheduled_time: timeForDatabase(assignment.rescheduleRequest.scheduledTime),
-          });
-          throwIfError(requested);
-          assignmentRevision.set(assignment.id, (requested.data as AssignmentRow).revision);
-          telegramNotificationCreated = true;
-        }
-        continue;
+        if (!assignment.rescheduleRequest) throw new Error('Ученик может только запросить перенос.');
+        const requested = await client.rpc('request_assignment_reschedule', {
+          p_assignment_id: getRemoteId(remoteAssignmentId, assignment.id),
+          p_scheduled_for: assignment.rescheduleRequest.scheduledFor,
+          p_scheduled_time: timeForDatabase(assignment.rescheduleRequest.scheduledTime),
+        });
+        throwIfError(requested);
+        assignmentRevision.set(assignment.id, (requested.data as AssignmentRow).revision);
+      } else {
+        await ensureExerciseDefinitions([assignment.workoutSnapshot]);
+        let updateAssignment = client.from('assignments').update({
+          scheduled_for: assignment.scheduledFor,
+          scheduled_time: assignment.format === 'in-person' ? timeForDatabase(assignment.scheduledTime) : null,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+          format: assignment.format,
+          workout_snapshot: serializeWorkout(assignment.workoutSnapshot),
+          repeated_from_assignment_id: assignment.repeatedFromAssignmentId
+            ? getRemoteId(remoteAssignmentId, assignment.repeatedFromAssignmentId)
+            : null,
+          reschedule_scheduled_for: assignment.rescheduleRequest?.scheduledFor ?? null,
+          reschedule_scheduled_time: timeForDatabase(assignment.rescheduleRequest?.scheduledTime),
+          reschedule_requested_at: assignment.rescheduleRequest?.requestedAt ?? null,
+        }).eq('id', getRemoteId(remoteAssignmentId, assignment.id));
+        const expectedRevision = assignmentRevision.get(assignment.id);
+        if (expectedRevision) updateAssignment = updateAssignment.eq('revision', expectedRevision);
+        const updatedAssignment = await updateAssignment.select('revision').maybeSingle();
+        throwIfError(updatedAssignment);
+        if (!updatedAssignment.data) throw revisionConflict('Назначение');
+        assignmentRevision.set(assignment.id, updatedAssignment.data.revision);
       }
-      await ensureExerciseDefinitions([assignment.workoutSnapshot]);
-      let updateAssignment = client.from('assignments').update({
-        scheduled_for: assignment.scheduledFor,
-        scheduled_time: assignment.format === 'in-person' ? timeForDatabase(assignment.scheduledTime) : null,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-        format: assignment.format,
-        workout_snapshot: serializeWorkout(assignment.workoutSnapshot),
-        repeated_from_assignment_id: assignment.repeatedFromAssignmentId
-          ? getRemoteId(remoteAssignmentId, assignment.repeatedFromAssignmentId)
-          : null,
-        reschedule_scheduled_for: assignment.rescheduleRequest?.scheduledFor ?? null,
-        reschedule_scheduled_time: timeForDatabase(assignment.rescheduleRequest?.scheduledTime),
-        reschedule_requested_at: assignment.rescheduleRequest?.requestedAt ?? null,
-      }).eq('id', getRemoteId(remoteAssignmentId, assignment.id));
-      const expectedRevision = assignmentRevision.get(assignment.id);
-      if (expectedRevision) updateAssignment = updateAssignment.eq('revision', expectedRevision);
-      const updatedAssignment = await updateAssignment.select('revision').maybeSingle();
-      throwIfError(updatedAssignment);
-      if (!updatedAssignment.data) throw revisionConflict('Назначение');
-      assignmentRevision.set(assignment.id, updatedAssignment.data.revision);
       telegramNotificationCreated = true;
-    }
-
-    const previousSessions = indexById(previous.sessions);
-    const nextSessions = indexById(state.sessions);
-    for (const session of state.sessions) {
-      const before = previousSessions.get(session.id);
-      const sessionId = getRemoteId(remoteSessionId, session.id);
-      if (!before) {
-        await ensureExerciseDefinitions([session.workoutSnapshot]);
-        const started = await client.rpc('start_workout_session_with_id', {
-          p_assignment_id: getRemoteId(remoteAssignmentId, session.assignmentId),
-          p_session_id: sessionId,
-        });
-        throwIfError(started);
-        const startedRow = started.data as SessionRow;
-        sessionRevision.set(session.id, startedRow.revision);
-      }
-      const progressChanged = !before || !same(before.results, session.results) || !same(before.workoutSnapshot, session.workoutSnapshot);
-      if (progressChanged && !before?.completedAt) {
-        await ensureExerciseDefinitions([session.workoutSnapshot]);
-        const progress = await client.rpc('save_session_progress', {
-          p_session_id: sessionId,
-          p_expected_revision: sessionRevision.get(session.id) ?? 1,
-          p_workout_snapshot: serializeWorkout(session.workoutSnapshot),
-          p_results: session.results.map((result) => ({
-            exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId),
-            setNumber: result.setNumber,
-            actualReps: result.actualReps,
-            actualWeight: result.actualWeight,
-            completed: result.completed,
-          })),
-        });
-        throwIfError(progress);
-        sessionRevision.set(session.id, (progress.data as SessionRow).revision);
-      }
-      if (session.completedAt && !before?.completedAt) {
-        const completed = await client.rpc('complete_workout_session', {
-          p_session_id: sessionId,
-          p_charge_subscription: session.subscriptionChargeStatus !== 'waived',
-        });
-        throwIfError(completed);
-        sessionRevision.set(session.id, (completed.data as SessionRow).revision);
-        if (profile.role === 'student') telegramNotificationCreated = true;
-      }
-      if (session.completedAt && (!before || before.mood !== session.mood || before.comment !== session.comment)) {
-        throwIfError(await client.rpc('save_session_feedback', {
-          p_session_id: sessionId,
-          p_mood: session.mood ?? null,
-          p_comment: session.comment?.trim() || null,
+    } else if (command.type === 'assignment.delete') {
+      if (command.sessionId) {
+        throwIfError(await client.rpc('archive_workout_session', {
+          p_session_id: getRemoteId(remoteSessionId, command.sessionId),
         }));
+      } else {
+        throwIfError(await client.from('assignments').delete().eq('id', getRemoteId(remoteAssignmentId, command.assignmentId)));
       }
-    }
-
-    for (const removed of previous.sessions.filter((item) => !nextSessions.has(item.id))) {
-      throwIfError(await client.rpc('archive_workout_session', { p_session_id: getRemoteId(remoteSessionId, removed.id) }));
-    }
-    for (const removed of previous.assignments.filter((item) => !nextAssignments.has(item.id))) {
-      if (previous.sessions.some((session) => session.assignmentId === removed.id)) continue;
-      throwIfError(await client.from('assignments').delete().eq('id', getRemoteId(remoteAssignmentId, removed.id)));
       telegramNotificationCreated = true;
-    }
-
-    const previousEntries = indexById(previous.subscriptionEntries);
-    const nextEntries = indexById(state.subscriptionEntries);
-    const clearedStudents = new Set<string>();
-    for (const removed of previous.subscriptionEntries.filter((entry) => !nextEntries.has(entry.id))) {
-      if (profile.role !== 'trainer') throw new Error('Только тренер может удалять абонемент.');
-      const relationshipId = relationshipByStudent.get(removed.studentId);
-      if (!relationshipId) throw new Error('Не найдена связь абонемента с учеником.');
-      const remainingForStudent = state.subscriptionEntries.some((entry) => entry.studentId === removed.studentId);
-      if (!remainingForStudent) {
-        if (clearedStudents.has(removed.studentId)) continue;
-        throwIfError(await client.rpc('delete_subscription', { p_relationship_id: relationshipId }));
-        clearedStudents.add(removed.studentId);
-        continue;
-      }
-      if (removed.kind !== 'payment') throw new Error('Системные операции абонемента нельзя удалить отдельно.');
-      throwIfError(await client.rpc('delete_subscription_payment', {
-        p_entry_id: getRemoteId(remoteSubscriptionId, removed.id),
-        p_expected_revision: subscriptionRevision.get(removed.id) ?? 1,
+    } else if (command.type === 'session.start') {
+      const session = command.session;
+      await ensureExerciseDefinitions([session.workoutSnapshot]);
+      const sessionId = getRemoteId(remoteSessionId, session.id);
+      const started = await client.rpc('start_workout_session_with_id', {
+        p_assignment_id: getRemoteId(remoteAssignmentId, session.assignmentId),
+        p_session_id: sessionId,
+      });
+      throwIfError(started);
+      sessionRevision.set(session.id, (started.data as SessionRow).revision);
+      const progress = await client.rpc('save_session_progress', {
+        p_session_id: sessionId,
+        p_expected_revision: sessionRevision.get(session.id) ?? 1,
+        p_workout_snapshot: serializeWorkout(session.workoutSnapshot),
+        p_results: session.results.map((result) => ({
+          exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId),
+          setNumber: result.setNumber,
+          actualReps: result.actualReps,
+          actualWeight: result.actualWeight,
+          completed: result.completed,
+        })),
+      });
+      throwIfError(progress);
+      sessionRevision.set(session.id, (progress.data as SessionRow).revision);
+    } else if (command.type === 'session.progress') {
+      const session = state.sessions.find((item) => item.id === command.sessionId);
+      if (!session) throw new Error('Сессия не найдена.');
+      await ensureExerciseDefinitions([session.workoutSnapshot]);
+      const progress = await client.rpc('save_session_progress', {
+        p_session_id: getRemoteId(remoteSessionId, session.id),
+        p_expected_revision: sessionRevision.get(session.id) ?? 1,
+        p_workout_snapshot: serializeWorkout(session.workoutSnapshot),
+        p_results: session.results.map((result) => ({
+          exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId),
+          setNumber: result.setNumber,
+          actualReps: result.actualReps,
+          actualWeight: result.actualWeight,
+          completed: result.completed,
+        })),
+      });
+      throwIfError(progress);
+      sessionRevision.set(session.id, (progress.data as SessionRow).revision);
+    } else if (command.type === 'session.complete') {
+      const completed = await client.rpc('complete_workout_session', {
+        p_session_id: getRemoteId(remoteSessionId, command.sessionId),
+        p_charge_subscription: command.chargeSubscription,
+      });
+      throwIfError(completed);
+      sessionRevision.set(command.sessionId, (completed.data as SessionRow).revision);
+      telegramNotificationCreated = profile.role === 'student';
+    } else if (command.type === 'session.feedback') {
+      throwIfError(await client.rpc('save_session_feedback', {
+        p_session_id: getRemoteId(remoteSessionId, command.sessionId),
+        p_mood: command.mood ?? null,
+        p_comment: command.comment.trim() || null,
       }));
-      remoteSubscriptionId.delete(removed.id);
-      subscriptionRevision.delete(removed.id);
-    }
-    for (const entry of state.subscriptionEntries) {
-      const before = previousEntries.get(entry.id);
-      if (entry.kind !== 'payment') continue;
+    } else if (command.type === 'session.archive') {
+      throwIfError(await client.rpc('archive_workout_session', {
+        p_session_id: getRemoteId(remoteSessionId, command.session.id),
+      }));
+    } else if (command.type === 'subscription.clear') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может удалять абонемент.');
+      const relationshipId = relationshipByStudent.get(command.studentId);
+      if (!relationshipId) throw new Error('Не найдена связь абонемента с учеником.');
+      throwIfError(await client.rpc('delete_subscription', { p_relationship_id: relationshipId }));
+    } else if (command.type === 'subscription.payment.delete') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может удалять абонемент.');
+      throwIfError(await client.rpc('delete_subscription_payment', {
+        p_entry_id: getRemoteId(remoteSubscriptionId, command.entryId),
+        p_expected_revision: subscriptionRevision.get(command.entryId) ?? 1,
+      }));
+      remoteSubscriptionId.delete(command.entryId);
+      subscriptionRevision.delete(command.entryId);
+    } else {
+      const entry = command.entry;
+      if (entry.kind !== 'payment') throw new Error('Можно изменять только пополнения.');
       const relationshipId = relationshipByStudent.get(entry.studentId);
       if (!relationshipId) throw new Error('Не найдена связь абонемента с учеником.');
       const values = {
@@ -617,13 +590,13 @@ export function createSupabaseRepository(
         payment_method: entry.paymentMethod,
         comment: entry.comment || null,
       };
-      if (!before) {
+      if (command.type === 'subscription.payment.create') {
         throwIfError(await client.from('subscription_entries').insert({
           id: getRemoteId(remoteSubscriptionId, entry.id),
           ...values,
         }));
         subscriptionRevision.set(entry.id, 1);
-      } else if (!same(before, entry)) {
+      } else {
         let updateSubscription = client.from('subscription_entries').update({
           lesson_delta: values.lesson_delta,
           occurred_at: values.occurred_at,
@@ -640,18 +613,16 @@ export function createSupabaseRepository(
       }
     }
 
-    baseline = clone(state);
     if (telegramNotificationCreated) {
       const delivery = await client.functions.invoke('telegram-notifications', { body: {} });
       if (delivery.error) console.warn('Telegram notification delivery was deferred.', delivery.error);
     }
   }
 
-  async function createStudentInvitation(name: string, email: string) {
+  async function createStudentInvitation(name: string) {
     if (profile.role !== 'trainer') throw new Error('Только тренер может приглашать учеников.');
     const result = await client.rpc('create_student_with_invitation', {
       p_name: name.trim(),
-      p_target_email: email.trim(),
       p_color: 'orange',
       p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     });
@@ -671,15 +642,13 @@ export function createSupabaseRepository(
     remoteStudentId.set(student.id, student.id);
     relationshipByStudent.set(student.id, created.relationshipId);
     trainerByStudent.set(student.id, profile.id);
-    if (baseline && !baseline.students.some((item) => item.id === student.id)) {
-      baseline = { ...baseline, students: [...baseline.students, student] };
-    }
     return { student, token: created.token, expiresAt: created.expiresAt };
   }
 
   return {
     load,
     save,
+    execute,
     createStudentInvitation,
     subscribe(onChange) {
       let active = true;
@@ -700,7 +669,19 @@ export function createSupabaseRepository(
       };
     },
     async clear() {
-      baseline = null;
+      relationshipByStudent.clear();
+      trainerByStudent.clear();
+      remoteStudentId.clear();
+      remoteAssignmentId.clear();
+      remoteSessionId.clear();
+      remoteSubscriptionId.clear();
+      remoteExerciseDefinitionId.clear();
+      remoteExerciseInstanceId.clear();
+      sessionRevision.clear();
+      assignmentRevision.clear();
+      subscriptionRevision.clear();
+      studentUpdatedAt.clear();
+      relationshipUpdatedAt.clear();
     },
   };
 }

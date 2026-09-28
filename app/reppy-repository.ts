@@ -4,6 +4,7 @@ import {
   type DemoState,
   type Student,
 } from './reppy-data.ts';
+import type { ReppyCommand } from './reppy-commands.ts';
 
 export const STORAGE_KEY = 'reppy-demo-v0';
 
@@ -28,9 +29,10 @@ export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'
 export interface ReppyRepository {
   load(): Promise<DemoState>;
   save(state: DemoState): Promise<void>;
+  execute?(command: ReppyCommand, state: DemoState): Promise<void>;
   clear(): Promise<void>;
   subscribe?(onChange: () => void): () => void;
-  createStudentInvitation?(name: string, email: string): Promise<{
+  createStudentInvitation?(name: string): Promise<{
     student: Student;
     token: string;
     expiresAt: string;

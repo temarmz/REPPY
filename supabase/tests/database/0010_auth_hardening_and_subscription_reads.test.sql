@@ -60,11 +60,10 @@ select is(
 
 reset role;
 
-insert into public.student_invitations (relationship_id, token_hash, target_email, expires_at)
+insert into public.student_invitations (relationship_id, token_hash, expires_at)
 values (
   '36000000-0000-4000-8000-000000000001',
   extensions.digest(repeat('x', 43), 'sha256'),
-  'expired@example.test',
   now() - interval '1 minute'
 );
 

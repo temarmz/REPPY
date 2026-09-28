@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import type { Role } from './reppy-data';
-import { authRedirectUrl, getSupabaseClient, supabaseConfig } from './supabase-client';
+import { getSupabaseClient, supabaseConfig } from './supabase-client';
 import {
   acceptInvitationWithTelegram,
   completeTelegramTrainerRegistration,
@@ -34,12 +34,6 @@ export type TelegramConnection = {
   linkedAt: string | null;
 };
 
-export type TrainerRegistrationStatus = {
-  telegramVerified: boolean;
-  activated: boolean;
-  expiresAt: string;
-};
-
 type AuthStatus = 'disabled' | 'loading' | 'anonymous' | 'authenticated' | 'profile-missing' | 'error';
 
 export function useReppyAuth() {
@@ -48,7 +42,6 @@ export function useReppyAuth() {
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [status, setStatus] = useState<AuthStatus>(client ? 'loading' : 'disabled');
   const [error, setError] = useState<string>('');
-  const [recovery, setRecovery] = useState(false);
 
   const loadProfile = useCallback(async (nextSession: Session | null) => {
     if (!client || !nextSession) {
@@ -94,10 +87,9 @@ export function useReppyAuth() {
       void loadProfile(data.session);
     });
 
-    const { data: listener } = client.auth.onAuthStateChange((event: AuthChangeEvent, nextSession) => {
+    const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
-      if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       window.setTimeout(() => {
         if (active) void loadProfile(nextSession);
       }, 0);
@@ -108,13 +100,6 @@ export function useReppyAuth() {
       listener.subscription.unsubscribe();
     };
   }, [client, loadProfile]);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    if (!client) return;
-    setError('');
-    const { error: signInError } = await client.auth.signInWithPassword({ email: email.trim(), password });
-    if (signInError) throw new Error(signInError.message);
-  }, [client]);
 
   const signInWithTelegram = useCallback(async () => {
     if (!client) throw new Error('Supabase не настроен.');
@@ -143,89 +128,6 @@ export function useReppyAuth() {
     await loadProfile(data.session);
     return result;
   }, [client, loadProfile]);
-
-  const signUpStudent = useCallback(async (email: string, password: string, invitationToken: string) => {
-    if (!client) return { confirmationRequired: false };
-    setError('');
-    const { data, error: signUpError } = await client.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { emailRedirectTo: authRedirectUrl(`/invite/${encodeURIComponent(invitationToken)}`) },
-    });
-    if (signUpError) throw new Error(signUpError.message);
-    return { confirmationRequired: !data.session };
-  }, [client]);
-
-  const startTrainerRegistration = useCallback(async (inviteCode: string, displayName: string, email: string) => {
-    if (!client) throw new Error('Supabase не настроен.');
-    const { data, error: registrationError } = await client.rpc('start_trainer_registration', {
-      p_invite_code: inviteCode,
-      p_display_name: displayName,
-      p_email: email.trim(),
-    });
-    if (registrationError) throw new Error(registrationError.message);
-    const registration = data as { token?: string; expiresAt?: string } | null;
-    if (!registration?.token) throw new Error('Не удалось начать регистрацию тренера.');
-    return { token: registration.token, expiresAt: registration.expiresAt ?? '' };
-  }, [client]);
-
-  const getTrainerRegistrationStatus = useCallback(async (token: string): Promise<TrainerRegistrationStatus> => {
-    if (!client) throw new Error('Supabase не настроен.');
-    const { data, error: statusError } = await client.rpc('get_trainer_registration_status', { p_token: token });
-    if (statusError) throw new Error(statusError.message);
-    const status = data as Partial<TrainerRegistrationStatus> | null;
-    if (!status || typeof status.telegramVerified !== 'boolean' || typeof status.activated !== 'boolean') {
-      throw new Error('Не удалось проверить регистрацию тренера.');
-    }
-    return {
-      telegramVerified: status.telegramVerified,
-      activated: status.activated,
-      expiresAt: status.expiresAt ?? '',
-    };
-  }, [client]);
-
-  const restartTrainerRegistration = useCallback(async (token: string) => {
-    if (!client) throw new Error('Supabase не настроен.');
-    const { data, error: restartError } = await client.rpc('restart_trainer_registration', { p_token: token });
-    if (restartError) throw new Error(restartError.message);
-    const registration = data as { token?: string; expiresAt?: string } | null;
-    if (!registration?.token) throw new Error('Не удалось обновить ссылку Telegram.');
-    return { token: registration.token, expiresAt: registration.expiresAt ?? '' };
-  }, [client]);
-
-  const signUpTrainer = useCallback(async (email: string, password: string, inviteCode: string, registrationToken: string) => {
-    if (!client) return { confirmationRequired: false };
-    const { data, error: signUpError } = await client.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { emailRedirectTo: authRedirectUrl(`/trainer/register/${encodeURIComponent(inviteCode)}/${encodeURIComponent(registrationToken)}`) },
-    });
-    if (signUpError) throw new Error(signUpError.message);
-    return { confirmationRequired: !data.session };
-  }, [client]);
-
-  const activateTrainerRegistration = useCallback(async (token: string) => {
-    if (!client) throw new Error('Supabase не настроен.');
-    const { error: activationError } = await client.rpc('activate_trainer_registration', { p_token: token });
-    if (activationError) throw new Error(activationError.message);
-    const { data } = await client.auth.getSession();
-    await loadProfile(data.session);
-  }, [client, loadProfile]);
-
-  const sendPasswordReset = useCallback(async (email: string) => {
-    if (!client) return;
-    const { error: resetError } = await client.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: authRedirectUrl('/auth/recovery'),
-    });
-    if (resetError) throw new Error(resetError.message);
-  }, [client]);
-
-  const updatePassword = useCallback(async (password: string) => {
-    if (!client) return;
-    const { error: updateError } = await client.auth.updateUser({ password });
-    if (updateError) throw new Error(updateError.message);
-    setRecovery(false);
-  }, [client]);
 
   const signOut = useCallback(async () => {
     if (!client) return;
@@ -284,20 +186,10 @@ export function useReppyAuth() {
     session,
     profile,
     error,
-    recovery,
-    signIn,
     signInWithTelegram,
     finishTelegramTrainerRegistration,
     acceptStudentInvitationWithTelegram,
     resumeTelegramRedirect,
-    signUpStudent,
-    startTrainerRegistration,
-    getTrainerRegistrationStatus,
-    restartTrainerRegistration,
-    signUpTrainer,
-    activateTrainerRegistration,
-    sendPasswordReset,
-    updatePassword,
     signOut,
     previewInvitation,
     acceptInvitation,
