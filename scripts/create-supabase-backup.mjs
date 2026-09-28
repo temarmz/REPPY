@@ -20,6 +20,20 @@ if (!supabaseUrl || !serviceRoleKey) {
 const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
 if (!/^[a-z0-9-]+$/i.test(projectRef)) throw new Error('Некорректный SUPABASE_URL.');
 
+const linkedProjectRefPath = path.join(projectRoot, 'supabase', '.temp', 'project-ref');
+let linkedProjectRef = '';
+try {
+  linkedProjectRef = (await readFile(linkedProjectRefPath, 'utf8')).trim();
+} catch {
+  throw new Error(`Supabase CLI не связан с проектом. Выполните: npx supabase link --project-ref ${projectRef}`);
+}
+if (linkedProjectRef !== projectRef) {
+  throw new Error(
+    `SUPABASE_URL указывает на ${projectRef}, но Supabase CLI связан с ${linkedProjectRef}. `
+    + `Выполните: npx supabase link --project-ref ${projectRef}`,
+  );
+}
+
 function run(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd: projectRoot, stdio: 'inherit' });
