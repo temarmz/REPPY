@@ -4,6 +4,7 @@ import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/pro
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { normalizeDatabaseUrl } from './normalize-database-url.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const backupRoot = path.resolve(projectRoot, process.env.REPPY_BACKUP_DIR?.trim() || '.backups');
@@ -23,7 +24,7 @@ if (!/^[a-z0-9-]+$/i.test(projectRef)) throw new Error('Некорректный
 
 let databaseConnectionArgs = ['--linked'];
 if (databaseUrl) {
-  const parsedDatabaseUrl = new URL(databaseUrl);
+  const parsedDatabaseUrl = normalizeDatabaseUrl(databaseUrl);
   if (!['postgres:', 'postgresql:'].includes(parsedDatabaseUrl.protocol)) {
     throw new Error('SUPABASE_DB_URL должен быть PostgreSQL connection string.');
   }
@@ -36,7 +37,7 @@ if (databaseUrl) {
   if (databaseProjectRefs[0] !== projectRef) {
     throw new Error(`SUPABASE_URL указывает на ${projectRef}, а SUPABASE_DB_URL — на ${databaseProjectRefs[0]}.`);
   }
-  databaseConnectionArgs = ['--db-url', databaseUrl];
+  databaseConnectionArgs = ['--db-url', parsedDatabaseUrl.toString()];
 } else {
   const linkedProjectRefPath = path.join(projectRoot, 'supabase', '.temp', 'project-ref');
   let linkedProjectRef = '';
