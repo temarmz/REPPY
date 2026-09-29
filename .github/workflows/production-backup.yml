@@ -1,0 +1,45 @@
+name: Backup production Supabase
+
+on:
+  schedule:
+    - cron: '23 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Create and verify production backup
+    runs-on: ubuntu-latest
+    environment: production-ops
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create logical database and Storage backup
+        env:
+          SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.PRODUCTION_SUPABASE_DB_URL }}
+          REPPY_BACKUP_DIR: ${{ runner.temp }}/reppy-backup
+        run: npm run backup:create
+      - name: Verify backup checksums
+        env:
+          REPPY_BACKUP_DIR: ${{ runner.temp }}/reppy-backup
+        run: npm run backup:verify
+      - name: Store temporary test backup in GitHub Actions
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-supabase-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/reppy-backup/
+          if-no-files-found: error
+          retention-days: 35

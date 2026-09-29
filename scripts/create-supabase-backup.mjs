@@ -12,6 +12,7 @@ const partialDirectory = path.join(backupRoot, `.${timestamp}.partial`);
 const backupDirectory = path.join(backupRoot, timestamp);
 const supabaseUrl = process.env.SUPABASE_URL?.trim();
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const databaseUrl = process.env.SUPABASE_DB_URL?.trim();
 
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error('Заполните SUPABASE_URL и SUPABASE_SERVICE_ROLE_KEY в .env.admin.local.');
@@ -20,18 +21,36 @@ if (!supabaseUrl || !serviceRoleKey) {
 const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
 if (!/^[a-z0-9-]+$/i.test(projectRef)) throw new Error('Некорректный SUPABASE_URL.');
 
-const linkedProjectRefPath = path.join(projectRoot, 'supabase', '.temp', 'project-ref');
-let linkedProjectRef = '';
-try {
-  linkedProjectRef = (await readFile(linkedProjectRefPath, 'utf8')).trim();
-} catch {
-  throw new Error(`Supabase CLI не связан с проектом. Выполните: npx supabase link --project-ref ${projectRef}`);
-}
-if (linkedProjectRef !== projectRef) {
-  throw new Error(
-    `SUPABASE_URL указывает на ${projectRef}, но Supabase CLI связан с ${linkedProjectRef}. `
-    + `Выполните: npx supabase link --project-ref ${projectRef}`,
-  );
+let databaseConnectionArgs = ['--linked'];
+if (databaseUrl) {
+  const parsedDatabaseUrl = new URL(databaseUrl);
+  if (!['postgres:', 'postgresql:'].includes(parsedDatabaseUrl.protocol)) {
+    throw new Error('SUPABASE_DB_URL должен быть PostgreSQL connection string.');
+  }
+  const hostProjectRef = parsedDatabaseUrl.hostname.match(/^db\.([a-z0-9-]+)\.supabase\.co$/i)?.[1];
+  const userProjectRef = decodeURIComponent(parsedDatabaseUrl.username).match(/^postgres\.([a-z0-9-]+)$/i)?.[1];
+  const databaseProjectRefs = [...new Set([hostProjectRef, userProjectRef].filter(Boolean))];
+  if (databaseProjectRefs.length !== 1) {
+    throw new Error('Не удалось однозначно определить project ref из SUPABASE_DB_URL.');
+  }
+  if (databaseProjectRefs[0] !== projectRef) {
+    throw new Error(`SUPABASE_URL указывает на ${projectRef}, а SUPABASE_DB_URL — на ${databaseProjectRefs[0]}.`);
+  }
+  databaseConnectionArgs = ['--db-url', databaseUrl];
+} else {
+  const linkedProjectRefPath = path.join(projectRoot, 'supabase', '.temp', 'project-ref');
+  let linkedProjectRef = '';
+  try {
+    linkedProjectRef = (await readFile(linkedProjectRefPath, 'utf8')).trim();
+  } catch {
+    throw new Error(`Supabase CLI не связан с проектом. Выполните: npx supabase link --project-ref ${projectRef}`);
+  }
+  if (linkedProjectRef !== projectRef) {
+    throw new Error(
+      `SUPABASE_URL указывает на ${projectRef}, но Supabase CLI связан с ${linkedProjectRef}. `
+      + `Выполните: npx supabase link --project-ref ${projectRef}`,
+    );
+  }
 }
 
 function run(command, args) {
@@ -120,14 +139,14 @@ try {
   const dataPath = path.join(partialDirectory, 'data.sql');
   const applicationDataPath = path.join(partialDirectory, 'application-data.sql');
 
-  await run(cli, ['db', 'dump', '--linked', '--file', rolesPath, '--role-only']);
-  await run(cli, ['db', 'dump', '--linked', '--file', schemaPath]);
+  await run(cli, ['db', 'dump', ...databaseConnectionArgs, '--file', rolesPath, '--role-only']);
+  await run(cli, ['db', 'dump', ...databaseConnectionArgs, '--file', schemaPath]);
   await run(cli, [
-    'db', 'dump', '--linked', '--file', dataPath, '--data-only', '--use-copy',
+    'db', 'dump', ...databaseConnectionArgs, '--file', dataPath, '--data-only', '--use-copy',
     '--exclude', 'storage.buckets_vectors', '--exclude', 'storage.vector_indexes',
   ]);
   await run(cli, [
-    'db', 'dump', '--linked', '--file', applicationDataPath, '--data-only', '--use-copy',
+    'db', 'dump', ...databaseConnectionArgs, '--file', applicationDataPath, '--data-only', '--use-copy',
     '--schema', 'public,private',
   ]);
 
