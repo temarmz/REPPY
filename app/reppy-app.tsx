@@ -74,6 +74,7 @@ const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 const THEME_PREFERENCE = 'reppy-ui:theme';
 const LAST_ROUTE_PREFERENCE = 'reppy-ui:last-route';
 const WORKOUT_DRAFT_PREFERENCE = 'reppy-ui:workout-draft';
+const UI_DRAFT_PREFERENCE = 'reppy-ui:draft';
 const UI_STATE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
 let restoringBlockedHistory = false;
@@ -177,6 +178,42 @@ function clearWorkoutComposerDraft(key: string) {
   try {
     window.localStorage.removeItem(storageKey(WORKOUT_DRAFT_PREFERENCE, key));
     window.localStorage.removeItem(storageKey(`${WORKOUT_DRAFT_PREFERENCE}:picker`, key));
+  } catch {
+    // Ignore unavailable storage.
+  }
+}
+
+type StoredUiDraft<T> = {
+  savedAt: number;
+  value: T;
+};
+
+function loadUiDraft<T>(key: string): T | null {
+  try {
+    const raw = window.localStorage.getItem(storageKey(UI_DRAFT_PREFERENCE, key));
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as StoredUiDraft<T>;
+    if (!stored || typeof stored.savedAt !== 'number' || Date.now() - stored.savedAt > UI_STATE_MAX_AGE) {
+      window.localStorage.removeItem(storageKey(UI_DRAFT_PREFERENCE, key));
+      return null;
+    }
+    return stored.value;
+  } catch {
+    return null;
+  }
+}
+
+function saveUiDraft<T>(key: string, value: T) {
+  try {
+    window.localStorage.setItem(storageKey(UI_DRAFT_PREFERENCE, key), JSON.stringify({ savedAt: Date.now(), value } satisfies StoredUiDraft<T>));
+  } catch {
+    // Drafts remain available until the current WebView is unloaded.
+  }
+}
+
+function clearUiDraft(key: string) {
+  try {
+    window.localStorage.removeItem(storageKey(UI_DRAFT_PREFERENCE, key));
   } catch {
     // Ignore unavailable storage.
   }
@@ -1815,18 +1852,41 @@ function SubscriptionPaymentForm({
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const source = initial ?? defaults;
-  const [lessons, setLessons] = useState(String(source?.lessonDelta ?? 8));
-  const [amountRub, setAmountRub] = useState(String(source?.amountRub ?? 11400));
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(source?.paymentMethod ?? 'cash');
-  const [occurredAt, setOccurredAt] = useState(initial?.occurredAt.slice(0, 10) ?? dateKey());
-  const [comment, setComment] = useState(initial?.comment ?? '');
+  const draftKey = `subscription:${student.id}:${initial?.id ?? 'new'}`;
+  const [restoredDraft] = useState(() => loadUiDraft<{
+    lessons: string;
+    amountRub: string;
+    paymentMethod: PaymentMethod;
+    occurredAt: string;
+    comment: string;
+  }>(draftKey));
+  const initialValues = useMemo(() => ({
+    lessons: String(source?.lessonDelta ?? 8),
+    amountRub: String(source?.amountRub ?? 11400),
+    paymentMethod: source?.paymentMethod ?? 'cash' as PaymentMethod,
+    occurredAt: initial?.occurredAt.slice(0, 10) ?? dateKey(),
+    comment: initial?.comment ?? '',
+  }), [initial?.comment, initial?.occurredAt, source?.lessonDelta, source?.amountRub, source?.paymentMethod]);
+  const [lessons, setLessons] = useState(restoredDraft?.lessons ?? initialValues.lessons);
+  const [amountRub, setAmountRub] = useState(restoredDraft?.amountRub ?? initialValues.amountRub);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(restoredDraft?.paymentMethod ?? initialValues.paymentMethod);
+  const [occurredAt, setOccurredAt] = useState(restoredDraft?.occurredAt ?? initialValues.occurredAt);
+  const [comment, setComment] = useState(restoredDraft?.comment ?? initialValues.comment);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const current = JSON.stringify({ lessons, amountRub, paymentMethod, occurredAt, comment });
+    if (current === JSON.stringify(initialValues)) clearUiDraft(draftKey);
+    else saveUiDraft(draftKey, { lessons, amountRub, paymentMethod, occurredAt, comment });
+  }, [amountRub, comment, draftKey, initialValues, lessons, occurredAt, paymentMethod]);
+
   const save = () => {
     const parsedLessons = Number(lessons);
     const parsedAmount = Number(amountRub);
     if (!Number.isInteger(parsedLessons) || parsedLessons <= 0) return setError('Укажи целое количество занятий больше нуля.');
     if (!Number.isFinite(parsedAmount) || parsedAmount < 0) return setError('Укажи корректную стоимость.');
     if (!occurredAt) return setError('Укажи дату оплаты.');
+    clearUiDraft(draftKey);
     onSave({ lessons: parsedLessons, amountRub: parsedAmount, paymentMethod, occurredAt, comment });
   };
   return (
@@ -1857,6 +1917,7 @@ function SubscriptionPaymentForm({
         danger
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => {
+          clearUiDraft(draftKey);
           setDeleteOpen(false);
           onDelete?.();
         }}
@@ -1866,14 +1927,32 @@ function SubscriptionPaymentForm({
 }
 
 function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = false }: { student: Student; onSave: (student: Student) => void; alwaysExpanded?: boolean; compact?: boolean }) {
-  const [expanded, setExpanded] = useState(alwaysExpanded);
-  const [editing, setEditing] = useState(false);
-  const [height, setHeight] = useState(student.height ? String(student.height) : '');
-  const [weight, setWeight] = useState(student.weight ? String(student.weight) : '');
-  const [gender, setGender] = useState<Student['gender']>(student.gender ?? 'not-specified');
-  const [phone, setPhone] = useState(student.phone ?? '');
-  const [contraindications, setContraindications] = useState(student.contraindications ?? '');
+  const draftKey = `athlete:${student.id}:${compact ? 'compact' : 'full'}`;
+  const [restoredDraft] = useState(() => loadUiDraft<{
+    expanded: boolean;
+    editing: boolean;
+    height: string;
+    weight: string;
+    gender: Student['gender'];
+    phone: string;
+    contraindications: string;
+  }>(draftKey));
+  const [expanded, setExpanded] = useState(restoredDraft?.expanded ?? alwaysExpanded);
+  const [editing, setEditing] = useState(restoredDraft?.editing ?? false);
+  const [height, setHeight] = useState(restoredDraft?.height ?? (student.height ? String(student.height) : ''));
+  const [weight, setWeight] = useState(restoredDraft?.weight ?? (student.weight ? String(student.weight) : ''));
+  const [gender, setGender] = useState<Student['gender']>(restoredDraft?.gender ?? student.gender ?? 'not-specified');
+  const [phone, setPhone] = useState(restoredDraft?.phone ?? student.phone ?? '');
+  const [contraindications, setContraindications] = useState(restoredDraft?.contraindications ?? student.contraindications ?? '');
   const genderLabel = gender === 'male' ? 'Мужской' : gender === 'female' ? 'Женский' : 'Не указан';
+
+  useEffect(() => {
+    if (!editing) {
+      clearUiDraft(draftKey);
+      return;
+    }
+    saveUiDraft(draftKey, { expanded, editing, height, weight, gender, phone, contraindications });
+  }, [contraindications, draftKey, editing, expanded, gender, height, phone, weight]);
 
   const save = () => {
     const parsedHeight = Number(height);
@@ -1886,12 +1965,13 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
       phone: phone.trim(),
       contraindications: contraindications.trim(),
     });
+    clearUiDraft(draftKey);
     setEditing(false);
   };
 
   return (
     <section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
-      {compact ? <div className="athlete-inline-summary"><div><p>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</p><p>Ограничения: {student.contraindications || 'не указаны'}</p></div><button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></button></div> : <div className="section-heading"><h2>Данные и ограничения</h2>{alwaysExpanded && !editing ? <button type="button" className="athlete-heading-edit" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать</button> : !alwaysExpanded && <button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>}
+      {compact ? <div className="athlete-inline-summary"><div><p>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</p><p>Ограничения: {student.contraindications || 'не указаны'}</p></div><button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { clearUiDraft(draftKey); setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></button></div> : <div className="section-heading"><h2>Данные и ограничения</h2>{alwaysExpanded && !editing ? <button type="button" className="athlete-heading-edit" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать</button> : !alwaysExpanded && <button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) clearUiDraft(draftKey); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</button>}</div>}
       {(compact ? editing : expanded) && (editing ? <div className="athlete-form">
         <div className="athlete-form-grid">
           <label><span>Рост, см</span><input type="number" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></label>
@@ -1901,7 +1981,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
         <label><span>Мобильный телефон</span><input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></label>
         <label><span>Противопоказания и особенности</span><textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><small>Опиши всё, что тренеру важно учитывать при составлении плана.</small></label>
         <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
-        {compact && <ActionButton variant="secondary" onClick={() => setEditing(false)}>Отмена</ActionButton>}
+        {compact && <ActionButton variant="secondary" onClick={() => { clearUiDraft(draftKey); setEditing(false); }}>Отмена</ActionButton>}
       </div> : <>{!alwaysExpanded && <button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</button>}<dl className="athlete-summary">
         <div><dt>Рост</dt><dd>{student.height ? `${student.height} см` : 'Не указан'}</dd></div>
         <div><dt>Вес</dt><dd>{student.weight ? `${student.weight} кг` : 'Не указан'}</dd></div>
@@ -1920,7 +2000,8 @@ function InviteStudent({
   onCreate: (student: Student) => void;
   onInvite?: (name: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
 }) {
-  const [name, setName] = useState('');
+  const draftKey = 'invite-student';
+  const [name, setName] = useState(() => loadUiDraft<{ name: string }>(draftKey)?.name ?? '');
   const [created, setCreated] = useState<{ student: Student; token?: string; expiresAt?: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1931,12 +2012,18 @@ function InviteStudent({
       : `${window.location.origin}${window.location.pathname}#/invite/${created.student.id}/${encodeURIComponent(created.student.name)}`
     : '';
 
+  useEffect(() => {
+    if (created || !name.trim()) clearUiDraft(draftKey);
+    else saveUiDraft(draftKey, { name });
+  }, [created, name]);
+
   const create = async () => {
     const clean = name.trim();
     if (!clean) return;
     setBusy(true);
     setError('');
     try {
+      clearUiDraft(draftKey);
       if (onInvite) {
         const invitation = await onInvite(clean);
         setCreated(invitation);
@@ -2363,7 +2450,10 @@ function WorkoutExerciseEditor({
     const stored = loadWorkoutPicker(persistenceKey);
     return stored === 'start' || exercises.some((exercise) => exercise.id === stored) ? stored : null;
   });
-  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
+  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(() => {
+    const stored = loadUiDraft<{ exerciseId: string }>(`instruction:${persistenceKey}`);
+    return exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
+  });
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const highlightTimer = useRef<number | null>(null);
@@ -2375,6 +2465,11 @@ function WorkoutExerciseEditor({
   useEffect(() => {
     saveWorkoutPicker(persistenceKey, pickerAfterId);
   }, [persistenceKey, pickerAfterId]);
+
+  useEffect(() => {
+    if (instructionExercise) saveUiDraft(`instruction:${persistenceKey}`, { exerciseId: instructionExercise.id });
+    else clearUiDraft(`instruction:${persistenceKey}`);
+  }, [instructionExercise, persistenceKey]);
 
   const focusExercise = (exerciseId: string) => {
     setRecentlyMovedId(exerciseId);
@@ -2467,11 +2562,12 @@ function WorkoutExerciseEditor({
         ))}
       </div>
 
-      {pickerAfterId && <ActiveExercisePicker exercises={exercises} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
+      {pickerAfterId && <ActiveExercisePicker persistenceKey={`picker:${persistenceKey}`} exercises={exercises} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={studentId}
         editable
+        persistenceKey={`instruction:${persistenceKey}:${instructionExercise.id}`}
         onClose={() => setInstructionExercise(null)}
         onSave={(patch) => updateExercise(instructionExercise.id, (current) => ({ ...current, ...patch }))}
       />}
@@ -2541,9 +2637,17 @@ function StudentAssignmentDetails({
   onStart: () => void;
 }) {
   const workout = findAssignmentWorkout(data, assignment);
-  const [requestOpen, setRequestOpen] = useState(false);
-  const [scheduledFor, setScheduledFor] = useState(assignment.rescheduleRequest?.scheduledFor ?? assignment.scheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(assignment.rescheduleRequest?.scheduledTime ?? assignment.scheduledTime ?? '18:00');
+  const draftKey = `reschedule:${assignment.id}`;
+  const [restoredDraft] = useState(() => loadUiDraft<{ requestOpen: boolean; scheduledFor: string; scheduledTime: string }>(draftKey));
+  const [requestOpen, setRequestOpen] = useState(restoredDraft?.requestOpen ?? false);
+  const [scheduledFor, setScheduledFor] = useState(restoredDraft?.scheduledFor ?? assignment.rescheduleRequest?.scheduledFor ?? assignment.scheduledFor);
+  const [scheduledTime, setScheduledTime] = useState(restoredDraft?.scheduledTime ?? assignment.rescheduleRequest?.scheduledTime ?? assignment.scheduledTime ?? '18:00');
+
+  useEffect(() => {
+    if (requestOpen && !assignment.rescheduleRequest) saveUiDraft(draftKey, { requestOpen, scheduledFor, scheduledTime });
+    else clearUiDraft(draftKey);
+  }, [assignment.rescheduleRequest, draftKey, requestOpen, scheduledFor, scheduledTime]);
+
   if (!workout) return <NotFound />;
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
   const canStart = assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey();
@@ -2559,7 +2663,7 @@ function StudentAssignmentDetails({
 
       {assignment.format === 'in-person' && requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
         <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-        <ActionButton icon="check" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
+        <ActionButton icon="check" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { clearUiDraft(draftKey); onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
       </section>}
 
       {balance <= 0 && <section className="subscription-warning debt student-debt-warning">
@@ -2737,7 +2841,10 @@ function ActiveWorkout({
     const stored = loadWorkoutPicker(pickerPersistenceKey);
     return stored && stored !== 'start' && workout.exercises.some((exercise) => exercise.id === stored) ? stored : null;
   });
-  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
+  const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(() => {
+    const stored = loadUiDraft<{ exerciseId: string }>(`instruction:${pickerPersistenceKey}`);
+    return workout.exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
+  });
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
@@ -2768,6 +2875,11 @@ function ActiveWorkout({
   useEffect(() => {
     saveWorkoutPicker(pickerPersistenceKey, pickerAfterId);
   }, [pickerAfterId, pickerPersistenceKey]);
+
+  useEffect(() => {
+    if (instructionExercise) saveUiDraft(`instruction:${pickerPersistenceKey}`, { exerciseId: instructionExercise.id });
+    else clearUiDraft(`instruction:${pickerPersistenceKey}`);
+  }, [instructionExercise, pickerPersistenceKey]);
 
   if (!session || !workout.exercises.length) {
     return <main className="loading-screen"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Готовим тренировку…</p></main>;
@@ -2909,11 +3021,12 @@ function ActiveWorkout({
         })}
       </section>
 
-      {pickerAfterId && <ActiveExercisePicker exercises={workout.exercises} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
+      {pickerAfterId && <ActiveExercisePicker persistenceKey={`picker:${pickerPersistenceKey}`} exercises={workout.exercises} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={student?.id}
         editable={trainerCanWaiveCharge}
+        persistenceKey={`instruction:${pickerPersistenceKey}:${instructionExercise.id}`}
         onClose={() => setInstructionExercise(null)}
         onSave={(patch) => updateWorkout(workout.exercises.map((exercise) => exercise.id === instructionExercise.id ? { ...exercise, ...patch } : exercise))}
       />}
@@ -2972,25 +3085,33 @@ function ExerciseInstructionModal({
   exercise,
   studentId,
   editable = false,
+  persistenceKey,
   onClose,
   onSave,
 }: {
   exercise: WorkoutExercise;
   studentId?: string;
   editable?: boolean;
+  persistenceKey?: string;
   onClose: () => void;
   onSave?: (patch: Pick<WorkoutExercise, 'instructionText' | 'instructionVideo'>) => void;
 }) {
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
   const resolvedEquipment = exercise.equipment ?? definition?.equipment;
   const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
-  const [instructionText, setInstructionText] = useState(exercise.instructionText ?? '');
+  const draftKey = persistenceKey ?? `instruction:${exercise.id}`;
+  const [instructionText, setInstructionText] = useState(() => loadUiDraft<{ instructionText: string }>(draftKey)?.instructionText ?? exercise.instructionText ?? '');
   const [instructionVideo, setInstructionVideo] = useState(exercise.instructionVideo);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoMissing, setVideoMissing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (instructionText === (exercise.instructionText ?? '')) clearUiDraft(draftKey);
+    else saveUiDraft(draftKey, { instructionText });
+  }, [draftKey, exercise.instructionText, instructionText]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3035,6 +3156,7 @@ function ExerciseInstructionModal({
     setError('');
     try {
       const nextVideo = pendingFile ? await saveInstructionVideo(pendingFile, studentId) : instructionVideo;
+      clearUiDraft(draftKey);
       onSave?.({ instructionText: instructionText.trim() || undefined, instructionVideo: nextVideo });
       onClose();
     } catch {
@@ -3100,22 +3222,35 @@ function ExerciseActionsModal({
 }
 
 function ActiveExercisePicker({
+  persistenceKey,
   exercises,
   onClose,
   onSelect,
   onRemove,
   canRemove,
 }: {
+  persistenceKey?: string;
   exercises: WorkoutExercise[];
   onClose: () => void;
   onSelect: (exercise: ExercisePickerChoice) => void;
   onRemove: (exerciseId: string) => void;
   canRemove: (exerciseId: string) => boolean;
 }) {
-  const [search, setSearch] = useState('');
-  const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>('all');
-  const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>('external');
-  const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>('reps');
+  const draftKey = persistenceKey ?? 'picker';
+  const [restoredDraft] = useState(() => loadUiDraft<{
+    search: string;
+    selectedMuscle: 'all' | MuscleGroup;
+    customLoadMode: 'external' | 'bodyweight';
+    customMeasureType: 'reps' | 'duration';
+  }>(draftKey));
+  const [search, setSearch] = useState(restoredDraft?.search ?? '');
+  const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>(restoredDraft?.selectedMuscle ?? 'all');
+  const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>(restoredDraft?.customLoadMode ?? 'external');
+  const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>(restoredDraft?.customMeasureType ?? 'reps');
+
+  useEffect(() => {
+    saveUiDraft(draftKey, { search, selectedMuscle, customLoadMode, customMeasureType });
+  }, [customLoadMode, customMeasureType, draftKey, search, selectedMuscle]);
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
   const customName = search.trim();
   const canCreateCustom = customName.length >= 2 && !exerciseLibrary.some((exercise) => exercise.name.toLocaleLowerCase('ru') === normalizedSearch);
@@ -3168,9 +3303,16 @@ function ActiveExercisePicker({
 }
 
 function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; session: WorkoutSession; onComplete: (mood: MoodRating, comment: string) => void }) {
-  const [mood, setMood] = useState<MoodRating | null>(null);
-  const [comment, setComment] = useState('');
+  const draftKey = `feedback:${session.id}`;
+  const [restoredDraft] = useState(() => loadUiDraft<{ mood: MoodRating | null; comment: string }>(draftKey));
+  const [mood, setMood] = useState<MoodRating | null>(restoredDraft?.mood ?? null);
+  const [comment, setComment] = useState(restoredDraft?.comment ?? '');
   const workout = findSessionWorkout(data, session);
+
+  useEffect(() => {
+    if (mood || comment.trim()) saveUiDraft(draftKey, { mood, comment });
+    else clearUiDraft(draftKey);
+  }, [comment, draftKey, mood]);
 
   return (
     <main className="feedback-page">
@@ -3187,7 +3329,7 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
           </div>
         </fieldset>
         <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
-        <ActionButton icon="check" disabled={!mood} onClick={() => mood && onComplete(mood, comment)}>Сохранить результат</ActionButton>
+        <ActionButton icon="check" disabled={!mood} onClick={() => { if (!mood) return; clearUiDraft(draftKey); onComplete(mood, comment); }}>Сохранить результат</ActionButton>
       </section>
     </main>
   );

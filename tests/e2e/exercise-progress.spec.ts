@@ -176,6 +176,21 @@ test('данные ученика под именем редактируются
   await page.screenshot({ path: 'test-results/student-profile-intro.png', animations: 'disabled' });
 });
 
+test('несохранённое редактирование профиля восстанавливается после перезапуска WebView', async ({ page }) => {
+  await seedProgress(page);
+  await page.setViewportSize({ width: 360, height: 800 });
+  const intro = page.locator('.student-profile-intro');
+  await intro.getByRole('button', { name: 'Редактировать данные ученика' }).click();
+  await page.getByLabel('Рост, см').fill('184');
+  await page.getByLabel('Противопоказания и особенности', { exact: false }).fill('Не пропускать разминку');
+
+  await page.reload();
+
+  await expect(page.getByLabel('Рост, см')).toHaveValue('184');
+  await expect(page.getByLabel('Противопоказания и особенности', { exact: false })).toHaveValue('Не пропускать разминку');
+  await expect(page.getByRole('button', { name: 'Сохранить данные' })).toBeVisible();
+});
+
 test('при смене веса формат каждого подхода остаётся одинаковым', async ({ page }) => {
   await seedProgress(page);
   await page.evaluate(() => {
