@@ -2,13 +2,15 @@ import { useState, type ReactNode } from 'react';
 import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data';
 import Icon from './ui-icon';
 
-function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric' }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal' }) {
+function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric', emptyWhenZero = false }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal'; emptyWhenZero?: boolean }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const displayValue = emptyWhenZero && value === 0 ? '' : String(value);
 
   const commit = () => {
-    const nextDraft = draft ?? String(value);
+    const nextDraft = draft ?? displayValue;
     if (!nextDraft.trim()) {
       setDraft(null);
+      if (emptyWhenZero) onChange(0);
       return;
     }
     const parsed = Number(nextDraft.replace(',', '.'));
@@ -20,7 +22,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     onChange(Math.max(min, parsed));
   };
 
-  return <input type="number" min={min} step={step} inputMode={inputMode} value={draft ?? String(value)} onFocus={(event) => { setDraft(String(value)); event.currentTarget.select(); }} onChange={(event) => {
+  return <input type="number" min={min} step={step} inputMode={inputMode} placeholder={emptyWhenZero ? '—' : undefined} value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
     const nextDraft = event.target.value;
     setDraft(nextDraft);
     const parsed = Number(nextDraft.replace(',', '.'));
@@ -183,8 +185,8 @@ export function PlanExerciseCard({
           <article className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
             <div className="set-number"><span>ПОДХОД</span><strong>{setIndex + 1}</strong></div>
             <div className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
-              {!bodyweight && <label><span>КГ</span><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></label>}
-              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
+              {!bodyweight && <label><span>КГ</span><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></label>}
+              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} emptyWhenZero onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
             </div>
           </article>
         ))}
@@ -235,10 +237,16 @@ export function ActiveExerciseCard({
           <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
             <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
             <div className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
-              {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
-              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
+              {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
+              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={result.actualReps} inputMode="numeric" emptyWhenZero onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
             </div>
-            <button type="button" onClick={() => onResultChange(result.setNumber, { completed: !result.completed })} aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}><Icon name="check" /></button>
+            <button
+              type="button"
+              disabled={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0))}
+              title={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0)) ? 'Сначала заполни повторы и вес' : undefined}
+              onClick={() => onResultChange(result.setNumber, { completed: !result.completed })}
+              aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}
+            ><Icon name="check" /></button>
           </article>
         ))}
       </section>

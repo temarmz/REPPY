@@ -72,6 +72,9 @@ const COPY = {
 const NAVIGATION_EVENT = 'reppy:navigate';
 const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 const THEME_PREFERENCE = 'reppy-ui:theme';
+const LAST_ROUTE_PREFERENCE = 'reppy-ui:last-route';
+const WORKOUT_DRAFT_PREFERENCE = 'reppy-ui:workout-draft';
+const UI_STATE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 let activeNavigationBlocker: ((proceed: () => void) => void) | null = null;
 let restoringBlockedHistory = false;
 let pendingHistoryBlocker: ((proceed: () => void) => void) | null = null;
@@ -107,6 +110,93 @@ function saveThemePreference(theme: AppTheme) {
     window.localStorage.setItem(THEME_PREFERENCE, theme);
   } catch {
     // Theme still changes for the current session when storage is unavailable.
+  }
+}
+
+function storageKey(prefix: string, identity: string) {
+  return `${prefix}:${identity}`;
+}
+
+function loadLastRoute(role: 'trainer' | 'student', identity: string) {
+  try {
+    const route = window.localStorage.getItem(storageKey(LAST_ROUTE_PREFERENCE, identity));
+    return route?.startsWith(`/${role}`) ? route : `/${role}`;
+  } catch {
+    return `/${role}`;
+  }
+}
+
+function saveLastRoute(path: string, identity: string) {
+  if (!path.startsWith('/trainer') && !path.startsWith('/student')) return;
+  try {
+    window.localStorage.setItem(storageKey(LAST_ROUTE_PREFERENCE, identity), path);
+  } catch {
+    // The current URL still keeps the route while this WebView stays alive.
+  }
+}
+
+type WorkoutComposerDraft = {
+  name: string;
+  scheduledFor?: string;
+  scheduledTime?: string;
+  format: TrainingFormat;
+  exercises: WorkoutExercise[];
+};
+
+type StoredWorkoutComposerDraft = {
+  baseline: string;
+  savedAt: number;
+  value: WorkoutComposerDraft;
+};
+
+function loadWorkoutComposerDraft(key: string, baseline: string): WorkoutComposerDraft | null {
+  try {
+    const raw = window.localStorage.getItem(storageKey(WORKOUT_DRAFT_PREFERENCE, key));
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as StoredWorkoutComposerDraft;
+    if (stored.baseline !== baseline || Date.now() - stored.savedAt > UI_STATE_MAX_AGE) {
+      window.localStorage.removeItem(storageKey(WORKOUT_DRAFT_PREFERENCE, key));
+      return null;
+    }
+    return stored.value;
+  } catch {
+    return null;
+  }
+}
+
+function saveWorkoutComposerDraft(key: string, baseline: string, value: WorkoutComposerDraft) {
+  try {
+    const stored: StoredWorkoutComposerDraft = { baseline, savedAt: Date.now(), value };
+    window.localStorage.setItem(storageKey(WORKOUT_DRAFT_PREFERENCE, key), JSON.stringify(stored));
+  } catch {
+    // Unsaved-navigation protection still works during the current WebView lifetime.
+  }
+}
+
+function clearWorkoutComposerDraft(key: string) {
+  try {
+    window.localStorage.removeItem(storageKey(WORKOUT_DRAFT_PREFERENCE, key));
+    window.localStorage.removeItem(storageKey(`${WORKOUT_DRAFT_PREFERENCE}:picker`, key));
+  } catch {
+    // Ignore unavailable storage.
+  }
+}
+
+function loadWorkoutPicker(key: string): string | 'start' | null {
+  try {
+    return window.localStorage.getItem(storageKey(`${WORKOUT_DRAFT_PREFERENCE}:picker`, key));
+  } catch {
+    return null;
+  }
+}
+
+function saveWorkoutPicker(key: string, value: string | 'start' | null) {
+  try {
+    const keyName = storageKey(`${WORKOUT_DRAFT_PREFERENCE}:picker`, key);
+    if (value) window.localStorage.setItem(keyName, value);
+    else window.localStorage.removeItem(keyName);
+  } catch {
+    // Ignore unavailable storage.
   }
 }
 
@@ -185,9 +275,14 @@ function goBack(fallback: string) {
   proceed();
 }
 
-function useUnsavedNavigationGuard(isDirty: boolean) {
+function useUnsavedNavigationGuard(isDirty: boolean, onDiscard?: () => void) {
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const blockerRef = useRef<((proceed: () => void) => void) | null>(null);
+  const onDiscardRef = useRef(onDiscard);
+
+  useEffect(() => {
+    onDiscardRef.current = onDiscard;
+  }, [onDiscard]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -213,6 +308,7 @@ function useUnsavedNavigationGuard(isDirty: boolean) {
   };
   const discardAndContinue = () => {
     const proceed = pendingNavigation;
+    onDiscardRef.current?.();
     allowNextNavigation();
     proceed?.();
   };
@@ -449,10 +545,18 @@ export default function ReppyApp() {
       : data.loggedIn ? data.role : undefined;
     if (!activeRole) return;
 
-    const homePath = activeRole === 'trainer' ? '/trainer' : '/student';
-    window.history.replaceState({ reppyEntry: false, reppyScroll: TOP_SCROLL_POSITION }, '', `#${homePath}`);
+    const identity = auth.enabled ? auth.profile?.id : 'demo';
+    const restoredPath = identity ? loadLastRoute(activeRole, identity) : `/${activeRole}`;
+    window.history.replaceState({ reppyEntry: false, reppyScroll: TOP_SCROLL_POSITION }, '', `#${restoredPath}`);
     window.dispatchEvent(new Event(NAVIGATION_EVENT));
   }, [auth.enabled, auth.profile, auth.status, data.loggedIn, data.role, hydrated, path]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const identity = auth.enabled ? auth.profile?.id : data.loggedIn ? 'demo' : undefined;
+    if (!identity) return;
+    saveLastRoute(path, identity);
+  }, [auth.enabled, auth.profile?.id, data.loggedIn, hydrated, path]);
 
   useEffect(() => {
     if (!auth.enabled || auth.status !== 'authenticated' || !auth.profile || !hydrated) return;
@@ -2014,17 +2118,32 @@ function WorkoutComposer({
   onSubmit: (value: WorkoutComposerValue) => void;
 }) {
   const hasSchedule = initialScheduledFor !== undefined;
-  const [name, setName] = useState(initialName);
-  const [scheduledFor, setScheduledFor] = useState(initialScheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime);
-  const [format, setFormat] = useState<TrainingFormat>(initialFormat);
-  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => initialExercises.map((exercise) => ({ ...exercise })));
+  const draftKey = hashPath();
+  const baseline = JSON.stringify({ name: initialName, scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, format: initialFormat, exercises: initialExercises });
+  const [restoredDraft] = useState(() => loadWorkoutComposerDraft(draftKey, baseline));
+  const [name, setName] = useState(restoredDraft?.name ?? initialName);
+  const [scheduledFor, setScheduledFor] = useState(restoredDraft?.scheduledFor ?? initialScheduledFor);
+  const [scheduledTime, setScheduledTime] = useState(restoredDraft?.scheduledTime ?? initialScheduledTime);
+  const [format, setFormat] = useState<TrainingFormat>(restoredDraft?.format ?? initialFormat);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(() => (restoredDraft?.exercises ?? initialExercises).map((exercise) => ({ ...exercise })));
   const [error, setError] = useState('');
   const [dangerOpen, setDangerOpen] = useState(false);
-  const [initialFormState] = useState(() => JSON.stringify({ name: initialName, scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, format: initialFormat, exercises: initialExercises }));
+  const [initialFormState] = useState(baseline);
   const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, format, exercises });
-  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(currentFormState !== initialFormState);
-  const ready = Boolean(name.trim() && exercises.length && (!hasSchedule || (scheduledFor && (format === 'online' || scheduledTime))));
+  const isDirty = currentFormState !== initialFormState;
+  const hasIncompleteExercise = exercises.some((exercise) => getExerciseSetPlans(exercise).some((set) => (
+    set.targetReps <= 0 || (exercise.loadMode !== 'bodyweight' && set.targetWeight <= 0)
+  )));
+  const { allowNextNavigation, discardPrompt } = useUnsavedNavigationGuard(isDirty, () => clearWorkoutComposerDraft(draftKey));
+  const ready = Boolean(name.trim() && exercises.length && !hasIncompleteExercise && (!hasSchedule || (scheduledFor && (format === 'online' || scheduledTime))));
+
+  useEffect(() => {
+    if (isDirty) {
+      saveWorkoutComposerDraft(draftKey, initialFormState, { name, scheduledFor, scheduledTime, format, exercises });
+    } else {
+      clearWorkoutComposerDraft(draftKey);
+    }
+  }, [draftKey, exercises, format, initialFormState, isDirty, name, scheduledFor, scheduledTime]);
 
   const clearError = () => setError('');
   const submit = () => {
@@ -2032,6 +2151,8 @@ function WorkoutComposer({
     if (hasSchedule && !scheduledFor) return setError('Укажи рекомендованную дату тренировки.');
     if (hasSchedule && format === 'in-person' && !scheduledTime) return setError('Укажи дату и время тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
+    if (hasIncompleteExercise) return setError('Заполни повторы и вес во всех подходах.');
+    clearWorkoutComposerDraft(draftKey);
     allowNextNavigation();
     onSubmit({
       name: name.trim(),
@@ -2053,7 +2174,7 @@ function WorkoutComposer({
         {hasSchedule && <TrainingFormatField value={format} onChange={(value) => { setFormat(value); clearError(); }} />}
         {hasSchedule && <WorkoutScheduleFields dateLabel={format === 'online' ? 'Рекомендованная дата' : dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime} showTime={format === 'in-person'} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
       </section>
-      <WorkoutExerciseEditor studentId={student.id} exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
+      <WorkoutExerciseEditor persistenceKey={draftKey} studentId={student.id} exercises={exercises} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
       <div className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
@@ -2064,6 +2185,7 @@ function WorkoutComposer({
         danger
         onClose={() => setDangerOpen(false)}
         onConfirm={() => {
+          clearWorkoutComposerDraft(draftKey);
           allowNextNavigation();
           setDangerOpen(false);
           dangerAction.onConfirm();
@@ -2225,17 +2347,22 @@ type ExercisePickerChoice = {
 };
 
 function WorkoutExerciseEditor({
+  persistenceKey,
   studentId,
   exercises,
   onChange,
   minSetsByExerciseId = {},
 }: {
+  persistenceKey: string;
   studentId: string;
   exercises: WorkoutExercise[];
   onChange: (exercises: WorkoutExercise[]) => void;
   minSetsByExerciseId?: Record<string, number>;
 }) {
-  const [pickerAfterId, setPickerAfterId] = useState<string | 'start' | null>(null);
+  const [pickerAfterId, setPickerAfterId] = useState<string | 'start' | null>(() => {
+    const stored = loadWorkoutPicker(persistenceKey);
+    return stored === 'start' || exercises.some((exercise) => exercise.id === stored) ? stored : null;
+  });
   const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
@@ -2244,6 +2371,10 @@ function WorkoutExerciseEditor({
   useEffect(() => () => {
     if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
   }, []);
+
+  useEffect(() => {
+    saveWorkoutPicker(persistenceKey, pickerAfterId);
+  }, [persistenceKey, pickerAfterId]);
 
   const focusExercise = (exerciseId: string) => {
     setRecentlyMovedId(exerciseId);
@@ -2264,7 +2395,7 @@ function WorkoutExerciseEditor({
       equipment: choice.equipment,
       loadMode,
       measureType: choice.measureType ?? 'reps',
-      plannedSets: [{ targetReps: choice.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 }],
+      plannedSets: [{ targetReps: 0, targetWeight: 0 }],
       coachNote: '',
     });
     const next = exercises.map((exercise) => ({ ...exercise }));
@@ -2600,8 +2731,12 @@ function ActiveWorkout({
   trainerCanWaiveCharge?: boolean;
   balance?: number;
 }) {
+  const pickerPersistenceKey = `active:${hashPath()}`;
   const [currentTime, setCurrentTime] = useState(() => Date.now());
-  const [pickerAfterId, setPickerAfterId] = useState<string | null>(null);
+  const [pickerAfterId, setPickerAfterId] = useState<string | null>(() => {
+    const stored = loadWorkoutPicker(pickerPersistenceKey);
+    return stored && stored !== 'start' && workout.exercises.some((exercise) => exercise.id === stored) ? stored : null;
+  });
   const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(null);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
@@ -2629,6 +2764,10 @@ function ActiveWorkout({
     if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
     if (saveStateTimer.current) window.clearTimeout(saveStateTimer.current);
   }, []);
+
+  useEffect(() => {
+    saveWorkoutPicker(pickerPersistenceKey, pickerAfterId);
+  }, [pickerAfterId, pickerPersistenceKey]);
 
   if (!session || !workout.exercises.length) {
     return <main className="loading-screen"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Готовим тренировку…</p></main>;
@@ -2696,7 +2835,7 @@ function ActiveWorkout({
       equipment: definition.equipment,
       loadMode,
       measureType: definition.measureType ?? 'reps',
-      plannedSets: [{ targetReps: definition.measureType === 'duration' ? 30 : 10, targetWeight: loadMode === 'bodyweight' ? 0 : 20 }],
+      plannedSets: [{ targetReps: 0, targetWeight: 0 }],
       coachNote: '',
     });
     const next = workout.exercises.map((exercise) => ({ ...exercise }));

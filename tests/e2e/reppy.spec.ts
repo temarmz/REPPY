@@ -694,6 +694,10 @@ test('новая тренировка сохраняется только в н�
   await expect(exercisePicker.getByText('В тренировке: 2')).toBeVisible();
   await exercisePicker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(2);
+  for (const card of await page.locator('.plan-exercise-card').all()) {
+    await card.getByLabel('КГ').fill('20');
+    await card.getByLabel('ПОВТОРЫ').fill('10');
+  }
   await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
@@ -754,6 +758,8 @@ test('онлайн-тренировка переиспользует назна�
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const exercise = page.locator('.plan-exercise-card').first();
+  await exercise.getByLabel('КГ').fill('20');
+  await exercise.getByLabel('ПОВТОРЫ').fill('10');
   await exercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
   const instruction = page.getByRole('dialog', { name: 'Как выполнять — Жим лёжа' });
   await instruction.getByPlaceholder('Опиши исходное положение, движение, дыхание и требования к технике').fill('Сведи лопатки, упрись стопами в пол и опускай гриф под контролем.');
@@ -1169,6 +1175,7 @@ test('упражнение со своим весом не показывает 
   const pullUpsPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Подтягивания' });
   await expect(pullUpsPlan.getByText('Спина · Свой вес')).toBeVisible();
   await expect(pullUpsPlan.getByLabel('КГ')).toHaveCount(0);
+  await expect(pullUpsPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
   await expect(pullUpsPlan.locator('.active-exercise-meta')).toHaveText('Спина · Свой вес');
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
@@ -1177,7 +1184,46 @@ test('упражнение со своим весом не показывает 
   await page.getByRole('button', { name: 'Готово' }).click();
   const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
   await expect(plankPlan.getByLabel('КГ')).toHaveCount(0);
-  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('30');
+  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('');
+});
+
+test('черновик тренировки и открытый выбор упражнений восстанавливаются после выгрузки WebView', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients/maria/assign/new');
+  await page.getByLabel('Название тренировки').fill('Черновик на вечер');
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  await page.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
+  await page.getByRole('button', { name: 'Добавить Приседания', exact: true }).click();
+
+  const squatPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Приседания' });
+  await expect(squatPlan.getByLabel('КГ').first()).toHaveValue('');
+  await expect(squatPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
+  await expect(page.locator('.plan-submit-button')).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).some((key) => key?.startsWith('reppy-ui:workout-draft:')))).toBe(true);
+
+  await page.reload();
+
+  await expect(page.getByLabel('Название тренировки')).toHaveValue('Черновик на вечер');
+  await expect(page.getByRole('dialog', { name: 'Добавить упражнения' })).toBeVisible();
+  const restoredSquatPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Приседания' });
+  await expect(restoredSquatPlan.getByLabel('КГ').first()).toHaveValue('');
+  await expect(restoredSquatPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
+
+  await page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Готово' }).click();
+  await restoredSquatPlan.getByLabel('КГ').first().fill('60');
+  await restoredSquatPlan.getByLabel('ПОВТОРЫ').first().fill('8');
+  await expect(page.getByRole('button', { name: 'Назначить тренировку' })).toBeEnabled();
+});
+
+test('последний раздел тренера открывается после запуска WebView с корневого адреса', async ({ page }) => {
+  await openFreshDemo(page);
+  await page.goto('/#/trainer/clients');
+  await expect(page.getByRole('button', { name: 'Пригласить ученика' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('reppy-ui:last-route:demo'))).toBe('/trainer/clients');
+
+  await page.goto('/');
+  await expect(page).toHaveURL(/#\/trainer\/clients$/);
+  await expect(page.getByRole('button', { name: 'Пригласить ученика' })).toBeVisible();
 });
 
 test('старое сохранённое состояние автоматически обновляется при загрузке', async ({ page }) => {

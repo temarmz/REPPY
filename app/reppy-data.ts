@@ -253,17 +253,17 @@ export function getExerciseSetPlans(exercise: WorkoutExercise | LegacyWorkoutExe
   const legacy = exercise as LegacyWorkoutExercise;
   const savedPlans = Array.isArray(exercise.plannedSets) ? exercise.plannedSets : [];
   const count = Math.max(1, savedPlans.length || legacy.sets || 1);
-  const fallbackReps = Math.max(1, legacy.targetReps || (exercise.measureType === 'duration' ? 30 : 10));
+  const fallbackReps = Math.max(1, legacy.targetReps ?? (exercise.measureType === 'duration' ? 30 : 10));
   const fallbackWeight = Math.max(0, legacy.targetWeight || 0);
   return Array.from({ length: count }, (_, index) => ({
-    targetReps: Math.max(1, savedPlans[index]?.targetReps || fallbackReps),
+    targetReps: Math.max(0, savedPlans[index]?.targetReps ?? fallbackReps),
     targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, savedPlans[index]?.targetWeight ?? fallbackWeight),
   }));
 }
 
 export function withExerciseSetPlans(exercise: WorkoutExercise, plannedSets: WorkoutSetPlan[]): WorkoutExercise {
   const safePlans = (plannedSets.length ? plannedSets : [{ targetReps: exercise.measureType === 'duration' ? 30 : 10, targetWeight: 0 }]).map((set) => ({
-    targetReps: Math.max(1, set.targetReps || 1),
+    targetReps: Math.max(0, set.targetReps ?? 0),
     targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, set.targetWeight || 0),
   }));
   return {
