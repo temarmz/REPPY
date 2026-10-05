@@ -104,7 +104,7 @@ select is(
 
 select is(
   (select count(*)::integer from public.exercise_definitions where owner_id is null),
-  86,
+  92,
   'the canonical exercise library is installed'
 );
 

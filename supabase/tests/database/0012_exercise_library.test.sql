@@ -4,13 +4,13 @@ select plan(3);
 
 select is(
   (select count(*)::integer from public.exercise_definitions where owner_id is null and archived_at is null),
-  86,
+  92,
   'system exercise library contains the complete active set'
 );
 
 select is(
   (select count(distinct slug)::integer from public.exercise_definitions where owner_id is null and archived_at is null),
-  86,
+  92,
   'system exercise slugs are unique'
 );
 

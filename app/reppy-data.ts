@@ -239,6 +239,12 @@ export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'calf-press', name: 'Жим носками в тренажёре', primaryMuscle: 'Икры', equipment: 'Тренажёр' },
   { id: 'ab-wheel', name: 'Раскатывание ролика', primaryMuscle: 'Кор', equipment: 'Ролик', loadMode: 'bodyweight' },
   { id: 'cable-crunch', name: 'Скручивания на верхнем блоке', primaryMuscle: 'Кор', equipment: 'Блок' },
+  { id: 'hip-adduction', name: 'Приведение ног в тренажёре', primaryMuscle: 'Ягодицы', equipment: 'Тренажёр' },
+  { id: 'one-arm-dumbbell-lateral-raise', name: 'Отведение руки с гантелью в сторону', primaryMuscle: 'Плечи', equipment: 'Гантель' },
+  { id: 'wide-grip-lat-pulldown', name: 'Тяга верхнего блока широким хватом', primaryMuscle: 'Спина', equipment: 'Блок' },
+  { id: 'reverse-grip-lat-pulldown', name: 'Тяга верхнего блока обратным хватом', primaryMuscle: 'Спина', equipment: 'Блок' },
+  { id: 'incline-smith-press', name: 'Жим в машине Смита на наклонной скамье 35°', primaryMuscle: 'Грудь', equipment: 'Тренажёр' },
+  { id: 'single-arm-seated-cable-row', name: 'Тяга горизонтального блока одной рукой', primaryMuscle: 'Спина', equipment: 'Блок' },
 ];
 
 type LegacyWorkoutExercise = Omit<WorkoutExercise, 'loadMode' | 'measureType' | 'plannedSets'> & {
