@@ -1,6 +1,6 @@
 begin;
 
-select plan(21);
+select plan(22);
 
 insert into auth.users (id)
 values
@@ -85,7 +85,7 @@ select lives_ok(
   $$select public.save_session_progress(
     (select id from public.workout_sessions where assignment_id = '40000000-0000-4000-8000-000000000001'),
     1,
-    '{"name":"Test workout","exercises":[{"id":"50000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":8,"targetWeight":50}]}]}',
+    '{"name":"Test workout","exercises":[{"id":"50000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":8,"targetWeight":50}]},{"id":"50000000-0000-4000-8000-000000000002","exerciseId":"00000000-0000-4000-8000-000000000002","plannedSets":[]}]}',
     '[{"exerciseInstanceId":"50000000-0000-4000-8000-000000000001","setNumber":1,"actualReps":8,"actualWeight":50,"completed":true}]'
   )$$,
   'student can atomically save valid workout progress'
@@ -101,6 +101,15 @@ select is(
   (select count(*)::integer from public.set_results),
   1,
   'saving progress replaces the complete set result collection'
+);
+
+select is(
+  (select jsonb_array_length(exercise -> 'plannedSets')
+   from public.workout_sessions session,
+        jsonb_array_elements(session.workout_snapshot -> 'exercises') exercise
+   where exercise ->> 'id' = '50000000-0000-4000-8000-000000000002'),
+  0,
+  'an exercise without planned sets remains in the workout snapshot'
 );
 
 select throws_ok(

@@ -107,7 +107,7 @@ export type SubscriptionEntry = {
 };
 
 export type DemoState = {
-  schemaVersion: 6;
+  schemaVersion: 7;
   loggedIn: boolean;
   role: Role;
   activeStudentId: string;
@@ -115,6 +115,7 @@ export type DemoState = {
   assignments: Assignment[];
   sessions: WorkoutSession[];
   subscriptionEntries: SubscriptionEntry[];
+  customExercises: ExerciseDefinition[];
 };
 
 export const TRAINER_ID = 'trainer-demo';
@@ -145,7 +146,7 @@ export type MuscleGroup = typeof muscleGroups[number];
 export type ExerciseDefinition = {
   id: string;
   name: string;
-  primaryMuscle: MuscleGroup;
+  primaryMuscle?: MuscleGroup;
   equipment: string;
   loadMode?: 'external' | 'bodyweight';
   measureType?: 'reps' | 'duration';
@@ -251,18 +252,18 @@ type LegacyWorkoutExercise = Omit<WorkoutExercise, 'loadMode' | 'measureType' | 
 
 export function getExerciseSetPlans(exercise: WorkoutExercise | LegacyWorkoutExercise): WorkoutSetPlan[] {
   const legacy = exercise as LegacyWorkoutExercise;
-  const savedPlans = Array.isArray(exercise.plannedSets) ? exercise.plannedSets : [];
-  const count = Math.max(1, savedPlans.length || legacy.sets || 1);
+  const savedPlans = Array.isArray(exercise.plannedSets) ? exercise.plannedSets : null;
+  const count = savedPlans ? savedPlans.length : Math.max(1, legacy.sets || 1);
   const fallbackReps = Math.max(1, legacy.targetReps ?? (exercise.measureType === 'duration' ? 30 : 10));
   const fallbackWeight = Math.max(0, legacy.targetWeight || 0);
   return Array.from({ length: count }, (_, index) => ({
-    targetReps: Math.max(0, savedPlans[index]?.targetReps ?? fallbackReps),
-    targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, savedPlans[index]?.targetWeight ?? fallbackWeight),
+    targetReps: Math.max(0, savedPlans?.[index]?.targetReps ?? fallbackReps),
+    targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, savedPlans?.[index]?.targetWeight ?? fallbackWeight),
   }));
 }
 
 export function withExerciseSetPlans(exercise: WorkoutExercise, plannedSets: WorkoutSetPlan[]): WorkoutExercise {
-  const safePlans = (plannedSets.length ? plannedSets : [{ targetReps: exercise.measureType === 'duration' ? 30 : 10, targetWeight: 0 }]).map((set) => ({
+  const safePlans = plannedSets.map((set) => ({
     targetReps: Math.max(0, set.targetReps ?? 0),
     targetWeight: exercise.loadMode === 'bodyweight' ? 0 : Math.max(0, set.targetWeight || 0),
   }));
@@ -525,7 +526,7 @@ export function createInitialState(): DemoState {
   const artemHistory = createArtemLegHistory(plans);
 
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     loggedIn: false,
     role: 'trainer',
     activeStudentId: 'artem',
@@ -537,6 +538,7 @@ export function createInitialState(): DemoState {
     assignments: [...createDemoAssignments(now, plans), ...artemHistory.assignments],
     sessions: artemHistory.sessions,
     subscriptionEntries: createDemoSubscriptionEntries(artemHistory.sessions),
+    customExercises: [],
   };
 }
 
@@ -573,11 +575,12 @@ type PersistedWorkoutSession = Omit<WorkoutSession, 'workoutSnapshot' | 'recorde
   recordedBy?: Role;
 };
 
-type PersistedDemoState = Omit<DemoState, 'schemaVersion' | 'assignments' | 'sessions' | 'subscriptionEntries'> & {
+type PersistedDemoState = Omit<DemoState, 'schemaVersion' | 'assignments' | 'sessions' | 'subscriptionEntries' | 'customExercises'> & {
   schemaVersion?: number;
   assignments: PersistedAssignment[];
   sessions: PersistedWorkoutSession[];
   subscriptionEntries?: SubscriptionEntry[];
+  customExercises?: ExerciseDefinition[];
   workouts?: Workout[];
   studentWorkoutVersions?: unknown[];
 };
@@ -654,7 +657,7 @@ export function migrateDemoState(state: PersistedDemoState): DemoState {
   });
 
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     loggedIn: state.loggedIn,
     role: state.role,
     activeStudentId: currentId(state.activeStudentId),
@@ -680,6 +683,7 @@ export function migrateDemoState(state: PersistedDemoState): DemoState {
       trainerId: entry.trainerId ?? TRAINER_ID,
       studentId: currentId(entry.studentId),
     })),
+    customExercises: Array.isArray(state.customExercises) ? state.customExercises : [],
   };
 }
 

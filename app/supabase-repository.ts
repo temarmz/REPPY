@@ -4,6 +4,7 @@ import {
   exerciseLibrary,
   type Assignment,
   type DemoState,
+  type ExerciseDefinition,
   type Role,
   type Student,
   type SubscriptionEntry,
@@ -91,7 +92,17 @@ type SubscriptionRow = {
   revision: number;
 };
 
-type DefinitionRow = { id: string; slug: string | null };
+type DefinitionRow = {
+  id: string;
+  slug: string | null;
+  owner_id: string | null;
+  name: string;
+  primary_muscle: string;
+  equipment: string;
+  measure_type: ExerciseDefinition['measureType'];
+  load_mode: ExerciseDefinition['loadMode'];
+  archived_at: string | null;
+};
 
 const REALTIME_TABLES = [
   'students',
@@ -217,7 +228,7 @@ export function createSupabaseRepository(
       client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, revision'),
       client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
       subscriptionsQuery,
-      client.from('exercise_definitions').select('id, slug'),
+      client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, equipment, measure_type, load_mode, archived_at'),
     ]);
     for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult]) {
       throwIfError(result);
@@ -231,11 +242,22 @@ export function createSupabaseRepository(
     const subscriptionRows = (subscriptionsResult.data ?? []) as SubscriptionRow[];
     const definitions = (definitionsResult.data ?? []) as DefinitionRow[];
     const slugByDefinition = new Map<string, string>();
+    const customExercises: ExerciseDefinition[] = [];
 
     for (const definition of definitions) {
       const uiId = definition.slug ?? definition.id;
       remoteExerciseDefinitionId.set(uiId, definition.id);
       slugByDefinition.set(definition.id, uiId);
+      if (definition.owner_id === profile.id && !definition.archived_at) {
+        customExercises.push({
+          id: uiId,
+          name: definition.name,
+          primaryMuscle: definition.primary_muscle === 'Другое' ? undefined : definition.primary_muscle as ExerciseDefinition['primaryMuscle'],
+          equipment: definition.equipment,
+          measureType: definition.measure_type,
+          loadMode: definition.load_mode,
+        });
+      }
     }
     for (const relationship of relationships) {
       relationshipByStudent.set(relationship.student_id, relationship.id);
@@ -360,7 +382,7 @@ export function createSupabaseRepository(
       ? studentRows.find((student) => student.account_id === profile.id)?.id
       : undefined;
     const state: DemoState = {
-      schemaVersion: 6,
+      schemaVersion: 7,
       loggedIn: true,
       role: profile.role,
       activeStudentId: ownStudent ?? students[0]?.id ?? '',
@@ -368,6 +390,7 @@ export function createSupabaseRepository(
       assignments,
       sessions,
       subscriptionEntries,
+      customExercises,
     };
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
@@ -386,7 +409,20 @@ export function createSupabaseRepository(
 
   async function execute(command: ReppyCommand, state: DemoState) {
     let telegramNotificationCreated = false;
-    if (command.type === 'student.create') {
+    if (command.type === 'exercise-definition.create') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может сохранять свои упражнения.');
+      const definition = command.definition;
+      const definitionId = getRemoteId(remoteExerciseDefinitionId, definition.id);
+      throwIfError(await client.from('exercise_definitions').insert({
+        id: definitionId,
+        owner_id: profile.id,
+        name: definition.name.trim(),
+        primary_muscle: definition.primaryMuscle ?? 'Другое',
+        equipment: definition.equipment,
+        measure_type: definition.measureType,
+        load_mode: definition.loadMode,
+      }));
+    } else if (command.type === 'student.create') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может добавить ученика.');
       const student = command.student;
       const studentId = getRemoteId(remoteStudentId, student.id);

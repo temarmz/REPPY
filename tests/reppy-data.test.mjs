@@ -10,6 +10,7 @@ import {
   getExerciseSetPlans,
   migrateDemoState,
   muscleGroups,
+  normalizeWorkoutExercise,
   repeatAssignment,
   updateSessionWorkout,
   workoutFromSession,
@@ -72,7 +73,7 @@ test('миграция переносит старые шаблоны в сни�
 
 test('состояние использует явную версию схемы и единый массив подходов', () => {
   const state = createInitialState();
-  assert.equal(state.schemaVersion, 6);
+  assert.equal(state.schemaVersion, 7);
   assert.equal('workouts' in state, false);
   assert.equal('studentWorkoutVersions' in state, false);
   for (const workout of state.assignments.map((assignment) => assignment.workoutSnapshot)) {
@@ -119,7 +120,7 @@ test('миграция удаляет агрегатные поля упражн
   const migrated = migrateDemoState(legacy);
   const migratedExercise = migrated.assignments.find((assignment) => assignment.id === legacy.assignments[0].id).workoutSnapshot.exercises[0];
 
-  assert.equal(migrated.schemaVersion, 6);
+  assert.equal(migrated.schemaVersion, 7);
   assert.deepEqual(getExerciseSetPlans(migratedExercise), [
     { targetReps: 7, targetWeight: 42.5 },
     { targetReps: 7, targetWeight: 42.5 },
@@ -272,6 +273,20 @@ test('каждый плановый подход задаёт собственн
     { actualReps: 10, actualWeight: 45 },
     { actualReps: 8, actualWeight: 50 },
   ]);
+});
+
+test('упражнение может оставаться в программе без подходов', () => {
+  const state = createInitialState();
+  const assignment = state.assignments[0];
+  const workout = structuredClone(assignment.workoutSnapshot);
+  workout.exercises[0].plannedSets = [];
+
+  const normalized = normalizeWorkoutExercise(workout.exercises[0]);
+  assert.deepEqual(getExerciseSetPlans(normalized), []);
+
+  const session = createWorkoutSession(assignment, { ...workout, exercises: [normalized] }, 'trainer');
+  assert.equal(session.workoutSnapshot.exercises.length, 1);
+  assert.deepEqual(session.results, []);
 });
 
 test('миграция распознаёт упражнения со своим весом и не создаёт для них килограммы', () => {

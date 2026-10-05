@@ -4,6 +4,26 @@ import test from 'node:test';
 import { applyReppyCommand } from '../app/reppy-commands.ts';
 import { createInitialState, createWorkoutSession } from '../app/reppy-data.ts';
 
+test('личное упражнение сохраняется в библиотеке тренера без дубля имени', () => {
+  const state = createInitialState();
+  const definition = {
+    id: 'custom-exercise-balance',
+    name: '  Баланс на подушке  ',
+    equipment: 'Балансировочная подушка',
+    loadMode: 'bodyweight',
+    measureType: 'duration',
+  };
+
+  const created = applyReppyCommand(state, { type: 'exercise-definition.create', definition });
+  const repeated = applyReppyCommand(created, {
+    type: 'exercise-definition.create',
+    definition: { ...definition, id: 'another-id', name: 'баланс на подушке' },
+  });
+
+  assert.deepEqual(created.customExercises, [{ ...definition, name: 'Баланс на подушке' }]);
+  assert.strictEqual(repeated, created);
+});
+
 test('предметная команда изменяет только выбранное назначение', () => {
   const state = createInitialState();
   const original = state.assignments[0];

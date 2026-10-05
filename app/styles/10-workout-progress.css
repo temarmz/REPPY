@@ -1,0 +1,214 @@
+/* Shared workout detail and planning patterns */
+.assignment-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.assignment-detail-actions .primary-button {
+  grid-column: 1 / -1;
+}
+.assignment-detail-actions .primary-button,
+.assignment-detail-actions .wide-secondary {
+  min-height: 58px;
+}
+.assignment-detail-actions > .wide-secondary:only-child {
+  grid-column: 1 / -1;
+}
+
+.readonly-exercise-list {
+  display: grid;
+  gap: 14px;
+}
+.readonly-exercise-card {
+  overflow: hidden;
+  border: 1px solid var(--ui-outline);
+  border-radius: 24px;
+  background: var(--surface);
+}
+.readonly-exercise-card > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+}
+.readonly-exercise-card > header .exercise-help { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid var(--ui-outline); border-radius: 14px; background: rgba(255,255,255,.04); color: var(--muted); cursor: pointer; }
+.readonly-exercise-card > header .exercise-help .ui-icon { width: 19px; height: 19px; }
+.readonly-exercise-card > header > span {
+  color: var(--lime);
+  font-family: var(--app-font-mono);
+  font-size: 12px;
+  font-weight: 900;
+}
+.readonly-exercise-card > header > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+.readonly-exercise-card h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: normal;
+}
+.readonly-exercise-card header small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.readonly-set-list {
+  display: grid;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.readonly-set-list p {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  padding: 10px 18px;
+}
+.readonly-set-list p:last-child {
+  border-bottom: 0;
+}
+.readonly-set-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.readonly-set-list strong {
+  font-family: var(--app-font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.readonly-coach-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  border-top: 1px solid rgba(198,255,61,.12);
+  padding: 13px 18px 15px;
+  background: var(--brand-soft);
+  color: #dce0d8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.readonly-coach-note .ui-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--lime);
+}
+.exercise-progress-button {
+  width: calc(100% - 36px);
+  min-height: 52px;
+  margin: 14px 18px 18px;
+}
+.plan-context-card {
+  margin-bottom: 18px;
+  border-radius: 22px;
+  padding: 17px;
+}
+.plan-context-card .assignment-edit-person {
+  gap: 13px;
+  margin-bottom: 15px;
+}
+.plan-context-card .assignment-edit-person strong {
+  font-size: 19px;
+}
+.plan-context-card .schedule-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.plan-context-card .schedule-fields.date-only { grid-template-columns: 1fr; }
+.plan-context-card .schedule-field {
+  gap: 7px;
+  border-radius: 16px;
+  padding: 10px;
+  background: #090b09;
+}
+.plan-context-card .schedule-field span {
+  font-size: 11px;
+}
+.plan-context-card .schedule-field input {
+  height: 48px;
+  border-radius: 13px;
+  padding-inline: 10px;
+  font-size: 14px;
+  line-height: 48px;
+}
+.plan-context-card .schedule-field.date-picker-field > button {
+  min-height: 48px;
+  border-radius: 13px;
+  padding-inline: 10px;
+}
+.plan-context-card .schedule-field.date-picker-field > button strong { font-size: 14px; }
+.plan-submit-actions {
+  margin-top: 24px;
+  padding-right: 76px;
+}
+.plan-delete-button {
+  width: 100%;
+  margin-top: 22px;
+}
+.set-metrics.single-metric {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Exercise progress uses the shared header, list rows and secondary buttons. */
+.student-exercise-progress .workout-row { grid-template-columns: minmax(0, 1fr) auto; }
+.student-exercise-progress .workout-row strong { white-space: normal; }
+.progress-muted, .progress-period, .progress-chart-unit { color: var(--muted); }
+.progress-period { margin: -12px 0 20px; font-size: 13px; }
+.progress-sets { min-width: 0; }
+.progress-sets > div { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.progress-sets > div > small { width: 100%; }
+.progress-set { font-size: 14px; font-variant-numeric: tabular-nums; }
+.progress-sets > small { display: block; margin-top: 6px; font-size: 12px; }
+.progress-chart { border: 1px solid var(--ui-outline); background: var(--surface); border-radius: 24px; padding: 20px; }
+.progress-chart-unit { margin: 0 0 8px; font-size: 13px; }
+.progress-chart-legend { display: flex; gap: 18px; margin-bottom: 2px; color: var(--muted); font-size: 11px; }
+.progress-chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.progress-chart-legend span::before { width: 14px; height: 3px; border-radius: 2px; background: var(--lime); content: ''; }
+.progress-chart-legend .sets::before { background: var(--orange); }
+.progress-chart svg { display: block; width: 100%; height: auto; max-height: 280px; color: var(--lime); overflow: visible; }
+.progress-chart text { font-size: 12px; fill: var(--muted); }
+.progress-chart .progress-set-axis { fill: var(--orange); }
+.progress-chart .progress-sets-line, .progress-chart .progress-sets-point { color: var(--orange); }
+.progress-chart g[role="button"] { cursor: pointer; }
+.progress-chart g[role="button"]:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+.progress-chart g[role="button"]:focus-visible circle:last-child { stroke: var(--lime); stroke-width: 4px; }
+.progress-selected { border-top: 1px solid var(--ui-outline); padding-top: 16px; margin-top: 12px; }
+.progress-selection-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.progress-selection-heading h3 { margin: 0; font-size: 16px; text-align: center; }
+.progress-selection-heading .wide-secondary { width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; }
+.progress-selected > .progress-sets { margin: 16px 0; }
+@media (max-width: 600px) {
+  .progress-chart { padding: 16px; }
+  .progress-selection-heading h3 { font-size: 14px; }
+}
+
+.student-profile-intro .page-header { margin-bottom: 12px; }
+.student-profile-intro .athlete-details-compact { margin: 0 0 32px; padding: 0; border: 0; }
+.athlete-inline-summary { display: flex; align-items: flex-start; gap: 12px; }
+.athlete-inline-summary > div { min-width: 0; }
+.athlete-inline-summary p { margin: 0 0 5px; font-size: 13px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
+.athlete-inline-summary .athlete-edit-icon { width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto; }
+.athlete-details-compact .athlete-form { margin-top: 18px; }
+.progress-set-number { color: var(--muted); }
+.progress-sets .progress-set { white-space: nowrap; }
+.progress-comparison-values { display: flex; flex-wrap: wrap; gap: 4px 6px; font-size: 13px; line-height: 1.5; }
+.progress-comparison-values > span { white-space: nowrap; }
+.progress-comparison-change { font-size: 14px; font-weight: 650; color: var(--paper); }
+
+.trend-up { color: var(--lime); }
+.trend-down { color: var(--orange); }
+.trend-flat, .trend-mixed { color: var(--muted); }
+
+@media (max-width: 800px) {
+  .bottom-nav { gap: 2px; padding-inline: 4px; }
+  .bottom-nav button { flex: 1 1 auto; padding-inline: 0; }
+}

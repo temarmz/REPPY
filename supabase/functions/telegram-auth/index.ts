@@ -195,6 +195,27 @@ Deno.serve(async (request) => {
   }
 
   if (linkedAccount?.profile_id) {
+    if (action === 'accept-student-invitation') {
+      const invitationToken = typeof body.invitationToken === 'string' ? body.invitationToken : ''
+      if (invitationToken.length < 40 || invitationToken.length > 128) {
+        return failure('invitation_invalid', 'Приглашение недействительно.', 400)
+      }
+      const { error: acceptError } = await admin.rpc('accept_existing_student_invitation_from_telegram', {
+        p_token: invitationToken,
+        p_telegram_user_id: telegram.id,
+      })
+      if (acceptError) {
+        const message = acceptError.message.toLowerCase()
+        if (message.includes('expired')) return failure('invitation_expired', 'Срок действия приглашения истёк. Попросите тренера создать новую ссылку.', 410)
+        if (message.includes('revoked')) return failure('invitation_revoked', 'Тренер отозвал это приглашение. Попросите новую ссылку.', 410)
+        if (message.includes('used')) return failure('invitation_used', 'Это приглашение уже использовано.', 409)
+        if (message.includes('not a student')) return failure('student_account_required', 'Это приглашение можно принять только в аккаунте ученика.', 409)
+        if (message.includes('relationship already exists')) return failure('student_already_connected', 'Этот тренер уже связан с вашим аккаунтом.', 409)
+        return failure('invitation_invalid', 'Приглашение недействительно.', 409)
+      }
+      try { return json({ status: 'authenticated', ...(await sessionFor(linkedAccount.profile_id)) }) }
+      catch (error) { console.error('Student session issue failed', error); return failure('session_failed', 'Связь с тренером создана, но вход не выполнен.', 500) }
+    }
     if (action !== 'login' && action !== 'register-trainer') {
       return failure(
         'telegram_already_linked',

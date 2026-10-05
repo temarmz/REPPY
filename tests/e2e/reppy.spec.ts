@@ -694,10 +694,8 @@ test('новая тренировка сохраняется только в н�
   await expect(exercisePicker.getByText('В тренировке: 2')).toBeVisible();
   await exercisePicker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(2);
-  for (const card of await page.locator('.plan-exercise-card').all()) {
-    await card.getByLabel('КГ').fill('20');
-    await card.getByLabel('ПОВТОРЫ').fill('10');
-  }
+  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Назначить тренировку' })).toBeEnabled();
   await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
@@ -705,6 +703,7 @@ test('новая тренировка сохраняется только в н�
   expect(saved).not.toHaveProperty('workouts');
   expect(saved).not.toHaveProperty('studentWorkoutVersions');
   expect(saved.assignments.at(-1).workoutSnapshot.name).toBe('Персональная тренировка Марии');
+  expect(saved.assignments.at(-1).workoutSnapshot.exercises.every((exercise: { plannedSets: unknown[] }) => exercise.plannedSets.length === 0)).toBe(true);
   expect(saved.assignments.at(-1)).not.toHaveProperty('workoutId');
   expect(saved.assignments.at(-1)).not.toHaveProperty('source');
 });
@@ -735,7 +734,8 @@ test('упражнение можно добавить повторно и уб�
   await expect(picker.getByRole('group', { name: 'Жим лёжа', exact: true })).toContainText('1');
   await picker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(1);
-  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(1);
+  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Добавить подход — Жим лёжа' })).toBeVisible();
   const submit = page.getByRole('button', { name: 'Назначить тренировку' });
   await submit.scrollIntoViewIfNeeded();
   const submitBox = await submit.boundingBox();
@@ -758,6 +758,8 @@ test('онлайн-тренировка переиспользует назна�
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const exercise = page.locator('.plan-exercise-card').first();
+  await expect(exercise.locator('.set-card')).toHaveCount(0);
+  await exercise.getByRole('button', { name: 'Добавить подход — Жим лёжа' }).click();
   await exercise.getByLabel('КГ').fill('20');
   await exercise.getByLabel('ПОВТОРЫ').fill('10');
   await exercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
@@ -906,6 +908,7 @@ test('тренер удаляет отдельное пополнение или
   await page.goto('/#/trainer/clients/artem/subscription');
 
   const paymentRows = page.locator('.subscription-entry-list > button');
+  await expect(paymentRows.first()).toBeVisible();
   const paymentsBefore = await paymentRows.count();
   expect(paymentsBefore).toBeGreaterThan(1);
   await paymentRows.first().click();
@@ -1102,22 +1105,29 @@ test('тренер ведёт занятие, правит его в момен�
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   await page.locator('.exercise-picker-sheet .search-input').fill('Тяга полотенца');
-  await page.getByRole('button', { name: 'Добавить «Тяга полотенца»' }).click();
+  await page.getByRole('button', { name: 'Сохранить и добавить «Тяга полотенца»' }).click();
   await page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Готово' }).click();
   const customCard = page.locator('.active-exercise-card').filter({ hasText: 'Тяга полотенца' });
   await expect(customCard).toBeVisible();
   await expect(customCard.getByText('Пользовательское упражнение')).toBeVisible();
   await expect(customCard).toHaveClass(/recently-moved/);
-  await expect(customCard.locator('.set-card')).toHaveCount(1);
+  await expect(customCard.locator('.set-card')).toHaveCount(0);
   await customCard.getByRole('button', { name: 'Добавить подход — Тяга полотенца' }).click();
-  await expect(customCard.locator('.set-card')).toHaveCount(2);
-  await customCard.getByRole('button', { name: 'Удалить последний подход — Тяга полотенца' }).click();
   await expect(customCard.locator('.set-card')).toHaveCount(1);
+  await customCard.getByRole('button', { name: 'Удалить последний подход — Тяга полотенца' }).click();
+  await expect(customCard.locator('.set-card')).toHaveCount(0);
 
   await customCard.getByRole('button', { name: 'Действия — Тяга полотенца' }).click();
   let actionsDialog = page.getByRole('dialog', { name: 'Действия — Тяга полотенца' });
   await actionsDialog.getByRole('button', { name: /Удалить упражнение/ }).click();
   await expect(customCard).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Добавить упражнение' }).click();
+  const personalPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
+  await personalPicker.getByRole('searchbox', { name: 'Поиск упражнений' }).fill('Тяга полотенца');
+  await expect(personalPicker.getByText('Моё')).toBeVisible();
+  await expect(personalPicker.getByRole('button', { name: 'Добавить Тяга полотенца' })).toBeVisible();
+  await personalPicker.getByRole('button', { name: 'Готово' }).click();
 
   await expect(squatCard.locator('.set-card')).toHaveCount(5);
   await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('70');
@@ -1175,7 +1185,9 @@ test('упражнение со своим весом не показывает 
   const pullUpsPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Подтягивания' });
   await expect(pullUpsPlan.getByText('Спина · Свой вес')).toBeVisible();
   await expect(pullUpsPlan.getByLabel('КГ')).toHaveCount(0);
-  await expect(pullUpsPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
+  await expect(pullUpsPlan.getByLabel('ПОВТОРЫ')).toHaveCount(0);
+  await pullUpsPlan.getByRole('button', { name: 'Добавить подход — Подтягивания' }).click();
+  await expect(pullUpsPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('10');
   await expect(pullUpsPlan.locator('.active-exercise-meta')).toHaveText('Спина · Свой вес');
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
@@ -1184,7 +1196,9 @@ test('упражнение со своим весом не показывает 
   await page.getByRole('button', { name: 'Готово' }).click();
   const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
   await expect(plankPlan.getByLabel('КГ')).toHaveCount(0);
-  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('');
+  await expect(plankPlan.getByLabel('СЕКУНДЫ')).toHaveCount(0);
+  await plankPlan.getByRole('button', { name: 'Добавить подход — Планка' }).click();
+  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('30');
 });
 
 test('черновик тренировки и открытый выбор упражнений восстанавливаются после выгрузки WebView', async ({ page }) => {
@@ -1196,9 +1210,8 @@ test('черновик тренировки и открытый выбор уп�
   await page.getByRole('button', { name: 'Добавить Приседания', exact: true }).click();
 
   const squatPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Приседания' });
-  await expect(squatPlan.getByLabel('КГ').first()).toHaveValue('');
-  await expect(squatPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
-  await expect(page.locator('.plan-submit-button')).toBeDisabled();
+  await expect(squatPlan.getByLabel('КГ')).toHaveCount(0);
+  await expect(squatPlan.getByLabel('ПОВТОРЫ')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).some((key) => key?.startsWith('reppy-ui:workout-draft:')))).toBe(true);
 
   await page.reload();
@@ -1206,12 +1219,10 @@ test('черновик тренировки и открытый выбор уп�
   await expect(page.getByLabel('Название тренировки')).toHaveValue('Черновик на вечер');
   await expect(page.getByRole('dialog', { name: 'Добавить упражнения' })).toBeVisible();
   const restoredSquatPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Приседания' });
-  await expect(restoredSquatPlan.getByLabel('КГ').first()).toHaveValue('');
-  await expect(restoredSquatPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
+  await expect(restoredSquatPlan.getByLabel('КГ')).toHaveCount(0);
+  await expect(restoredSquatPlan.getByLabel('ПОВТОРЫ')).toHaveCount(0);
 
   await page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Готово' }).click();
-  await restoredSquatPlan.getByLabel('КГ').first().fill('60');
-  await restoredSquatPlan.getByLabel('ПОВТОРЫ').first().fill('8');
   await expect(page.getByRole('button', { name: 'Назначить тренировку' })).toBeEnabled();
 });
 
@@ -1261,5 +1272,5 @@ test('старое сохранённое состояние автоматич�
       hasWorkoutId: Object.hasOwn(saved.assignments[0], 'workoutId'),
       hasSource: Object.hasOwn(saved.assignments[0], 'source'),
     };
-  })).toEqual({ schemaVersion: 6, hasWorkouts: false, hasVersions: false, hasWorkoutId: false, hasSource: false });
+  })).toEqual({ schemaVersion: 7, hasWorkouts: false, hasVersions: false, hasWorkoutId: false, hasSource: false });
 });

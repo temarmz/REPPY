@@ -1,0 +1,219 @@
+/* Light application theme. Landing stays dark until the user enters the app. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #f1f2eb;
+  --text-primary: #171b16;
+  --surface: #ffffff;
+  --surface-2: #f2f4ee;
+  --surface-3: #e5e9e1;
+  --control-bg: #f7f8f3;
+  --overlay-surface: #ffffff;
+  --muted: #687067;
+  --ui-outline: rgba(25,35,23,.12);
+  --divider: rgba(25,35,23,.09);
+  --brand-soft: rgba(93,128,18,.1);
+  --lime: #acd957;
+  --lime-strong: #4f7111;
+  --field-outline: #82917e;
+  --field-bg: #f3f6ef;
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root,
+html[data-theme="light"] .app-shell { background: var(--app-bg); color: var(--text-primary); }
+
+html[data-theme="light"] .topbar {
+  border-bottom-color: var(--divider);
+  background: rgba(250,251,247,.9);
+  box-shadow: 0 6px 22px rgba(38,48,34,.04);
+}
+html[data-theme="light"] .topbar .brand-logo { filter: drop-shadow(0 1px 0 rgba(0,0,0,.68)) drop-shadow(0 5px 10px rgba(91,52,150,.12)); }
+html[data-theme="light"] .role-switch,
+html[data-theme="light"] .theme-switch,
+html[data-theme="light"] .avatar-button {
+  border-color: var(--ui-outline);
+  background: #ffffff;
+  color: #30372e;
+  box-shadow: 0 4px 14px rgba(32,42,29,.05);
+}
+html[data-theme="light"] .theme-switch { color: var(--lime-strong); }
+
+html[data-theme="light"] .desktop-nav {
+  border-right-color: var(--divider);
+  background: #f8f9f4;
+}
+html[data-theme="light"] .profile-avatar { border-color: var(--ui-outline); background: #e9ece5; color: #30372e; }
+html[data-theme="light"] .person-avatar { border-color: var(--ui-outline); background: #eef0ea; color: #4e574c; }
+html[data-theme="light"] .person-avatar.lime { border-color: rgba(79,113,17,.2); background: rgba(184,242,56,.13); color: #4f7111; }
+html[data-theme="light"] .person-avatar.violet { border-color: rgba(97,74,158,.2); background: rgba(122,76,255,.1); color: #60489a; }
+html[data-theme="light"] .person-avatar.pink { border-color: rgba(138,59,118,.18); background: rgba(255,79,216,.08); color: #83386f; }
+html[data-theme="light"] .person-avatar.orange { border-color: rgba(138,75,44,.18); background: rgba(255,106,53,.09); color: #86492d; }
+html[data-theme="light"] .desktop-nav nav button { color: #667064; }
+html[data-theme="light"] .desktop-nav nav button > span { background: rgba(25,35,23,.05); }
+html[data-theme="light"] .desktop-nav nav button.active,
+html[data-theme="light"] .bottom-nav button.active { background: var(--lime); color: var(--ink); box-shadow: 0 5px 18px rgba(78,105,22,.11); }
+html[data-theme="light"] .side-demo { border-color: rgba(79,113,17,.2); background: var(--brand-soft); color: #566052; }
+
+html[data-theme="light"] .bottom-nav {
+  border-color: var(--ui-outline);
+  background: rgba(250,251,247,.96);
+  box-shadow: 0 -12px 38px rgba(36,46,32,.1);
+}
+html[data-theme="light"] .bottom-nav button { color: #687166; }
+html[data-theme="light"] .toggle-track { background: #d5dbd1; box-shadow: inset 0 0 0 1px rgba(25,35,23,.08); }
+html[data-theme="light"] .toggle-track i { background: #ffffff; box-shadow: 0 1px 4px rgba(25,35,23,.18); }
+html[data-theme="light"] .schedule-view-toggle.active .toggle-track { background: var(--lime); }
+html[data-theme="light"] .schedule-view-toggle.active .toggle-track i { background: var(--ink); box-shadow: none; }
+
+html[data-theme="light"] :is(.wide-secondary, .back-button, .empty-state button, .details-edit-button) {
+  border-color: var(--ui-outline);
+  background: var(--control-bg);
+  color: #2f372d;
+}
+html[data-theme="light"] :is(.trainer-plan-header > button, .schedule-add-button, .empty-day-plus) { border-color: var(--ui-outline); background: var(--control-bg); }
+html[data-theme="light"] :is(.trainer-plan-header > button, .schedule-add-button):hover { border-color: rgba(25,35,23,.2); background: #eef1e9; }
+html[data-theme="light"] :is(.wide-secondary, .back-button, .empty-state button, .details-edit-button):hover { border-color: rgba(25,35,23,.2); background: #eef1e9; }
+html[data-theme="light"] :is(button, input, select, textarea):focus-visible { outline-color: var(--lime-strong); }
+html[data-theme="light"] .danger-button,
+html[data-theme="light"] .reset-button { border-color: rgba(177,66,52,.22); background: rgba(201,75,58,.07); color: #a84336; }
+
+html[data-theme="light"] .today-schedule,
+html[data-theme="light"] .student-focus-card {
+  border: 1px solid var(--ui-outline);
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 18px 48px rgba(37,47,33,.08);
+}
+html[data-theme="light"] .today-session-list { border-color: rgba(25,35,23,.09); background: #f7f8f3; }
+html[data-theme="light"] .today-schedule .plan-session-row { border-bottom-color: rgba(25,35,23,.08); }
+
+html[data-theme="light"] :is(.activity-row, .workout-row, .session-row, .plan-session-row, .reschedule-notification-row, .student-upcoming-row, .workout-history-row, .picker-list button, .subscription-entry-list > button, .subscription-entry-list > article) { border-bottom-color: var(--divider); }
+html[data-theme="light"] :is(.plan-day-card > header, .readonly-set-list, .readonly-set-list p, .result-exercises header, .result-exercises p, .picker-footer) { border-color: var(--divider); }
+html[data-theme="light"] :is(.client-card, .workout-history-list, .empty-state, .calendar-card, .agenda-list > button, .plan-day-card, .active-exercise-card, .set-card) { border-color: var(--ui-outline); }
+html[data-theme="light"] :is(.student-upcoming > div:last-child, .calendar-shortcut, .exercise-plan-list article) { border-color: var(--divider); }
+html[data-theme="light"] :is(.plan-day-card > header, .plan-day-card.empty-day, .empty-day-action:hover, .design-kit-swatches > div) { background: rgba(25,35,23,.025); }
+
+html[data-theme="light"] :is(.schedule-student-list, .exercise-editor, .workout-assignments > button, .mood-grid button, .active-comment-field, .bodyweight-set-label, .plan-context-card .schedule-field, .finish-balance-preview, .training-format-field > div) { background: var(--control-bg); }
+html[data-theme="light"] :is(.text-input, .schedule-field input, .date-picker-field > button, .athlete-form input, .athlete-form select, .athlete-form textarea, .metric-input input, .set-card input, .coach-note-field textarea, .active-comment-field textarea, .comment-field textarea, .subscription-payment-form input, .subscription-payment-form textarea, .payment-method-field button, .design-kit-textarea-field textarea, .instruction-textarea) {
+  border: 1px solid var(--field-outline);
+  background: var(--field-bg);
+  color: var(--text-primary);
+  color-scheme: light;
+}
+html[data-theme="light"] :is(.text-input, .schedule-field input, .date-picker-field > button, .athlete-form input, .athlete-form select, .athlete-form textarea, .metric-input input, .set-card input, .coach-note-field textarea, .active-comment-field textarea, .comment-field textarea, .subscription-payment-form input, .subscription-payment-form textarea, .design-kit-textarea-field textarea, .instruction-textarea):focus-visible {
+  border-color: var(--lime-strong);
+  box-shadow: 0 0 0 3px rgba(79,113,17,.18);
+}
+html[data-theme="light"] :is(input, textarea)::placeholder { color: #7b8378; }
+html[data-theme="light"] :is(.field-label, .schedule-field span, .athlete-form label > span, .coach-note-field > span, .active-comment-field span, .comment-field > span, .subscription-payment-form label > span, .payment-method-field legend, .subscription-payment-form .date-picker-field > span, .design-kit-textarea-field > span) { color: #3d463a; }
+
+html[data-theme="light"] :is(.bottom-sheet, .settings-modal) { background: var(--overlay-surface); color: var(--text-primary); box-shadow: 0 24px 80px rgba(29,38,26,.2); }
+html[data-theme="light"] .modal-backdrop { background: rgba(24,31,22,.46); }
+html[data-theme="light"] .sheet-title > button { background: var(--surface-2); color: #30372e; }
+html[data-theme="light"] .sheet-handle { background: #cbd0c8; }
+
+html[data-theme="light"] .calendar-toolbar button { border-color: var(--ui-outline); background: var(--control-bg); color: #30372e; }
+html[data-theme="light"] .calendar-grid button { background: rgba(25,35,23,.025); color: #30372e; }
+html[data-theme="light"] .calendar-grid button.outside { color: #687166; }
+html[data-theme="light"] .calendar-grid button:disabled { color: #b7bdb4; }
+html[data-theme="light"] .calendar-grid button.today { border-color: rgba(25,35,23,.32); color: #171b16; }
+html[data-theme="light"] .calendar-grid button.selected { background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .calendar-grid button i,
+html[data-theme="light"] .calendar-grid button.selected i { background: var(--lime-strong); }
+html[data-theme="light"] .agenda-list p { color: #596157; }
+html[data-theme="light"] .agenda-tail b { background: var(--surface-2); color: #465043; }
+
+html[data-theme="light"] :is(.recent-card, .profile-hero) { background: linear-gradient(135deg, #ffffff, #eef1e8); color: var(--text-primary); box-shadow: 0 14px 38px rgba(37,47,33,.06); }
+html[data-theme="light"] .workout-card::after { border-color: rgba(25,35,23,.08); }
+html[data-theme="light"] .subscription-card,
+html[data-theme="light"] .subscription-history-summary { background: #f4f8ea; }
+html[data-theme="light"] .subscription-card.debt,
+html[data-theme="light"] .subscription-history-summary.debt { background: #fff4ef; }
+html[data-theme="light"] .subscription-entry-delta { background: var(--surface-2); }
+html[data-theme="light"] .subscription-entry-delta.negative { color: #a8442b; }
+html[data-theme="light"] .client-subscription.low,
+html[data-theme="light"] .subscription-card.low > header span,
+html[data-theme="light"] .student-subscription-status.low > span { color: #80600b; }
+html[data-theme="light"] .client-subscription.debt,
+html[data-theme="light"] .subscription-card.debt > header span,
+html[data-theme="light"] .subscription-history-summary.debt > span,
+html[data-theme="light"] .student-subscription-status.debt > span { color: #a8442b; }
+html[data-theme="light"] .subscription-warning > .ui-icon,
+html[data-theme="light"] .subscription-warning > button,
+html[data-theme="light"] .finish-incomplete-warning > .ui-icon,
+html[data-theme="light"] .active-header-copy .save-state.saving { color: #80600b; }
+html[data-theme="light"] .subscription-warning.debt > .ui-icon,
+html[data-theme="light"] .subscription-warning.debt > button,
+html[data-theme="light"] .subscription-warning.empty > .ui-icon,
+html[data-theme="light"] .subscription-warning.empty > button { color: #a8442b; }
+
+html[data-theme="light"] .active-workout-page { background: var(--app-bg); color: var(--text-primary); }
+html[data-theme="light"] .active-sticky-header { background: rgba(241,242,235,.94); box-shadow: 0 10px 24px rgba(31,40,28,.09); }
+html[data-theme="light"] .active-sticky-header::before { background: var(--app-bg); }
+html[data-theme="light"] .active-timing time { color: var(--text-primary); }
+html[data-theme="light"] .active-progress { background: #dce1d7; }
+html[data-theme="light"] .active-progress span { background: var(--lime-strong); }
+html[data-theme="light"] .active-workout-editor,
+html[data-theme="light"] .active-exercise-card,
+html[data-theme="light"] .plan-exercise-card { background: #ffffff; }
+html[data-theme="light"] .active-exercise-card.completed { border-color: rgba(79,113,17,.25); background: linear-gradient(145deg, rgba(184,242,56,.12), #ffffff 44%); }
+html[data-theme="light"] :is(.exercise-order-controls button, .exercise-comment-button, .active-exercise-footer-actions button, .active-exercise-corner-actions button, .exercise-action-list > button, .muscle-filter button, .picker-list .custom-load-mode button) { border-color: var(--ui-outline); background: var(--control-bg); color: #343c32; }
+html[data-theme="light"] .picker-list .picker-quantity button { border-color: var(--ui-outline); background: var(--control-bg); color: #30382e; }
+html[data-theme="light"] .set-card > button { border-color: #c9d0c5; background: var(--surface-2); color: #6c7569; }
+html[data-theme="light"] .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .set-count-control > span { color: #4e594a; }
+html[data-theme="light"] .active-exercise-footer-actions .add-first-set { border-color: rgba(96,72,154,.22); background: rgba(96,72,154,.06); color: #60489a; }
+html[data-theme="light"] .exercise-equipment { border-color: var(--ui-outline); background: var(--control-bg); }
+html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider); background: rgba(250,251,247,.94); }
+
+html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .progress-chart svg, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state > span, .history-copy-icon, .student-request-status > .ui-icon, .exercise-coach-note .ui-icon, .active-coach-note > .ui-icon, .active-edit-toggle .ui-icon, .exercise-comment-button .ui-icon, .active-exercise-footer-actions button .ui-icon, .result-coach-note .ui-icon, .readonly-coach-note .ui-icon, .student-subscription-status > span, .subscription-entry-delta.positive, .session-subscription-status > .ui-icon, .feedback-intro > span, .success-mood .ui-icon, .session-feedback strong .ui-icon) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .agenda-status, .history-status.completed, .reschedule-request-card > div:first-child > span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.readonly-coach-note, .reschedule-request-card p, .student-request-status p, .exercise-coach-note, .active-coach-note strong, .exercise-instruction-body p, .subscription-entry-list p, .confirmation-sheet > p) { color: #465043 !important; }
+html[data-theme="light"] .readonly-exercise-card h2 { border-top-color: rgba(79,113,17,.14); color: #465043; }
+html[data-theme="light"] .athlete-details { border-top-color: var(--divider); }
+html[data-theme="light"] .athlete-details .section-heading h2 { color: #30382e; }
+html[data-theme="light"] .athlete-summary dt { color: #596157; }
+html[data-theme="light"] .athlete-summary dd { color: var(--text-primary); }
+html[data-theme="light"] .success-mood { border-top-color: var(--divider); color: #465043; }
+html[data-theme="light"] .session-feedback p { background: var(--control-bg); color: #465043; }
+html[data-theme="light"] .exercise-instruction-media { border-color: rgba(96,72,154,.22); background: rgba(122,76,255,.07); color: #60489a; }
+html[data-theme="light"] .exercise-instruction-media.has-video { background: #101210; }
+html[data-theme="light"] .training-format-field legend { color: #3d463a; }
+html[data-theme="light"] .training-format-field button { color: #596157; }
+html[data-theme="light"] .training-format-field button.selected { color: var(--ink); }
+html[data-theme="light"] .readonly-exercise-card > header .exercise-help { background: var(--control-bg); color: #596157; }
+html[data-theme="light"] .exercise-action-list > button.danger,
+html[data-theme="light"] .exercise-action-list > button.danger > .ui-icon { color: #a84438; }
+html[data-theme="light"] .settings-modal .sheet-title > button .ui-icon { color: #30372e; }
+html[data-theme="light"] .mood-fieldset legend { color: #3d463a; }
+html[data-theme="light"] .mood-grid button { border-color: var(--ui-outline); background: var(--control-bg); color: var(--text-primary); }
+html[data-theme="light"] .mood-grid button > span { background: #e7eae3; color: #566054; }
+html[data-theme="light"] .mood-grid button.selected { border-color: rgba(79,113,17,.38); background: var(--brand-soft); }
+html[data-theme="light"] .mood-grid button.selected > span { background: var(--lime); color: var(--ink); }
+html[data-theme="light"] .calendar-shortcut > span,
+html[data-theme="light"] .workout-number { color: #60489a; }
+html[data-theme="light"] .student-upcoming .section-heading > span { background: var(--surface-3); color: #596157; }
+html[data-theme="light"] .student-upcoming-row time strong,
+html[data-theme="light"] .schedule-workout-picker-page .page-lead strong { color: #30382e; }
+html[data-theme="light"] .success-screen section b { color: var(--text-primary); }
+html[data-theme="light"] .demo-stats span { background: var(--control-bg); }
+html[data-theme="light"] .demo-stats b { color: var(--text-primary); }
+html[data-theme="light"] .form-error { background: rgba(168,68,56,.08); color: #a84438; }
+html[data-theme="light"] .trend-down { color: #a8442b; }
+html[data-theme="light"] :is(.plan-day-date > strong, .plan-day-date > span, .plan-session-row > time, .schedule-workout-picker-page .page-lead strong, .active-edit-toggle, .exercise-comment-button, .active-exercise-footer-actions button, .exercise-action-list > button, .history-date) { color: #30382e; }
+html[data-theme="light"] .plan-day-card .plan-session-row > time,
+html[data-theme="light"] .connected-list .workout-row small,
+html[data-theme="light"] .student-upcoming-row time small { color: var(--lime-strong); }
+html[data-theme="light"] :is(.add-exercise, .muscle-filter button.selected, .active-exercise-card.recently-moved, .picker-list .custom-load-mode button.selected, .payment-method-field button.selected) { border-color: rgba(79,113,17,.34); }
+html[data-theme="light"] .history-status:not(.completed):not(.overdue),
+html[data-theme="light"] .design-kit-statuses span:not(.completed):not(.attention) { background: rgba(96,72,154,.1); color: #60489a; }
+html[data-theme="light"] .history-status.overdue,
+html[data-theme="light"] .design-kit-statuses .attention { background: rgba(168,68,43,.09); color: #a8442b; }
+html[data-theme="light"] .toast { border-color: rgba(79,113,17,.2); background: #eef7da; color: var(--lime-strong); box-shadow: 0 18px 50px rgba(37,47,33,.14); }
+html[data-theme="light"] .design-kit-swatches > div { background: var(--control-bg); }
+html[data-theme="light"] .app-status-banner { box-shadow: 0 15px 38px rgba(37,47,33,.13); }
+html[data-theme="light"] .app-status-banner.error > .ui-icon { color: #a84438; }
+html[data-theme="light"] .app-status-banner.offline > .ui-icon { color: #80600b; }
+html[data-theme="light"] .app-status-banner.conflict > .ui-icon { color: #80600b; }

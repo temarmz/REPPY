@@ -5,6 +5,7 @@ import {
 import type {
   Assignment,
   DemoState,
+  ExerciseDefinition,
   SetResult,
   Student,
   SubscriptionEntry,
@@ -14,6 +15,7 @@ import type {
 import { updateSessionWorkout } from './reppy-data.ts';
 
 export type ReppyCommand =
+  | { type: 'exercise-definition.create'; definition: ExerciseDefinition }
   | { type: 'student.create'; student: Student }
   | { type: 'student.update'; student: Student }
   | { type: 'assignment.create'; assignment: Assignment }
@@ -38,6 +40,16 @@ export type ReppyCommand =
 
 export function applyReppyCommand(state: DemoState, command: ReppyCommand): DemoState {
   switch (command.type) {
+    case 'exercise-definition.create': {
+      const normalizedName = command.definition.name.trim().toLocaleLowerCase('ru');
+      return state.customExercises.some((definition) => (
+        definition.id === command.definition.id
+        || definition.name.trim().toLocaleLowerCase('ru') === normalizedName
+      )) ? state : {
+        ...state,
+        customExercises: [...state.customExercises, { ...command.definition, name: command.definition.name.trim() }],
+      };
+    }
     case 'student.create':
       return state.students.some((student) => student.id === command.student.id)
         ? state

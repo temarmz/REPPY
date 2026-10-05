@@ -4,6 +4,7 @@ import type { AuthProfile, InvitationPreview } from './reppy-auth';
 import type { PendingTelegramRegistration } from './telegram-login';
 import { hasTelegramRedirectCallback } from './telegram-login';
 import { ActionButton, FormError, TextField } from './ui-controls';
+import { LoadingScreen } from './onboarding-screens';
 
 function AuthBrand() {
   return <img className="auth-logo" src="logo-wordmark.png" alt="REPPY" />;
@@ -189,7 +190,7 @@ export function SupabaseInvitationScreen({
     return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка устарела" text="Срок действия приглашения истёк. Попроси тренера создать новую ссылку." action="На главную" onAction={onHome} /></main>;
   }
   if (!preview) {
-    return <main className="loading-screen" aria-busy="true"><img className="loading-logo" src="logo-full.png" alt="REPPY" /><p>Проверяем приглашение…</p></main>;
+    return <LoadingScreen message="Проверяем приглашение…" />;
   }
 
   return (
