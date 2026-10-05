@@ -27,6 +27,7 @@ export type WorkoutExercise = {
   exerciseId: string;
   name: string;
   primaryMuscle?: MuscleGroup;
+  muscleGroups?: MuscleGroup[];
   equipment?: string;
   loadMode: 'external' | 'bodyweight';
   measureType: 'reps' | 'duration';
@@ -147,10 +148,19 @@ export type ExerciseDefinition = {
   id: string;
   name: string;
   primaryMuscle?: MuscleGroup;
+  muscleGroups?: MuscleGroup[];
   equipment: string;
   loadMode?: 'external' | 'bodyweight';
   measureType?: 'reps' | 'duration';
 };
+
+export function exerciseMuscleGroups(exercise: Pick<ExerciseDefinition, 'primaryMuscle' | 'muscleGroups'>): MuscleGroup[] {
+  const validGroups = new Set<MuscleGroup>(muscleGroups);
+  const savedGroups = Array.isArray(exercise.muscleGroups)
+    ? exercise.muscleGroups.filter((group): group is MuscleGroup => validGroups.has(group))
+    : [];
+  return [...new Set(savedGroups.length ? savedGroups : exercise.primaryMuscle ? [exercise.primaryMuscle] : [])];
+}
 
 export const exerciseLibrary: ExerciseDefinition[] = [
   { id: 'bench-press', name: 'Жим лёжа', primaryMuscle: 'Грудь', equipment: 'Штанга' },
@@ -283,11 +293,16 @@ export function normalizeWorkoutExercise(exercise: WorkoutExercise | LegacyWorko
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
   const loadMode = exercise.loadMode ?? definition?.loadMode ?? (definition?.equipment === 'Свой вес' ? 'bodyweight' : 'external');
   const measureType = exercise.measureType ?? definition?.measureType ?? 'reps';
+  const groups = exerciseMuscleGroups({
+    primaryMuscle: exercise.primaryMuscle ?? definition?.primaryMuscle,
+    muscleGroups: exercise.muscleGroups ?? definition?.muscleGroups,
+  });
   const withMetadata: WorkoutExercise = {
     id: exercise.id,
     exerciseId: exercise.exerciseId,
     name: exercise.name,
-    primaryMuscle: exercise.primaryMuscle ?? definition?.primaryMuscle,
+    primaryMuscle: groups[0],
+    muscleGroups: groups,
     equipment: exercise.equipment ?? definition?.equipment ?? (loadMode === 'bodyweight' ? 'Свой вес' : undefined),
     loadMode,
     measureType,

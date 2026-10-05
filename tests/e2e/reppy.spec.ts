@@ -1104,12 +1104,18 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(page.locator('.active-exercise-card').nth(4)).toHaveClass(/recently-moved/);
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
-  await page.locator('.exercise-picker-sheet .search-input').fill('Тяга полотенца');
-  await page.getByRole('button', { name: 'Сохранить и добавить «Тяга полотенца»' }).click();
+  const customPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
+  await customPicker.getByRole('button', { name: 'Все', exact: true }).click();
+  await customPicker.getByRole('searchbox', { name: 'Поиск упражнений' }).fill('Тяга полотенца');
+  const muscleSelector = customPicker.getByRole('group', { name: 'Группы мышц упражнения' });
+  await muscleSelector.getByRole('button', { name: 'Спина', exact: true }).click();
+  await muscleSelector.getByRole('button', { name: 'Бицепс', exact: true }).click();
+  await customPicker.getByRole('button', { name: 'Сохранить и добавить «Тяга полотенца»' }).click();
   await page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Готово' }).click();
   const customCard = page.locator('.active-exercise-card').filter({ hasText: 'Тяга полотенца' });
   await expect(customCard).toBeVisible();
   await expect(customCard.getByText('Пользовательское упражнение')).toBeVisible();
+  await expect(customCard).toContainText('Спина, Бицепс');
   await expect(customCard).toHaveClass(/recently-moved/);
   await expect(customCard.locator('.set-card')).toHaveCount(0);
   await customCard.getByRole('button', { name: 'Добавить подход — Тяга полотенца' }).click();
@@ -1127,6 +1133,15 @@ test('тренер ведёт занятие, правит его в момен�
   await personalPicker.getByRole('searchbox', { name: 'Поиск упражнений' }).fill('Тяга полотенца');
   await expect(personalPicker.getByText('Моё')).toBeVisible();
   await expect(personalPicker.getByRole('button', { name: 'Добавить Тяга полотенца' })).toBeVisible();
+  await personalPicker.getByRole('button', { name: 'Редактировать Тяга полотенца' }).click();
+  const editMuscles = personalPicker.getByRole('group', { name: 'Группы мышц упражнения' });
+  await expect(editMuscles.getByRole('button', { name: 'Спина', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(editMuscles.getByRole('button', { name: 'Бицепс', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await editMuscles.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
+  await personalPicker.getByRole('button', { name: 'Сохранить изменения' }).click();
+  await personalPicker.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
+  await expect(personalPicker.getByText('Тяга полотенца')).toBeVisible();
+  await expect(personalPicker.getByText('Спина, Бицепс, Квадрицепс · Другое')).toBeVisible();
   await personalPicker.getByRole('button', { name: 'Готово' }).click();
 
   await expect(squatCard.locator('.set-card')).toHaveCount(5);

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   TRAINER_ID,
+  exerciseMuscleGroups,
   exerciseLibrary,
   type Assignment,
   type DemoState,
@@ -98,6 +99,7 @@ type DefinitionRow = {
   owner_id: string | null;
   name: string;
   primary_muscle: string;
+  muscle_groups: string[];
   equipment: string;
   measure_type: ExerciseDefinition['measureType'];
   load_mode: ExerciseDefinition['loadMode'];
@@ -205,15 +207,19 @@ export function createSupabaseRepository(
     }
     if (!missing.size) return;
 
-    const rows = [...missing.values()].map((exercise) => ({
-      id: getRemoteId(remoteExerciseDefinitionId, exercise.exerciseId),
-      owner_id: profile.id,
-      name: exercise.name,
-      primary_muscle: exercise.primaryMuscle ?? 'Другое',
-      equipment: exercise.equipment ?? (exercise.loadMode === 'bodyweight' ? 'Свой вес' : 'Другое'),
-      measure_type: exercise.measureType,
-      load_mode: exercise.loadMode,
-    }));
+    const rows = [...missing.values()].map((exercise) => {
+      const groups = exerciseMuscleGroups(exercise);
+      return {
+        id: getRemoteId(remoteExerciseDefinitionId, exercise.exerciseId),
+        owner_id: profile.id,
+        name: exercise.name,
+        primary_muscle: groups[0] ?? 'Другое',
+        muscle_groups: groups,
+        equipment: exercise.equipment ?? (exercise.loadMode === 'bodyweight' ? 'Свой вес' : 'Другое'),
+        measure_type: exercise.measureType,
+        load_mode: exercise.loadMode,
+      };
+    });
     throwIfError(await client.from('exercise_definitions').insert(rows));
   }
 
@@ -228,7 +234,7 @@ export function createSupabaseRepository(
       client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, revision'),
       client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
       subscriptionsQuery,
-      client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, equipment, measure_type, load_mode, archived_at'),
+      client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, muscle_groups, equipment, measure_type, load_mode, archived_at'),
     ]);
     for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult]) {
       throwIfError(result);
@@ -249,10 +255,15 @@ export function createSupabaseRepository(
       remoteExerciseDefinitionId.set(uiId, definition.id);
       slugByDefinition.set(definition.id, uiId);
       if (definition.owner_id === profile.id && !definition.archived_at) {
+        const groups = exerciseMuscleGroups({
+          primaryMuscle: definition.primary_muscle === 'Другое' ? undefined : definition.primary_muscle as ExerciseDefinition['primaryMuscle'],
+          muscleGroups: definition.muscle_groups as ExerciseDefinition['muscleGroups'],
+        });
         customExercises.push({
           id: uiId,
           name: definition.name,
-          primaryMuscle: definition.primary_muscle === 'Другое' ? undefined : definition.primary_muscle as ExerciseDefinition['primaryMuscle'],
+          primaryMuscle: groups[0],
+          muscleGroups: groups,
           equipment: definition.equipment,
           measureType: definition.measure_type,
           loadMode: definition.load_mode,
@@ -413,15 +424,30 @@ export function createSupabaseRepository(
       if (profile.role !== 'trainer') throw new Error('Только тренер может сохранять свои упражнения.');
       const definition = command.definition;
       const definitionId = getRemoteId(remoteExerciseDefinitionId, definition.id);
+      const groups = exerciseMuscleGroups(definition);
       throwIfError(await client.from('exercise_definitions').insert({
         id: definitionId,
         owner_id: profile.id,
         name: definition.name.trim(),
-        primary_muscle: definition.primaryMuscle ?? 'Другое',
+        primary_muscle: groups[0] ?? 'Другое',
+        muscle_groups: groups,
         equipment: definition.equipment,
         measure_type: definition.measureType,
         load_mode: definition.loadMode,
       }));
+    } else if (command.type === 'exercise-definition.update') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может изменять свои упражнения.');
+      const definition = command.definition;
+      const definitionId = getRemoteId(remoteExerciseDefinitionId, definition.id);
+      const groups = exerciseMuscleGroups(definition);
+      throwIfError(await client.from('exercise_definitions').update({
+        name: definition.name.trim(),
+        primary_muscle: groups[0] ?? 'Другое',
+        muscle_groups: groups,
+        equipment: definition.equipment,
+        measure_type: definition.measureType,
+        load_mode: definition.loadMode,
+      }).eq('id', definitionId));
     } else if (command.type === 'student.create') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может добавить ученика.');
       const student = command.student;

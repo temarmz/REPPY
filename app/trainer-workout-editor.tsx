@@ -100,6 +100,7 @@ function WorkoutComposer({
   dangerAction,
   customExercises,
   onCreateCustomExercise,
+  onUpdateCustomExercise,
   onSubmit,
 }: {
   title: string;
@@ -126,6 +127,7 @@ function WorkoutComposer({
   dangerAction?: WorkoutComposerDangerAction;
   customExercises: ExerciseDefinition[];
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
+  onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
   onSubmit: (value: WorkoutComposerValue) => void;
 }) {
   const hasSchedule = initialScheduledFor !== undefined;
@@ -181,7 +183,7 @@ function WorkoutComposer({
         {hasSchedule && <TrainingFormatField value={format} onChange={(value) => { setFormat(value); clearError(); }} />}
         {hasSchedule && <WorkoutScheduleFields dateLabel={format === 'online' ? 'Рекомендованная дата' : dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime} showTime={format === 'in-person'} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
       </section>
-      <WorkoutExerciseEditor persistenceKey={draftKey} studentId={student.id} exercises={exercises} customExercises={customExercises} onCreateCustomExercise={onCreateCustomExercise} onChange={(next) => { setExercises(next); clearError(); }} />
+      <WorkoutExerciseEditor persistenceKey={draftKey} studentId={student.id} exercises={exercises} customExercises={customExercises} onCreateCustomExercise={onCreateCustomExercise} onUpdateCustomExercise={onUpdateCustomExercise} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
       <div className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
@@ -215,6 +217,7 @@ export function AssignWorkoutToStudent({
   submitIcon = 'plus',
   customExercises,
   onCreateCustomExercise,
+  onUpdateCustomExercise,
   onAssign,
 }: {
   student: Student;
@@ -228,6 +231,7 @@ export function AssignWorkoutToStudent({
   submitIcon?: IconName;
   customExercises: ExerciseDefinition[];
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
+  onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
   onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout) => void;
 }) {
   return (
@@ -246,6 +250,7 @@ export function AssignWorkoutToStudent({
       submitIcon={submitIcon}
       customExercises={customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
+      onUpdateCustomExercise={onUpdateCustomExercise}
       onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
         ...cloneWorkout(workout),
         exercises,
@@ -263,6 +268,7 @@ export function NewAssignmentForStudent({
   backPath,
   customExercises,
   onCreateCustomExercise,
+  onUpdateCustomExercise,
   onAssign,
 }: {
   student: Student;
@@ -272,6 +278,7 @@ export function NewAssignmentForStudent({
   backPath: string;
   customExercises: ExerciseDefinition[];
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
+  onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
   onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout) => void;
 }) {
   return (
@@ -293,6 +300,7 @@ export function NewAssignmentForStudent({
       submitIcon="plus"
       customExercises={customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
+      onUpdateCustomExercise={onUpdateCustomExercise}
       onSubmit={({ name, scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
         id: makeId('workout'),
         name,
@@ -309,6 +317,7 @@ function WorkoutExerciseEditor({
   exercises,
   customExercises,
   onCreateCustomExercise,
+  onUpdateCustomExercise,
   onChange,
   minSetsByExerciseId = {},
 }: {
@@ -317,6 +326,7 @@ function WorkoutExerciseEditor({
   exercises: WorkoutExercise[];
   customExercises: ExerciseDefinition[];
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
+  onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
   onChange: (exercises: WorkoutExercise[]) => void;
   minSetsByExerciseId?: Record<string, number>;
 }) {
@@ -361,6 +371,7 @@ function WorkoutExerciseEditor({
       exerciseId: choice.id,
       name: choice.name,
       primaryMuscle: choice.primaryMuscle,
+      muscleGroups: choice.muscleGroups,
       equipment: choice.equipment,
       loadMode,
       measureType: choice.measureType ?? 'reps',
@@ -436,7 +447,7 @@ function WorkoutExerciseEditor({
         ))}
       </div>
 
-      {pickerAfterId && <ExercisePicker persistenceKey={`picker:${persistenceKey}`} exercises={exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
+      {pickerAfterId && <ExercisePicker persistenceKey={`picker:${persistenceKey}`} exercises={exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={studentId}
@@ -504,12 +515,14 @@ export function RepeatAssignment({
   assignment,
   sourceWorkout,
   onCreateCustomExercise,
+  onUpdateCustomExercise,
   onSave,
 }: {
   data: DemoState;
   assignment: Assignment;
   sourceWorkout: Workout;
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
+  onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
   onSave: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workout: Workout) => void;
 }) {
   const student = findStudent(data, assignment.studentId);
@@ -534,13 +547,14 @@ export function RepeatAssignment({
       submitIcon="plus"
       customExercises={data.customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
+      onUpdateCustomExercise={onUpdateCustomExercise}
       onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => onSave(scheduledFor!, scheduledTime, format, { ...cloneWorkout(sourceWorkout), exercises })}
     />
   );
 }
 
 
-export function EditAssignment({ data, assignment, onCreateCustomExercise, onSave, onDelete }: { data: DemoState; assignment: Assignment; onCreateCustomExercise: (definition: ExerciseDefinition) => void; onSave: (assignment: Assignment) => void; onDelete: (assignment: Assignment) => void }) {
+export function EditAssignment({ data, assignment, onCreateCustomExercise, onUpdateCustomExercise, onSave, onDelete }: { data: DemoState; assignment: Assignment; onCreateCustomExercise: (definition: ExerciseDefinition) => void; onUpdateCustomExercise: (definition: ExerciseDefinition) => void; onSave: (assignment: Assignment) => void; onDelete: (assignment: Assignment) => void }) {
   const student = findStudent(data, assignment.studentId);
   const workout = findAssignmentWorkout(data, assignment);
   if (!student || !workout) return <NotFound />;
@@ -562,6 +576,7 @@ export function EditAssignment({ data, assignment, onCreateCustomExercise, onSav
       submitClassName=""
       customExercises={data.customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
+      onUpdateCustomExercise={onUpdateCustomExercise}
       dangerAction={{
         label: 'Удалить назначение',
         title: 'Удалить тренировку?',

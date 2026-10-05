@@ -225,6 +225,9 @@
 .picker-exercise-row strong { font-size: var(--button-font-size); }
 .personal-exercise-label { display: inline-flex; margin-left: 8px; border-radius: 999px; padding: 2px 7px; background: rgba(198,255,61,.12); color: var(--lime); font-size: 9px; font-style: normal; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; vertical-align: 1px; }
 .picker-exercise-row small { color: var(--muted); font-size: 11px; }
+.picker-row-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.picker-edit-exercise { display: grid; width: 44px; min-height: 44px; place-items: center; border: 1px solid rgba(255,255,255,.12); border-radius: 13px; padding: 0; background: rgba(255,255,255,.035); color: var(--muted); }
+.picker-edit-exercise .ui-icon { width: 18px; height: 18px; }
 .picker-quantity { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 .picker-quantity span { min-width: 20px; text-align: center; font-weight: 800; }
 .picker-list .picker-quantity button { display: grid; width: 44px; min-height: 44px; place-items: center; border: 1px solid rgba(255,255,255,.2); border-radius: 13px; padding: 0; background: rgba(255,255,255,.08); color: var(--lime); }
@@ -247,10 +250,15 @@
 .custom-exercise-builder > div:first-child { display: grid; gap: 4px; }
 .custom-exercise-builder > div:first-child strong { font-size: 14px; }
 .custom-exercise-builder > div:first-child small { color: var(--muted); font-size: 11px; }
+.custom-muscle-groups { display: flex; flex-wrap: wrap; gap: 7px; }
+.picker-list .custom-muscle-groups button { min-height: 38px; border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 0 11px; background: rgba(255,255,255,.035); color: var(--muted); font-size: 11px; font-weight: 800; }
+.picker-list .custom-muscle-groups button.selected { border-color: rgba(198,255,61,.42); background: rgba(198,255,61,.12); color: var(--lime); }
+.custom-exercise-hint { color: #ff9b77; font-size: 11px; }
 .picker-list .custom-load-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .picker-list .custom-load-mode button { min-height: 44px; justify-content: center; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; padding: 0 10px; background: rgba(255,255,255,.035); color: var(--muted); font-size: var(--button-font-size); text-align: center; }
 .picker-list .custom-load-mode button.selected { border-color: rgba(198,255,61,.42); background: rgba(198,255,61,.12); color: var(--lime); }
 .picker-list .custom-exercise-builder .custom-exercise-option { min-height: 48px; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 0 12px; background: var(--lime); color: var(--ink); font-size: var(--button-font-size); font-weight: 900; text-align: center; }
+.picker-list .custom-exercise-builder .custom-exercise-option:disabled { cursor: not-allowed; opacity: .42; }
 .picker-list .custom-exercise-builder .custom-exercise-option .ui-icon { width: 18px; height: 18px; }
 .exercise-plan-list p { line-height: 1.55; }
 

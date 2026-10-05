@@ -1,4 +1,4 @@
-import { exerciseLibrary, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data';
+import { exerciseLibrary, exerciseMuscleGroups, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data';
 
 export function formatElapsedTime(startedAt: string, currentTime: number) {
   const elapsedSeconds = Math.max(0, Math.floor((currentTime - new Date(startedAt).getTime()) / 1000));
@@ -33,14 +33,17 @@ export function subscriptionTone(balance: number, hasEntries = true) {
 
 export function exerciseMetadata(exercise: WorkoutExercise) {
   const definition = exerciseLibrary.find((item) => item.id === exercise.exerciseId);
-  const muscle = exercise.primaryMuscle ?? definition?.primaryMuscle;
+  const muscles = exerciseMuscleGroups({
+    primaryMuscle: exercise.primaryMuscle ?? definition?.primaryMuscle,
+    muscleGroups: exercise.muscleGroups ?? definition?.muscleGroups,
+  }).join(', ');
   const equipment = exercise.equipment ?? definition?.equipment ?? (exercise.loadMode === 'bodyweight' ? 'Свой вес' : undefined);
   if (!definition) {
-    const details = [muscle, equipment].filter(Boolean).join(' · ');
+    const details = [muscles, equipment].filter(Boolean).join(' · ');
     return details ? 'Пользовательское упражнение · ' + details : 'Пользовательское упражнение';
   }
-  if (muscle && equipment) return muscle + ' · ' + equipment;
-  return muscle ?? equipment ?? 'Упражнение';
+  if (muscles && equipment) return muscles + ' · ' + equipment;
+  return muscles || equipment || 'Упражнение';
 }
 
 export function plannedSetLabel(exercise: WorkoutExercise, set: WorkoutSetPlan) {

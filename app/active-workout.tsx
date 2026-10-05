@@ -57,6 +57,7 @@ export default function ActiveWorkout({
   balance = 0,
   customExercises = [],
   onCreateCustomExercise,
+  onUpdateCustomExercise,
 }: {
   workout: Workout;
   session?: WorkoutSession;
@@ -73,6 +74,7 @@ export default function ActiveWorkout({
   balance?: number;
   customExercises?: ExerciseDefinition[];
   onCreateCustomExercise?: (definition: ExerciseDefinition) => void;
+  onUpdateCustomExercise?: (definition: ExerciseDefinition) => void;
 }) {
   const pickerPersistenceKey = `active:${hashPath()}`;
   const [currentTime, setCurrentTime] = useState(() => Date.now());
@@ -183,6 +185,7 @@ export default function ActiveWorkout({
       exerciseId: definition.id,
       name: definition.name,
       primaryMuscle: definition.primaryMuscle,
+      muscleGroups: definition.muscleGroups,
       equipment: definition.equipment,
       loadMode,
       measureType: definition.measureType ?? 'reps',
@@ -260,7 +263,7 @@ export default function ActiveWorkout({
         })}
       </section>
 
-      {pickerAfterId && <ExercisePicker persistenceKey={`picker:${pickerPersistenceKey}`} exercises={workout.exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
+      {pickerAfterId && <ExercisePicker persistenceKey={`picker:${pickerPersistenceKey}`} exercises={workout.exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={student?.id}

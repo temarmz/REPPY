@@ -24,6 +24,32 @@ test('личное упражнение сохраняется в библиот
   assert.strictEqual(repeated, created);
 });
 
+test('тренер изменяет группы мышц своего упражнения без создания дубля', () => {
+  const state = createInitialState();
+  const definition = {
+    id: 'custom-exercise-abduction',
+    name: 'Отведение',
+    primaryMuscle: 'Ягодицы',
+    muscleGroups: ['Ягодицы'],
+    equipment: 'Тренажёр',
+    loadMode: 'external',
+    measureType: 'reps',
+  };
+  const created = applyReppyCommand(state, { type: 'exercise-definition.create', definition });
+  const updated = applyReppyCommand(created, {
+    type: 'exercise-definition.update',
+    definition: {
+      ...definition,
+      name: '  Отведение ног  ',
+      muscleGroups: ['Ягодицы', 'Квадрицепс'],
+    },
+  });
+
+  assert.equal(updated.customExercises.length, 1);
+  assert.deepEqual(updated.customExercises[0].muscleGroups, ['Ягодицы', 'Квадрицепс']);
+  assert.equal(updated.customExercises[0].name, 'Отведение ног');
+});
+
 test('предметная команда изменяет только выбранное назначение', () => {
   const state = createInitialState();
   const original = state.assignments[0];

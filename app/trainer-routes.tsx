@@ -61,6 +61,10 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
     dispatch({ type: 'exercise-definition.create', definition });
     showToast(`Упражнение «${definition.name}» сохранено`);
   };
+  const updateCustomExercise = (definition: DemoState['customExercises'][number]) => {
+    dispatch({ type: 'exercise-definition.update', definition });
+    showToast(`Упражнение «${definition.name}» обновлено`);
+  };
     const [progressPath, progressSearch = ''] = path.split('?');
     const progressMatch = progressPath.match(/^\/trainer\/clients\/([^/]+)\/progress(?:\/([^/]+))?$/);
     const subscriptionPaymentMatch = path.match(/^\/trainer\/clients\/([^/]+)\/subscription\/payments\/([^/]+)$/);
@@ -95,6 +99,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           workout={sourceWorkout}
           customExercises={data.customExercises}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           initialScheduledFor={scheduledFor}
           initialScheduledTime={sourceAssignment.scheduledTime}
           initialFormat={sourceAssignment.format}
@@ -118,6 +123,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           student={student}
           customExercises={data.customExercises}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           initialScheduledFor={scheduledFor}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
           onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
@@ -211,6 +217,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           workout={sourceWorkout}
           customExercises={data.customExercises}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           initialScheduledFor={dateKey()}
           initialScheduledTime={sourceAssignment.scheduledTime}
           initialFormat={sourceAssignment.format}
@@ -233,6 +240,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           student={student}
           customExercises={data.customExercises}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           backPath={`/trainer/clients/${student.id}/assign`}
           onAssign={(scheduledFor, scheduledTime, format, workoutSnapshot) => {
             const assignment: Assignment = {
@@ -266,6 +274,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           data={data}
           assignment={assignment}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           onSave={(updated) => {
             dispatch({ type: 'assignment.update', assignment: updated });
             showToast('Назначение сохранено');
@@ -291,6 +300,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           assignment={assignment}
           sourceWorkout={sourceWorkout}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           onSave={(scheduledFor, scheduledTime, format, workout) => {
             const next = { ...repeatAssignment(assignment, workout, scheduledFor, scheduledTime), format };
             dispatch({ type: 'assignment.create', assignment: next });
@@ -329,6 +339,7 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
           workout={workout}
           customExercises={data.customExercises}
           onCreateCustomExercise={createCustomExercise}
+          onUpdateCustomExercise={updateCustomExercise}
           session={session}
           student={findStudent(data, assignment.studentId)}
           scheduledFor={assignment.scheduledFor}

@@ -16,6 +16,7 @@ import { updateSessionWorkout } from './reppy-data.ts';
 
 export type ReppyCommand =
   | { type: 'exercise-definition.create'; definition: ExerciseDefinition }
+  | { type: 'exercise-definition.update'; definition: ExerciseDefinition }
   | { type: 'student.create'; student: Student }
   | { type: 'student.update'; student: Student }
   | { type: 'assignment.create'; assignment: Assignment }
@@ -48,6 +49,15 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
       )) ? state : {
         ...state,
         customExercises: [...state.customExercises, { ...command.definition, name: command.definition.name.trim() }],
+      };
+    }
+    case 'exercise-definition.update': {
+      const normalizedName = command.definition.name.trim();
+      return {
+        ...state,
+        customExercises: state.customExercises.map((definition) => definition.id === command.definition.id
+          ? { ...command.definition, name: normalizedName }
+          : definition),
       };
     }
     case 'student.create':
