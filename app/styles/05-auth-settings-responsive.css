@@ -36,15 +36,25 @@
 
 @media (max-width: 800px) {
   :root { --topbar-content-height: 68px; }
-  #root { min-height: 100%; }
+  html.app-viewport-locked,
+  body.app-viewport-locked,
+  body.app-viewport-locked #root {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
   .app-shell:not(.focus-mode) {
+    position: fixed;
+    inset: 0;
     display: grid;
     width: 100%;
-    height: 100vh;
-    height: 100dvh;
+    height: auto;
     min-height: 0;
     grid-template-rows: var(--topbar-height) minmax(0, 1fr) auto;
     overflow: hidden;
+    overscroll-behavior: none;
   }
   .app-shell:not(.focus-mode) .topbar {
     position: relative;
@@ -63,7 +73,7 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
   .bottom-nav { position: relative; z-index: 60; isolation: isolate; display: flex; width: 100%; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; border: 1px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 5px 12px max(5px, calc(env(safe-area-inset-bottom, 0px) - 12px)); background: rgba(21,25,21,.97); box-shadow: 0 -12px 38px rgba(0,0,0,.34); transform: translateZ(0); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }

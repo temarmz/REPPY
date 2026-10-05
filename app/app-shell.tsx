@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 import Icon, { type IconName } from './ui-icon';
 
 export type AppArea = 'trainer' | 'student';
@@ -71,6 +71,15 @@ export default function AppShell({
   const activeRoute = canonicalNavigationRoute(area, path);
   const focusMode = /^\/student\/(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
   const roleToOpen = area === 'trainer' ? 'ученика' : 'тренера';
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('app-viewport-locked', !focusMode);
+    document.body.classList.toggle('app-viewport-locked', !focusMode);
+    return () => {
+      document.documentElement.classList.remove('app-viewport-locked');
+      document.body.classList.remove('app-viewport-locked');
+    };
+  }, [focusMode]);
 
   const navigation = (
     <>

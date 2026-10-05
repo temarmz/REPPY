@@ -483,8 +483,19 @@ test('нижнее меню остаётся кликабельным после
   await openFreshDemo(page);
   const bottomNav = page.locator('.bottom-nav');
 
+  await expect(page.locator('.app-shell')).toHaveCSS('position', 'fixed');
+  const initialNavBox = await bottomNav.boundingBox();
+  await page.locator('.page-wrap').evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  const scrolledNavBox = await bottomNav.boundingBox();
+  expect(Math.round(scrolledNavBox?.y ?? -1)).toBe(Math.round(initialNavBox?.y ?? -2));
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
   await page.getByRole('button', { name: 'Открыть настройки' }).click();
   await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await expect(page.locator('.app-shell')).not.toHaveAttribute('inert', '');
+  await expect(page.locator('.modal-layer-root')).toHaveCount(0);
   await bottomNav.getByRole('button', { name: 'Календарь' }).tap();
   await expect(page).toHaveURL(/#\/trainer\/calendar$/);
 

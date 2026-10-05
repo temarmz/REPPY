@@ -5,15 +5,15 @@ import Icon from './ui-icon';
 export const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 
 let openModalLayers = 0;
+let closingModalLayers = 0;
 
 export function hasOpenModalLayers() {
-  return openModalLayers > 0;
+  return openModalLayers > 0 || closingModalLayers > 0;
 }
 
 export function ModalLayer({ children, onClose }: { children: ReactNode; onClose: () => void }) {
   const layerRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
-  const historyCleanupTimer = useRef<number | null>(null);
   const modalId = `reppy-modal-${useId()}`;
 
   useEffect(() => {
@@ -21,10 +21,6 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
   }, [onClose]);
 
   useEffect(() => {
-    if (historyCleanupTimer.current) {
-      window.clearTimeout(historyCleanupTimer.current);
-      historyCleanupTimer.current = null;
-    }
     openModalLayers += 1;
     document.body.classList.add('modal-open');
     window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: true }));
@@ -91,17 +87,35 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('popstate', handleHistoryBack, { capture: true });
       openModalLayers = Math.max(0, openModalLayers - 1);
-      document.body.classList.toggle('modal-open', openModalLayers > 0);
-      window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: openModalLayers > 0 }));
-      if (appShell && openModalLayers === 0) {
-        appShell.inert = false;
-        appShell.removeAttribute('aria-hidden');
+      const finishClose = () => {
+        const modalLayerOpen = hasOpenModalLayers();
+        document.body.classList.toggle('modal-open', modalLayerOpen);
+        window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: modalLayerOpen }));
+        if (appShell && !modalLayerOpen) {
+          appShell.inert = false;
+          appShell.removeAttribute('aria-hidden');
+          returnFocus?.focus({ preventScroll: true });
+        }
+      };
+
+      if (window.history.state?.reppyModal !== modalId) {
+        finishClose();
+        return;
       }
-      historyCleanupTimer.current = window.setTimeout(() => {
-        historyCleanupTimer.current = null;
-        if (window.history.state?.reppyModal === modalId) window.history.back();
-      }, 0);
-      returnFocus?.focus({ preventScroll: true });
+
+      closingModalLayers += 1;
+      let settled = false;
+      const settleHistory = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(historyFallbackTimer);
+        window.removeEventListener('popstate', settleHistory);
+        closingModalLayers = Math.max(0, closingModalLayers - 1);
+        finishClose();
+      };
+      const historyFallbackTimer = window.setTimeout(settleHistory, 1500);
+      window.addEventListener('popstate', settleHistory, { once: true });
+      window.history.back();
     };
   }, [modalId]);
 
