@@ -34,7 +34,30 @@ function currentScrollPosition(): ReppyScrollPosition {
   };
 }
 
+function scrollStorageKey(path: string) {
+  return `reppy-ui:scroll:${path}`;
+}
+
+function loadRouteScrollPosition(path: string): ReppyScrollPosition {
+  try {
+    const raw = window.sessionStorage.getItem(scrollStorageKey(path));
+    if (raw) return { ...TOP_SCROLL_POSITION, ...JSON.parse(raw) };
+  } catch {
+    // Scroll restoration is best-effort when storage is unavailable.
+  }
+  return TOP_SCROLL_POSITION;
+}
+
+function saveRouteScrollPosition(path: string, position = currentScrollPosition()) {
+  try {
+    window.sessionStorage.setItem(scrollStorageKey(path), JSON.stringify(position));
+  } catch {
+    // The current history entry still keeps the position in memory.
+  }
+}
+
 function saveCurrentScrollPosition() {
+  saveRouteScrollPosition(hashPath());
   const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
   window.history.replaceState({ ...currentState, reppyScroll: currentScrollPosition() }, '', window.location.href);
 }
@@ -50,17 +73,18 @@ function notifyNavigation() {
 
 function performNavigation(path: string, replace = false) {
   if (hashPath() === path) {
-    restoreScrollPosition(TOP_SCROLL_POSITION);
+    restoreScrollPosition(loadRouteScrollPosition(path));
     saveCurrentScrollPosition();
     return;
   }
   saveCurrentScrollPosition();
   const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
   const { reppyModal: _modalEntry, ...navigationState } = previousState;
+  const nextScroll = loadRouteScrollPosition(path);
   if (replace || _modalEntry) {
-    window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
+    window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: nextScroll }, '', `#${path}`);
   } else {
-    window.history.pushState({ ...previousState, reppyEntry: true, reppyScroll: TOP_SCROLL_POSITION }, '', `#${path}`);
+    window.history.pushState({ ...previousState, reppyEntry: true, reppyScroll: nextScroll }, '', `#${path}`);
   }
   notifyNavigation();
 }
@@ -147,7 +171,7 @@ export function useHashNavigation() {
 export function useRouteScrollRestoration(path: string, ready: boolean) {
   useEffect(() => {
     if (!ready) return;
-    const position = window.history.state?.reppyScroll ?? TOP_SCROLL_POSITION;
+    const position = window.history.state?.reppyScroll ?? loadRouteScrollPosition(path);
     let restoreFrame = 0;
     const renderFrame = window.requestAnimationFrame(() => {
       restoreFrame = window.requestAnimationFrame(() => restoreScrollPosition(position));

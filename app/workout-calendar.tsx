@@ -9,6 +9,18 @@ import { go } from './navigation';
 import { moodLabel } from './mood';
 import { assignmentSortValue, assignmentTimeLabel, formatScheduleDay, isScheduleDate } from './schedule-display';
 
+function calendarStateKey(area: 'trainer' | 'student') {
+  return `reppy-ui:calendar-day:${area}`;
+}
+
+function loadSelectedDay(area: 'trainer' | 'student', fallback: string) {
+  try {
+    return window.sessionStorage.getItem(calendarStateKey(area)) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function exercisePreview(workout?: Workout) {
   if (!workout?.exercises.length) return 'Упражнения не добавлены';
   const preview = workout.exercises.slice(0, 3).map((exercise) => exercise.name).join(' · ');
@@ -17,7 +29,11 @@ function exercisePreview(workout?: Workout) {
 
 export default function WorkoutCalendar({ data, area }: { data: DemoState; area: 'trainer' | 'student' }) {
   const today = new Date();
-  const [selectedDay, setSelectedDay] = useState(dateKey(today));
+  const [selectedDay, setSelectedDayState] = useState(() => loadSelectedDay(area, dateKey(today)));
+  const setSelectedDay = (day: string) => {
+    setSelectedDayState(day);
+    try { window.sessionStorage.setItem(calendarStateKey(area), day); } catch { /* best effort */ }
+  };
   const [assignDate, setAssignDate] = useState<string | null>(null);
   const assignments = data.assignments
     .filter((item) => area === 'trainer' || item.studentId === data.activeStudentId)

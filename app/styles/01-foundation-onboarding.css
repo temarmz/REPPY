@@ -19,7 +19,8 @@
   --divider: rgba(255,255,255,.065);
   --lime-strong: #b7e85a;
   --app-font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
-  --app-font-mono: var(--font-geist-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
+  /* Numeric labels use the same family as the rest of the interface. */
+  --app-font-mono: var(--app-font-sans);
   --topbar-content-height: 76px;
   --topbar-safe-top: env(safe-area-inset-top, 0px);
   --topbar-height: calc(var(--topbar-content-height) + var(--topbar-safe-top));
