@@ -22,7 +22,7 @@ import { PlanExerciseCard } from './workout-exercise-card';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledger';
 import ConfirmationModal from './confirmation-modal';
-import { go, hashPath, useUnsavedNavigationGuard } from './navigation';
+import { go, useRoutePath, useUnsavedNavigationGuard } from './navigation';
 import NotFound from './not-found';
 import PageHeader from './route-page-header';
 import ReadOnlyExerciseList from './read-only-exercise-list';
@@ -131,7 +131,7 @@ function WorkoutComposer({
   onSubmit: (value: WorkoutComposerValue) => void;
 }) {
   const hasSchedule = initialScheduledFor !== undefined;
-  const draftKey = hashPath();
+  const draftKey = useRoutePath();
   const baseline = JSON.stringify({ name: initialName, scheduledFor: initialScheduledFor, scheduledTime: initialScheduledTime, format: initialFormat, exercises: initialExercises });
   const [restoredDraft] = useState(() => loadWorkoutComposerDraft(draftKey, baseline));
   const [name, setName] = useState(restoredDraft?.name ?? initialName);
@@ -438,7 +438,7 @@ function WorkoutExerciseEditor({
             })}
             onAddSet={() => updateExercise(exercise.id, (current) => {
               const plannedSets = getExerciseSetPlans(current);
-              plannedSets.push({ ...(plannedSets.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) });
+              plannedSets.push({ targetReps: 0, targetWeight: 0 });
               return withExerciseSetPlans(current, plannedSets);
             })}
             canRemoveSet={getExerciseSetPlans(exercise).length > (minSetsByExerciseId[exercise.id] ?? 0)}

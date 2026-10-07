@@ -25,6 +25,7 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 .active-header-copy strong { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
 .active-header-copy .save-state { color: var(--lime); font-size: 11px; font-style: normal; font-weight: 800; }
 .active-header-copy .save-state.saving { color: #ffd166; }
+.active-header-copy .save-state.error { color: #dc7d73; }
 
 .app-status-banner {
   position: fixed;

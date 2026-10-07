@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import {
   cloneWorkout,
   formatCalendarDay,
@@ -21,8 +21,9 @@ import ModalFrame from './modal-frame';
 import { ActionButton } from './ui-controls';
 import ExerciseInstructionModal from './exercise-instruction-modal';
 import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
-import { goBack, hashPath } from './navigation';
+import { goBack, useRoutePath } from './navigation';
 import { LoadingScreen } from './onboarding-screens';
+import { PersistencePhaseContext } from './app-status';
 import {
   clearUiDraft,
   loadUiDraft,
@@ -76,7 +77,7 @@ export default function ActiveWorkout({
   onCreateCustomExercise?: (definition: ExerciseDefinition) => void;
   onUpdateCustomExercise?: (definition: ExerciseDefinition) => void;
 }) {
-  const pickerPersistenceKey = `active:${hashPath()}`;
+  const pickerPersistenceKey = `active:${useRoutePath()}`;
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [pickerAfterId, setPickerAfterId] = useState<string | null>(() => {
     const stored = loadWorkoutPicker(pickerPersistenceKey);
@@ -89,9 +90,9 @@ export default function ActiveWorkout({
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
-  const [saveState, setSaveState] = useState<'saving' | 'saved'>('saved');
+  const persistencePhase = useContext(PersistencePhaseContext);
+  const saveState = persistencePhase === 'error' ? 'error' : persistencePhase === 'idle' ? 'saved' : 'saving';
   const moveHighlightTimer = useRef<number | null>(null);
-  const saveStateTimer = useRef<number | null>(null);
   const startRequested = useRef(false);
   const startedAt = session?.startedAt;
 
@@ -110,7 +111,6 @@ export default function ActiveWorkout({
 
   useEffect(() => () => {
     if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
-    if (saveStateTimer.current) window.clearTimeout(saveStateTimer.current);
   }, []);
 
   useEffect(() => {
@@ -131,15 +131,8 @@ export default function ActiveWorkout({
   const elapsed = formatElapsedTime(session.startedAt, currentTime);
   const unfinishedCount = session.results.filter((result) => !result.completed).length;
 
-  const markSaving = () => {
-    setSaveState('saving');
-    if (saveStateTimer.current) window.clearTimeout(saveStateTimer.current);
-    saveStateTimer.current = window.setTimeout(() => setSaveState('saved'), 450);
-  };
-
   const updateWorkout = (exercises: WorkoutExercise[]) => {
     if (!exercises.length) return;
-    markSaving();
     onWorkoutUpdate(session.id, { ...cloneWorkout(workout), exercises });
   };
 
@@ -147,14 +140,17 @@ export default function ActiveWorkout({
     updateWorkout(workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, coachNote } : exercise));
   };
 
-  const updateExerciseSets = (exerciseId: string, update: (plans: WorkoutSetPlan[], exercise: WorkoutExercise) => WorkoutSetPlan[]) => {
-    updateWorkout(workout.exercises.map((exercise) => exercise.id === exerciseId
-      ? withExerciseSetPlans(exercise, update(getExerciseSetPlans(exercise), exercise))
-      : exercise));
+  const updateExerciseSets = (exerciseId: string, update: (plans: WorkoutSetPlan[]) => WorkoutSetPlan[]) => {
+    updateWorkout(workout.exercises.map((exercise) => {
+      const plans = session.results
+        .filter((result) => result.exerciseId === exercise.id)
+        .sort((a, b) => a.setNumber - b.setNumber)
+        .map((result) => getExerciseSetPlans(exercise)[result.setNumber - 1] ?? { targetReps: 0, targetWeight: 0 });
+      return withExerciseSetPlans(exercise, exercise.id === exerciseId ? update(plans) : plans);
+    }));
   };
 
   const updateResult = (exerciseId: string, setNumber: number, patch: Partial<SetResult>) => {
-    markSaving();
     onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch } : result));
   };
 
@@ -225,7 +221,7 @@ export default function ActiveWorkout({
       <div className="active-sticky-header">
         <header className="active-header">
           <button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></button>
-          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
+          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
           <button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></button>
           <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
         </header>
@@ -253,8 +249,8 @@ export default function ActiveWorkout({
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
               onShowInstruction={() => setInstructionExercise(exercise)}
               onShowActions={() => setActionExerciseId(exercise.id)}
-              onAddSet={() => updateExerciseSets(exercise.id, (plans, current) => [...plans, { ...(plans.at(-1) ?? { targetReps: current.measureType === 'duration' ? 30 : 10, targetWeight: current.loadMode === 'bodyweight' ? 0 : 20 }) }])}
-              canRemoveSet={getExerciseSetPlans(exercise).length > minimumSets}
+              onAddSet={() => updateExerciseSets(exercise.id, (plans) => [...plans, { targetReps: 0, targetWeight: 0 }])}
+              canRemoveSet={exerciseResults.length > minimumSets}
               onRemoveSet={() => updateExerciseSets(exercise.id, (plans) => plans.slice(0, -1))}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}

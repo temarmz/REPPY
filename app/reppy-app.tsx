@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   TRAINER_NAME,
   findAssignmentWorkout,
@@ -13,7 +13,8 @@ import { useReppyData } from './use-reppy-data';
 import { StudentExerciseProgress } from './exercise-progress-view';
 import EmptyState from './empty-state';
 import AppShell, { type AppTheme } from './app-shell';
-import { AppStatusBanner, DataLoadError, useOnlineStatus } from './app-status';
+import RetainedRouteViews from './retained-route-views';
+import { AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './app-status';
 import ModalFrame, { MODAL_LAYER_EVENT } from './modal-frame';
 import { ActionButton, FormError } from './ui-controls';
 import {
@@ -31,6 +32,7 @@ import { getSupabaseClient } from './supabase-client';
 import { createSupabaseRepository } from './supabase-repository';
 import {
   go,
+  goToMenuTab,
   replaceInitialRoute,
   useHashNavigation,
   useRouteScrollRestoration,
@@ -196,7 +198,7 @@ export default function ReppyApp() {
     if (wrongArea) go(auth.profile.role === 'student' ? '/student' : '/trainer', true);
   }, [auth.enabled, auth.profile, auth.status, hydrated, path]);
 
-  useRouteScrollRestoration(path, hydrated && assetsReady);
+  useRouteScrollRestoration(path, hydrated && assetsReady && data.loggedIn && (!auth.enabled || auth.status === 'authenticated'), auth.profile?.id ?? `demo:${data.activeStudentId}`);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(''), 2600);
@@ -330,47 +332,51 @@ export default function ReppyApp() {
 
   if (!data.loggedIn || path === '/') return <WelcomeScreen onLogin={login} />;
 
-  let content: ReactNode;
   const area: 'trainer' | 'student' = auth.enabled && auth.profile
     ? auth.profile.role
     : path.startsWith('/student') ? 'student' : 'trainer';
 
-  if (area === 'trainer') {
-    content = <TrainerRoutes
-      path={path}
-      data={data}
-      dispatch={dispatch}
-      showToast={showToast}
-      createStudentInvitation={createStudentInvitation}
-      StudentProfileComponent={StudentProfile}
-    />;
-
-  } else if (path === '/student/calendar') {
-    content = <WorkoutCalendar data={data} area="student" />;
-  } else if (path === '/student/profile') {
-    content = <StudentProfile data={data} studentId={data.activeStudentId} onUpdate={(updated) => {
-      dispatch({ type: 'student.update', student: updated });
-      showToast('Профиль сохранён');
-    }} />;
-  } else {
-    content = <StudentRoutes path={path} data={data} dispatch={dispatch} showToast={showToast} />;
-  }
+  const renderRoute = (route: string) => {
+    if (area === 'trainer') {
+      return <TrainerRoutes
+        path={route}
+        data={data}
+        dispatch={dispatch}
+        showToast={showToast}
+        createStudentInvitation={createStudentInvitation}
+        StudentProfileComponent={StudentProfile}
+      />;
+    } else if (route === '/student/calendar') {
+      return <WorkoutCalendar data={data} area="student" />;
+    } else if (route === '/student/profile') {
+      return <StudentProfile data={data} studentId={data.activeStudentId} onUpdate={(updated) => {
+        dispatch({ type: 'student.update', student: updated });
+        showToast('Профиль сохранён');
+      }} />;
+    } else {
+      return <StudentRoutes path={route} data={data} dispatch={dispatch} showToast={showToast} />;
+    }
+  };
 
   return (
     <>
       <AppShell
+        key={`${auth.profile?.id ?? 'demo'}:${area}:${area === 'student' ? data.activeStudentId : ''}`}
         area={area}
         path={path}
         displayName={auth.profile?.displayName ?? (area === 'trainer' ? TRAINER_NAME : findStudent(data, data.activeStudentId)?.name ?? 'Ученик')}
         hideBottomNav={settingsOpen || modalLayerOpen}
         onNavigate={go}
+        onNavigateTab={goToMenuTab}
         onSwitchRole={auth.enabled ? undefined : switchRole}
         theme={theme}
         onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
         systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} />}
       >
-        <Suspense fallback={<LoadingScreen message="Загружаем экран…" />}>{content}</Suspense>
+        <PersistencePhaseContext value={persistencePhase}>
+          <RetainedRouteViews path={path} renderRoute={renderRoute} />
+        </PersistencePhaseContext>
         {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
       </AppShell>
       {settingsOpen && <SettingsModal

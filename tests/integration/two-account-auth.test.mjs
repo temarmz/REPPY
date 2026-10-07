@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createClient } from '@supabase/supabase-js';
+import { createSupabaseRepository } from '../../app/supabase-repository.ts';
+import { updateSessionWorkout } from '../../app/reppy-data.ts';
 
 const url = process.env.SUPABASE_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
@@ -113,6 +115,15 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   });
 
   const exerciseInstanceId = crypto.randomUUID();
+  const privateExerciseInstanceId = crypto.randomUUID();
+  const privateDefinitionId = crypto.randomUUID();
+  assertSuccess(await trainer.from('exercise_definitions').insert({
+    id: privateDefinitionId, owner_id: trainerUser.id, name: 'Личная тяга тренера',
+    primary_muscle: 'Спина', muscle_groups: ['Спина'], equipment: 'Блок',
+    measure_type: 'reps', load_mode: 'external',
+  }), 'trainer creates a private exercise');
+  assert.deepEqual(assertSuccess(await student.from('exercise_definitions').select('id').eq('id', privateDefinitionId),
+    'student cannot read the private library'), []);
   const workoutSnapshot = {
     id: crypto.randomUUID(),
     name: 'Интеграционная тренировка',
@@ -125,6 +136,9 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
       measureType: 'reps',
       loadMode: 'bodyweight',
       plannedSets: [{ targetReps: 12, targetWeight: 0 }],
+    }, {
+      id: privateExerciseInstanceId, exerciseId: privateDefinitionId, name: 'Личная тяга тренера',
+      primaryMuscle: 'Спина', equipment: 'Блок', loadMode: 'external', measureType: 'reps', plannedSets: [],
     }],
   };
   const assignment = assertSuccess(await trainer.from('assignments').insert({
@@ -170,6 +184,27 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   }), 'student saves workout progress');
   assert.ok(saved.revision > session.revision);
 
+  // Exercise the app's repository, not only the RPC: a student's definition
+  // query omits the private exercise, but its assigned snapshot must retain it.
+  const repository = createSupabaseRepository(student, { id: createdStudent.id, role: 'student' });
+  const appState = await repository.load();
+  const activeSession = appState.sessions.find((item) => item.id === sessionId);
+  assert.ok(activeSession);
+  const updatedWorkout = structuredClone(activeSession.workoutSnapshot);
+  updatedWorkout.exercises[1].plannedSets.push({ targetReps: 0, targetWeight: 0 });
+  const withEmptySet = updateSessionWorkout(activeSession, updatedWorkout);
+  appState.sessions = appState.sessions.map((item) => item.id === sessionId ? withEmptySet : item);
+  await repository.execute({ type: 'session.progress', sessionId }, appState);
+  assert.deepEqual(assertSuccess(await trainer.from('set_results').select('actual_reps, actual_weight, completed')
+    .eq('session_id', sessionId).eq('exercise_instance_id', privateExerciseInstanceId).single(),
+  'new custom-exercise set is saved empty'), { actual_reps: 0, actual_weight: 0, completed: false });
+  withEmptySet.results = withEmptySet.results.map((result) => result.exerciseId === privateExerciseInstanceId
+    ? { ...result, actualWeight: 2.5, actualReps: 8, completed: true } : result);
+  await repository.execute({ type: 'session.progress', sessionId }, appState);
+  assert.deepEqual(assertSuccess(await trainer.from('set_results').select('actual_reps, actual_weight, completed')
+    .eq('session_id', sessionId).eq('exercise_instance_id', privateExerciseInstanceId).single(),
+  'student saves a fractional weight for the private exercise'), { actual_reps: 8, actual_weight: 2.5, completed: true });
+
   const completed = assertSuccess(await student.rpc('complete_workout_session', {
     p_session_id: sessionId,
     p_charge_subscription: true,
@@ -178,7 +213,7 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   assert.equal(completed.charge_status, 'charged');
 
   const trainerResult = assertSuccess(
-    await trainer.from('set_results').select('actual_reps, completed').eq('session_id', sessionId).single(),
+    await trainer.from('set_results').select('actual_reps, completed').eq('session_id', sessionId).eq('exercise_instance_id', exerciseInstanceId).single(),
     'trainer reads student result',
   );
   assert.deepEqual(trainerResult, { actual_reps: 12, completed: true });

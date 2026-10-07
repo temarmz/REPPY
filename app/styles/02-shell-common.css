@@ -132,6 +132,7 @@
 }
 .side-demo b { color: var(--lime); font-size: 9px; letter-spacing: .12em; }
 .page-wrap { min-height: calc(100svh - var(--topbar-height)); margin-left: 250px; }
+.page-wrap > [data-route-active="true"] { min-height: 100%; }
 
 /* Animate the page content without turning the shell into a containing block
    for fixed mobile controls. */

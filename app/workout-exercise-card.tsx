@@ -22,9 +22,11 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     onChange(Math.max(min, parsed));
   };
 
-  return <input type="number" min={min} step={step} inputMode={inputMode} placeholder={emptyWhenZero ? '—' : undefined} value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
+  return <input type={inputMode === 'decimal' ? 'text' : 'number'} min={min} step={inputMode === 'decimal' ? 'any' : step} inputMode={inputMode} placeholder={emptyWhenZero ? '—' : undefined} value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
     const nextDraft = event.target.value;
+    if (inputMode === 'decimal' && !/^\d*(?:[.,]\d*)?$/.test(nextDraft)) return;
     setDraft(nextDraft);
+    if (!nextDraft.trim()) { if (emptyWhenZero) onChange(0); return; }
     const parsed = Number(nextDraft.replace(',', '.'));
     if (nextDraft.trim() && Number.isFinite(parsed)) onChange(Math.max(min, parsed));
   }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;

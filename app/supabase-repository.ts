@@ -3,6 +3,7 @@ import {
   TRAINER_ID,
   exerciseMuscleGroups,
   exerciseLibrary,
+  cloneWorkout,
   type Assignment,
   type DemoState,
   type ExerciseDefinition,
@@ -12,9 +13,9 @@ import {
   type Workout,
   type WorkoutExercise,
   type WorkoutSession,
-} from './reppy-data';
+} from './reppy-data.ts';
 import type { ReppyCommand } from './reppy-commands';
-import { ReppyConflictError, type ReppyRepository } from './reppy-repository';
+import { ReppyConflictError, type ReppyRepository } from './reppy-repository.ts';
 
 type AuthProfile = { id: string; role: Role };
 
@@ -186,12 +187,16 @@ export function createSupabaseRepository(
     })),
   });
 
-  const deserializeWorkout = (workout: Workout, slugByDefinition: Map<string, string>): Workout => ({
+  const deserializeWorkout = (workout: Workout, slugByDefinition: Map<string, string>): Workout => cloneWorkout({
     ...clone(workout),
-    exercises: workout.exercises.map((exercise) => ({
-      ...exercise,
-      exerciseId: slugByDefinition.get(exercise.exerciseId) ?? exercise.exerciseId,
-    })),
+    exercises: workout.exercises.map((exercise) => {
+      const localDefinitionId = slugByDefinition.get(exercise.exerciseId) ?? exercise.exerciseId;
+      // Students can read the assigned snapshot but not the trainer's private
+      // library. Keep its database IDs rather than attempting to create copies.
+      remoteExerciseDefinitionId.set(localDefinitionId, exercise.exerciseId);
+      remoteExerciseInstanceId.set(exercise.id, exercise.id);
+      return { ...exercise, exerciseId: localDefinitionId };
+    }),
   });
 
   async function ensureExerciseDefinitions(workouts: Workout[]) {
@@ -206,6 +211,9 @@ export function createSupabaseRepository(
       missing.set(exercise.exerciseId, exercise);
     }
     if (!missing.size) return;
+    if (profile.role !== 'trainer') {
+      throw new Error('Это упражнение недоступно в назначенной тренировке. Попроси тренера обновить её.');
+    }
 
     const rows = [...missing.values()].map((exercise) => {
       const groups = exerciseMuscleGroups(exercise);
@@ -357,7 +365,7 @@ export function createSupabaseRepository(
         mood: session.mood ?? undefined,
         comment: session.comment ?? undefined,
         subscriptionChargeStatus: session.charge_status ?? undefined,
-        results: (resultsBySession.get(session.id) ?? []).map((result) => ({
+        results: (resultsBySession.get(session.id) ?? []).sort((a, b) => a.set_number - b.set_number).map((result) => ({
           exerciseId: result.exercise_instance_id,
           setNumber: result.set_number,
           actualReps: result.actual_reps,

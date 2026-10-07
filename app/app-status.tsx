@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import type { PersistencePhase } from './use-reppy-data';
 import Icon, { type IconName } from './ui-icon';
 import { ActionButton } from './ui-controls';
+
+export const PersistencePhaseContext = createContext<PersistencePhase>('idle');
 
 export function useOnlineStatus() {
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);

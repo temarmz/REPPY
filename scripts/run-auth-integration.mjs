@@ -52,7 +52,7 @@ if (hasExplicitEnvironment && !isLocalSupabaseUrl(environment.SUPABASE_URL)) {
   }
 }
 
-const result = spawnSync(process.execPath, ['--test', 'tests/integration/two-account-auth.test.mjs'], {
+const result = spawnSync(process.execPath, ['--experimental-strip-types', '--test', 'tests/integration/two-account-auth.test.mjs'], {
   env: environment,
   stdio: 'inherit',
 });

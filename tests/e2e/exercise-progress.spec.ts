@@ -35,7 +35,7 @@ test('прогресс встроен внизу профиля, упражне�
   await expect(section).toContainText('Было: 77,5 кг × 8 повт.');
   await expect(section).toContainText('Стало: 80 кг × 8 повт.');
   await expect(section).toContainText('+2,5 кг при тех же повторах');
-  const backStyle = await page.locator('.back-button').evaluate((element) => {
+  const backStyle = await page.locator('.back-button:visible').evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.backgroundColor, css.color, css.borderRadius, css.minHeight];
   });
@@ -45,7 +45,7 @@ test('прогресс встроен внизу профиля, упражне�
   await expect(page.getByRole('searchbox')).toHaveCount(0);
   await expect(page.getByRole('combobox')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Таблица|График|30 дней|90 дней|Всего повторов/ })).toHaveCount(0);
-  expect(await page.locator('.back-button').evaluate((element) => {
+  expect(await page.locator('.back-button:visible').evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.backgroundColor, css.color, css.borderRadius, css.minHeight];
   })).toEqual(backStyle);
@@ -107,7 +107,7 @@ test('старые ссылки показывают всю историю, чу
   await expect(progressSection(page)).toContainText('Пока нет прогресса');
   await page.goto('/#/trainer/clients/artem/progress/bench-press?loadMode=bodyweight');
   await expect(page.getByRole('heading', { name: 'Результаты не найдены', exact: true })).toBeVisible();
-  await expect(page.locator('svg')).toHaveCount(0);
+  await expect(page.locator('svg:visible')).toHaveCount(0);
   await page.goto('/#/trainer/clients/artem/progress');
   await expect(progressSection(page).locator('.workout-row')).toHaveCount(1);
 });
@@ -236,10 +236,8 @@ test('размер подписей кнопок одинаков на осно�
   for (const width of [320, 360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/clients/maria/assign/new', '/trainer/assignments/assignment-artem-push-today/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student/profile']) {
-      const previousPage = await page.locator('.page-wrap main').elementHandle();
       await page.goto('/#' + route);
-      if (previousPage) await page.waitForFunction((element) => !element.isConnected, previousPage);
-      await expect(page.locator('.page-wrap main')).toBeVisible();
+      await expect(page.locator(`[data-route-view="${route}"] main:not([aria-busy="true"])`)).toBeVisible();
       const inconsistent = await page.locator('.primary-button, .wide-secondary, .back-button, .compact-primary, .list-primary-action, .danger-button, .details-edit-button, .section-heading button, .bottom-nav button small, .desktop-nav nav button, .add-exercise').evaluateAll((elements) => elements.filter((element) => element.getBoundingClientRect().width > 0 && getComputedStyle(element).fontSize !== '14px').map((element) => ({ text: element.textContent, size: getComputedStyle(element).fontSize })));
       expect(inconsistent, `${width}px ${route}`).toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px ${route}`).toBe(true);

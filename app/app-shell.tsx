@@ -1,4 +1,4 @@
-import { useLayoutEffect, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import Icon, { type IconName } from './ui-icon';
 
 export type AppArea = 'trainer' | 'student';
@@ -48,6 +48,7 @@ export default function AppShell({
   displayName,
   hideBottomNav,
   onNavigate,
+  onNavigateTab,
   onSwitchRole,
   theme,
   onToggleTheme,
@@ -60,6 +61,7 @@ export default function AppShell({
   displayName: string;
   hideBottomNav: boolean;
   onNavigate: (path: string, replace?: boolean) => void;
+  onNavigateTab: (path: string) => void;
   onSwitchRole?: () => void;
   theme: AppTheme;
   onToggleTheme: () => void;
@@ -69,6 +71,11 @@ export default function AppShell({
 }) {
   const nav = NAVIGATION[area];
   const activeRoute = canonicalNavigationRoute(area, path);
+  const tabPaths = useRef(new Map<string, string>());
+  useLayoutEffect(() => {
+    if (activeRoute) tabPaths.current.set(activeRoute, path);
+  }, [activeRoute, path]);
+  const navigateTab = (route: string) => onNavigateTab(tabPaths.current.get(route) ?? route);
   const focusMode = /^\/student\/(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
   const roleToOpen = area === 'trainer' ? 'ученика' : 'тренера';
 
@@ -84,7 +91,7 @@ export default function AppShell({
   const navigation = (
     <>
       {nav.map((item) => (
-        <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => onNavigate(item.route, true)}>
+        <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
           <span><Icon name={item.icon} /></span>{item.label}
         </button>
       ))}
@@ -120,11 +127,11 @@ export default function AppShell({
         {onSwitchRole && <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>}
       </aside>}
 
-      <div className="page-wrap page-transition" key={path.split('?')[0]}>{children}</div>
+      <div className="page-wrap page-transition">{children}</div>
 
       {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
-          <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => onNavigate(item.route, true)}>
+          <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
             <span><Icon name={item.icon} /></span><small>{item.label}</small>
           </button>
         ))}
