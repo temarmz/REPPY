@@ -150,7 +150,7 @@
 .exercise-order-controls button .ui-icon { width: 24px; height: 24px; }
 .exercise-comment-button { display: inline-flex; min-width: 0; min-height: 48px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 12px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
 .active-exercise-footer-actions button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.08); border-radius: 15px; padding: 8px 12px; background: rgba(255,255,255,.035); color: #d9ddd6; cursor: pointer; font-size: var(--button-font-size); font-weight: 800; text-align: center; }
-.active-exercise-footer-actions > button { min-width: 144px; gap: 7px; padding-inline: 12px; }
+.active-exercise-footer-actions > button { min-width: 0; gap: 7px; padding-inline: 12px; }
 .exercise-comment-button .ui-icon, .active-exercise-footer-actions button .ui-icon { width: 19px; height: 19px; flex: 0 0 auto; color: var(--lime); }
 .exercise-comment-button.has-value { border-color: rgba(198,255,61,.22); background: var(--brand-soft); }
 .active-comment-field { display: grid; gap: 8px; margin-top: 12px; border-radius: 18px; padding: 14px; background: #090b09; }
