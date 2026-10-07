@@ -164,7 +164,7 @@ textarea::placeholder { color: #747b72; opacity: 1; }
 }
 
 @media (max-width: 380px) {
-  .active-exercise-footer-actions { flex-direction: column; align-items: stretch; }
+  .active-exercise-footer-actions { grid-template-columns: 1fr; }
   .set-count-control { width: 100%; justify-content: space-between; }
   .active-exercise-footer-actions > button { width: 100%; }
 }

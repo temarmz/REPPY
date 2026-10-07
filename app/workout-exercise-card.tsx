@@ -124,8 +124,8 @@ function ExerciseOrderControls({ exercise, index, totalExercises, onMoveUp, onMo
 }) {
   return (
       <div className="exercise-order-controls" role="group" aria-label={'Порядок — ' + exercise.name}>
-        <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="chevron-left" /></button>
-        <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="chevron-right" /></button>
+        <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="move-up" /></button>
+        <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="move-down" /></button>
       </div>
   );
 }

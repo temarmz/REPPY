@@ -8,6 +8,8 @@ export type IconName =
   | 'arrow-up-right'
   | 'chevron-right'
   | 'chevron-left'
+  | 'move-up'
+  | 'move-down'
   | 'close'
   | 'plus'
   | 'check'
@@ -33,6 +35,8 @@ const iconFiles: Record<IconName, string> = {
   'arrow-up-right': 'icon-arrow-up-right.svg',
   'chevron-right': 'icon-chevron-right-reppy.svg',
   'chevron-left': 'icon-chevron-left-reppy.svg',
+  'move-up': 'icon-move-up.svg',
+  'move-down': 'icon-move-down.svg',
   close: 'icon-close-reppy.svg',
   plus: 'icon-plus.svg',
   check: 'icon-checkmark.svg',
