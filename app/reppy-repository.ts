@@ -27,7 +27,7 @@ export function isReppyConflictError(reason: unknown): reason is ReppyConflictEr
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export interface ReppyRepository {
-  load(): Promise<DemoState>;
+  load(options?: { accept?: () => boolean }): Promise<DemoState>;
   save(state: DemoState): Promise<void>;
   execute?(command: ReppyCommand, state: DemoState): Promise<void>;
   clear(): Promise<void>;

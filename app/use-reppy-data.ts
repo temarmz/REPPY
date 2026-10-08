@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import { createInitialState, type DemoState, type Student } from './reppy-data';
 import { applyReppyCommand, type ReppyCommand } from './reppy-commands';
 import { createLocalStorageRepository, isReppyConflictError, type ReppyRepository } from './reppy-repository';
+import { createPersistenceQueue } from './persistence-queue';
 
 export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
 
@@ -44,8 +45,7 @@ export function useReppyData(
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
   const refreshSequenceRef = useRef(0);
-  const commandQueueRef = useRef<Array<{ command: ReppyCommand; state: DemoState }>>([]);
-  const commandRunningRef = useRef(false);
+  const remoteQueueRef = useRef<ReturnType<typeof createPersistenceQueue> | null>(null);
 
   useEffect(() => {
     dataRef.current = data;
@@ -54,18 +54,30 @@ export function useReppyData(
   useEffect(() => {
     if (!repository.execute) return;
     const protectPendingCommands = (event: BeforeUnloadEvent) => {
-      if (commandQueueRef.current.length === 0) return;
+      if (!remoteQueueRef.current?.pendingCount) return;
+      remoteQueueRef.current.flush();
       event.preventDefault();
       event.returnValue = '';
     };
+    const flushOnHide = () => { if (document.visibilityState === 'hidden') remoteQueueRef.current?.flush(); };
     window.addEventListener('beforeunload', protectPendingCommands);
-    return () => window.removeEventListener('beforeunload', protectPendingCommands);
+    document.addEventListener('visibilitychange', flushOnHide);
+    return () => {
+      window.removeEventListener('beforeunload', protectPendingCommands);
+      document.removeEventListener('visibilitychange', flushOnHide);
+    };
   }, [repository]);
 
   useEffect(() => {
     let cancelled = false;
+    const queue = repository.execute ? createPersistenceQueue(repository, (phase, error) => {
+      if (cancelled) return;
+      setPersistenceError(error ?? null);
+      setPersistencePhase(phase);
+    }) : null;
+    remoteQueueRef.current = queue;
 
-    void repository.load()
+    void (queue ? queue.load() : repository.load())
       .then((nextData) => {
         if (cancelled) return;
         dataRef.current = nextData;
@@ -84,6 +96,8 @@ export function useReppyData(
 
     return () => {
       cancelled = true;
+      queue?.dispose();
+      if (remoteQueueRef.current === queue) remoteQueueRef.current = null;
     };
   }, [loadAttempt, repository]);
 
@@ -97,15 +111,16 @@ export function useReppyData(
       const expectedSaveVersion = saveVersionRef.current;
       if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
       refreshTimer = window.setTimeout(() => {
-        const refreshRequest = saveQueueRef.current
+        const queue = remoteQueueRef.current;
+        const refreshRequest = queue ? queue.load(() => expectedSaveVersion === saveVersionRef.current) : saveQueueRef.current
           .catch(() => undefined)
           .then(() => repository.load());
-        saveQueueRef.current = refreshRequest.then(() => undefined);
+        if (!queue) saveQueueRef.current = refreshRequest.then(() => undefined);
         void refreshRequest
           .then((nextData) => {
             if (cancelled || sequence !== refreshSequenceRef.current) return;
             if (expectedSaveVersion !== saveVersionRef.current) return;
-            if (commandQueueRef.current.length > 0) return;
+            if (remoteQueueRef.current?.pendingCount) return;
             dataRef.current = nextData;
             setData(nextData);
             setPersistenceError(null);
@@ -163,22 +178,36 @@ export function useReppyData(
 
   useEffect(() => {
     if (!hydrated || persistencePhase !== 'error' || isReppyConflictError(persistenceError)) return;
+    if (repository.execute) {
+      const resume = () => remoteQueueRef.current?.resume();
+      const visible = () => { if (document.visibilityState === 'visible') resume(); };
+      window.addEventListener('online', resume);
+      window.addEventListener('focus', resume);
+      document.addEventListener('visibilitychange', visible);
+      return () => {
+        window.removeEventListener('online', resume);
+        window.removeEventListener('focus', resume);
+        document.removeEventListener('visibilitychange', visible);
+      };
+    }
     if (navigator.onLine) return;
     const retryWhenOnline = () => setSaveAttempt((current) => current + 1);
     window.addEventListener('online', retryWhenOnline, { once: true });
     return () => window.removeEventListener('online', retryWhenOnline);
-  }, [hydrated, persistenceError, persistencePhase]);
+  }, [hydrated, persistenceError, persistencePhase, repository]);
 
   useEffect(() => {
     if (!hydrated || loadedRepository !== repository || reloadAttempt === 0) return;
     let cancelled = false;
-    const request = saveQueueRef.current
+    const version = saveVersionRef.current;
+    const queue = remoteQueueRef.current;
+    const request = queue ? queue.load(() => version === saveVersionRef.current) : saveQueueRef.current
       .catch(() => undefined)
       .then(() => repository.load());
-    saveQueueRef.current = request.then(() => undefined);
+    if (!queue) saveQueueRef.current = request.then(() => undefined);
     void request
       .then((nextData) => {
-        if (cancelled) return;
+        if (cancelled || version !== saveVersionRef.current || remoteQueueRef.current?.pendingCount) return;
         dataRef.current = nextData;
         setData(nextData);
         setPersistenceError(null);
@@ -196,8 +225,9 @@ export function useReppyData(
 
   const retryPersistence = useCallback(() => {
     if (hydrated) {
-      if (repository.execute && commandQueueRef.current.length > 0) {
-        setSaveAttempt((current) => current + 1);
+      if (repository.execute) {
+        if (remoteQueueRef.current?.pendingCount) remoteQueueRef.current.retry();
+        else { setPersistencePhase('loading'); setReloadAttempt((current) => current + 1); }
         return;
       }
       setSaveAttempt((current) => current + 1);
@@ -208,56 +238,25 @@ export function useReppyData(
     setLoadAttempt((current) => current + 1);
   }, [hydrated, repository]);
 
-  const drainCommandQueue = useCallback(() => {
-    if (!repository.execute || commandRunningRef.current) return;
-    commandRunningRef.current = true;
-    const run = async () => {
-      while (commandQueueRef.current.length > 0) {
-        const pending = commandQueueRef.current[0];
-        setPersistenceError(null);
-        setPersistencePhase('saving');
-        try {
-          await repository.execute!(pending.command, pending.state);
-          commandQueueRef.current.shift();
-        } catch (reason) {
-          setPersistenceError(toError(reason));
-          setPersistencePhase('error');
-          commandRunningRef.current = false;
-          return;
-        }
-      }
-      setPersistenceError(null);
-      setPersistencePhase('idle');
-      commandRunningRef.current = false;
-    };
-    void run();
-  }, [repository]);
-
-  useEffect(() => {
-    if (saveAttempt === 0 || !repository.execute || commandQueueRef.current.length === 0) return;
-    drainCommandQueue();
-  }, [drainCommandQueue, repository, saveAttempt]);
-
   const dispatch = useCallback((command: ReppyCommand) => {
     const nextData = applyReppyCommand(dataRef.current, command);
     dataRef.current = nextData;
     setData(nextData);
     if (!repository.execute) return;
     saveVersionRef.current += 1;
-    commandQueueRef.current.push({ command, state: nextData });
-    drainCommandQueue();
-  }, [drainCommandQueue, repository]);
+    remoteQueueRef.current?.enqueue(command, nextData);
+  }, [repository]);
 
   const reset = useCallback(() => {
     const initial = createInitialState();
-    commandQueueRef.current = [];
+    remoteQueueRef.current?.discard();
     dataRef.current = initial;
     setData(initial);
     setPersistenceError(null);
   }, []);
 
   const reloadCurrentData = useCallback(() => {
-    commandQueueRef.current = [];
+    remoteQueueRef.current?.discard();
     setPersistenceError(null);
     setPersistencePhase('loading');
     setReloadAttempt((current) => current + 1);

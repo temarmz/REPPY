@@ -67,7 +67,8 @@ export function useReppyAuth() {
       return;
     }
 
-    setProfile({ id: data.id, role: data.role as Role, displayName: data.display_name });
+    setProfile((current) => current && current.id === data.id && current.role === data.role && current.displayName === data.display_name
+      ? current : { id: data.id, role: data.role as Role, displayName: data.display_name });
     setError('');
     setStatus('authenticated');
   }, [client]);

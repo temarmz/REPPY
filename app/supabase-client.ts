@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createBoundedFetch } from './bounded-fetch';
 
 type PublicSupabaseConfig = {
   url: string;
@@ -23,6 +24,7 @@ export function getSupabaseClient() {
   if (!supabaseConfig) return null;
   if (!browserClient) {
     browserClient = createClient(supabaseConfig.url, supabaseConfig.publishableKey, {
+      global: { fetch: createBoundedFetch() },
       auth: {
         flowType: 'pkce',
         persistSession: true,

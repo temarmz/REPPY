@@ -16,6 +16,7 @@ import {
 } from './reppy-data.ts';
 import type { ReppyCommand } from './reppy-commands';
 import { ReppyConflictError, type ReppyRepository } from './reppy-repository.ts';
+import { isTransientPersistenceError } from './persistence-queue.ts';
 
 type AuthProfile = { id: string; role: Role };
 
@@ -132,7 +133,17 @@ function throwIfError(result: { error: { message: string; code?: string } | null
   if (result.error.code === '40001' || /revision conflict/i.test(result.error.message)) {
     throw new ReppyConflictError('Тренировка уже изменена на другом устройстве.');
   }
-  throw new Error(result.error.message);
+  const code = /Сервер долго не отвечает/.test(result.error.message) ? 'REPPY_TIMEOUT'
+    : isTransientPersistenceError(result.error) ? 'REPPY_NETWORK' : result.error.code;
+  throw Object.assign(new Error(result.error.message), { code });
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.entries(value)
+    .filter(([, item]) => item !== undefined).sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
+  return JSON.stringify(value);
 }
 
 function revisionConflict(entity: string) {
@@ -231,7 +242,7 @@ export function createSupabaseRepository(
     throwIfError(await client.from('exercise_definitions').insert(rows));
   }
 
-  async function load(): Promise<DemoState> {
+  async function load(options?: { accept?: () => boolean }): Promise<DemoState> {
     const subscriptionsQuery = profile.role === 'trainer'
       ? client.rpc('get_trainer_subscription_entries')
       : client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision');
@@ -278,24 +289,28 @@ export function createSupabaseRepository(
         });
       }
     }
+    // A read superseded by a local edit must not change its optimistic base
+    // revisions. Otherwise the queued old snapshot could overwrite a real
+    // change from another device using a newly fetched revision number.
+    const acceptRevisions = options?.accept?.() ?? true;
     for (const relationship of relationships) {
       relationshipByStudent.set(relationship.student_id, relationship.id);
       trainerByStudent.set(relationship.student_id, relationship.trainer_id);
       remoteStudentId.set(relationship.student_id, relationship.student_id);
-      relationshipUpdatedAt.set(relationship.student_id, relationship.updated_at);
+      if (acceptRevisions) relationshipUpdatedAt.set(relationship.student_id, relationship.updated_at);
     }
-    for (const student of studentRows) studentUpdatedAt.set(student.id, student.updated_at);
+    if (acceptRevisions) for (const student of studentRows) studentUpdatedAt.set(student.id, student.updated_at);
     for (const assignment of assignmentRows) {
       remoteAssignmentId.set(assignment.id, assignment.id);
-      assignmentRevision.set(assignment.id, assignment.revision);
+      if (acceptRevisions) assignmentRevision.set(assignment.id, assignment.revision);
     }
     for (const session of sessionRows) {
       remoteSessionId.set(session.id, session.id);
-      sessionRevision.set(session.id, session.revision);
+      if (acceptRevisions) sessionRevision.set(session.id, session.revision);
     }
     for (const entry of subscriptionRows) {
       remoteSubscriptionId.set(entry.id, entry.id);
-      subscriptionRevision.set(entry.id, entry.revision);
+      if (acceptRevisions) subscriptionRevision.set(entry.id, entry.revision);
     }
 
     const relationshipById = new Map(relationships.map((row) => [row.id, row]));
@@ -424,6 +439,55 @@ export function createSupabaseRepository(
 
   async function save() {
     // Hosted persistence is command-based. LocalStorageRepository still saves snapshots.
+  }
+
+  const uncertainProgress = new Map<string, { revision: number; snapshot: Workout; results: Array<{
+    exerciseInstanceId: string; setNumber: number; actualReps: number; actualWeight: number; completed: boolean;
+  }> }>();
+
+  async function saveProgress(session: WorkoutSession) {
+    const sessionId = getRemoteId(remoteSessionId, session.id);
+    const uncertain = uncertainProgress.get(session.id);
+    if (uncertain) {
+      const [remote, results] = await Promise.all([
+        client.from('workout_sessions').select('revision, workout_snapshot').eq('id', sessionId).single(),
+        client.from('set_results').select('exercise_instance_id, set_number, actual_reps, actual_weight, completed').eq('session_id', sessionId),
+      ]);
+      throwIfError(remote);
+      throwIfError(results);
+      if (!remote.data) throw new Error('Не удалось проверить сохранение тренировки.');
+      const saved = (results.data as ResultRow[]).map((row) => ({ exerciseInstanceId: row.exercise_instance_id,
+        setNumber: row.set_number, actualReps: row.actual_reps, actualWeight: Number(row.actual_weight), completed: row.completed }));
+      const sorted = (rows: typeof saved) => [...rows].sort((a, b) => a.exerciseInstanceId.localeCompare(b.exerciseInstanceId) || a.setNumber - b.setNumber);
+      if (remote.data.revision > uncertain.revision
+        && canonicalJson(remote.data.workout_snapshot) === canonicalJson(uncertain.snapshot)
+        && canonicalJson(sorted(saved)) === canonicalJson(sorted(uncertain.results))) {
+        // Server committed, but its response was lost. Acknowledge the original
+        // queued write instead of sending it again or reporting a false conflict.
+        sessionRevision.set(session.id, remote.data.revision);
+        uncertainProgress.delete(session.id);
+        return;
+      }
+      if (remote.data.revision !== uncertain.revision) throw revisionConflict('Тренировка');
+    }
+    const attempt = {
+      revision: sessionRevision.get(session.id) ?? 1,
+      snapshot: serializeWorkout(session.workoutSnapshot),
+      results: session.results.map((result) => ({
+        exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId), setNumber: result.setNumber,
+        actualReps: result.actualReps, actualWeight: result.actualWeight, completed: result.completed,
+      })),
+    };
+    try {
+      const progress = await client.rpc('save_session_progress', { p_session_id: sessionId,
+        p_expected_revision: attempt.revision, p_workout_snapshot: attempt.snapshot, p_results: attempt.results });
+      throwIfError(progress);
+      sessionRevision.set(session.id, (progress.data as SessionRow).revision);
+      uncertainProgress.delete(session.id);
+    } catch (reason) {
+      if (isTransientPersistenceError(reason)) uncertainProgress.set(session.id, attempt);
+      throw reason;
+    }
   }
 
   async function execute(command: ReppyCommand, state: DemoState) {
@@ -583,38 +647,12 @@ export function createSupabaseRepository(
       });
       throwIfError(started);
       sessionRevision.set(session.id, (started.data as SessionRow).revision);
-      const progress = await client.rpc('save_session_progress', {
-        p_session_id: sessionId,
-        p_expected_revision: sessionRevision.get(session.id) ?? 1,
-        p_workout_snapshot: serializeWorkout(session.workoutSnapshot),
-        p_results: session.results.map((result) => ({
-          exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId),
-          setNumber: result.setNumber,
-          actualReps: result.actualReps,
-          actualWeight: result.actualWeight,
-          completed: result.completed,
-        })),
-      });
-      throwIfError(progress);
-      sessionRevision.set(session.id, (progress.data as SessionRow).revision);
+      await saveProgress(session);
     } else if (command.type === 'session.progress') {
       const session = state.sessions.find((item) => item.id === command.sessionId);
       if (!session) throw new Error('Сессия не найдена.');
       await ensureExerciseDefinitions([session.workoutSnapshot]);
-      const progress = await client.rpc('save_session_progress', {
-        p_session_id: getRemoteId(remoteSessionId, session.id),
-        p_expected_revision: sessionRevision.get(session.id) ?? 1,
-        p_workout_snapshot: serializeWorkout(session.workoutSnapshot),
-        p_results: session.results.map((result) => ({
-          exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId),
-          setNumber: result.setNumber,
-          actualReps: result.actualReps,
-          actualWeight: result.actualWeight,
-          completed: result.completed,
-        })),
-      });
-      throwIfError(progress);
-      sessionRevision.set(session.id, (progress.data as SessionRow).revision);
+      await saveProgress(session);
     } else if (command.type === 'session.complete') {
       const completed = await client.rpc('complete_workout_session', {
         p_session_id: getRemoteId(remoteSessionId, command.sessionId),

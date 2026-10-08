@@ -15,6 +15,7 @@ import EmptyState from './empty-state';
 import AppShell, { type AppTheme } from './app-shell';
 import RetainedRouteViews from './retained-route-views';
 import { AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './app-status';
+import { downloadPersistenceDiagnostics } from './persistence-diagnostics';
 import ModalFrame, { MODAL_LAYER_EVENT } from './modal-frame';
 import { ActionButton, FormError } from './ui-controls';
 import {
@@ -113,10 +114,12 @@ function preloadAsset(path: string) {
 
 export default function ReppyApp() {
   const auth = useReppyAuth();
+  const profileId = auth.profile?.id;
+  const profileRole = auth.profile?.role;
   const remoteRepository = useMemo(() => {
     const client = getSupabaseClient();
-    return client && auth.profile ? createSupabaseRepository(client, auth.profile) : null;
-  }, [auth.profile]);
+    return client && profileId && profileRole ? createSupabaseRepository(client, { id: profileId, role: profileRole }) : null;
+  }, [profileId, profileRole]);
   const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, dispatch, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const path = useHashNavigation();
@@ -588,6 +591,7 @@ function SettingsModal({ accountMode = false, account, onClose, onReset, onSignO
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить локальные данные?' : accountMode ? 'Настройки аккаунта' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel={accountMode ? 'Настройки аккаунта' : 'Настройки демо'} onClose={onClose}>
       {resetConfirmationOpen ? <p>Все локальные изменения в учениках, тренировках и расписании будут удалены.</p> : accountMode && account ? <section className="account-details" aria-label="Данные аккаунта"><span className="account-avatar">{account.displayName.trim().charAt(0).toUpperCase()}</span><div><strong>{account.displayName}</strong><small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</small>{account.email && <span>{account.email}</span>}</div></section> : !accountMode ? <p>Сброс вернёт исходных учеников, тренировки и расписание.</p> : null}
       {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <div className="telegram-connection-status"><Icon name="check" /><span><strong>Telegram подключён</strong><small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</small></span></div> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}{onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</button>}</div>}
+      {!resetConfirmationOpen && accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
     </ModalFrame>
   );
 }

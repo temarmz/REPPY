@@ -205,6 +205,33 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
     .eq('session_id', sessionId).eq('exercise_instance_id', privateExerciseInstanceId).single(),
   'student saves a fractional weight for the private exercise'), { actual_reps: 8, actual_weight: 2.5, completed: true });
 
+  // Simulate a real committed save whose HTTP acknowledgement never reaches
+  // the app. A retry must recognize it without increasing the revision twice.
+  let loseResponse = true;
+  const lostResponseClient = {
+    from: student.from.bind(student), functions: student.functions,
+    rpc: async (name, args) => {
+      const result = await student.rpc(name, args);
+      if (name === 'save_session_progress' && loseResponse && !result.error) {
+        loseResponse = false;
+        return { data: null, error: { message: 'TypeError: Failed to fetch' } };
+      }
+      return result;
+    },
+  };
+  const recoveryRepository = createSupabaseRepository(lostResponseClient, { id: createdStudent.id, role: 'student' });
+  const recoveryState = await recoveryRepository.load();
+  const recoverySession = recoveryState.sessions.find((item) => item.id === sessionId);
+  recoverySession.results = recoverySession.results.map((item) => item.exerciseId === privateExerciseInstanceId
+    ? { ...item, actualWeight: 3.5 } : item);
+  await assert.rejects(recoveryRepository.execute({ type: 'session.progress', sessionId }, recoveryState), { code: 'REPPY_NETWORK' });
+  const beforeRecovery = assertSuccess(await student.from('workout_sessions').select('revision').eq('id', sessionId).single(), 'read committed revision');
+  await recoveryRepository.execute({ type: 'session.progress', sessionId }, recoveryState);
+  const afterRecovery = assertSuccess(await student.from('workout_sessions').select('revision').eq('id', sessionId).single(), 'read recovered revision');
+  assert.equal(afterRecovery.revision, beforeRecovery.revision);
+  assert.deepEqual(assertSuccess(await trainer.from('set_results').select('actual_weight').eq('session_id', sessionId)
+    .eq('exercise_instance_id', privateExerciseInstanceId).single(), 'trainer sees recovered progress'), { actual_weight: 3.5 });
+
   const completed = assertSuccess(await student.rpc('complete_workout_session', {
     p_session_id: sessionId,
     p_charge_subscription: true,

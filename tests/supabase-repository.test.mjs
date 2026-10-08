@@ -43,7 +43,7 @@ function assignedWorkoutClient({ active = false } = {}) {
     },
     functions: { invoke: async () => ({ error: null }) },
   };
-  return { repository: createSupabaseRepository(client, { id: accountId, role: 'student' }), calls, definitionId, instanceId };
+  return { client, tables, repository: createSupabaseRepository(client, { id: accountId, role: 'student' }), calls, definitionId, instanceId };
 }
 
 test('ученик запускает тренировку с личным упражнением тренера, сохраняя исходные UUID', async () => {
@@ -58,6 +58,44 @@ test('ученик запускает тренировку с личным уп�
   assert.equal(save.payload.p_workout_snapshot.exercises[0].id, instanceId);
   assert.equal(save.payload.p_results.length, 3);
   assert.ok(save.payload.p_results.every((result) => result.exerciseInstanceId === instanceId));
+});
+
+for (const changedElsewhere of [false, true]) {
+  test(`потерянный ответ сохранения: ${changedElsewhere ? 'чужие изменения защищены' : 'принятая запись не повторяется'}`, async () => {
+    const { client, tables, repository } = assignedWorkoutClient({ active: true });
+    const data = await repository.load();
+    const session = data.sessions[0];
+    let writes = 0;
+    client.rpc = async (_, payload) => {
+      writes++;
+      tables.workout_sessions[0].revision = 2;
+      tables.workout_sessions[0].workout_snapshot = structuredClone(payload.p_workout_snapshot);
+      if (changedElsewhere) tables.workout_sessions[0].workout_snapshot.name = 'Изменено тренером';
+      tables.set_results = payload.p_results.map((row) => ({ exercise_instance_id: row.exerciseInstanceId,
+        set_number: row.setNumber, actual_reps: row.actualReps, actual_weight: row.actualWeight, completed: row.completed }));
+      return { data: null, error: { message: 'TypeError: Failed to fetch' } };
+    };
+    await assert.rejects(repository.execute({ type: 'session.progress', sessionId: session.id }, data), { code: 'REPPY_NETWORK' });
+    client.from = (table) => ({ select: () => ({ eq: () => table === 'workout_sessions'
+      ? { single: async () => ({ data: tables[table][0], error: null }) }
+      : Promise.resolve({ data: tables[table], error: null }) }) });
+    const retry = repository.execute({ type: 'session.progress', sessionId: session.id }, data);
+    if (changedElsewhere) await assert.rejects(retry, { code: 'REPPY_CONFLICT' });
+    else await retry;
+    assert.equal(writes, 1);
+  });
+}
+
+test('загрузка, перекрытая локальной правкой, не подменяет её базовую ревизию', async () => {
+  const { client, tables, repository } = assignedWorkoutClient({ active: true });
+  const data = await repository.load();
+  tables.workout_sessions[0].revision = 2; // A real update from the trainer.
+  await repository.load({ accept: () => false });
+  client.rpc = async (_, payload) => {
+    assert.equal(payload.p_expected_revision, 1);
+    return { data: null, error: { code: '40001', message: 'Session revision conflict' } };
+  };
+  await assert.rejects(repository.execute({ type: 'session.progress', sessionId: data.sessions[0].id }, data), { code: 'REPPY_CONFLICT' });
 });
 
 test('ученик сохраняет дробный вес и пустой добавленный подход без записи в библиотеку', async () => {
