@@ -35,7 +35,7 @@ export default function SessionResult({
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <main className="content-page narrow-page">
-      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/history'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack={trainerView} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       <dl className="session-summary" aria-label="Итоги тренировки">
         <div><dt>ДЛИТЕЛЬНОСТЬ</dt><dd>{elapsed}</dd></div>
         <div><dt>ПОДХОДЫ</dt><dd>{completedSets} из {session.results.length}</dd></div>

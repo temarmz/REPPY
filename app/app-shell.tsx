@@ -19,7 +19,6 @@ const NAVIGATION: Record<AppArea, NavigationItem[]> = {
   student: [
     { label: 'Сегодня', icon: 'calendar', route: '/student' },
     { label: 'Календарь', icon: 'calendar', route: '/student/calendar' },
-    { label: 'История', icon: 'history', route: '/student/history' },
     { label: 'Профиль', icon: 'users', route: '/student/profile' },
   ],
 };
@@ -32,7 +31,7 @@ export function canonicalNavigationRoute(area: AppArea, path: string) {
   }
 
   if (/^\/student\/calendar(?:\/|$)/.test(path)) return '/student/calendar';
-  if (/^\/student\/history(?:\/|$)/.test(path)) return '/student/history';
+  if (/^\/student\/history(?:\/|$)/.test(path)) return '/student/calendar';
   if (/^\/student\/profile(?:\/|$)/.test(path)) return '/student/profile';
   if (path === '/student' || /^\/student\/(assignments|workout)(?:\/|$)/.test(path)) return '/student';
   return null;
@@ -76,7 +75,7 @@ export default function AppShell({
     if (activeRoute) tabPaths.current.set(activeRoute, path);
   }, [activeRoute, path]);
   const navigateTab = (route: string) => onNavigateTab(tabPaths.current.get(route) ?? route);
-  const focusMode = /^\/student\/(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
+  const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
   const roleToOpen = area === 'trainer' ? 'ученика' : 'тренера';
 
   useLayoutEffect(() => {

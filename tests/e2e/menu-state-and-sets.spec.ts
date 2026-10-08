@@ -26,7 +26,7 @@ test('вкладки сохраняют раскрытый профиль, не�
   const selected = await page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]').getAttribute('aria-label');
   await scroll.evaluate((element) => { element.scrollTop = 120; });
   const calendarDepth = await scroll.evaluate((element) => element.scrollTop);
-  await nav.getByRole('button', { name: 'История' }).click();
+  await nav.getByRole('button', { name: 'Сегодня' }).click();
   await nav.getByRole('button', { name: 'Профиль' }).click();
   await expect(field).toHaveValue('183');
   await expect.poll(async () => Math.abs(await scroll.evaluate((element) => element.scrollTop) - profileDepth)).toBeLessThanOrEqual(1);
@@ -42,17 +42,98 @@ test('вкладка возвращает открытую страницу вн
   await page.setViewportSize({ width: 390, height: 600 });
   await demo(page, true);
   const nav = page.locator('.bottom-nav');
-  await nav.getByRole('button', { name: 'История' }).click();
-  await page.locator('[data-route-active="true"] .history-list button').first().click();
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
+    const assignment = data.assignments.find((item: { studentId: string; status: string }) => item.studentId === 'artem' && item.status === 'completed');
+    sessionStorage.setItem('reppy-ui:calendar-day:student', assignment.scheduledFor);
+  });
+  await nav.getByRole('button', { name: 'Календарь' }).click();
+  await page.locator('[data-route-active="true"] .agenda-list button').first().click();
   const url = page.url();
   const scroll = page.locator('.page-wrap');
   await scroll.evaluate((element) => { element.scrollTop = 180; });
   const depth = await scroll.evaluate((element) => element.scrollTop);
   expect(depth).toBeGreaterThan(0);
   await nav.getByRole('button', { name: 'Сегодня' }).click();
-  await nav.getByRole('button', { name: 'История' }).click();
+  await nav.getByRole('button', { name: 'Календарь' }).click();
   await expect(page).toHaveURL(url);
   await expect.poll(async () => Math.abs(await scroll.evaluate((element) => element.scrollTop) - depth)).toBeLessThanOrEqual(1);
+});
+
+test('завершённая тренировка возвращается в календарь на ту же дату и прокрутку', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await demo(page, true);
+  const nav = page.locator('.bottom-nav');
+  await expect(nav.getByRole('button')).toHaveCount(3);
+  await expect(nav.getByRole('button', { name: 'История' })).toHaveCount(0);
+  await page.evaluate(() => {
+    const data = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
+    const assignment = data.assignments.find((item: { studentId: string; status: string }) => item.studentId === 'artem' && item.status === 'completed');
+    sessionStorage.setItem('reppy-ui:calendar-day:student', assignment.scheduledFor);
+  });
+  await nav.getByRole('button', { name: 'Календарь' }).click();
+  const selected = await page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]').getAttribute('aria-label');
+  const card = page.locator('[data-route-active="true"] .agenda-list button').first();
+  await card.scrollIntoViewIfNeeded();
+  const depth = await page.locator('.page-wrap').evaluate((element) => element.scrollTop);
+  await card.click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/sessions\//);
+  await expect(nav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
+  await expect(page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]')).toHaveAttribute('aria-label', selected!);
+  await expect.poll(async () => Math.abs(await page.locator('.page-wrap').evaluate((element) => element.scrollTop) - depth)).toBeLessThanOrEqual(1);
+});
+
+test('незавершённая тренировка сохраняет раздел открытия: календарь или сегодня', async ({ page }) => {
+  await demo(page, true);
+  const nav = page.locator('.bottom-nav');
+  await nav.getByRole('button', { name: 'Календарь' }).click();
+  await page.locator('[data-route-active="true"] .agenda-list button').first().click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/assignments\//);
+  await expect(nav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/workout\//);
+  await page.getByRole('button', { name: 'Вернуться назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/assignments\//);
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
+  await nav.getByRole('button', { name: 'Сегодня' }).click();
+  await page.getByRole('button', { name: 'Посмотреть тренировку', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/assignments\//);
+  await expect(nav.getByRole('button', { name: 'Сегодня' })).toHaveAttribute('aria-current', 'page');
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student$/);
+});
+
+test('старые ссылки истории открывают календарь и сохранённые результаты', async ({ page }) => {
+  await demo(page, true);
+  await page.goto('/#/student/history');
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
+  await page.goto('/#/student/history/session-artem-legs-history-1');
+  await expect(page).toHaveURL(/#\/student\/calendar\/sessions\/session-artem-legs-history-1$/);
+  await expect(page.locator('[data-route-active="true"]').getByLabel('Итоги тренировки')).toBeVisible();
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
+});
+
+test('после завершения из календаря кнопка Готово возвращает к выбранному дню', async ({ page }) => {
+  await demo(page, true);
+  await page.locator('.bottom-nav').getByRole('button', { name: 'Календарь' }).click();
+  const selected = await page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]').getAttribute('aria-label');
+  await page.locator('[data-route-active="true"] .agenda-list button').first().click();
+  await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
+  await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить тренировку' }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/finish\//);
+  await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
+  await page.getByRole('button', { name: 'Сохранить результат' }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/success\//);
+  await page.getByRole('button', { name: 'Готово', exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
+  await expect(page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]')).toHaveAttribute('aria-label', selected!);
+  await page.locator('[data-route-active="true"] .agenda-list button').first().click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/sessions\//);
 });
 
 test('редактор сохраняет незаполненную тренировку при смене вкладки без подтверждения потери', async ({ page }) => {

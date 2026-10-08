@@ -194,6 +194,22 @@ export default function ReppyApp() {
   }, [auth.enabled, auth.profile?.id, data.loggedIn, hydrated, path]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    // Keep old bookmarks and the last saved route working after removing the
+    // separate history tab. Results now belong to the calendar.
+    if (path === '/student/history') replaceInitialRoute('/student/calendar');
+    const legacySession = path.match(/^\/student\/history\/([^/]+)$/);
+    if (legacySession) {
+      const session = data.sessions.find((item) => item.id === legacySession[1]);
+      const assignment = data.assignments.find((item) => item.id === session?.assignmentId);
+      if (assignment) {
+        try { window.sessionStorage.setItem('reppy-ui:calendar-day:student', assignment.scheduledFor); } catch { /* best effort */ }
+      }
+      replaceInitialRoute(`/student/calendar/sessions/${legacySession[1]}`);
+    }
+  }, [data.assignments, data.sessions, hydrated, path]);
+
+  useEffect(() => {
     if (!auth.enabled || auth.status !== 'authenticated' || !auth.profile || !hydrated) return;
     const wrongArea = auth.profile.role === 'student'
       ? path.startsWith('/trainer')

@@ -5,7 +5,6 @@ import {
   findAssignmentWorkout,
   findSessionWorkout,
   formatCalendarDay,
-  formatDay,
   type Assignment,
   type DemoState,
   type MoodRating,
@@ -37,7 +36,6 @@ const ActiveWorkout = lazy(() => import('./active-workout'));
 
 const STUDENT_COPY = {
   emptyAssignments: 'На ближайшие две недели тренер пока ничего не назначил.',
-  emptyHistory: 'Завершённые тренировки появятся здесь.',
 };
 
 function exercisePreview(workout?: Workout) {
@@ -51,11 +49,13 @@ function StudentAssignmentDetails({
   assignment,
   onRequest,
   onStart,
+  backPath,
 }: {
   data: DemoState;
   assignment: Assignment;
   onRequest: (scheduledFor: string, scheduledTime: string) => void;
   onStart: () => void;
+  backPath: string;
 }) {
   const workout = findAssignmentWorkout(data, assignment);
   const draftKey = `reschedule:${assignment.id}`;
@@ -78,7 +78,7 @@ function StudentAssignmentDetails({
 
   return (
     <main className="content-page narrow-page student-assignment-page">
-      <RoutePageHeader back="/student" eyebrow="Предстоящая тренировка" title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={backPath} eyebrow={activeSession ? 'Незавершённая тренировка' : 'Предстоящая тренировка'} title={workout.name.toUpperCase()} />
       <p className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><span>{formatScheduleDay(assignment.scheduledFor)}</span><span aria-hidden="true">·</span><time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</time></p>
       {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
@@ -142,7 +142,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 }
 
 
-function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; session: WorkoutSession; onComplete: (mood: MoodRating, comment: string) => void }) {
+function WorkoutFeedback({ data, session, backPath, onComplete }: { data: DemoState; session: WorkoutSession; backPath: string; onComplete: (mood: MoodRating, comment: string) => void }) {
   const draftKey = `feedback:${session.id}`;
   const [restoredDraft] = useState(() => loadUiDraft<{ mood: MoodRating | null; comment: string }>(draftKey));
   const [mood, setMood] = useState<MoodRating | null>(restoredDraft?.mood ?? null);
@@ -156,7 +156,7 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
 
   return (
     <main className="feedback-page">
-      <RoutePageHeader back="/student" eyebrow={workout?.name} title="КАК ПРОШЛО?" />
+      <RoutePageHeader back={backPath} eyebrow={workout?.name} title="КАК ПРОШЛО?" />
       <section className="feedback-card">
         <fieldset className="mood-fieldset">
           <legend>Твоё настроение после тренировки</legend>
@@ -175,7 +175,7 @@ function WorkoutFeedback({ data, session, onComplete }: { data: DemoState; sessi
   );
 }
 
-function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSession }) {
+function WorkoutSuccess({ data, session, backPath }: { data: DemoState; session: WorkoutSession; backPath: string }) {
   const workout = findSessionWorkout(data, session);
   const balance = subscriptionBalance(data.subscriptionEntries, session.studentId);
   return (
@@ -184,51 +184,30 @@ function WorkoutSuccess({ data, session }: { data: DemoState; session: WorkoutSe
       <p className="eyebrow">Результат сохранён</p>
       <h1>ТРЕНИРОВКА<br />ЗАВЕРШЕНА</h1>
       <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}<p className={`success-subscription ${subscriptionTone(balance)}`}>{subscriptionBalanceLabel(balance)}</p></section>
-      <ActionButton icon="check" onClick={() => go('/student')}>Готово</ActionButton>
-    </main>
-  );
-}
-
-function StudentHistory({ data }: { data: DemoState }) {
-  const sessions = [...data.sessions].filter((item) => item.studentId === data.activeStudentId && item.completedAt).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
-  return (
-    <main className="content-page student-page">
-      {sessions.length ? (
-        <section className="history-list">
-          {sessions.map((session) => {
-            const workout = findSessionWorkout(data, session);
-            return (
-              <button key={session.id} type="button" onClick={() => go(`/student/history/${session.id}`)}>
-                <span className="history-date">{formatDay(session.completedAt)}</span>
-                <div><strong>{workout?.name}</strong><small>{session.mood ? moodLabel(session.mood) : 'Результат сохранён'}</small></div>
-                <i><Icon name="chevron-right" /></i>
-              </button>
-            );
-          })}
-        </section>
-      ) : <EmptyState icon="history" title="История начнётся здесь" text={STUDENT_COPY.emptyHistory} />}
+      <ActionButton icon="check" onClick={() => go(backPath, true)}>Готово</ActionButton>
     </main>
   );
 }
 
 export default function StudentRoutes({ path, data, dispatch, showToast }: { path: string; data: DemoState; dispatch: (command: ReppyCommand) => void; showToast: (message: string) => void }) {
-  const assignmentDetailsMatch = path.match(/^\/student\/assignments\/([^/]+)$/);
-  const activeMatch = path.match(/^\/student\/workout\/([^/]+)$/);
-  const historyMatch = path.match(/^\/student\/history\/([^/]+)$/);
-  const successMatch = path.match(/^\/student\/success\/([^/]+)$/);
-  const finishMatch = path.match(/^\/student\/finish\/([^/]+)$/);
+  const menuRoot = path.startsWith('/student/calendar/') ? '/student/calendar' : '/student';
+  const assignmentDetailsMatch = path.match(/^\/student\/(?:calendar\/)?assignments\/([^/]+)$/);
+  const activeMatch = path.match(/^\/student\/(?:calendar\/)?workout\/([^/]+)$/);
+  const resultMatch = path.match(/^\/student\/(?:history|calendar\/sessions)\/([^/]+)$/);
+  const successMatch = path.match(/^\/student\/(?:calendar\/)?success\/([^/]+)$/);
+  const finishMatch = path.match(/^\/student\/(?:calendar\/)?finish\/([^/]+)$/);
 
-  if (path === '/student/history') return <StudentHistory data={data} />;
   if (assignmentDetailsMatch) {
     const assignment = data.assignments.find((item) => item.id === assignmentDetailsMatch[1] && item.studentId === data.activeStudentId);
     return assignment ? <StudentAssignmentDetails
       data={data}
       assignment={assignment}
+      backPath={menuRoot}
       onRequest={(scheduledFor, scheduledTime) => {
         dispatch({ type: 'assignment.update', assignment: { ...assignment, rescheduleRequest: { scheduledFor, scheduledTime, requestedAt: new Date().toISOString() } } });
         showToast('Новое время отправлено тренеру');
       }}
-      onStart={() => go(`/student/workout/${assignment.id}`)}
+      onStart={() => go(`${menuRoot}/workout/${assignment.id}`)}
     /> : <NotFound />;
   }
   if (activeMatch) {
@@ -236,7 +215,7 @@ export default function StudentRoutes({ path, data, dispatch, showToast }: { pat
     const session = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
     const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
     const workout = assignment && (session ? findSessionWorkout(data, session) : completedSession ? findSessionWorkout(data, completedSession) : findAssignmentWorkout(data, assignment));
-    if (assignment && workout && assignment.status === 'completed' && completedSession) return <WorkoutSuccess data={data} session={completedSession} />;
+    if (assignment && workout && assignment.status === 'completed' && completedSession) return <WorkoutSuccess data={data} session={completedSession} backPath={menuRoot} />;
     if (!assignment || !workout) return <NotFound />;
     return <ActiveWorkout
       workout={workout}
@@ -245,7 +224,7 @@ export default function StudentRoutes({ path, data, dispatch, showToast }: { pat
       scheduledFor={assignment.scheduledFor}
       scheduledTime={assignment.scheduledTime}
       format={assignment.format}
-      backPath="/student"
+      backPath={menuRoot}
       onStart={() => {
         if (!session) dispatch({ type: 'session.start', session: createWorkoutSession(assignment, workout, 'student') });
       }}
@@ -253,23 +232,23 @@ export default function StudentRoutes({ path, data, dispatch, showToast }: { pat
       onWorkoutUpdate={(sessionId, workoutSnapshot) => dispatch({ type: 'session.progress', sessionId, workoutSnapshot })}
       onFinish={(sessionId, { chargeSubscription }) => {
         dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt: new Date().toISOString(), chargeSubscription, workoutName: workout.name });
-        go(`/student/finish/${sessionId}`);
+        go(`${menuRoot}/finish/${sessionId}`);
       }}
     />;
   }
   if (finishMatch) {
     const session = data.sessions.find((item) => item.id === finishMatch[1]);
-    return session ? <WorkoutFeedback data={data} session={session} onComplete={(mood, comment) => {
+    return session ? <WorkoutFeedback data={data} session={session} backPath={menuRoot} onComplete={(mood, comment) => {
       dispatch({ type: 'session.feedback', sessionId: session.id, mood, comment });
-      go(`/student/success/${session.id}`);
+      go(`${menuRoot}/success/${session.id}`);
     }} /> : <NotFound />;
   }
   if (successMatch) {
     const session = data.sessions.find((item) => item.id === successMatch[1]);
-    return session ? <WorkoutSuccess data={data} session={session} /> : <NotFound />;
+    return session ? <WorkoutSuccess data={data} session={session} backPath={menuRoot} /> : <NotFound />;
   }
-  if (historyMatch) {
-    const session = data.sessions.find((item) => item.id === historyMatch[1]);
+  if (resultMatch) {
+    const session = data.sessions.find((item) => item.id === resultMatch[1] && item.studentId === data.activeStudentId);
     return session ? <SessionResult data={data} session={session} /> : <NotFound />;
   }
   if (path === '/student') return <StudentHome data={data} onOpen={(assignmentId) => go(`/student/assignments/${assignmentId}`)} />;

@@ -69,7 +69,7 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
           const workout = session ? findSessionWorkout(data, session) : findAssignmentWorkout(data, assignment);
           const target = area === 'trainer'
             ? session ? `/trainer/sessions/${session.id}` : `/trainer/assignments/${assignment.id}`
-            : session ? `/student/history/${session.id}` : `/student/assignments/${assignment.id}`;
+            : session ? `/student/calendar/sessions/${session.id}` : `/student/calendar/assignments/${assignment.id}`;
           return (
             <button key={assignment.id} type="button" onClick={() => go(target)}>
               <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
