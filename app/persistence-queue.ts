@@ -22,6 +22,19 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
   let failure: Error | undefined;
   let discardActive = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let cancelRetry: (() => void) | undefined;
+
+  function waitForRetry(delayMs: number) {
+    return new Promise<void>((resolve) => {
+      const retryTimer = setTimeout(finish, delayMs);
+      function finish() {
+        clearTimeout(retryTimer);
+        cancelRetry = undefined;
+        resolve();
+      }
+      cancelRetry = finish;
+    });
+  }
 
   function flush() {
     if (timer) clearTimeout(timer);
@@ -48,8 +61,11 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
             if (!stopped && entry.command.type === 'session.progress' && retries < 2 && isTransientPersistenceError(reason)) {
               retries += 1;
               recordPersistence(entry.command.type, 'retry', started, reason);
-              await new Promise((resolve) => setTimeout(resolve, retryMs * retries));
-              if (!stopped) continue;
+              await waitForRetry(retryMs * retries);
+              // Reload/dispose may happen during backoff, when no request is
+              // in flight. Never send that discarded snapshot again.
+              if (stopped || discardActive) { if (pending[0] === entry) pending.shift(); break; }
+              continue;
             }
             failure = reason instanceof Error ? reason : new Error('Не удалось сохранить изменения.');
             if (!stopped) notify('error', failure);
@@ -111,7 +127,16 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
       pending.splice(active ? 1 : 0);
       discardActive = Boolean(active);
       failure = undefined;
+      if (timer) clearTimeout(timer);
+      timer = undefined;
+      cancelRetry?.();
     },
-    dispose() { stopped = true; if (timer) clearTimeout(timer); pending.splice(active ? 1 : 0); },
+    dispose() {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      timer = undefined;
+      pending.splice(active ? 1 : 0);
+      cancelRetry?.();
+    },
   };
 }

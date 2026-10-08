@@ -98,6 +98,35 @@ test('загрузка, перекрытая локальной правкой, 
   await assert.rejects(repository.execute({ type: 'session.progress', sessionId: data.sessions[0].id }, data), { code: 'REPPY_CONFLICT' });
 });
 
+test('после потерянного ответа и конфликта принятая загрузка разрешает новые правки', async () => {
+  const { client, tables, repository } = assignedWorkoutClient({ active: true });
+  const data = await repository.load();
+  const sessionId = data.sessions[0].id;
+  client.rpc = async () => ({ data: null, error: { message: 'Failed to fetch' } });
+  await assert.rejects(repository.execute({ type: 'session.progress', sessionId }, data), { code: 'REPPY_NETWORK' });
+  tables.workout_sessions[0].revision = 2;
+  tables.workout_sessions[0].workout_snapshot.name = 'Изменено тренером';
+  // Support both full loads and reconciliation queries.
+  client.from = (table) => ({ select: () => Object.assign(Promise.resolve({ data: tables[table], error: null }), {
+    eq: () => table === 'workout_sessions'
+      ? { single: async () => ({ data: tables[table][0], error: null }) }
+      : Promise.resolve({ data: tables[table], error: null }),
+  }) });
+  await repository.load({ accept: () => false });
+  await assert.rejects(repository.execute({ type: 'session.progress', sessionId }, data), { code: 'REPPY_CONFLICT' });
+  const refreshed = await repository.load();
+  refreshed.sessions[0].workoutSnapshot.name = 'Новая правка ученика';
+  let writes = 0;
+  client.rpc = async (_, payload) => {
+    writes++;
+    assert.equal(payload.p_expected_revision, 2);
+    assert.equal(payload.p_workout_snapshot.name, 'Новая правка ученика');
+    return { data: { revision: 3 }, error: null };
+  };
+  await repository.execute({ type: 'session.progress', sessionId }, refreshed);
+  assert.equal(writes, 1);
+});
+
 test('ученик сохраняет дробный вес и пустой добавленный подход без записи в библиотеку', async () => {
   const { repository, calls, definitionId } = assignedWorkoutClient({ active: true });
   const data = await repository.load();

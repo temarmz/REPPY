@@ -232,6 +232,28 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   assert.deepEqual(assertSuccess(await trainer.from('set_results').select('actual_weight').eq('session_id', sessionId)
     .eq('exercise_instance_id', privateExerciseInstanceId).single(), 'trainer sees recovered progress'), { actual_weight: 3.5 });
 
+  // A second lost response followed by another device's edit is a real
+  // conflict. Explicitly loading that edit must allow future saves again.
+  loseResponse = true;
+  recoverySession.results = recoverySession.results.map((item) => item.exerciseId === privateExerciseInstanceId
+    ? { ...item, actualWeight: 4.5 } : item);
+  await assert.rejects(recoveryRepository.execute({ type: 'session.progress', sessionId }, recoveryState), { code: 'REPPY_NETWORK' });
+  const trainerRepository = createSupabaseRepository(trainer, { id: trainerUser.id, role: 'trainer' });
+  const trainerState = await trainerRepository.load();
+  const trainerSession = trainerState.sessions.find((item) => item.id === sessionId);
+  trainerSession.results = trainerSession.results.map((item) => item.exerciseId === privateExerciseInstanceId
+    ? { ...item, actualWeight: 5.5 } : item);
+  await trainerRepository.execute({ type: 'session.progress', sessionId }, trainerState);
+  await assert.rejects(recoveryRepository.execute({ type: 'session.progress', sessionId }, recoveryState), { code: 'REPPY_CONFLICT' });
+  const freshState = await recoveryRepository.load();
+  const freshSession = freshState.sessions.find((item) => item.id === sessionId);
+  assert.equal(freshSession.results.find((item) => item.exerciseId === privateExerciseInstanceId).actualWeight, 5.5);
+  freshSession.results = freshSession.results.map((item) => item.exerciseId === privateExerciseInstanceId
+    ? { ...item, actualWeight: 6.5 } : item);
+  await recoveryRepository.execute({ type: 'session.progress', sessionId }, freshState);
+  assert.deepEqual(assertSuccess(await trainer.from('set_results').select('actual_weight').eq('session_id', sessionId)
+    .eq('exercise_instance_id', privateExerciseInstanceId).single(), 'new edits save after conflict recovery'), { actual_weight: 6.5 });
+
   const completed = assertSuccess(await student.rpc('complete_workout_session', {
     p_session_id: sessionId,
     p_charge_subscription: true,

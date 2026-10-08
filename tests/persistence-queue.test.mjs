@@ -140,6 +140,49 @@ test('явная загрузка актуальных данных ждёт о�
   queue.dispose();
 });
 
+test('отмена во время паузы автоповтора не отправляет отменённую запись', async () => {
+  const calls = [];
+  const queue = createPersistenceQueue({
+    execute: async () => { calls.push('write'); throw new Error('Failed to fetch'); },
+    load: async () => { calls.push('read'); return {}; },
+  }, () => {}, { debounceMs: 0, retryMs: 80 });
+  queue.enqueue(progress(), {});
+  await tick();
+  queue.discard();
+  await queue.load();
+  assert.deepEqual(calls, ['write', 'read']);
+  queue.dispose();
+});
+
+test('закрытие очереди прерывает паузу автоповтора', async () => {
+  let writes = 0;
+  const queue = createPersistenceQueue({
+    execute: async () => { writes++; throw new Error('Failed to fetch'); },
+  }, () => {}, { debounceMs: 0, retryMs: 80 });
+  queue.enqueue(progress(), {});
+  await tick();
+  queue.dispose();
+  await tick();
+  assert.equal(writes, 1);
+  assert.equal(queue.pendingCount, 0);
+});
+
+test('отменённый автоповтор не удаляет новую команду из очереди', async () => {
+  const writes = [];
+  const queue = createPersistenceQueue({ execute: async (_, state) => {
+    writes.push(state.value);
+    if (state.value === 1) throw new Error('Failed to fetch');
+  } }, () => {}, { debounceMs: 0, retryMs: 80 });
+  queue.enqueue(progress(), { value: 1 });
+  await tick();
+  queue.discard();
+  queue.enqueue(progress(), { value: 2 });
+  await tick();
+  assert.deepEqual(writes, [1, 2]);
+  assert.equal(queue.pendingCount, 0);
+  queue.dispose();
+});
+
 test('deadline обрывает зависший запрос и медленное тело ответа', async () => {
   const fetcher = async (_, { signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }));
   await assert.rejects(createBoundedFetch(fetcher, 5)('https://example.test/rest/v1/rpc/save'), { code: 'REPPY_TIMEOUT' });

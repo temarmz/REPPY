@@ -426,6 +426,10 @@ export function createSupabaseRepository(
       subscriptionEntries,
       customExercises,
     };
+    // An accepted reload establishes a fresh editing baseline, including after
+    // a lost acknowledgement followed by a conflict. A superseded background
+    // read must leave the original uncertain write available for reconciliation.
+    if (acceptRevisions) uncertainProgress.clear();
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
       void client.functions.invoke('telegram-notifications', { body: {} })
