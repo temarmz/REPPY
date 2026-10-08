@@ -24,6 +24,7 @@
   --topbar-content-height: 76px;
   --topbar-safe-top: env(safe-area-inset-top, 0px);
   --topbar-height: calc(var(--topbar-content-height) + var(--topbar-safe-top));
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; }
