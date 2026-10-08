@@ -33,19 +33,25 @@ test('меню доходит до края экрана, safe-area находи
   await page.screenshot({ path: 'test-results/iphone-bottom-nav.png', animations: 'disabled' });
 });
 
-test('standalone правило задаёт полную высоту экрана', async ({ page }) => {
+test('меню не обрезается, когда видимая область iPhone меньше CSS viewport', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (window.visualViewport) Object.defineProperty(window.visualViewport, 'height', { configurable: true, get: () => 720 });
+  });
   await page.goto('/');
   await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-  // Desktop engines cannot emulate an installed iPhone app. Activate the
-  // shipped standalone CSS rule itself, rather than copying it into the test.
-  expect(await page.evaluate(() => {
-    const rules = [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules]);
-    const rule = rules.find((rule) => rule instanceof CSSMediaRule && rule.conditionText.includes('standalone')) as CSSMediaRule | undefined;
-    if (!rule) return false;
-    const fullHeight = [...rule.cssRules].some((child) => child instanceof CSSStyleRule
-      && child.selectorText === '.app-shell:not(.focus-mode)' && child.style.height === '100vh');
-    rule.media.mediaText = '(max-width: 800px)';
-    return fullHeight;
-  })).toBe(true);
-  await expect.poll(async () => Math.abs(await page.locator('.app-shell').evaluate((element) => element.getBoundingClientRect().height) - 844)).toBeLessThanOrEqual(1);
+  await expect(page.locator('.app-shell')).toHaveCSS('height', '720px');
+  const nav = page.locator('.bottom-nav');
+  const box = await nav.boundingBox();
+  expect(box!.y + box!.height).toBeLessThanOrEqual(720);
+  for (const label of await nav.locator('small').all()) {
+    const bounds = await label.boundingBox();
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(720);
+  }
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport!, 'height', { configurable: true, get: () => 600 });
+    window.visualViewport!.dispatchEvent(new Event('resize'));
+  });
+  await expect(page.locator('.app-shell')).toHaveCSS('height', '600px');
+  await nav.getByRole('button', { name: 'Календарь' }).tap();
+  await expect(page).toHaveURL(/#\/trainer\/calendar$/);
 });

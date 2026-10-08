@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import Icon, { type IconName } from './ui-icon';
+import { observeMobileViewport } from './mobile-viewport';
 
 export type AppArea = 'trainer' | 'student';
 export type AppTheme = 'dark' | 'light';
@@ -81,7 +82,9 @@ export default function AppShell({
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('app-viewport-locked', !focusMode);
     document.body.classList.toggle('app-viewport-locked', !focusMode);
+    const stopViewport = !focusMode ? observeMobileViewport(window, document.documentElement) : undefined;
     return () => {
+      stopViewport?.();
       document.documentElement.classList.remove('app-viewport-locked');
       document.body.classList.remove('app-viewport-locked');
     };
