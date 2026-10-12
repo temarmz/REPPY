@@ -331,7 +331,7 @@
   .schedule-field { padding: 16px; }
   .assignment-detail-actions { grid-template-columns: 1fr; }
   .session-result-actions { grid-template-columns: 1fr; }
-  .focus-mode .active-workout-page { min-height: 100svh; padding-top: env(safe-area-inset-top, 0px); padding-bottom: max(30px, env(safe-area-inset-bottom)); }
+  .focus-mode .active-workout-page { min-height: 100svh; padding-top: env(safe-area-inset-top, 0px); padding-bottom: calc(max(30px, env(safe-area-inset-bottom)) + var(--workout-keyboard-space, 0px)); }
   .focus-mode .exercise-navigation { position: static; right: auto; bottom: auto; left: auto; margin-top: 24px; border-top: 0; padding: 0 0 max(12px, env(safe-area-inset-bottom)); background: transparent; backdrop-filter: none; }
   .focus-mode .exercise-navigation > button:first-child { flex: 0 0 82px; }
   .focus-mode .exercise-navigation .next-exercise,

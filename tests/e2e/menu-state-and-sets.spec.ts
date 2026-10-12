@@ -112,7 +112,7 @@ test('старые ссылки истории открывают календа
   await expect(page).toHaveURL(/#\/student\/calendar$/);
   await page.goto('/#/student/history/session-artem-legs-history-1');
   await expect(page).toHaveURL(/#\/student\/calendar\/sessions\/session-artem-legs-history-1$/);
-  await expect(page.locator('[data-route-active="true"]').getByLabel('Итоги тренировки')).toBeVisible();
+  await expect(page.locator('[data-route-view="/student/calendar/sessions/session-artem-legs-history-1"]').getByLabel('Итоги тренировки')).toBeVisible();
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/#\/student\/calendar$/);
 });

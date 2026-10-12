@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import Icon, { type IconName } from './ui-icon';
 import { observeMobileViewport } from './mobile-viewport';
+import { observeWorkoutFieldFocus } from './workout-field-focus';
 
 export type AppArea = 'trainer' | 'student';
 export type AppTheme = 'dark' | 'light';
@@ -78,6 +79,8 @@ export default function AppShell({
   const navigateTab = (route: string) => onNavigateTab(tabPaths.current.get(route) ?? route);
   const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
   const roleToOpen = area === 'trainer' ? 'ученика' : 'тренера';
+
+  useLayoutEffect(() => observeWorkoutFieldFocus(window, document), []);
 
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('app-viewport-locked', !focusMode);
