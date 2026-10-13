@@ -1,3 +1,4 @@
+import { Button } from './ui-controls';
 import { useState } from 'react';
 import { dateKey } from './reppy-data';
 import Icon from './ui-icon';
@@ -70,9 +71,9 @@ export default function MonthDatePicker({
   return (
     <section className={`calendar-card ${className}`.trim()}>
       <header className="calendar-toolbar">
-        <button type="button" disabled={!canMoveToPreviousMonth} onClick={() => moveMonth(-1)} aria-label="Предыдущий месяц"><Icon name="chevron-left" /></button>
+        <Button type="button" disabled={!canMoveToPreviousMonth} onClick={() => moveMonth(-1)} aria-label="Предыдущий месяц"><Icon name="chevron-left" /></Button>
         <h2>{monthTitle}</h2>
-        <button type="button" onClick={() => moveMonth(1)} aria-label="Следующий месяц"><Icon name="chevron-right" /></button>
+        <Button type="button" onClick={() => moveMonth(1)} aria-label="Следующий месяц"><Icon name="chevron-right" /></Button>
       </header>
       <div className="calendar-weekdays" aria-hidden="true">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <span key={day}>{day}</span>)}</div>
       <div className="calendar-grid">
@@ -82,7 +83,7 @@ export default function MonthDatePicker({
           const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
           const disabled = Boolean(min && key < min);
           return (
-            <button
+            <Button
               className={`${isCurrentMonth ? '' : 'outside'} ${key === value ? 'selected' : ''} ${key === dateKey(today) ? 'today' : ''}`}
               key={key}
               type="button"
@@ -93,7 +94,7 @@ export default function MonthDatePicker({
               aria-pressed={key === value}
             >
               <span>{day.getDate()}</span>{markerCount > 0 && <i aria-hidden="true" />}
-            </button>
+            </Button>
           );
         })}
       </div>

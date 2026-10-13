@@ -1,3 +1,4 @@
+import { Button } from './ui-controls';
 import Icon, { type IconName } from './ui-icon';
 
 export default function EmptyState({
@@ -18,7 +19,7 @@ export default function EmptyState({
       <span><Icon name={icon} /></span>
       <h3>{title}</h3>
       <p>{text}</p>
-      {action && <button type="button" onClick={onAction}><Icon name="arrow-right" /> {action}</button>}
+      {action && <Button type="button" onClick={onAction}><Icon name="arrow-right" /> {action}</Button>}
     </div>
   );
 }

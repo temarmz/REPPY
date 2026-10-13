@@ -17,7 +17,7 @@ import {
 } from './reppy-data';
 import Icon, { type IconName } from './ui-icon';
 import WorkoutScheduleFields from './workout-schedule-fields';
-import { ActionButton, FormError, TextField } from './ui-controls';
+import { ActionButton, FormError, TextField, Button } from './ui-controls';
 import { PlanExerciseCard } from './workout-exercise-card';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledger';
@@ -59,8 +59,8 @@ function TrainingFormatField({ value, onChange }: { value: TrainingFormat; onCha
     <fieldset className="training-format-field">
       <legend>Формат</legend>
       <div>
-        <button type="button" className={value === 'in-person' ? 'selected' : ''} aria-pressed={value === 'in-person'} onClick={() => onChange('in-person')}>Очно</button>
-        <button type="button" className={value === 'online' ? 'selected' : ''} aria-pressed={value === 'online'} onClick={() => onChange('online')}>Онлайн</button>
+        <Button type="button" className={value === 'in-person' ? 'selected' : ''} aria-pressed={value === 'in-person'} onClick={() => onChange('in-person')}>Очно</Button>
+        <Button type="button" className={value === 'online' ? 'selected' : ''} aria-pressed={value === 'online'} onClick={() => onChange('online')}>Онлайн</Button>
       </div>
       {value === 'online' && <p>Ученик выполнит тренировку самостоятельно в удобное время.</p>}
     </fieldset>
@@ -417,7 +417,7 @@ function WorkoutExerciseEditor({
   return (
     <section className="workout-plan-editor">
       <div className="form-section-heading"><h2>Упражнения</h2></div>
-      <button className="floating-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение"><Icon name="plus" /></button>
+      <Button className="floating-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
       <div className="active-exercise-list plan-exercise-list">
         {exercises.map((exercise, index) => (
           <PlanExerciseCard
@@ -497,7 +497,7 @@ export function AssignmentDetails({
       {(balance <= 2 || !hasSubscription) && <section className={`subscription-warning ${subscriptionTone(balance, hasSubscription)}`}>
         <Icon name={balance <= 0 || !hasSubscription ? 'minus' : 'history'} />
         <div><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong><small>Тренировку можно провести без ограничения.</small></div>
-        <button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</button>
+        <Button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</Button>
       </section>}
       <div className="assignment-detail-actions">
         {assignment.status === 'assigned' && assignment.format === 'in-person' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}

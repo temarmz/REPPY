@@ -9,7 +9,7 @@ import {
 import Icon from './ui-icon';
 import EmptyState from './empty-state';
 import { DatePickerField } from './workout-schedule-fields';
-import { ActionButton, FormError } from './ui-controls';
+import { ActionButton, FormError, Button, Input, Textarea } from './ui-controls';
 import { subscriptionBalance, subscriptionEntriesFor, type PaymentInput } from './subscription-ledger';
 import ConfirmationModal from './confirmation-modal';
 import { go } from './navigation';
@@ -66,7 +66,7 @@ export function SubscriptionHistory({ data, student, onDelete }: { data: DemoSta
             {isPayment && <Icon name="edit" />}
           </>;
           return isPayment
-            ? <button key={entry.id} type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/payments/${entry.id}`)}>{content}</button>
+            ? <Button key={entry.id} type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/payments/${entry.id}`)}>{content}</Button>
             : <article key={entry.id}>{content}</article>;
         })}
       </section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
@@ -146,18 +146,18 @@ export function SubscriptionPaymentForm({
       <PageHeader back={initial ? `/trainer/clients/${student.id}/subscription` : `/trainer/clients/${student.id}`} semanticBack eyebrow={student.name} title={initial ? 'ИСПРАВИТЬ ПОПОЛНЕНИЕ' : 'ДОБАВИТЬ АБОНЕМЕНТ'} />
       <section className="subscription-payment-form">
         <div className="subscription-form-grid">
-          <label><span>Количество занятий</span><input type="number" min="1" step="1" inputMode="numeric" value={lessons} onChange={(event) => { setLessons(event.target.value); setError(''); }} /></label>
-          <label><span>Стоимость, ₽</span><input type="number" min="0" step="1" inputMode="numeric" value={amountRub} onChange={(event) => { setAmountRub(event.target.value); setError(''); }} /></label>
+          <label><span>Количество занятий</span><Input type="number" min="1" step="1" inputMode="numeric" value={lessons} onChange={(event) => { setLessons(event.target.value); setError(''); }} /></label>
+          <label><span>Стоимость, ₽</span><Input type="number" min="0" step="1" inputMode="numeric" value={amountRub} onChange={(event) => { setAmountRub(event.target.value); setError(''); }} /></label>
         </div>
         <fieldset className="payment-method-field">
           <legend>Способ оплаты</legend>
           <div>
-            <button type="button" className={paymentMethod === 'cash' ? 'selected' : ''} aria-pressed={paymentMethod === 'cash'} onClick={() => setPaymentMethod('cash')}><Icon name={paymentMethod === 'cash' ? 'check' : 'circle'} /> Наличные</button>
-            <button type="button" className={paymentMethod === 'transfer' ? 'selected' : ''} aria-pressed={paymentMethod === 'transfer'} onClick={() => setPaymentMethod('transfer')}><Icon name={paymentMethod === 'transfer' ? 'check' : 'circle'} /> Перевод</button>
+            <Button type="button" className={paymentMethod === 'cash' ? 'selected' : ''} aria-pressed={paymentMethod === 'cash'} onClick={() => setPaymentMethod('cash')}><Icon name={paymentMethod === 'cash' ? 'check' : 'circle'} /> Наличные</Button>
+            <Button type="button" className={paymentMethod === 'transfer' ? 'selected' : ''} aria-pressed={paymentMethod === 'transfer'} onClick={() => setPaymentMethod('transfer')}><Icon name={paymentMethod === 'transfer' ? 'check' : 'circle'} /> Перевод</Button>
           </div>
         </fieldset>
         <DatePickerField label="Дата оплаты" value={occurredAt} onChange={(value) => { setOccurredAt(value); setError(''); }} />
-        <label><span>Комментарий <small>необязательно</small></span><textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><i>{comment.length}/240</i></label>
+        <label><span>Комментарий <small>необязательно</small></span><Textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><i>{comment.length}/240</i></label>
         {error && <FormError>{error}</FormError>}
         <ActionButton icon="check" onClick={save}>{initial ? 'Сохранить изменения' : 'Добавить пополнение'}</ActionButton>
         {initial && onDelete && <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить это пополнение</ActionButton>}

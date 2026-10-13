@@ -12,7 +12,7 @@ import {
 } from './reppy-data';
 import Icon from './ui-icon';
 import EmptyState from './empty-state';
-import { ActionButton, FormError, TextField } from './ui-controls';
+import { ActionButton, FormError, TextField, Button } from './ui-controls';
 import { go } from './navigation';
 import PageHeader from './route-page-header';
 import { assignmentScheduleLabel, assignmentSortValue, formatScheduleDay } from './schedule-display';
@@ -138,7 +138,7 @@ export function StudentWorkoutHistory({
     <main className="content-page workout-picker-page schedule-workout-picker-page">
       <PageHeader back={backPath} eyebrow={`${student.name} · ${formatScheduleDay(scheduledFor)}`} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
       <p className="page-lead">Повтори одну из тренировок {student.name} или собери новую с нуля.</p>
-      <button className="list-primary-action" type="button" onClick={() => go(`${routeBase}/new`)}><Icon name="plus" /> {COPY.createWorkout}</button>
+      <Button className="list-primary-action" type="button" onClick={() => go(`${routeBase}/new`)}><Icon name="plus" /> {COPY.createWorkout}</Button>
       {previousAssignments.length ? (
         <>
         <section className="workout-history-list schedule-history-list" aria-label={`Ранее назначенные тренировки ${student.name}`}>
@@ -149,11 +149,11 @@ export function StudentWorkoutHistory({
             const overdue = !completed && assignment.scheduledFor < dateKey();
             const statusLabel = completed ? 'Завершена' : overdue ? 'Не завершена' : 'Запланирована';
             return (
-              <button className="workout-history-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
+              <Button className="workout-history-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
                 <span className="history-copy-icon"><Icon name="copy" /></span>
                 <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{assignmentScheduleLabel(assignment)} · {exercisePreview(workout, true)}</p></div>
                 <Icon name="chevron-right" />
-              </button>
+              </Button>
             );
           })}
         </section>

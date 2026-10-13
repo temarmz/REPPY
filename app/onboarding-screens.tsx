@@ -2,13 +2,13 @@ import EmptyState from './empty-state';
 import { go } from './navigation';
 import { TRAINER_NAME, type Student } from './reppy-data';
 import Icon from './ui-icon';
-import { ActionButton } from './ui-controls';
+import { ActionButton, Button } from './ui-controls';
 
 function Brand() {
   return (
-    <button className="brand-mark brand-button" type="button" onClick={() => go('/')} aria-label="REPPY — на стартовый экран">
+    <Button className="brand-mark brand-button" type="button" onClick={() => go('/')} aria-label="REPPY — на стартовый экран">
       <img className="brand-logo" src="logo-wordmark.png" alt="" />
-    </button>
+    </Button>
   );
 }
 
@@ -34,9 +34,9 @@ export function WelcomeScreen({ onLogin, accountMode = false }: { onLogin: () =>
             <h1>ВЕДИ УЧЕНИКОВ.<br />ВИДЬ ПРОГРЕСС.</h1>
             <p className="welcome-description">Расписание, программы, результаты подходов и абонементы — в одной понятной связи между тренером и учеником.</p>
           </div>
-          <button className="primary-button" type="button" onClick={onLogin}>
+          <Button className="primary-button" type="button" onClick={onLogin}>
             <Icon name="arrow-right" /> {accountMode ? 'Войти в REPPY' : 'Попробовать REPPY'}
-          </button>
+          </Button>
           <div className="hero-points" aria-label={accountMode ? 'Преимущества REPPY' : 'Преимущества демо'}>
             {accountMode
               ? <><span>Тренер и ученик</span><span>Данные синхронизированы</span><span>Работает на iPhone</span></>
@@ -123,7 +123,7 @@ export function WelcomeScreen({ onLogin, accountMode = false }: { onLogin: () =>
         {accountMode
           ? <div><p className="eyebrow">Уже с нами?</p><h2>ВЕРНИСЬ К ТРЕНИРОВКАМ.</h2><p>Войди в аккаунт — расписание, ученики и результаты уже ждут в твоём кабинете.</p></div>
           : <div><p className="eyebrow">Посмотри вживую</p><h2>ПРОЙДИ ПУТЬ ТРЕНЕРА И УЧЕНИКА.</h2><p>Демо уже заполнено примерами: можно назначить тренировку, выполнить её и проверить результат с обеих сторон.</p></div>}
-        <button className="primary-button" type="button" onClick={onLogin}><Icon name="arrow-right" /> {accountMode ? 'Войти в аккаунт' : 'Открыть демо'}</button>
+        <Button className="primary-button" type="button" onClick={onLogin}><Icon name="arrow-right" /> {accountMode ? 'Войти в аккаунт' : 'Открыть демо'}</Button>
       </section>
     </main>
   );

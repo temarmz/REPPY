@@ -18,7 +18,7 @@ import {
 import Icon from './ui-icon';
 import { ActiveExerciseCard } from './workout-exercise-card';
 import ModalFrame from './modal-frame';
-import { ActionButton } from './ui-controls';
+import { ActionButton, Button } from './ui-controls';
 import ExerciseInstructionModal from './exercise-instruction-modal';
 import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
 import { goBack, useRoutePath } from './navigation';
@@ -220,9 +220,9 @@ export default function ActiveWorkout({
     <main className="active-workout-page active-workout-list-page">
       <div className="active-sticky-header">
         <header className="active-header">
-          <button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></button>
+          <Button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></Button>
           <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
-          <button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></button>
+          <Button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
           <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
         </header>
         <div className="active-progress" role="progressbar" aria-label="Прогресс тренировки" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: progress + '%' }} /></div>
@@ -289,7 +289,7 @@ export default function ActiveWorkout({
       />}
 
       <footer className="exercise-navigation single-action">
-        <button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</button>
+        <Button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</Button>
       </footer>
     </main>
   );

@@ -4,7 +4,7 @@ import { collectExerciseProgress, compareProgress, filterProgressPeriod, progres
 import Icon from './ui-icon';
 import PageHeader from './page-header';
 import EmptyState from './empty-state';
-import { ActionButton } from './ui-controls';
+import { ActionButton, Button } from './ui-controls';
 
 type Props = { data: DemoState; studentId: string; exerciseId?: string; search: string; go: (path: string) => void; back: (fallback: string) => void };
 const dateLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -69,9 +69,9 @@ function ProgressChart({ entries, exercise, go }: { entries: ProgressEntry[]; ex
     {entries.length === 1 && <p>Для динамики нужно ещё одно занятие.</p>}
     <div className="progress-selected">
       <div className="progress-selection-heading">
-        <button type="button" className="wide-secondary" aria-label="Предыдущее занятие" disabled={selectedIndex === entries.length - 1} onClick={() => setSelectedId(entries[selectedIndex + 1].session.id)}><Icon name="chevron-left" /></button>
+        <Button type="button" className="wide-secondary" aria-label="Предыдущее занятие" disabled={selectedIndex === entries.length - 1} onClick={() => setSelectedId(entries[selectedIndex + 1].session.id)}><Icon name="chevron-left" /></Button>
         <h3>{entryDate(selected, entries)} · {progressNumber(progressMetric(selected, 'max'))} {unit} · {selected.completed} подх.</h3>
-        <button type="button" className="wide-secondary" aria-label="Следующее занятие" disabled={selectedIndex === 0} onClick={() => setSelectedId(entries[selectedIndex - 1].session.id)}><Icon name="chevron-right" /></button>
+        <Button type="button" className="wide-secondary" aria-label="Следующее занятие" disabled={selectedIndex === 0} onClick={() => setSelectedId(entries[selectedIndex - 1].session.id)}><Icon name="chevron-right" /></Button>
       </div>
       <ResultSets entry={selected} />
       <ActionButton variant="secondary" onClick={() => go(`/trainer/sessions/${selected.session.id}`)}>Открыть тренировку <Icon name="arrow-right" /></ActionButton>
@@ -92,7 +92,7 @@ export function StudentExerciseProgress({ data, studentId, go }: Pick<Props, 'da
     {groups.length ? <div className="connected-list">
       {groups.map((group) => {
         const comparison = compareProgress(group.entries)!;
-        return <button className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise))}>
+        return <Button className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise))}>
         <span><strong>{group.exercise.name}</strong>
           {groups.filter((item) => item.exercise.exerciseId === group.exercise.exerciseId).length > 1 && <small>{modeLabel(group.exercise)}</small>}
           <span className="progress-comparison-values">
@@ -103,7 +103,7 @@ export function StudentExerciseProgress({ data, studentId, go }: Pick<Props, 'da
         </span><i>
           <Icon name="chevron-right" />
         </i>
-      </button>; })}
+      </Button>; })}
     </div> : <EmptyState icon="history" title="Пока нет прогресса" text="Результаты упражнений появятся после первой завершённой тренировки." />}
   </section>;
 }

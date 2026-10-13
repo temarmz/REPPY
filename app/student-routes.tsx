@@ -14,7 +14,7 @@ import {
 import type { ReppyCommand } from './reppy-commands';
 import Icon from './ui-icon';
 import EmptyState from './empty-state';
-import { ActionButton } from './ui-controls';
+import { ActionButton, Button, Textarea } from './ui-controls';
 import WorkoutScheduleFields from './workout-schedule-fields';
 import NotFound from './not-found';
 import RoutePageHeader from './route-page-header';
@@ -126,7 +126,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
           <div className="student-card-top"><time dateTime={assignmentDateTime(mainAssignment)}><strong>{formatScheduleDay(mainAssignment.scheduledFor)}</strong><small>{assignmentTimeLabel(mainAssignment)}</small></time>{mainSession && <b>{mainProgress}%</b>}</div>
           <div><h2>{mainWorkout?.name}</h2><p>{exercisePreview(mainWorkout)}</p></div>
           {mainSession && <div className="workout-progress"><span style={{ width: `${mainProgress}%` }} /></div>}
-          <button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</button>
+          <Button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</Button>
         </section>
       ) : <EmptyState icon="sun" title="Две недели свободны" text={STUDENT_COPY.emptyAssignments} />}
 
@@ -134,7 +134,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
         <div className="section-heading"><h2>Следующие тренировки</h2></div>
         <div>{laterAssignments.map((assignment) => {
           const workout = findAssignmentWorkout(data, assignment);
-          return <button className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><time dateTime={assignmentDateTime(assignment)}><strong>{formatCalendarDay(assignment.scheduledFor)}</strong><small>{assignmentTimeLabel(assignment)}</small></time><span><strong>{workout?.name}</strong><small>{exercisePreview(workout)}</small></span><Icon name="chevron-right" /></button>;
+          return <Button className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><time dateTime={assignmentDateTime(assignment)}><strong>{formatCalendarDay(assignment.scheduledFor)}</strong><small>{assignmentTimeLabel(assignment)}</small></time><span><strong>{workout?.name}</strong><small>{exercisePreview(workout)}</small></span><Icon name="chevron-right" /></Button>;
         })}</div>
       </section>}
     </main>
@@ -162,13 +162,13 @@ function WorkoutFeedback({ data, session, backPath, onComplete }: { data: DemoSt
           <legend>Твоё настроение после тренировки</legend>
           <div className="mood-grid">
             {MOODS.map((item) => (
-              <button className={mood === item.value ? 'selected' : ''} key={item.value} type="button" onClick={() => setMood(item.value)} aria-pressed={mood === item.value}>
+              <Button className={mood === item.value ? 'selected' : ''} key={item.value} type="button" onClick={() => setMood(item.value)} aria-pressed={mood === item.value}>
                 <span><Icon name={item.icon} /></span><strong>{item.label}</strong><small>{item.detail}</small>
-              </button>
+              </Button>
             ))}
           </div>
         </fieldset>
-        <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
+        <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><Textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
         <ActionButton icon="check" disabled={!mood} onClick={() => { if (!mood) return; clearUiDraft(draftKey); onComplete(mood, comment); }}>Сохранить результат</ActionButton>
       </section>
     </main>

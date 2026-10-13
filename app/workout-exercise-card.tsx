@@ -1,3 +1,4 @@
+import { Button, Input, Textarea } from './ui-controls';
 import { useState, type ReactNode } from 'react';
 import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data';
 import Icon from './ui-icon';
@@ -22,7 +23,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     onChange(Math.max(min, parsed));
   };
 
-  return <input type={inputMode === 'decimal' ? 'text' : 'number'} min={min} step={inputMode === 'decimal' ? 'any' : step} inputMode={inputMode} placeholder={emptyWhenZero ? '—' : undefined} value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
+  return <Input type={inputMode === 'decimal' ? 'text' : 'number'} min={min} step={inputMode === 'decimal' ? 'any' : step} inputMode={inputMode} placeholder={emptyWhenZero ? '—' : undefined} value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
     const nextDraft = event.target.value;
     if (inputMode === 'decimal' && !/^\d*(?:[.,]\d*)?$/.test(nextDraft)) return;
     setDraft(nextDraft);
@@ -46,14 +47,14 @@ function SetCountControl({
   onAdd: () => void;
 }) {
   if (count === 0) {
-    return <button className="add-first-set" type="button" aria-label={`Добавить подход — ${exerciseName}`} onClick={onAdd}><Icon name="plus" /> Добавить подход</button>;
+    return <Button className="add-first-set" type="button" aria-label={`Добавить подход — ${exerciseName}`} onClick={onAdd}><Icon name="plus" /> Добавить подход</Button>;
   }
   return (
     <div className="set-count-control" role="group" aria-label={`Подходы — ${exerciseName}`}>
       <span>Подходы</span>
       <div className="set-count-actions">
-        <button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></button>
-        <button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></button>
+        <Button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></Button>
+        <Button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></Button>
       </div>
     </div>
   );
@@ -104,8 +105,8 @@ function ExerciseCardFrame({
         <div className="active-exercise-corner-actions">
           {orderControls}
           <div className="exercise-info-controls">
-          <button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></button>
-          <button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></button>
+          <Button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></Button>
+          <Button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></Button>
           </div>
         </div>
       </header>
@@ -124,18 +125,18 @@ function ExerciseOrderControls({ exercise, index, totalExercises, onMoveUp, onMo
 }) {
   return (
       <div className="exercise-order-controls" role="group" aria-label={'Порядок — ' + exercise.name}>
-        <button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="move-up" /></button>
-        <button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="move-down" /></button>
+        <Button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="move-up" /></Button>
+        <Button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="move-down" /></Button>
       </div>
   );
 }
 
 function ExerciseCommentButton({ exercise, open, onToggle }: { exercise: WorkoutExercise; open: boolean; onToggle: () => void }) {
-  return <button className={'exercise-comment-button' + (exercise.coachNote ? ' has-value' : '')} type="button" aria-expanded={open} onClick={onToggle}><Icon name="edit" /> {open ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</button>;
+  return <Button className={'exercise-comment-button' + (exercise.coachNote ? ' has-value' : '')} type="button" aria-expanded={open} onClick={onToggle}><Icon name="edit" /> {open ? 'Скрыть комментарий' : exercise.coachNote ? 'Показать комментарий' : 'Добавить комментарий'}</Button>;
 }
 
 function ExerciseComment({ exercise, onNoteChange }: { exercise: WorkoutExercise; onNoteChange: (note: string) => void }) {
-  return <label className="active-comment-field"><span>Комментарий к упражнению</span><textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></label>;
+  return <label className="active-comment-field"><span>Комментарий к упражнению</span><Textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></label>;
 }
 
 type SharedExerciseCardProps = {
@@ -247,13 +248,13 @@ export function ActiveExerciseCard({
               {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
               <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={result.actualReps} inputMode="numeric" emptyWhenZero onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
             </div>
-            <button
+            <Button
               type="button"
               disabled={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0))}
               title={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0)) ? 'Сначала заполни повторы и вес' : undefined}
               onClick={() => onResultChange(result.setNumber, { completed: !result.completed })}
               aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}
-            ><Icon name="check" /></button>
+            ><Icon name="check" /></Button>
           </article>
         ))}
       </section>}

@@ -57,6 +57,8 @@ npm run backup:verify
 
 ## Документация
 
+- [Библиотека компонентов и правила изменения дизайна](docs/component-library.md)
+
 - [ТЗ: прогрессия ученика по упражнениям](docs/student-exercise-progress.md)
 - [ТЗ: абонементы учеников](docs/subscriptions.md)
 - [ТЗ: асинхронные онлайн-тренировки](docs/online-workouts.md)

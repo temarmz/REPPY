@@ -1,3 +1,4 @@
+import { Button } from './ui-controls';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './ui-icon';
@@ -169,7 +170,7 @@ export default function ModalFrame({
           {showHandle && <div className="sheet-handle" aria-hidden="true" />}
           <div className="sheet-title">
             <div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
-            <button type="button" onClick={onClose} aria-label={closeLabel}><Icon name="close" /></button>
+            <Button type="button" onClick={onClose} aria-label={closeLabel}><Icon name="close" /></Button>
           </div>
           {description && <p id={descriptionId}>{description}</p>}
           {children}

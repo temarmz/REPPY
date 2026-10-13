@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { dateKey } from './reppy-data';
-import Icon from './ui-icon';
+import { dateKey, type Workout } from './reppy-data';
 import { AppStatusBanner } from './app-status';
 import WorkoutScheduleFields from './workout-schedule-fields';
-import { ActionButton, TextField } from './ui-controls';
+import { ActionButton, TextField, Input, Select, Textarea, Switch, IconButton, FormError } from './ui-controls';
 import ConfirmationModal from './confirmation-modal';
 import PageHeader from './route-page-header';
+import ReadOnlyExerciseList from './read-only-exercise-list';
+
+const exampleWorkout: Workout = {
+  id: 'kit-workout', name: 'Пример тренировки', createdAt: '2026-01-01T00:00:00Z',
+  exercises: [{ id: 'kit-bench', exerciseId: 'bench-press', name: 'Жим лёжа', primaryMuscle: 'Грудь', equipment: 'Штанга', loadMode: 'external', measureType: 'reps', plannedSets: [{ targetReps: 8, targetWeight: 80 }, { targetReps: 8, targetWeight: 80 }], coachNote: 'Держи лопатки сведёнными', instructionText: 'Сведи лопатки, поставь стопы на пол и плавно опусти штангу к груди.' }],
+};
 
 export default function DesignKitScreen() {
   const [scheduledFor, setScheduledFor] = useState(dateKey());
@@ -15,7 +20,7 @@ export default function DesignKitScreen() {
   return (
     <main className="content-page narrow-page design-kit-page">
       <PageHeader back="/trainer" eyebrow="Внутренний экран" title="ДИЗАЙН-КИТ" />
-      <p className="design-kit-intro">Контрольная страница основных элементов REPPY. Она не входит в рабочую навигацию и нужна для согласования размеров, состояний и будущих тем.</p>
+      <p className="design-kit-intro">Библиотека компонентов REPPY. Здесь используются те же контролы, карточки и стили, что на экранах тренера и ученика. Переключи тему в верхней панели, чтобы проверить оба оформления.</p>
 
       <section className="design-kit-section" aria-labelledby="kit-colors-title">
         <div className="section-heading"><h2 id="kit-colors-title">Цвета и поверхности</h2><span>Токены темы</span></div>
@@ -39,6 +44,15 @@ export default function DesignKitScreen() {
         </div>
       </section>
 
+      <section className="design-kit-section" aria-labelledby="kit-sizes-title">
+        <div className="section-heading"><h2 id="kit-sizes-title">Размеры и скругления</h2><span>Общие параметры</span></div>
+        <div className="design-kit-metrics" role="list">
+          <div role="listitem"><i className="kit-radius-small" /><span>Малое скругление</span></div>
+          <div role="listitem"><i className="kit-radius-medium" /><span>Поля и контролы</span></div>
+          <div role="listitem"><i className="kit-radius-large" /><span>Карточки</span></div>
+        </div>
+      </section>
+
       <section className="design-kit-section" aria-labelledby="kit-actions-title">
         <div className="section-heading"><h2 id="kit-actions-title">Действия</h2><span>Обычные и опасные</span></div>
         <div className="design-kit-button-grid">
@@ -47,11 +61,14 @@ export default function DesignKitScreen() {
           <ActionButton variant="danger" icon="trash">Опасное действие</ActionButton>
           <ActionButton variant="secondary" icon="check" disabled>Недоступно</ActionButton>
         </div>
+        <div className="design-kit-compact-row" aria-label="Размеры кнопок">
+          <ActionButton size="small">Маленькая</ActionButton>
+          <ActionButton size="medium">Средняя</ActionButton>
+          <ActionButton size="large">Большая</ActionButton>
+        </div>
         <div className="design-kit-compact-row">
-          <button className="schedule-add-button" type="button" aria-label="Добавить"><Icon name="plus" /></button>
-          <button className={`schedule-view-toggle ${toggleActive ? 'active' : ''}`} type="button" role="switch" aria-checked={toggleActive} onClick={() => setToggleActive((current) => !current)}>
-            <span className="schedule-view-icon" aria-hidden="true"><Icon name="calendar" /></span><strong>Переключатель</strong><span className="toggle-track" aria-hidden="true"><i /></span>
-          </button>
+          <IconButton icon="plus" label="Добавить" />
+          <Switch checked={toggleActive} onCheckedChange={setToggleActive}>Переключатель</Switch>
           <ActionButton variant="secondary" className="design-kit-modal-button" onClick={() => setModalOpen(true)}>Открыть модалку</ActionButton>
         </div>
       </section>
@@ -60,7 +77,15 @@ export default function DesignKitScreen() {
         <div className="section-heading"><h2 id="kit-fields-title">Поля</h2><span>Общие размеры</span></div>
         <TextField id="kit-name" label="Название тренировки" defaultValue="Грудь и плечи" />
         <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-        <label className="design-kit-textarea-field"><span>Комментарий</span><textarea defaultValue="Держи лопатки сведёнными" /></label>
+        <label className="design-kit-textarea-field"><span>Комментарий</span><Textarea defaultValue="Держи лопатки сведёнными" /></label>
+        <div className="athlete-form design-kit-field-grid">
+          <label><span>Выбор значения</span><Select defaultValue="online"><option value="online">Онлайн</option><option value="in-person">В зале</option></Select></label>
+          <label><span>Числовое поле</span><Input type="number" min={0} step="0.5" defaultValue={80} /></label>
+          <label><span>Поиск</span><Input type="search" placeholder="Найти упражнение" /></label>
+          <label><span>Недоступное поле</span><Input disabled value="Недоступно" readOnly /></label>
+          <label><span>Ошибка заполнения</span><Input aria-invalid="true" aria-describedby="kit-error" defaultValue="" placeholder="Обязательное значение" /></label>
+          <div id="kit-error"><FormError>Заполни обязательное поле</FormError></div>
+        </div>
       </section>
 
       <section className="design-kit-section" aria-labelledby="kit-states-title">
@@ -77,14 +102,7 @@ export default function DesignKitScreen() {
 
       <section className="design-kit-section" aria-labelledby="kit-exercise-title">
         <div className="section-heading"><h2 id="kit-exercise-title">Карточка упражнения</h2><span>Эталон порядка</span></div>
-        <section className="readonly-exercise-list" aria-label="Пример упражнения">
-          <article className="readonly-exercise-card">
-            <header><span>01</span><div><h2>Жим лёжа</h2><small>Грудь · Штанга</small></div></header>
-            <div className="readonly-set-list"><p><span>Подход 1</span><strong>80 кг × 8</strong></p><p><span>Подход 2</span><strong>80 кг × 8</strong></p></div>
-            <p className="readonly-coach-note"><Icon name="edit" /> Держи лопатки сведёнными</p>
-            <ActionButton variant="secondary" className="exercise-progress-button" icon="history">Прогресс упражнения</ActionButton>
-          </article>
-        </section>
+        <ReadOnlyExerciseList workout={exampleWorkout} />
       </section>
 
       {modalOpen && <ConfirmationModal title="Пример модального окна" text="Здесь проверяются фон, отступы, кнопки и контраст модального слоя." confirmLabel="Подтвердить" onClose={() => setModalOpen(false)} onConfirm={() => setModalOpen(false)} />}

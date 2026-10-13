@@ -1,3 +1,4 @@
+import { Button } from './ui-controls';
 import { useState } from 'react';
 import { dateKey, findAssignmentWorkout, findSessionWorkout, type DemoState, type Student, type Workout } from './reppy-data';
 import Icon from './ui-icon';
@@ -61,7 +62,7 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
       <section className="calendar-agenda">
         <div className="section-heading">
           <h2>{selectedTitle}</h2>
-          {area === 'trainer' && isScheduleDate(selectedDay) && <button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${selectedTitle}`} onClick={() => setAssignDate(selectedDay)}><Icon name="plus" /></button>}
+          {area === 'trainer' && isScheduleDate(selectedDay) && <Button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${selectedTitle}`} onClick={() => setAssignDate(selectedDay)}><Icon name="plus" /></Button>}
         </div>
         {selectedAssignments.length ? <div className="agenda-list">{selectedAssignments.map((assignment) => {
           const student = data.students.find((item) => item.id === assignment.studentId);
@@ -71,11 +72,11 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
             ? session ? `/trainer/sessions/${session.id}` : `/trainer/assignments/${assignment.id}`
             : session ? `/student/calendar/sessions/${session.id}` : `/student/calendar/assignments/${assignment.id}`;
           return (
-            <button key={assignment.id} type="button" onClick={() => go(target)}>
+            <Button key={assignment.id} type="button" onClick={() => go(target)}>
               <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
               <div><strong>{area === 'trainer' ? student?.name : workout?.name}</strong><small>{assignmentTimeLabel(assignment)} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</small>{session?.comment && <p>«{session.comment}»</p>}</div>
               <span className="agenda-tail">{assignment.status === 'completed' && <b>{session?.mood ? moodLabel(session.mood) : 'Готово'}</b>}<Icon name="chevron-right" /></span>
-            </button>
+            </Button>
           );
         })}</div> : <EmptyState icon="calendar" title="Свободный день" text={area === 'trainer' ? 'У команды нет тренировок в этот день.' : 'На этот день тренировка не запланирована.'} />}
       </section>
@@ -104,11 +105,11 @@ export function ScheduleStudentPicker({ date, students, onClose, onSelect }: { d
       onClose={onClose}
     >
       {students.length ? <div className="schedule-student-list">{students.map((student) => (
-        <button key={student.id} type="button" disabled={student.status === 'invited'} onClick={() => onSelect(student)}>
+        <Button key={student.id} type="button" disabled={student.status === 'invited'} onClick={() => onSelect(student)}>
           <Avatar student={student} />
           <span><strong>{student.name}</strong><small>{student.status === 'invited' ? 'Сначала ученик должен принять приглашение' : 'Выбрать тренировки'}</small></span>
           <Icon name="chevron-right" />
-        </button>
+        </Button>
       ))}</div> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
     </ModalFrame>
   );

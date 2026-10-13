@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
 import type { PersistencePhase } from './use-reppy-data';
 import Icon, { type IconName } from './ui-icon';
-import { ActionButton } from './ui-controls';
+import { ActionButton, Button } from './ui-controls';
 
 export const PersistencePhaseContext = createContext<PersistencePhase>('idle');
 
@@ -79,8 +79,8 @@ export function AppStatusBanner({
     <aside className={`app-status-banner ${status.kind} ${preview ? 'preview' : ''}`.trim()} role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'}>
       <Icon name={status.icon} />
       <span><strong>{status.title}</strong>{status.detail && <small>{status.detail}</small>}</span>
-      {status.kind === 'error' && <button type="button" onClick={onRetry}>Повторить</button>}
-      {status.kind === 'conflict' && onReload && <button type="button" onClick={onReload}>Загрузить актуальные</button>}
+      {status.kind === 'error' && <Button type="button" onClick={onRetry}>Повторить</Button>}
+      {status.kind === 'conflict' && onReload && <Button type="button" onClick={onReload}>Загрузить актуальные</Button>}
     </aside>
   );
 }

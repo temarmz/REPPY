@@ -3,7 +3,7 @@ import { dateKey, formatCalendarDay } from './reppy-data';
 import Icon from './ui-icon';
 import ModalFrame from './modal-frame';
 import MonthDatePicker from './month-date-picker';
-import { ActionButton } from './ui-controls';
+import { ActionButton, Button, Input } from './ui-controls';
 
 function formatDateValue(value: string) {
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
@@ -26,7 +26,7 @@ export function DatePickerField({ label, value, min, className = '', formatValue
   return <>
     <div className={`date-picker-field ${className}`.trim()}>
       <span>{label}</span>
-      <button type="button" aria-label={`${label}: ${displayValue}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></button>
+      <Button type="button" aria-label={`${label}: ${displayValue}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></Button>
     </div>
     {open && <DatePickerSheet title={label} value={value} min={min} onChange={onChange} onClose={() => setOpen(false)} />}
   </>;
@@ -54,7 +54,7 @@ export default function WorkoutScheduleFields({
   return (
     <div className={`schedule-fields ${showTime ? '' : 'date-only'}`.trim()} data-ui-control="schedule-fields" role="group" aria-label={showTime ? 'Дата и время тренировки' : 'Рекомендованная дата тренировки'}>
       <DatePickerField className="schedule-field" label={dateLabel} value={scheduledFor} min={min} formatValue={formatCalendarDay} onChange={onDateChange} />
-      {showTime && <label className="schedule-field time-picker-field"><span>{timeLabel}</span><input type="time" value={scheduledTime ?? ''} onChange={(event) => onTimeChange(event.target.value)} /></label>}
+      {showTime && <label className="schedule-field time-picker-field"><span>{timeLabel}</span><Input type="time" value={scheduledTime ?? ''} onChange={(event) => onTimeChange(event.target.value)} /></label>}
     </div>
   );
 }

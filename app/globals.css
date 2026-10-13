@@ -1,3 +1,4 @@
+@import './styles/00-design-tokens.css';
 @import './styles/01-foundation-onboarding.css';
 @import './styles/02-shell-common.css';
 @import './styles/03-trainer.css';
@@ -11,3 +12,4 @@
 @import './styles/11-subscriptions.css';
 @import './styles/12-controls-design-kit.css';
 @import './styles/13-light-theme.css';
+@import './styles/14-component-library.css';

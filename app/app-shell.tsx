@@ -1,3 +1,4 @@
+import { Button } from './ui-controls';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import Icon, { type IconName } from './ui-icon';
 import { observeMobileViewport } from './mobile-viewport';
@@ -96,9 +97,9 @@ export default function AppShell({
   const navigation = (
     <>
       {nav.map((item) => (
-        <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
+        <Button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
           <span><Icon name={item.icon} /></span>{item.label}
-        </button>
+        </Button>
       ))}
     </>
   );
@@ -106,18 +107,18 @@ export default function AppShell({
   return (
     <div className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
       {!focusMode && <header className="topbar">
-        <button className="brand-mark brand-button" type="button" onClick={() => onNavigate('/')} aria-label="REPPY — на стартовый экран">
+        <Button className="brand-mark brand-button" type="button" onClick={() => onNavigate('/')} aria-label="REPPY — на стартовый экран">
           <img className="brand-logo" src="logo-wordmark.png" alt="" />
-        </button>
+        </Button>
         <div className="topbar-actions">
-          {onSwitchRole && <button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${roleToOpen}`} title={`Переключиться в роль ${roleToOpen}`}>
+          {onSwitchRole && <Button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${roleToOpen}`} title={`Переключиться в роль ${roleToOpen}`}>
             <span>DEMO</span>
             <Icon name="change" />
-          </button>}
-          <button className="theme-switch" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'} title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
-          <button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
+          </Button>}
+          <Button className="theme-switch" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'} title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></Button>
+          <Button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
             {initials(displayName)}
-          </button>
+          </Button>
         </div>
       </header>}
 
@@ -129,16 +130,16 @@ export default function AppShell({
           <div><strong>{displayName}</strong><small>{area === 'trainer' ? 'Персональный тренер' : 'Ученик'}</small></div>
         </div>
         <nav>{navigation}</nav>
-        {onSwitchRole && <button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</button>}
+        {onSwitchRole && <Button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</Button>}
       </aside>}
 
       <div className="page-wrap page-transition">{children}</div>
 
       {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
-          <button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
+          <Button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
             <span><Icon name={item.icon} /></span><small>{item.label}</small>
-          </button>
+          </Button>
         ))}
       </nav>}
     </div>

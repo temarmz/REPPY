@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { exerciseLibrary, type WorkoutExercise } from './reppy-data';
 import Icon from './ui-icon';
 import ModalFrame from './modal-frame';
-import { ActionButton, FormError } from './ui-controls';
+import { ActionButton, FormError, Button, Input, Textarea } from './ui-controls';
 import { loadInstructionVideo, saveInstructionVideo } from './instruction-video-repository';
 import { clearUiDraft, loadUiDraft, saveUiDraft } from './ui-persistence';
 
@@ -110,16 +110,16 @@ export default function ExerciseInstructionModal({
           <label className="wide-secondary">
             <Icon name={instructionVideo || pendingFile ? 'change' : 'plus'} />
             <span>{instructionVideo || pendingFile ? 'Заменить видео' : 'Записать или выбрать видео'}</span>
-            <input type="file" accept="video/*" onChange={(event) => chooseVideo(event.target.files?.[0])} />
+            <Input type="file" accept="video/*" onChange={(event) => chooseVideo(event.target.files?.[0])} />
           </label>
-          {(instructionVideo || pendingFile) && <button type="button" className="instruction-video-remove" onClick={() => { setInstructionVideo(undefined); setPendingFile(null); setError(''); }}><Icon name="trash" /> Удалить</button>}
+          {(instructionVideo || pendingFile) && <Button type="button" className="instruction-video-remove" onClick={() => { setInstructionVideo(undefined); setPendingFile(null); setError(''); }}><Icon name="trash" /> Удалить</Button>}
         </div>}
         {(instructionVideo || pendingFile) && <p className="instruction-video-meta">{pendingFile?.name ?? instructionVideo?.name} · {formatFileSize(pendingFile?.size ?? instructionVideo?.size ?? 0)}</p>}
         {editable && <p className="instruction-video-helper">Короткий ролик: 2–3 повтора, до 100 МБ.</p>}
         {equipment && <div className="exercise-equipment"><small>ОБОРУДОВАНИЕ</small><strong>{equipment}</strong></div>}
         <h3>Как выполнять</h3>
         {editable
-          ? <textarea className="instruction-textarea" aria-label="Подробное описание упражнения" maxLength={1500} value={instructionText} onChange={(event) => setInstructionText(event.target.value)} placeholder="Опиши исходное положение, движение, дыхание и требования к технике" />
+          ? <Textarea className="instruction-textarea" aria-label="Подробное описание упражнения" maxLength={1500} value={instructionText} onChange={(event) => setInstructionText(event.target.value)} placeholder="Опиши исходное положение, движение, дыхание и требования к технике" />
           : instruction
             ? <p className="instruction-copy">{instruction}</p>
             : <p className="instruction-empty">Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли.</p>}
