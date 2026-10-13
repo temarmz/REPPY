@@ -1,8 +1,9 @@
+import { Page, DefinitionList, Box, DefinitionTerm, DefinitionValue, Section, Inline, Small, Strong, Paragraph, Card, Header, Heading, Italic } from './ui/elements';
 import { useState } from 'react';
 import { findSessionWorkout, formatDay, type DemoState, type WorkoutSession } from './reppy-data';
-import Icon from './ui-icon';
-import { ActionButton } from './ui-controls';
-import ConfirmationModal from './confirmation-modal';
+import Icon from './ui/icon';
+import { ActionButton } from './ui/controls';
+import ConfirmationModal from './ui/confirmation-modal';
 import NotFound from './not-found';
 import RoutePageHeader from './route-page-header';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
@@ -34,31 +35,31 @@ export default function SessionResult({
   const progressKeys = new Set(collectExerciseProgress(data.sessions, session.studentId).map((group) => group.key));
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
-    <main className="content-page narrow-page">
+    <Page className="content-page narrow-page">
       <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack={trainerView} eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
-      <dl className="session-summary" aria-label="Итоги тренировки">
-        <div><dt>ДЛИТЕЛЬНОСТЬ</dt><dd>{elapsed}</dd></div>
-        <div><dt>ПОДХОДЫ</dt><dd>{completedSets} из {session.results.length}</dd></div>
-        <div><dt>УПРАЖНЕНИЯ</dt><dd>{workout.exercises.length}</dd></div>
-      </dl>
-      {trainerView && chargeStatus && <section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><span><small>АБОНЕМЕНТ</small><strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</strong></span></section>}
-      {(session.mood || session.comment) && <section className="session-feedback"><span>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</span>{session.mood && <strong><Icon name="sun" /> {moodLabel(session.mood)}</strong>}{session.comment && <p>{session.comment}</p>}</section>}
-      {trainerView && <div className="session-result-actions">
+      <DefinitionList className="session-summary" aria-label="Итоги тренировки">
+        <Box><DefinitionTerm>ДЛИТЕЛЬНОСТЬ</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
+        <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{completedSets} из {session.results.length}</DefinitionValue></Box>
+        <Box><DefinitionTerm>УПРАЖНЕНИЯ</DefinitionTerm><DefinitionValue>{workout.exercises.length}</DefinitionValue></Box>
+      </DefinitionList>
+      {trainerView && chargeStatus && <Section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><Inline><Small>АБОНЕМЕНТ</Small><Strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</Strong></Inline></Section>}
+      {(session.mood || session.comment) && <Section className="session-feedback"><Inline>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</Inline>{session.mood && <Strong><Icon name="sun" /> {moodLabel(session.mood)}</Strong>}{session.comment && <Paragraph>{session.comment}</Paragraph>}</Section>}
+      {trainerView && <Box className="session-result-actions">
         <ActionButton variant="secondary" icon="copy" onClick={onRepeat}>Повторить на другую дату</ActionButton>
         <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить тренировку</ActionButton>
-      </div>}
-      <section className="result-exercises">
+      </Box>}
+      <Section className="result-exercises">
         {workout.exercises.map((exercise, index) => {
           const results = session.results.filter((item) => item.exerciseId === exercise.id);
           return (
-            <article key={exercise.id}>
-              <header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{exercise.name}</h2><small className="result-exercise-meta">{exerciseMetadata(exercise)}</small>{exercise.coachNote && <small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</small>}</div></header>
-              <div>{results.map((result) => <p className={result.completed ? '' : 'not-completed'} key={result.setNumber}><span>Подход {result.setNumber}</span><strong>{actualSetLabel(exercise, result)}</strong><i><Icon name={result.completed ? 'check' : 'minus'} /></i></p>)}</div>
+            <Card key={exercise.id}>
+              <Header><Inline>{String(index + 1).padStart(2, '0')}</Inline><Box><Heading>{exercise.name}</Heading><Small className="result-exercise-meta">{exerciseMetadata(exercise)}</Small>{exercise.coachNote && <Small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</Small>}</Box></Header>
+              <Box>{results.map((result) => <Paragraph className={result.completed ? '' : 'not-completed'} key={result.setNumber}><Inline>Подход {result.setNumber}</Inline><Strong>{actualSetLabel(exercise, result)}</Strong><Italic><Icon name={result.completed ? 'check' : 'minus'} /></Italic></Paragraph>)}</Box>
               {trainerView && progressKeys.has(progressKey(exercise)) && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise))}>Прогресс упражнения</ActionButton>}
-            </article>
+            </Card>
           );
         })}
-      </section>
+      </Section>
       {deleteOpen && <ConfirmationModal
         title="Удалить завершённую тренировку?"
         text={charged ? 'Результат будет удалён, а одно занятие вернётся в абонемент ученика.' : 'Тренировка и её результат будут удалены без возможности восстановления.'}
@@ -70,6 +71,6 @@ export default function SessionResult({
           onDelete?.();
         }}
       />}
-    </main>
+    </Page>
   );
 }

@@ -1,7 +1,8 @@
-import { Button } from './ui-controls';
+import { Box, Section, Inline, Heading, Paragraph } from './elements';
+import { Button } from './controls';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import Icon from './ui-icon';
+import Icon from './icon';
 
 export const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 
@@ -120,7 +121,7 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
     };
   }, [modalId]);
 
-  return createPortal(<div className="modal-layer-root" ref={layerRef}>{children}</div>, document.body);
+  return createPortal(<Box className="modal-layer-root" ref={layerRef}>{children}</Box>, document.body);
 }
 
 export default function ModalFrame({
@@ -156,8 +157,8 @@ export default function ModalFrame({
 
   return (
     <ModalLayer onClose={onClose}>
-      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-        <section
+      <Box className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <Section
           className={surfaceClassName}
           data-modal-frame={surface}
           role={role}
@@ -167,15 +168,15 @@ export default function ModalFrame({
           aria-describedby={description ? descriptionId : undefined}
           onMouseDown={(event) => event.stopPropagation()}
         >
-          {showHandle && <div className="sheet-handle" aria-hidden="true" />}
-          <div className="sheet-title">
-            <div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2 id={titleId}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
+          {showHandle && <Box className="sheet-handle" aria-hidden="true" />}
+          <Box className="sheet-title">
+            <Box>{eyebrow && <Inline className="eyebrow">{eyebrow}</Inline>}<Heading id={titleId}>{title}</Heading>{subtitle && <Paragraph>{subtitle}</Paragraph>}</Box>
             <Button type="button" onClick={onClose} aria-label={closeLabel}><Icon name="close" /></Button>
-          </div>
-          {description && <p id={descriptionId}>{description}</p>}
+          </Box>
+          {description && <Paragraph id={descriptionId}>{description}</Paragraph>}
           {children}
-        </section>
-      </div>
+        </Section>
+      </Box>
     </ModalLayer>
   );
 }

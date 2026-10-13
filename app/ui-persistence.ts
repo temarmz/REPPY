@@ -1,5 +1,5 @@
 import type { TrainingFormat, WorkoutExercise } from './reppy-data';
-import type { AppTheme } from './app-shell';
+import type { AppTheme } from './ui/app-shell';
 
 const TRAINER_ALL_DAYS_PREFERENCE = 'reppy-ui:trainer-all-days';
 const THEME_PREFERENCE = 'reppy-ui:theme';

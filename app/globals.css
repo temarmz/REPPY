@@ -1,15 +1,2 @@
-@import './styles/00-design-tokens.css';
-@import './styles/01-foundation-onboarding.css';
-@import './styles/02-shell-common.css';
-@import './styles/03-trainer.css';
-@import './styles/04-student-session.css';
-@import './styles/05-auth-settings-responsive.css';
-@import './styles/06-shared-controls.css';
-@import './styles/07-calendar-feedback.css';
-@import './styles/08-marketing.css';
-@import './styles/09-profile-planning.css';
-@import './styles/10-workout-progress.css';
-@import './styles/11-subscriptions.css';
-@import './styles/12-controls-design-kit.css';
-@import './styles/13-light-theme.css';
-@import './styles/14-component-library.css';
+@import './ui/tokens.css';
+@import './ui/styles.css';

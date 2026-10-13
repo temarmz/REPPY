@@ -1,3 +1,5 @@
+import { Field } from './ui/patterns';
+import { Page, Section, Inline, Strong, Box, Small, Paragraph, Italic, Card, Fieldset, Legend } from './ui/elements';
 import { useEffect, useMemo, useState } from 'react';
 import {
   dateKey,
@@ -6,12 +8,12 @@ import {
   type Student,
   type SubscriptionEntry,
 } from './reppy-data';
-import Icon from './ui-icon';
-import EmptyState from './empty-state';
-import { DatePickerField } from './workout-schedule-fields';
-import { ActionButton, FormError, Button, Input, Textarea } from './ui-controls';
+import Icon from './ui/icon';
+import EmptyState from './ui/empty-state';
+import { DatePickerField } from './ui/workout-schedule-fields';
+import { ActionButton, FormError, Button, Input, Textarea } from './ui/controls';
 import { subscriptionBalance, subscriptionEntriesFor, type PaymentInput } from './subscription-ledger';
-import ConfirmationModal from './confirmation-modal';
+import ConfirmationModal from './ui/confirmation-modal';
 import { go } from './navigation';
 import PageHeader from './route-page-header';
 import { lessonWord, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
@@ -42,14 +44,14 @@ export function SubscriptionHistory({ data, student, onDelete }: { data: DemoSta
     balanceAfter.set(entry.id, runningBalance);
   });
   return (
-    <main className="content-page narrow-page subscription-history-page">
+    <Page className="content-page narrow-page subscription-history-page">
       <PageHeader back={`/trainer/clients/${student.id}`} semanticBack eyebrow={student.name} title="ИСТОРИЯ АБОНЕМЕНТА" />
-      <section className={`subscription-history-summary ${subscriptionTone(balance, hasEntries)}`}>
-        <span>ТЕКУЩИЙ БАЛАНС</span>
-        <strong>{subscriptionBalanceLabel(balance, hasEntries)}</strong>
+      <Section className={`subscription-history-summary ${subscriptionTone(balance, hasEntries)}`}>
+        <Inline>ТЕКУЩИЙ БАЛАНС</Inline>
+        <Strong>{subscriptionBalanceLabel(balance, hasEntries)}</Strong>
         <ActionButton icon="plus" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>Добавить пополнение</ActionButton>
-      </section>
-      {entries.length ? <section className="subscription-entry-list" aria-label="Операции абонемента">
+      </Section>
+      {entries.length ? <Section className="subscription-entry-list" aria-label="Операции абонемента">
         {entries.map((entry) => {
           const isPayment = entry.kind === 'payment';
           const title = isPayment
@@ -61,19 +63,19 @@ export function SubscriptionHistory({ data, student, onDelete }: { data: DemoSta
             ? `${formatRubles(entry.amountRub)} · ${paymentMethodLabel(entry.paymentMethod)}`
             : entry.workoutName ?? 'Тренировка';
           const content = <>
-            <span className={`subscription-entry-delta ${entry.lessonDelta > 0 ? 'positive' : 'negative'}`}>{entry.lessonDelta > 0 ? '+' : ''}{entry.lessonDelta}</span>
-            <div><strong>{title}</strong><small>{detail} · {formatSubscriptionDate(entry.occurredAt)}</small>{entry.comment && <p>{entry.comment}</p>}<i>Баланс после операции: {balanceAfter.get(entry.id)}</i></div>
+            <Inline className={`subscription-entry-delta ${entry.lessonDelta > 0 ? 'positive' : 'negative'}`}>{entry.lessonDelta > 0 ? '+' : ''}{entry.lessonDelta}</Inline>
+            <Box><Strong>{title}</Strong><Small>{detail} · {formatSubscriptionDate(entry.occurredAt)}</Small>{entry.comment && <Paragraph>{entry.comment}</Paragraph>}<Italic>Баланс после операции: {balanceAfter.get(entry.id)}</Italic></Box>
             {isPayment && <Icon name="edit" />}
           </>;
           return isPayment
             ? <Button key={entry.id} type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/payments/${entry.id}`)}>{content}</Button>
-            : <article key={entry.id}>{content}</article>;
+            : <Card key={entry.id}>{content}</Card>;
         })}
-      </section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
-      {entries.length > 0 && <section className="subscription-danger-zone" aria-label="Удаление абонемента">
-        <div><strong>Удаление абонемента</strong><small>Тренировки и результаты ученика останутся на месте.</small></div>
+      </Section> : <EmptyState icon="history" title="История пока пуста" text="Добавь первое пополнение абонемента." />}
+      {entries.length > 0 && <Section className="subscription-danger-zone" aria-label="Удаление абонемента">
+        <Box><Strong>Удаление абонемента</Strong><Small>Тренировки и результаты ученика останутся на месте.</Small></Box>
         <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить полностью</ActionButton>
-      </section>}
+      </Section>}
       {deleteOpen && <ConfirmationModal
         title="Удалить абонемент полностью?"
         text="Баланс и вся история оплат, списаний и возвратов будут удалены. Тренировки и их результаты сохранятся."
@@ -85,7 +87,7 @@ export function SubscriptionHistory({ data, student, onDelete }: { data: DemoSta
           onDelete();
         }}
       />}
-    </main>
+    </Page>
   );
 }
 
@@ -142,26 +144,26 @@ export function SubscriptionPaymentForm({
     onSave({ lessons: parsedLessons, amountRub: parsedAmount, paymentMethod, occurredAt, comment });
   };
   return (
-    <main className="content-page narrow-page subscription-payment-page">
+    <Page className="content-page narrow-page subscription-payment-page">
       <PageHeader back={initial ? `/trainer/clients/${student.id}/subscription` : `/trainer/clients/${student.id}`} semanticBack eyebrow={student.name} title={initial ? 'ИСПРАВИТЬ ПОПОЛНЕНИЕ' : 'ДОБАВИТЬ АБОНЕМЕНТ'} />
-      <section className="subscription-payment-form">
-        <div className="subscription-form-grid">
-          <label><span>Количество занятий</span><Input type="number" min="1" step="1" inputMode="numeric" value={lessons} onChange={(event) => { setLessons(event.target.value); setError(''); }} /></label>
-          <label><span>Стоимость, ₽</span><Input type="number" min="0" step="1" inputMode="numeric" value={amountRub} onChange={(event) => { setAmountRub(event.target.value); setError(''); }} /></label>
-        </div>
-        <fieldset className="payment-method-field">
-          <legend>Способ оплаты</legend>
-          <div>
+      <Section className="subscription-payment-form">
+        <Box className="subscription-form-grid">
+          <Field label={<>Количество занятий</>} ><Input type="number" min="1" step="1" inputMode="numeric" value={lessons} onChange={(event) => { setLessons(event.target.value); setError(''); }} /></Field>
+          <Field label={<>Стоимость, ₽</>} ><Input type="number" min="0" step="1" inputMode="numeric" value={amountRub} onChange={(event) => { setAmountRub(event.target.value); setError(''); }} /></Field>
+        </Box>
+        <Fieldset className="payment-method-field">
+          <Legend>Способ оплаты</Legend>
+          <Box>
             <Button type="button" className={paymentMethod === 'cash' ? 'selected' : ''} aria-pressed={paymentMethod === 'cash'} onClick={() => setPaymentMethod('cash')}><Icon name={paymentMethod === 'cash' ? 'check' : 'circle'} /> Наличные</Button>
             <Button type="button" className={paymentMethod === 'transfer' ? 'selected' : ''} aria-pressed={paymentMethod === 'transfer'} onClick={() => setPaymentMethod('transfer')}><Icon name={paymentMethod === 'transfer' ? 'check' : 'circle'} /> Перевод</Button>
-          </div>
-        </fieldset>
+          </Box>
+        </Fieldset>
         <DatePickerField label="Дата оплаты" value={occurredAt} onChange={(value) => { setOccurredAt(value); setError(''); }} />
-        <label><span>Комментарий <small>необязательно</small></span><Textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><i>{comment.length}/240</i></label>
+        <Field label={<>Комментарий <Small>необязательно</Small></>} ><Textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><Italic>{comment.length}/240</Italic></Field>
         {error && <FormError>{error}</FormError>}
         <ActionButton icon="check" onClick={save}>{initial ? 'Сохранить изменения' : 'Добавить пополнение'}</ActionButton>
         {initial && onDelete && <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить это пополнение</ActionButton>}
-      </section>
+      </Section>
       {deleteOpen && <ConfirmationModal
         title="Удалить пополнение?"
         text="Операция исчезнет из истории, а баланс будет пересчитан. Списания тренировок сохранятся."
@@ -174,6 +176,6 @@ export function SubscriptionPaymentForm({
           onDelete?.();
         }}
       />}
-    </main>
+    </Page>
   );
 }

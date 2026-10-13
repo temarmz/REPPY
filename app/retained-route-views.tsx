@@ -1,3 +1,4 @@
+import { Box } from './ui/elements';
 import { Activity, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { LoadingScreen } from './onboarding-screens';
 import { RELEASE_ROUTE_STATE_EVENT, RoutePathContext } from './navigation';
@@ -23,13 +24,13 @@ export default function RetainedRouteViews({ path, renderRoute }: {
 
   return routes.map((route) => (
     <Activity key={route} mode={route === path ? 'visible' : 'hidden'}>
-      <div data-route-view={route} data-route-active={route === path ? 'true' : 'false'}>
+      <Box data-route-view={route} data-route-active={route === path ? 'true' : 'false'}>
         <RoutePathContext value={route}>
           <Suspense fallback={<LoadingScreen message="Загружаем экран…" />}>
             {renderRoute(route)}
           </Suspense>
         </RoutePathContext>
-      </div>
+      </Box>
     </Activity>
   ));
 }

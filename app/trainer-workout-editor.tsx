@@ -1,3 +1,5 @@
+import { SectionHeading } from './ui/patterns';
+import { Fieldset, Legend, Box, Paragraph, Page, Section, Inline, Strong, Heading, Time, Small } from './ui/elements';
 import { useEffect, useRef, useState } from 'react';
 import {
   cloneWorkout,
@@ -15,19 +17,19 @@ import {
   type Workout,
   type WorkoutExercise,
 } from './reppy-data';
-import Icon, { type IconName } from './ui-icon';
-import WorkoutScheduleFields from './workout-schedule-fields';
-import { ActionButton, FormError, TextField, Button } from './ui-controls';
-import { PlanExerciseCard } from './workout-exercise-card';
+import Icon, { type IconName } from './ui/icon';
+import WorkoutScheduleFields from './ui/workout-schedule-fields';
+import { ActionButton, FormError, TextField, Button } from './ui/controls';
+import { PlanExerciseCard } from './ui/workout-exercise-card';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledger';
-import ConfirmationModal from './confirmation-modal';
+import ConfirmationModal from './ui/confirmation-modal';
 import { go, useRoutePath, useUnsavedNavigationGuard } from './navigation';
 import NotFound from './not-found';
 import PageHeader from './route-page-header';
-import ReadOnlyExerciseList from './read-only-exercise-list';
-import Avatar from './avatar';
-import ExerciseInstructionModal from './exercise-instruction-modal';
+import ReadOnlyExerciseList from './ui/read-only-exercise-list';
+import Avatar from './ui/avatar';
+import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
 import { assignmentScheduleLabel, formatScheduleDay } from './schedule-display';
 import { exerciseMetadata, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
@@ -56,14 +58,14 @@ type WorkoutComposerValue = {
 
 function TrainingFormatField({ value, onChange }: { value: TrainingFormat; onChange: (value: TrainingFormat) => void }) {
   return (
-    <fieldset className="training-format-field">
-      <legend>Формат</legend>
-      <div>
+    <Fieldset className="training-format-field">
+      <Legend>Формат</Legend>
+      <Box>
         <Button type="button" className={value === 'in-person' ? 'selected' : ''} aria-pressed={value === 'in-person'} onClick={() => onChange('in-person')}>Очно</Button>
         <Button type="button" className={value === 'online' ? 'selected' : ''} aria-pressed={value === 'online'} onClick={() => onChange('online')}>Онлайн</Button>
-      </div>
-      {value === 'online' && <p>Ученик выполнит тренировку самостоятельно в удобное время.</p>}
-    </fieldset>
+      </Box>
+      {value === 'online' && <Paragraph>Ученик выполнит тренировку самостоятельно в удобное время.</Paragraph>}
+    </Fieldset>
   );
 }
 
@@ -175,18 +177,18 @@ function WorkoutComposer({
   const nameField = nameEditable ? <TextField id={nameInputId} label="Название тренировки" value={name} onChange={(event) => { setName(event.target.value); clearError(); }} placeholder="Например, Грудь + плечи" autoFocus={nameAutoFocus} /> : null;
 
   return (
-    <main className="content-page narrow-page" data-workout-composer>
+    <Page className="content-page narrow-page" data-workout-composer>
       <PageHeader back={backPath} eyebrow={eyebrow} title={title} />
-      <section className={`plan-context-card ${contextClassName ?? 'assignment-edit-card'}`}>
-        <div className="assignment-edit-person"><Avatar student={student} large={largeStudentAvatar} /><div><span>УЧЕНИК</span><strong>{student.name}</strong>{workoutLabel && <p>{workoutLabel}</p>}</div></div>
+      <Section className={`plan-context-card ${contextClassName ?? 'assignment-edit-card'}`}>
+        <Box className="assignment-edit-person"><Avatar student={student} large={largeStudentAvatar} /><Box><Inline>УЧЕНИК</Inline><Strong>{student.name}</Strong>{workoutLabel && <Paragraph>{workoutLabel}</Paragraph>}</Box></Box>
         {nameField}
         {hasSchedule && <TrainingFormatField value={format} onChange={(value) => { setFormat(value); clearError(); }} />}
         {hasSchedule && <WorkoutScheduleFields dateLabel={format === 'online' ? 'Рекомендованная дата' : dateLabel} timeLabel={timeLabel} scheduledFor={scheduledFor ?? ''} scheduledTime={scheduledTime} showTime={format === 'in-person'} onDateChange={(value) => { setScheduledFor(value); clearError(); }} onTimeChange={(value) => { setScheduledTime(value); clearError(); }} />}
-      </section>
+      </Section>
       <WorkoutExerciseEditor persistenceKey={draftKey} studentId={student.id} exercises={exercises} customExercises={customExercises} onCreateCustomExercise={onCreateCustomExercise} onUpdateCustomExercise={onUpdateCustomExercise} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
-      <div className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></div>
+      <Box className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></Box>
       {dangerOpen && dangerAction && <ConfirmationModal
         title={dangerAction.title}
         text={dangerAction.text}
@@ -201,7 +203,7 @@ function WorkoutComposer({
         }}
       />}
       {discardPrompt}
-    </main>
+    </Page>
   );
 }
 
@@ -415,10 +417,10 @@ function WorkoutExerciseEditor({
     : undefined;
 
   return (
-    <section className="workout-plan-editor">
-      <div className="form-section-heading"><h2>Упражнения</h2></div>
+    <Section className="workout-plan-editor">
+      <Box className="form-section-heading"><Heading>Упражнения</Heading></Box>
       <Button className="floating-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
-      <div className="active-exercise-list plan-exercise-list">
+      <Box className="active-exercise-list plan-exercise-list">
         {exercises.map((exercise, index) => (
           <PlanExerciseCard
             key={exercise.id}
@@ -445,7 +447,7 @@ function WorkoutExerciseEditor({
             onRemoveSet={() => updateExercise(exercise.id, (current) => withExerciseSetPlans(current, getExerciseSetPlans(current).slice(0, -1)))}
           />
         ))}
-      </div>
+      </Box>
 
       {pickerAfterId && <ExercisePicker persistenceKey={`picker:${persistenceKey}`} exercises={exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
@@ -465,7 +467,7 @@ function WorkoutExerciseEditor({
           onChange(exercises.filter((item) => item.id !== actionExercise.id));
         }}
       />}
-    </section>
+    </Section>
   );
 }
 
@@ -488,25 +490,25 @@ export function AssignmentDetails({
   const progressKeys = new Set(collectExerciseProgress(data.sessions, assignment.studentId).map((group) => group.key));
   if (!student || !workout) return <NotFound />;
   return (
-    <main className="content-page narrow-page">
+    <Page className="content-page narrow-page">
       <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${assignmentScheduleLabel(assignment)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
-      {assignment.format === 'in-person' && assignment.rescheduleRequest && <section className="reschedule-request-card">
-        <div><span>ЗАПРОС НА ПЕРЕНОС</span><h2>{student.name} предлагает другое время</h2><p><strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</strong><time>{assignment.rescheduleRequest.scheduledTime}</time></p></div>
-        <div className="reschedule-request-actions"><ActionButton variant="secondary" icon="close" onClick={onDeclineRequest}>Отклонить</ActionButton><ActionButton icon="check" onClick={onAcceptRequest}>Подтвердить</ActionButton></div>
-      </section>}
-      {(balance <= 2 || !hasSubscription) && <section className={`subscription-warning ${subscriptionTone(balance, hasSubscription)}`}>
+      {assignment.format === 'in-person' && assignment.rescheduleRequest && <Section className="reschedule-request-card">
+        <Box><Inline>ЗАПРОС НА ПЕРЕНОС</Inline><Heading>{student.name} предлагает другое время</Heading><Paragraph><Strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</Strong><Time>{assignment.rescheduleRequest.scheduledTime}</Time></Paragraph></Box>
+        <Box className="reschedule-request-actions"><ActionButton variant="secondary" icon="close" onClick={onDeclineRequest}>Отклонить</ActionButton><ActionButton icon="check" onClick={onAcceptRequest}>Подтвердить</ActionButton></Box>
+      </Section>}
+      {(balance <= 2 || !hasSubscription) && <Section className={`subscription-warning ${subscriptionTone(balance, hasSubscription)}`}>
         <Icon name={balance <= 0 || !hasSubscription ? 'minus' : 'history'} />
-        <div><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong><small>Тренировку можно провести без ограничения.</small></div>
+        <Box><Strong>{subscriptionBalanceLabel(balance, hasSubscription)}</Strong><Small>Тренировку можно провести без ограничения.</Small></Box>
         <Button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</Button>
-      </section>}
-      <div className="assignment-detail-actions">
+      </Section>}
+      <Box className="assignment-detail-actions">
         {assignment.status === 'assigned' && assignment.format === 'in-person' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
         {assignment.status === 'assigned' && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать</ActionButton>}
         <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
-      </div>
-      <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
+      </Box>
+      <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>
       <ReadOnlyExerciseList workout={workout} onProgress={(exercise) => progressKeys.has(progressKey(exercise)) ? () => go(progressHref(student.id, exercise)) : undefined} />
-    </main>
+    </Page>
   );
 }
 

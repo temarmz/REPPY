@@ -1,8 +1,9 @@
+import { Box, Inline, Strong, Small, Section, Emphasis, Paragraph, Footer } from './ui/elements';
 import { useEffect, useState } from 'react';
 import { exerciseLibrary, exerciseMuscleGroups, makeId, muscleGroups, type ExerciseDefinition, type MuscleGroup, type WorkoutExercise } from './reppy-data';
-import Icon from './ui-icon';
-import ModalFrame from './modal-frame';
-import { ActionButton, Button, Input } from './ui-controls';
+import Icon from './ui/icon';
+import ModalFrame from './ui/modal-frame';
+import { ActionButton, Button, Input } from './ui/controls';
 import { loadUiDraft, saveUiDraft } from './ui-persistence';
 
 export type ExercisePickerChoice = {
@@ -28,12 +29,12 @@ export function ExerciseActionsModal({
 }) {
   return (
     <ModalFrame title={exercise.name} className="exercise-actions-sheet" ariaLabel={'Действия — ' + exercise.name} closeLabel="Закрыть действия" onClose={onClose}>
-      <div className="exercise-action-list">
+      <Box className="exercise-action-list">
         <Button className="danger" type="button" disabled={Boolean(deleteDisabledReason)} onClick={onDeleteExercise}>
           <Icon name="trash" />
-          <span><strong>Удалить упражнение</strong><small>{deleteDisabledReason ?? 'Упражнение исчезнет из этой тренировки'}</small></span>
+          <Inline><Strong>Удалить упражнение</Strong><Small>{deleteDisabledReason ?? 'Упражнение исчезнет из этой тренировки'}</Small></Inline>
         </Button>
-      </div>
+      </Box>
     </ModalFrame>
   );
 }
@@ -139,46 +140,46 @@ export function ExercisePicker({
   return (
     <ModalFrame title="Добавить упражнения" subtitle="Добавляй упражнения по кругу кнопкой +, убирай кнопкой −" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
       <Input className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
-      <div className="muscle-filter" aria-label="Фильтр по группе мышц">
+      <Box className="muscle-filter" aria-label="Фильтр по группе мышц">
         <Button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</Button>
         {muscleGroups.map((muscle) => <Button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</Button>)}
-      </div>
-      <div className="picker-list">
-        {showCustomBuilder && <section className="custom-exercise-builder">
-          <div><strong>{editingExercise ? `Редактирование «${editingExercise.name}»` : `Новое упражнение «${customName}»`}</strong><small>Выбери все группы мышц, которые участвуют в упражнении</small></div>
-          <div className="custom-muscle-groups" role="group" aria-label="Группы мышц упражнения">
+      </Box>
+      <Box className="picker-list">
+        {showCustomBuilder && <Section className="custom-exercise-builder">
+          <Box><Strong>{editingExercise ? `Редактирование «${editingExercise.name}»` : `Новое упражнение «${customName}»`}</Strong><Small>Выбери все группы мышц, которые участвуют в упражнении</Small></Box>
+          <Box className="custom-muscle-groups" role="group" aria-label="Группы мышц упражнения">
             {muscleGroups.map((muscle) => <Button className={customMuscleGroups.includes(muscle) ? 'selected' : ''} key={muscle} type="button" onClick={() => toggleCustomMuscle(muscle)} aria-pressed={customMuscleGroups.includes(muscle)}>{muscle}</Button>)}
-          </div>
-          {!customMuscleGroups.length && <small className="custom-exercise-hint">Выбери хотя бы одну группу мышц</small>}
-          <div className="custom-load-mode" aria-label="Тип нагрузки">
+          </Box>
+          {!customMuscleGroups.length && <Small className="custom-exercise-hint">Выбери хотя бы одну группу мышц</Small>}
+          <Box className="custom-load-mode" aria-label="Тип нагрузки">
             <Button className={customLoadMode === 'external' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('external')} aria-pressed={customLoadMode === 'external'}>С весом</Button>
             <Button className={customLoadMode === 'bodyweight' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('bodyweight')} aria-pressed={customLoadMode === 'bodyweight'}>Свой вес</Button>
-          </div>
-          <div className="custom-load-mode" aria-label="Способ измерения">
+          </Box>
+          <Box className="custom-load-mode" aria-label="Способ измерения">
             <Button className={customMeasureType === 'reps' ? 'selected' : ''} type="button" onClick={() => setCustomMeasureType('reps')} aria-pressed={customMeasureType === 'reps'}>Повторы</Button>
             <Button className={customMeasureType === 'duration' ? 'selected' : ''} type="button" onClick={() => { setCustomMeasureType('duration'); setCustomLoadMode('bodyweight'); }} aria-pressed={customMeasureType === 'duration'}>Секунды</Button>
-          </div>
+          </Box>
           <Button className="custom-exercise-option" type="button" disabled={!canSaveCustom} onClick={saveCustomExercise}><Icon name={editingExercise ? 'check' : 'plus'} /> {editingExercise ? 'Сохранить изменения' : `Сохранить и добавить «${customName}»`}</Button>
-        </section>}
+        </Section>}
         {filtered.map((exercise) => {
           const count = exercises.filter((item) => item.exerciseId === exercise.id).length;
           const isCustom = customExercises.some((item) => item.id === exercise.id);
           const groups = exerciseMuscleGroups(exercise);
-          return <div className="picker-exercise-row" key={exercise.id}>
-            <div><strong>{exercise.name}{isCustom && <em className="personal-exercise-label">Моё</em>}</strong><small>{groups.length ? groups.join(', ') : 'Другое'} · {exercise.equipment}</small></div>
-            <div className="picker-row-actions">
+          return <Box className="picker-exercise-row" key={exercise.id}>
+            <Box><Strong>{exercise.name}{isCustom && <Emphasis className="personal-exercise-label">Моё</Emphasis>}</Strong><Small>{groups.length ? groups.join(', ') : 'Другое'} · {exercise.equipment}</Small></Box>
+            <Box className="picker-row-actions">
               {isCustom && onUpdateCustom && <Button className="picker-edit-exercise" type="button" onClick={() => editCustomExercise(exercise)} aria-label={`Редактировать ${exercise.name}`}><Icon name="edit" /></Button>}
-              <div className="picker-quantity" role="group" aria-label={exercise.name}>
+              <Box className="picker-quantity" role="group" aria-label={exercise.name}>
                 <Button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></Button>
-                <span aria-live="polite">{count}</span>
+                <Inline aria-live="polite">{count}</Inline>
                 <Button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
-              </div>
-            </div>
-          </div>;
+              </Box>
+            </Box>
+          </Box>;
         })}
-        {!filtered.length && !canCreateCustom && <p className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</p>}
-      </div>
-      <footer className="picker-footer"><span aria-live="polite">В тренировке: {exercises.length}</span><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></footer>
+        {!filtered.length && !canCreateCustom && <Paragraph className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</Paragraph>}
+      </Box>
+      <Footer className="picker-footer"><Inline aria-live="polite">В тренировке: {exercises.length}</Inline><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></Footer>
     </ModalFrame>
   );
 }

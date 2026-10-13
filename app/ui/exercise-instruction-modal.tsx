@@ -1,10 +1,11 @@
+import { Box, Video, Inline, Label, Paragraph, Small, Strong, Subheading } from './elements';
 import { useEffect, useState } from 'react';
-import { exerciseLibrary, type WorkoutExercise } from './reppy-data';
-import Icon from './ui-icon';
+import { exerciseLibrary, type WorkoutExercise } from '../reppy-data';
+import Icon from './icon';
 import ModalFrame from './modal-frame';
-import { ActionButton, FormError, Button, Input, Textarea } from './ui-controls';
-import { loadInstructionVideo, saveInstructionVideo } from './instruction-video-repository';
-import { clearUiDraft, loadUiDraft, saveUiDraft } from './ui-persistence';
+import { ActionButton, FormError, Button, Input, Textarea } from './controls';
+import { loadInstructionVideo, saveInstructionVideo } from '../instruction-video-repository';
+import { clearUiDraft, loadUiDraft, saveUiDraft } from '../ui-persistence';
 
 const MAX_INSTRUCTION_VIDEO_BYTES = 100 * 1024 * 1024;
 
@@ -100,32 +101,32 @@ export default function ExerciseInstructionModal({
   const instruction = exercise.instructionText?.trim();
   return (
     <ModalFrame title={exercise.name} className="exercise-instruction-sheet" ariaLabel={'Как выполнять — ' + exercise.name} closeLabel="Закрыть описание" onClose={onClose}>
-      <div className="exercise-instruction-body">
-        <div className={`exercise-instruction-media ${videoUrl ? 'has-video' : ''}`}>
+      <Box className="exercise-instruction-body">
+        <Box className={`exercise-instruction-media ${videoUrl ? 'has-video' : ''}`}>
           {videoUrl
-            ? <video controls playsInline preload="metadata" src={videoUrl} aria-label={'Видео упражнения — ' + exercise.name} />
-            : <><Icon name="workout" /><span>{videoMissing ? 'Видео недоступно в этом браузере' : editable ? 'Добавь короткое видео с техникой' : 'Тренер пока не добавил видео'}</span></>}
-        </div>
-        {editable && <div className="instruction-video-actions">
-          <label className="wide-secondary">
+            ? <Video controls playsInline preload="metadata" src={videoUrl} aria-label={'Видео упражнения — ' + exercise.name} />
+            : <><Icon name="workout" /><Inline>{videoMissing ? 'Видео недоступно в этом браузере' : editable ? 'Добавь короткое видео с техникой' : 'Тренер пока не добавил видео'}</Inline></>}
+        </Box>
+        {editable && <Box className="instruction-video-actions">
+          <Label className="wide-secondary">
             <Icon name={instructionVideo || pendingFile ? 'change' : 'plus'} />
-            <span>{instructionVideo || pendingFile ? 'Заменить видео' : 'Записать или выбрать видео'}</span>
+            <Inline>{instructionVideo || pendingFile ? 'Заменить видео' : 'Записать или выбрать видео'}</Inline>
             <Input type="file" accept="video/*" onChange={(event) => chooseVideo(event.target.files?.[0])} />
-          </label>
+          </Label>
           {(instructionVideo || pendingFile) && <Button type="button" className="instruction-video-remove" onClick={() => { setInstructionVideo(undefined); setPendingFile(null); setError(''); }}><Icon name="trash" /> Удалить</Button>}
-        </div>}
-        {(instructionVideo || pendingFile) && <p className="instruction-video-meta">{pendingFile?.name ?? instructionVideo?.name} · {formatFileSize(pendingFile?.size ?? instructionVideo?.size ?? 0)}</p>}
-        {editable && <p className="instruction-video-helper">Короткий ролик: 2–3 повтора, до 100 МБ.</p>}
-        {equipment && <div className="exercise-equipment"><small>ОБОРУДОВАНИЕ</small><strong>{equipment}</strong></div>}
-        <h3>Как выполнять</h3>
+        </Box>}
+        {(instructionVideo || pendingFile) && <Paragraph className="instruction-video-meta">{pendingFile?.name ?? instructionVideo?.name} · {formatFileSize(pendingFile?.size ?? instructionVideo?.size ?? 0)}</Paragraph>}
+        {editable && <Paragraph className="instruction-video-helper">Короткий ролик: 2–3 повтора, до 100 МБ.</Paragraph>}
+        {equipment && <Box className="exercise-equipment"><Small>ОБОРУДОВАНИЕ</Small><Strong>{equipment}</Strong></Box>}
+        <Subheading>Как выполнять</Subheading>
         {editable
           ? <Textarea className="instruction-textarea" aria-label="Подробное описание упражнения" maxLength={1500} value={instructionText} onChange={(event) => setInstructionText(event.target.value)} placeholder="Опиши исходное положение, движение, дыхание и требования к технике" />
           : instruction
-            ? <p className="instruction-copy">{instruction}</p>
-            : <p className="instruction-empty">Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли.</p>}
+            ? <Paragraph className="instruction-copy">{instruction}</Paragraph>
+            : <Paragraph className="instruction-empty">Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли.</Paragraph>}
         {error && <FormError>{error}</FormError>}
         {editable && <ActionButton icon="check" disabled={saving} onClick={() => void save()}>{saving ? 'Сохраняем…' : 'Сохранить инструкцию'}</ActionButton>}
-      </div>
+      </Box>
     </ModalFrame>
   );
 }

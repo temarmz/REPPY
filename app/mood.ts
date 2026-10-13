@@ -1,5 +1,5 @@
 import type { MoodRating } from './reppy-data';
-import type { IconName } from './ui-icon';
+import type { IconName } from './ui/icon';
 
 export const MOODS: Array<{ value: MoodRating; label: string; detail: string; icon: IconName }> = [
   { value: 'great', label: 'Отлично', detail: 'Много сил', icon: 'sun' },

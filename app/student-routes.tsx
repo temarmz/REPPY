@@ -1,3 +1,7 @@
+import { UI_ASSETS } from './ui/assets';
+import { ListRow } from './ui/patterns';
+import { SectionHeading, Field, ProgressBar } from './ui/patterns';
+import { Page, Paragraph, Inline, Time, Section, Box, Strong, Small, Heading, Bold, Fieldset, Legend, Italic, Image, PageTitle, LineBreak } from './ui/elements';
 import { lazy, useEffect, useState } from 'react';
 import {
   createWorkoutSession,
@@ -12,13 +16,13 @@ import {
   type WorkoutSession,
 } from './reppy-data';
 import type { ReppyCommand } from './reppy-commands';
-import Icon from './ui-icon';
-import EmptyState from './empty-state';
-import { ActionButton, Button, Textarea } from './ui-controls';
-import WorkoutScheduleFields from './workout-schedule-fields';
+import Icon from './ui/icon';
+import EmptyState from './ui/empty-state';
+import { ActionButton, Button, Textarea } from './ui/controls';
+import WorkoutScheduleFields from './ui/workout-schedule-fields';
 import NotFound from './not-found';
 import RoutePageHeader from './route-page-header';
-import ReadOnlyExerciseList from './read-only-exercise-list';
+import ReadOnlyExerciseList from './ui/read-only-exercise-list';
 import SessionResult from './session-result';
 import { go } from './navigation';
 import { MOODS, moodLabel } from './mood';
@@ -77,25 +81,25 @@ function StudentAssignmentDetails({
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
 
   return (
-    <main className="content-page narrow-page student-assignment-page">
+    <Page className="content-page narrow-page student-assignment-page">
       <RoutePageHeader back={backPath} eyebrow={activeSession ? 'Незавершённая тренировка' : 'Предстоящая тренировка'} title={workout.name.toUpperCase()} />
-      <p className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><span>{formatScheduleDay(assignment.scheduledFor)}</span><span aria-hidden="true">·</span><time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</time></p>
-      {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <section className="student-request-status"><Icon name="check" /><div><strong>Новое время предложено</strong><p>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</p><small>Тренер увидит запрос и подтвердит или отклонит его.</small></div></section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
+      <Paragraph className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><Inline>{formatScheduleDay(assignment.scheduledFor)}</Inline><Inline aria-hidden="true">·</Inline><Time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</Time></Paragraph>
+      {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <Section className="student-request-status"><Icon name="check" /><Box><Strong>Новое время предложено</Strong><Paragraph>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</Paragraph><Small>Тренер увидит запрос и подтвердит или отклонит его.</Small></Box></Section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
-      {assignment.format === 'in-person' && requestOpen && !assignment.rescheduleRequest && <section className="student-reschedule-form">
+      {assignment.format === 'in-person' && requestOpen && !assignment.rescheduleRequest && <Section className="student-reschedule-form">
         <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
         <ActionButton icon="check" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { clearUiDraft(draftKey); onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
-      </section>}
+      </Section>}
 
-      {balance <= 0 && <section className="subscription-warning debt student-debt-warning">
+      {balance <= 0 && <Section className="subscription-warning debt student-debt-warning">
         <Icon name="minus" />
-        <div><strong>{subscriptionBalanceLabel(balance, hasSubscription)}</strong><small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</small></div>
-      </section>}
+        <Box><Strong>{subscriptionBalanceLabel(balance, hasSubscription)}</Strong><Small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</Small></Box>
+      </Section>}
 
       {canStart && <ActionButton className="student-start-button" icon="workout" onClick={onStart}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
-      <div className="section-heading workout-plan-heading"><h2>Упражнения</h2></div>
+      <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>
       <ReadOnlyExerciseList workout={workout} />
-    </main>
+    </Page>
   );
 }
 
@@ -116,28 +120,28 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, data.activeStudentId).length > 0;
 
   return (
-    <main className="content-page student-page">
-      {hasSubscription && <section className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Остаток абонемента">
-        <span><Icon name={balance > 0 ? 'check' : 'minus'} /></span>
-        <div><small>АБОНЕМЕНТ</small><strong>{subscriptionBalanceLabel(balance)}</strong></div>
-      </section>}
+    <Page className="content-page student-page">
+      {hasSubscription && <Section className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Остаток абонемента">
+        <Inline><Icon name={balance > 0 ? 'check' : 'minus'} /></Inline>
+        <Box><Small>АБОНЕМЕНТ</Small><Strong>{subscriptionBalanceLabel(balance)}</Strong></Box>
+      </Section>}
       {mainAssignment ? (
-        <section className="student-focus-card">
-          <div className="student-card-top"><time dateTime={assignmentDateTime(mainAssignment)}><strong>{formatScheduleDay(mainAssignment.scheduledFor)}</strong><small>{assignmentTimeLabel(mainAssignment)}</small></time>{mainSession && <b>{mainProgress}%</b>}</div>
-          <div><h2>{mainWorkout?.name}</h2><p>{exercisePreview(mainWorkout)}</p></div>
-          {mainSession && <div className="workout-progress"><span style={{ width: `${mainProgress}%` }} /></div>}
+        <Section className="student-focus-card">
+          <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}</Small></Time>{mainSession && <Bold>{mainProgress}%</Bold>}</Box>
+          <Box><Heading>{mainWorkout?.name}</Heading><Paragraph>{exercisePreview(mainWorkout)}</Paragraph></Box>
+          {mainSession && <ProgressBar value={mainProgress} />}
           <Button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</Button>
-        </section>
+        </Section>
       ) : <EmptyState icon="sun" title="Две недели свободны" text={STUDENT_COPY.emptyAssignments} />}
 
-      {laterAssignments.length > 0 && <section className="student-upcoming">
-        <div className="section-heading"><h2>Следующие тренировки</h2></div>
-        <div>{laterAssignments.map((assignment) => {
+      {laterAssignments.length > 0 && <Section className="student-upcoming">
+        <SectionHeading title="Следующие тренировки" />
+        <Box>{laterAssignments.map((assignment) => {
           const workout = findAssignmentWorkout(data, assignment);
-          return <Button className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><time dateTime={assignmentDateTime(assignment)}><strong>{formatCalendarDay(assignment.scheduledFor)}</strong><small>{assignmentTimeLabel(assignment)}</small></time><span><strong>{workout?.name}</strong><small>{exercisePreview(workout)}</small></span><Icon name="chevron-right" /></Button>;
-        })}</div>
-      </section>}
-    </main>
+          return <ListRow className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><Time dateTime={assignmentDateTime(assignment)}><Strong>{formatCalendarDay(assignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(assignment)}</Small></Time><Inline><Strong>{workout?.name}</Strong><Small>{exercisePreview(workout)}</Small></Inline><Icon name="chevron-right" /></ListRow>;
+        })}</Box>
+      </Section>}
+    </Page>
   );
 }
 
@@ -155,23 +159,23 @@ function WorkoutFeedback({ data, session, backPath, onComplete }: { data: DemoSt
   }, [comment, draftKey, mood]);
 
   return (
-    <main className="feedback-page">
+    <Page className="feedback-page">
       <RoutePageHeader back={backPath} eyebrow={workout?.name} title="КАК ПРОШЛО?" />
-      <section className="feedback-card">
-        <fieldset className="mood-fieldset">
-          <legend>Твоё настроение после тренировки</legend>
-          <div className="mood-grid">
+      <Section className="feedback-card">
+        <Fieldset className="mood-fieldset">
+          <Legend>Твоё настроение после тренировки</Legend>
+          <Box className="mood-grid">
             {MOODS.map((item) => (
               <Button className={mood === item.value ? 'selected' : ''} key={item.value} type="button" onClick={() => setMood(item.value)} aria-pressed={mood === item.value}>
-                <span><Icon name={item.icon} /></span><strong>{item.label}</strong><small>{item.detail}</small>
+                <Inline><Icon name={item.icon} /></Inline><Strong>{item.label}</Strong><Small>{item.detail}</Small>
               </Button>
             ))}
-          </div>
-        </fieldset>
-        <label className="comment-field" htmlFor="workout-comment"><span>Комментарий тренеру <small>необязательно</small></span><Textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><i>{comment.length}/280</i></label>
+          </Box>
+        </Fieldset>
+        <Field label={<>Комментарий тренеру <Small>необязательно</Small></>} className="comment-field" htmlFor="workout-comment"><Textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><Italic>{comment.length}/280</Italic></Field>
         <ActionButton icon="check" disabled={!mood} onClick={() => { if (!mood) return; clearUiDraft(draftKey); onComplete(mood, comment); }}>Сохранить результат</ActionButton>
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }
 
@@ -179,13 +183,13 @@ function WorkoutSuccess({ data, session, backPath }: { data: DemoState; session:
   const workout = findSessionWorkout(data, session);
   const balance = subscriptionBalance(data.subscriptionEntries, session.studentId);
   return (
-    <main className="success-screen">
-      <img className="success-illustration" src="good-sm.png" alt="" />
-      <p className="eyebrow">Результат сохранён</p>
-      <h1>ТРЕНИРОВКА<br />ЗАВЕРШЕНА</h1>
-      <section><strong>{workout?.name}</strong>{session.mood && <p className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</p>}<p className={`success-subscription ${subscriptionTone(balance)}`}>{subscriptionBalanceLabel(balance)}</p></section>
+    <Page className="success-screen">
+      <Image className="success-illustration" src={UI_ASSETS.success} alt="" />
+      <Paragraph className="eyebrow">Результат сохранён</Paragraph>
+      <PageTitle>ТРЕНИРОВКА<LineBreak />ЗАВЕРШЕНА</PageTitle>
+      <Section><Strong>{workout?.name}</Strong>{session.mood && <Paragraph className="success-mood"><Icon name="sun" /> Самочувствие: {moodLabel(session.mood)}</Paragraph>}<Paragraph className={`success-subscription ${subscriptionTone(balance)}`}>{subscriptionBalanceLabel(balance)}</Paragraph></Section>
       <ActionButton icon="check" onClick={() => go(backPath, true)}>Готово</ActionButton>
-    </main>
+    </Page>
   );
 }
 

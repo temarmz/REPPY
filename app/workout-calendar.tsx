@@ -1,11 +1,14 @@
-import { Button } from './ui-controls';
+import { Badge } from './ui/patterns';
+import { SectionHeading } from './ui/patterns';
+import { Page, Section, Box, Inline, Strong, Small, Paragraph, Bold } from './ui/elements';
+import { Button } from './ui/controls';
 import { useState } from 'react';
 import { dateKey, findAssignmentWorkout, findSessionWorkout, type DemoState, type Student, type Workout } from './reppy-data';
-import Icon from './ui-icon';
-import EmptyState from './empty-state';
-import MonthDatePicker from './month-date-picker';
-import ModalFrame from './modal-frame';
-import Avatar from './avatar';
+import Icon from './ui/icon';
+import EmptyState from './ui/empty-state';
+import MonthDatePicker from './ui/month-date-picker';
+import ModalFrame from './ui/modal-frame';
+import Avatar from './ui/avatar';
 import { go } from './navigation';
 import { moodLabel } from './mood';
 import { assignmentSortValue, assignmentTimeLabel, formatScheduleDay, isScheduleDate } from './schedule-display';
@@ -47,7 +50,7 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
   const selectedTitle = formatScheduleDay(selectedDay);
 
   return (
-    <main className="content-page calendar-page">
+    <Page className="content-page calendar-page">
       <MonthDatePicker
         value={selectedDay}
         onChange={setSelectedDay}
@@ -59,12 +62,11 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
         }}
       />
 
-      <section className="calendar-agenda">
-        <div className="section-heading">
-          <h2>{selectedTitle}</h2>
+      <Section className="calendar-agenda">
+        <SectionHeading title={<>{selectedTitle}</>} >
           {area === 'trainer' && isScheduleDate(selectedDay) && <Button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${selectedTitle}`} onClick={() => setAssignDate(selectedDay)}><Icon name="plus" /></Button>}
-        </div>
-        {selectedAssignments.length ? <div className="agenda-list">{selectedAssignments.map((assignment) => {
+        </SectionHeading>
+        {selectedAssignments.length ? <Box className="agenda-list">{selectedAssignments.map((assignment) => {
           const student = data.students.find((item) => item.id === assignment.studentId);
           const session = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
           const workout = session ? findSessionWorkout(data, session) : findAssignmentWorkout(data, assignment);
@@ -73,13 +75,13 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
             : session ? `/student/calendar/sessions/${session.id}` : `/student/calendar/assignments/${assignment.id}`;
           return (
             <Button key={assignment.id} type="button" onClick={() => go(target)}>
-              <span className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></span>
-              <div><strong>{area === 'trainer' ? student?.name : workout?.name}</strong><small>{assignmentTimeLabel(assignment)} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</small>{session?.comment && <p>«{session.comment}»</p>}</div>
-              <span className="agenda-tail">{assignment.status === 'completed' && <b>{session?.mood ? moodLabel(session.mood) : 'Готово'}</b>}<Icon name="chevron-right" /></span>
+              <Badge className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></Badge>
+              <Box><Strong>{area === 'trainer' ? student?.name : workout?.name}</Strong><Small>{assignmentTimeLabel(assignment)} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</Small>{session?.comment && <Paragraph>«{session.comment}»</Paragraph>}</Box>
+              <Inline className="agenda-tail">{assignment.status === 'completed' && <Bold>{session?.mood ? moodLabel(session.mood) : 'Готово'}</Bold>}<Icon name="chevron-right" /></Inline>
             </Button>
           );
-        })}</div> : <EmptyState icon="calendar" title="Свободный день" text={area === 'trainer' ? 'У команды нет тренировок в этот день.' : 'На этот день тренировка не запланирована.'} />}
-      </section>
+        })}</Box> : <EmptyState icon="calendar" title="Свободный день" text={area === 'trainer' ? 'У команды нет тренировок в этот день.' : 'На этот день тренировка не запланирована.'} />}
+      </Section>
       {assignDate && <ScheduleStudentPicker
         date={assignDate}
         students={data.students}
@@ -89,7 +91,7 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
           go(`/trainer/schedule/${assignDate}/${student.id}`);
         }}
       />}
-    </main>
+    </Page>
   );
 }
 
@@ -104,13 +106,13 @@ export function ScheduleStudentPicker({ date, students, onClose, onSelect }: { d
       closeLabel="Закрыть выбор ученика"
       onClose={onClose}
     >
-      {students.length ? <div className="schedule-student-list">{students.map((student) => (
+      {students.length ? <Box className="schedule-student-list">{students.map((student) => (
         <Button key={student.id} type="button" disabled={student.status === 'invited'} onClick={() => onSelect(student)}>
           <Avatar student={student} />
-          <span><strong>{student.name}</strong><small>{student.status === 'invited' ? 'Сначала ученик должен принять приглашение' : 'Выбрать тренировки'}</small></span>
+          <Inline><Strong>{student.name}</Strong><Small>{student.status === 'invited' ? 'Сначала ученик должен принять приглашение' : 'Выбрать тренировки'}</Small></Inline>
           <Icon name="chevron-right" />
         </Button>
-      ))}</div> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
+      ))}</Box> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
     </ModalFrame>
   );
 }

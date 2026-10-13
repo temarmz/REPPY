@@ -1,3 +1,4 @@
+import { Inline } from './elements';
 export type IconName =
   | 'home'
   | 'users'
@@ -59,7 +60,7 @@ export default function Icon({ name, className = '' }: { name: IconName; classNa
   const url = `url("icons/${iconFiles[name]}")`;
   const semanticClass = name.startsWith('chevron-') ? 'ui-chevron' : '';
   return (
-    <span
+    <Inline
       className={`ui-icon ${semanticClass} ${className}`.trim()}
       aria-hidden="true"
       style={{ WebkitMaskImage: url, maskImage: url }}

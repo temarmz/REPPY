@@ -1,7 +1,8 @@
-import { Button } from './ui-controls';
+import { Section, Header, Heading, Box, Inline, Italic } from './elements';
+import { Button } from './controls';
 import { useState } from 'react';
-import { dateKey } from './reppy-data';
-import Icon from './ui-icon';
+import { dateKey } from '../reppy-data';
+import Icon from './icon';
 
 export default function MonthDatePicker({
   value,
@@ -69,14 +70,14 @@ export default function MonthDatePicker({
   };
 
   return (
-    <section className={`calendar-card ${className}`.trim()}>
-      <header className="calendar-toolbar">
+    <Section className={`calendar-card ${className}`.trim()}>
+      <Header className="calendar-toolbar">
         <Button type="button" disabled={!canMoveToPreviousMonth} onClick={() => moveMonth(-1)} aria-label="Предыдущий месяц"><Icon name="chevron-left" /></Button>
-        <h2>{monthTitle}</h2>
+        <Heading>{monthTitle}</Heading>
         <Button type="button" onClick={() => moveMonth(1)} aria-label="Следующий месяц"><Icon name="chevron-right" /></Button>
-      </header>
-      <div className="calendar-weekdays" aria-hidden="true">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <span key={day}>{day}</span>)}</div>
-      <div className="calendar-grid">
+      </Header>
+      <Box className="calendar-weekdays" aria-hidden="true">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <Inline key={day}>{day}</Inline>)}</Box>
+      <Box className="calendar-grid">
         {days.map((day) => {
           const key = dateKey(day);
           const markerCount = markedDates?.get(key) ?? 0;
@@ -93,11 +94,11 @@ export default function MonthDatePicker({
               aria-label={dateAriaLabel?.(day, markerCount) ?? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(day)}
               aria-pressed={key === value}
             >
-              <span>{day.getDate()}</span>{markerCount > 0 && <i aria-hidden="true" />}
+              <Inline>{day.getDate()}</Inline>{markerCount > 0 && <Italic aria-hidden="true" />}
             </Button>
           );
         })}
-      </div>
-    </section>
+      </Box>
+    </Section>
   );
 }

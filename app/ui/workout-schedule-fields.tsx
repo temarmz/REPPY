@@ -1,9 +1,11 @@
+import { Field } from './patterns';
+import { Box, Inline, Strong } from './elements';
 import { useState } from 'react';
-import { dateKey, formatCalendarDay } from './reppy-data';
-import Icon from './ui-icon';
+import { dateKey, formatCalendarDay } from '../reppy-data';
+import Icon from './icon';
 import ModalFrame from './modal-frame';
 import MonthDatePicker from './month-date-picker';
-import { ActionButton, Button, Input } from './ui-controls';
+import { ActionButton, Button, Input } from './controls';
 
 function formatDateValue(value: string) {
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value);
@@ -24,10 +26,10 @@ export function DatePickerField({ label, value, min, className = '', formatValue
   const [open, setOpen] = useState(false);
   const displayValue = formatValue(value);
   return <>
-    <div className={`date-picker-field ${className}`.trim()}>
-      <span>{label}</span>
-      <Button type="button" aria-label={`${label}: ${displayValue}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><Icon name="calendar" /><strong>{displayValue}</strong><Icon name="chevron-right" /></Button>
-    </div>
+    <Box className={`date-picker-field ${className}`.trim()}>
+      <Inline>{label}</Inline>
+      <Button type="button" aria-label={`${label}: ${displayValue}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}><Icon name="calendar" /><Strong>{displayValue}</Strong><Icon name="chevron-right" /></Button>
+    </Box>
     {open && <DatePickerSheet title={label} value={value} min={min} onChange={onChange} onClose={() => setOpen(false)} />}
   </>;
 }
@@ -52,9 +54,9 @@ export default function WorkoutScheduleFields({
   onTimeChange: (value: string) => void;
 }) {
   return (
-    <div className={`schedule-fields ${showTime ? '' : 'date-only'}`.trim()} data-ui-control="schedule-fields" role="group" aria-label={showTime ? 'Дата и время тренировки' : 'Рекомендованная дата тренировки'}>
+    <Box className={`schedule-fields ${showTime ? '' : 'date-only'}`.trim()} data-ui-control="schedule-fields" role="group" aria-label={showTime ? 'Дата и время тренировки' : 'Рекомендованная дата тренировки'}>
       <DatePickerField className="schedule-field" label={dateLabel} value={scheduledFor} min={min} formatValue={formatCalendarDay} onChange={onDateChange} />
-      {showTime && <label className="schedule-field time-picker-field"><span>{timeLabel}</span><Input type="time" value={scheduledTime ?? ''} onChange={(event) => onTimeChange(event.target.value)} /></label>}
-    </div>
+      {showTime && <Field label={<>{timeLabel}</>} className="schedule-field time-picker-field"><Input type="time" value={scheduledTime ?? ''} onChange={(event) => onTimeChange(event.target.value)} /></Field>}
+    </Box>
   );
 }

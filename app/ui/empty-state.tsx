@@ -1,5 +1,6 @@
-import { Button } from './ui-controls';
-import Icon, { type IconName } from './ui-icon';
+import { Box, Inline, Subheading, Paragraph } from './elements';
+import { Button } from './controls';
+import Icon, { type IconName } from './icon';
 
 export default function EmptyState({
   icon,
@@ -15,11 +16,11 @@ export default function EmptyState({
   onAction?: () => void;
 }) {
   return (
-    <div className="empty-state">
-      <span><Icon name={icon} /></span>
-      <h3>{title}</h3>
-      <p>{text}</p>
+    <Box className="empty-state">
+      <Inline><Icon name={icon} /></Inline>
+      <Subheading>{title}</Subheading>
+      <Paragraph>{text}</Paragraph>
       {action && <Button type="button" onClick={onAction}><Icon name="arrow-right" /> {action}</Button>}
-    </div>
+    </Box>
   );
 }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import ConfirmationModal from './confirmation-modal';
-import { hasOpenModalLayers } from './modal-frame';
+import ConfirmationModal from './ui/confirmation-modal';
+import { hasOpenModalLayers } from './ui/modal-frame';
 
 const NAVIGATION_EVENT = 'reppy:navigate';
 export const RELEASE_ROUTE_STATE_EVENT = 'reppy:release-route-state';

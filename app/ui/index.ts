@@ -1,0 +1,20 @@
+/** Public component-library entry point. All visual implementation lives in this directory. */
+export * from './elements';
+export * from './controls';
+export * from './patterns';
+export { UI_ASSETS } from './assets';
+export { UI_COMPONENTS } from './catalog';
+export { default as Icon, type IconName } from './icon';
+export { default as Avatar, InitialsAvatar } from './avatar';
+export { default as PageHeader } from './page-header';
+export { default as ModalFrame } from './modal-frame';
+export { default as ConfirmationModal } from './confirmation-modal';
+export { default as EmptyState } from './empty-state';
+export { default as AppShell } from './app-shell';
+export { AppStatusBanner, DataLoadError } from './app-status';
+export { default as MonthDatePicker } from './month-date-picker';
+export { default as WorkoutScheduleFields, DatePickerField } from './workout-schedule-fields';
+export { default as ReadOnlyExerciseList } from './read-only-exercise-list';
+export { PlanExerciseCard, ActiveExerciseCard } from './workout-exercise-card';
+export { default as ExerciseInstructionModal } from './exercise-instruction-modal';
+export { default as ProgressChart } from './progress-chart';

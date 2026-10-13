@@ -1,4 +1,7 @@
-import { Button, Switch } from './ui-controls';
+import { ListRow, Badge } from './ui/patterns';
+import { SectionHeading } from './ui/patterns';
+import { Time, Inline, Strong, Small, Page, Section, Box, Heading, Header, Paragraph, Card, Bold, Italic } from './ui/elements';
+import { Button, Switch } from './ui/controls';
 import { useState } from 'react';
 import {
   dateKey,
@@ -7,9 +10,9 @@ import {
   type Assignment,
   type DemoState,
 } from './reppy-data';
-import Icon from './ui-icon';
-import EmptyState from './empty-state';
-import Avatar from './avatar';
+import Icon from './ui/icon';
+import EmptyState from './ui/empty-state';
+import Avatar from './ui/avatar';
 import { go } from './navigation';
 import { ScheduleStudentPicker } from './workout-calendar';
 import {
@@ -39,12 +42,12 @@ function TrainerPlanRow({ data, assignment }: { data: DemoState; assignment: Ass
     : `/trainer/assignments/${assignment.id}`;
 
   return (
-    <Button className={`plan-session-row ${assignment.format === 'online' ? 'online' : ''}`} type="button" onClick={() => go(target)} aria-label={`${student?.name}, ${assignmentTimeLabel(assignment)}, ${workout?.name}${completed ? ', тренировка завершена' : ''}`}>
-      <time dateTime={assignmentDateTime(assignment)}>{assignmentTimeLabel(assignment)}</time>
+    <ListRow className={`plan-session-row ${assignment.format === 'online' ? 'online' : ''}`} type="button" onClick={() => go(target)} aria-label={`${student?.name}, ${assignmentTimeLabel(assignment)}, ${workout?.name}${completed ? ', тренировка завершена' : ''}`}>
+      <Time dateTime={assignmentDateTime(assignment)}>{assignmentTimeLabel(assignment)}</Time>
       <Avatar student={student} />
-      <span><strong>{student?.name}</strong><small>{workout?.name}</small></span>
-      <span className="plan-session-status">{completed && <Icon name="check" />}<Icon name="chevron-right" /></span>
-    </Button>
+      <Inline><Strong>{student?.name}</Strong><Small>{workout?.name}</Small></Inline>
+      <Inline className="plan-session-status">{completed && <Icon name="check" />}<Icon name="chevron-right" /></Inline>
+    </ListRow>
   );
 }
 
@@ -74,52 +77,52 @@ export function TrainerHome({ data }: { data: DemoState }) {
   });
 
   return (
-    <main className="content-page trainer-home-page">
-      {pendingRequests.length > 0 && <section className="reschedule-inbox">
-        <div className="section-heading"><h2>Запросы на перенос</h2></div>
-        <div className="connected-list">{pendingRequests.map((assignment) => {
+    <Page className="content-page trainer-home-page">
+      {pendingRequests.length > 0 && <Section className="reschedule-inbox">
+        <SectionHeading title="Запросы на перенос" />
+        <Box className="connected-list">{pendingRequests.map((assignment) => {
           const student = findStudent(data, assignment.studentId);
           const request = assignment.rescheduleRequest;
-          return <Button className="reschedule-notification-row" key={assignment.id} type="button" onClick={() => go(`/trainer/assignments/${assignment.id}`)}><span><Icon name="calendar" /></span><div><strong>{student?.name}</strong><small>{request ? `${formatScheduleDay(request.scheduledFor)} · ${request.scheduledTime}` : ''}</small></div><Icon name="chevron-right" /></Button>;
-        })}</div>
-      </section>}
+          return <ListRow className="reschedule-notification-row" key={assignment.id} type="button" onClick={() => go(`/trainer/assignments/${assignment.id}`)}><Inline><Icon name="calendar" /></Inline><Box><Strong>{student?.name}</Strong><Small>{request ? `${formatScheduleDay(request.scheduledFor)} · ${request.scheduledTime}` : ''}</Small></Box><Icon name="chevron-right" /></ListRow>;
+        })}</Box>
+      </Section>}
 
-      <section className="today-schedule">
-        <header>
-          <div><h2>СЕГОДНЯ</h2><p>{formatScheduleDay(todayKey)}</p></div>
+      <Section className="today-schedule">
+        <Header>
+          <Box><Heading>СЕГОДНЯ</Heading><Paragraph>{formatScheduleDay(todayKey)}</Paragraph></Box>
           {todayAssignments.length > 0 && <Button className="schedule-add-button on-light" type="button" aria-label="Назначить тренировку на сегодня" onClick={() => startAssignment(todayKey)}><Icon name="plus" /></Button>}
-        </header>
+        </Header>
         {todayAssignments.length ? (
-          <div className="today-session-list">{todayAssignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</div>
-        ) : <Button className="today-empty" type="button" onClick={() => startAssignment(todayKey)}><Icon name="plus" /><strong>Тренировок нет</strong><small>Назначить ученика</small></Button>}
-      </section>
+          <Box className="today-session-list">{todayAssignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</Box>
+        ) : <Button className="today-empty" type="button" onClick={() => startAssignment(todayKey)}><Icon name="plus" /><Strong>Тренировок нет</Strong><Small>Назначить ученика</Small></Button>}
+      </Section>
 
-      <section className="future-schedule">
-        <div className="future-schedule-heading">
-          <div><h2>Дальше</h2><p>Ближайшие две недели</p></div>
+      <Section className="future-schedule">
+        <Box className="future-schedule-heading">
+          <Box><Heading>Дальше</Heading><Paragraph>Ближайшие две недели</Paragraph></Box>
           <Switch checked={showAllDays} onCheckedChange={toggleAllDays}>Все дни</Switch>
-        </div>
+        </Box>
         {visibleFutureDays.length ? (
-          <div className="schedule-days-list">{visibleFutureDays.map((day) => {
+          <Box className="schedule-days-list">{visibleFutureDays.map((day) => {
             const parts = planDayParts(day.date);
             if (!day.assignments.length) return (
-              <article className="plan-day-card empty-day" key={day.date}>
+              <Card className="plan-day-card empty-day" key={day.date}>
                 <Button className="empty-day-action" type="button" aria-label={`Назначить ученика на ${formatScheduleDay(day.date)}`} onClick={() => startAssignment(day.date)}>
-                  <time className="plan-day-date" dateTime={day.date}><strong>{parts.day}</strong><span><b>{parts.month}</b><small>{parts.weekday}</small></span></time>
-                  <span className="empty-day-plus"><Icon name="plus" /></span>
+                  <Time className="plan-day-date" dateTime={day.date}><Strong>{parts.day}</Strong><Inline><Bold>{parts.month}</Bold><Small>{parts.weekday}</Small></Inline></Time>
+                  <Inline className="empty-day-plus"><Icon name="plus" /></Inline>
                 </Button>
-              </article>
+              </Card>
             );
-            return <article className="plan-day-card" key={day.date}>
-              <header>
-                <time className="plan-day-date" dateTime={day.date}><strong>{parts.day}</strong><span><b>{parts.month}</b><small>{parts.weekday}</small></span></time>
+            return <Card className="plan-day-card" key={day.date}>
+              <Header>
+                <Time className="plan-day-date" dateTime={day.date}><Strong>{parts.day}</Strong><Inline><Bold>{parts.month}</Bold><Small>{parts.weekday}</Small></Inline></Time>
                 <Button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${formatScheduleDay(day.date)}`} onClick={() => startAssignment(day.date)}><Icon name="plus" /></Button>
-              </header>
-              <div className="day-session-list">{day.assignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</div>
-            </article>;
-          })}</div>
+              </Header>
+              <Box className="day-session-list">{day.assignments.map((assignment) => <TrainerPlanRow key={assignment.id} data={data} assignment={assignment} />)}</Box>
+            </Card>;
+          })}</Box>
         ) : <EmptyState icon="calendar" title="Остальные дни свободны" text="На ближайшие две недели больше ничего не назначено." />}
-      </section>
+      </Section>
       {assignDate && <ScheduleStudentPicker
         date={assignDate}
         students={data.students}
@@ -129,15 +132,15 @@ export function TrainerHome({ data }: { data: DemoState }) {
           go(`/trainer/schedule/${assignDate}/${student.id}`);
         }}
       />}
-    </main>
+    </Page>
   );
 }
 
 export function ClientsList({ data }: { data: DemoState }) {
   return (
-    <main className="content-page">
+    <Page className="content-page">
       <Button className="list-primary-action" type="button" onClick={() => go('/trainer/clients/invite')}><Icon name="plus" /> Пригласить ученика</Button>
-      <section className="client-grid">
+      <Section className="client-grid">
         {data.students.map((student) => {
           const subscriptionEntries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
           const balance = subscriptionBalance(data.subscriptionEntries, student.id);
@@ -155,12 +158,12 @@ export function ClientsList({ data }: { data: DemoState }) {
           return (
             <Button className="client-card" key={student.id} type="button" onClick={() => go(`/trainer/clients/${student.id}`)}>
               <Avatar student={student} />
-              <span><strong>{student.name}</strong><small>{status}</small><b className={`client-subscription ${subscriptionTone(balance, subscriptionEntries.length > 0)}`}>{subscriptionBalanceLabel(balance, subscriptionEntries.length > 0)}</b></span>
-              <i><Icon name="chevron-right" /></i>
+              <Inline><Strong>{student.name}</Strong><Small>{status}</Small><Badge as="b" className={`client-subscription ${subscriptionTone(balance, subscriptionEntries.length > 0)}`}>{subscriptionBalanceLabel(balance, subscriptionEntries.length > 0)}</Badge></Inline>
+              <Italic><Icon name="chevron-right" /></Italic>
             </Button>
           );
         })}
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }

@@ -1,6 +1,7 @@
+import { Inline, Strong, Italic, Label, Paragraph } from './elements';
 import type { ComponentProps, ReactNode } from 'react';
 
-import Icon, { type IconName } from './ui-icon';
+import Icon, { type IconName } from './icon';
 
 type ButtonProps = ComponentProps<'button'>;
 type InputProps = ComponentProps<'input'>;
@@ -28,7 +29,7 @@ export function IconButton({ icon, label, className = 'schedule-add-button', ...
 
 export function Switch({ checked, onCheckedChange, children, ...props }: Omit<ButtonProps, 'role' | 'aria-checked' | 'onClick'> & { checked: boolean; onCheckedChange: (checked: boolean) => void; children: ReactNode }) {
   return <Button {...props} className={`schedule-view-toggle ${checked ? 'active' : ''} ${props.className ?? ''}`.trim()} role="switch" aria-checked={checked} onClick={() => onCheckedChange(!checked)} data-ui-control="switch">
-    <span className="schedule-view-icon" aria-hidden="true"><Icon name="calendar" /></span><strong>{children}</strong><span className="toggle-track" aria-hidden="true"><i /></span>
+    <Inline className="schedule-view-icon" aria-hidden="true"><Icon name="calendar" /></Inline><Strong>{children}</Strong><Inline className="toggle-track" aria-hidden="true"><Italic /></Inline>
   </Button>;
 }
 
@@ -73,11 +74,11 @@ export function TextField({
   labelClassName?: string;
 }) {
   return <>
-    <label className={labelClassName} htmlFor={id}>{label}</label>
+    <Label className={labelClassName} htmlFor={id}>{label}</Label>
     <Input {...props} id={id} className={className} data-ui-control="text-field" />
   </>;
 }
 
 export function FormError({ children }: { children: ReactNode }) {
-  return <p className="form-error" role="alert">{children}</p>;
+  return <Paragraph className="form-error" role="alert">{children}</Paragraph>;
 }

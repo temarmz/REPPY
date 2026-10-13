@@ -1,3 +1,5 @@
+import { ListRow, Badge } from './ui/patterns';
+import { Page, Section, Paragraph, Box, Heading, Output, Inline } from './ui/elements';
 import { useEffect, useState } from 'react';
 import {
   dateKey,
@@ -10,9 +12,9 @@ import {
   type Student,
   type Workout,
 } from './reppy-data';
-import Icon from './ui-icon';
-import EmptyState from './empty-state';
-import { ActionButton, FormError, TextField, Button } from './ui-controls';
+import Icon from './ui/icon';
+import EmptyState from './ui/empty-state';
+import { ActionButton, FormError, TextField, Button } from './ui/controls';
 import { go } from './navigation';
 import PageHeader from './route-page-header';
 import { assignmentScheduleLabel, assignmentSortValue, formatScheduleDay } from './schedule-display';
@@ -87,26 +89,26 @@ export function InviteStudent({
   };
 
   return (
-    <main className="content-page narrow-page">
+    <Page className="content-page narrow-page">
       <PageHeader back="/trainer/clients" eyebrow="Новый участник команды" title={created ? 'ССЫЛКА ГОТОВА' : 'ПРИГЛАСИТЬ УЧЕНИКА'} />
       {!created ? (
-        <section className="form-card">
+        <Section className="form-card">
           <TextField id="student-name" label="Имя ученика" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
-          <p className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</p>
+          <Paragraph className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</Paragraph>
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="arrow-right" disabled={busy || !name.trim()} onClick={() => void create()}>{busy ? 'Создаём…' : 'Продолжить'}</ActionButton>
-        </section>
+        </Section>
       ) : (
-        <section className="invite-ready">
-          <div className="success-mark"><Icon name="arrow-up-right" /></div>
-          <h2>{created.student.name} почти в команде</h2>
-          <p>Отправь эту одноразовую ссылку ученику{created.expiresAt ? ` — она действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</p>
-          <output>{inviteUrl}</output>
+        <Section className="invite-ready">
+          <Box className="success-mark"><Icon name="arrow-up-right" /></Box>
+          <Heading>{created.student.name} почти в команде</Heading>
+          <Paragraph>Отправь эту одноразовую ссылку ученику{created.expiresAt ? ` — она действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</Paragraph>
+          <Output>{inviteUrl}</Output>
           <ActionButton icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</ActionButton>
           <ActionButton variant="secondary" icon="check" onClick={() => go('/trainer/clients')}>Готово</ActionButton>
-        </section>
+        </Section>
       )}
-    </main>
+    </Page>
   );
 }
 
@@ -135,13 +137,13 @@ export function StudentWorkoutHistory({
   const visibleAssignments = showAllHistory ? previousAssignments : previousAssignments.slice(0, 8);
 
   return (
-    <main className="content-page workout-picker-page schedule-workout-picker-page">
+    <Page className="content-page workout-picker-page schedule-workout-picker-page">
       <PageHeader back={backPath} eyebrow={`${student.name} · ${formatScheduleDay(scheduledFor)}`} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
-      <p className="page-lead">Повтори одну из тренировок {student.name} или собери новую с нуля.</p>
+      <Paragraph className="page-lead">Повтори одну из тренировок {student.name} или собери новую с нуля.</Paragraph>
       <Button className="list-primary-action" type="button" onClick={() => go(`${routeBase}/new`)}><Icon name="plus" /> {COPY.createWorkout}</Button>
       {previousAssignments.length ? (
         <>
-        <section className="workout-history-list schedule-history-list" aria-label={`Ранее назначенные тренировки ${student.name}`}>
+        <Section className="workout-history-list schedule-history-list" aria-label={`Ранее назначенные тренировки ${student.name}`}>
           {visibleAssignments.map((assignment) => {
             const workout = workoutForRepeat(data, assignment);
             if (!workout) return null;
@@ -149,17 +151,17 @@ export function StudentWorkoutHistory({
             const overdue = !completed && assignment.scheduledFor < dateKey();
             const statusLabel = completed ? 'Завершена' : overdue ? 'Не завершена' : 'Запланирована';
             return (
-              <Button className="workout-history-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
-                <span className="history-copy-icon"><Icon name="copy" /></span>
-                <div><h2>{workout.name}</h2><p><b className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</b>{assignmentScheduleLabel(assignment)} · {exercisePreview(workout, true)}</p></div>
+              <ListRow className="workout-history-row" key={assignment.id} type="button" onClick={() => go(`${routeBase}/copy/${assignment.id}`)}>
+                <Inline className="history-copy-icon"><Icon name="copy" /></Inline>
+                <Box><Heading>{workout.name}</Heading><Paragraph><Badge as="b" className={`history-status ${completed ? 'completed' : overdue ? 'overdue' : ''}`}>{statusLabel}</Badge>{assignmentScheduleLabel(assignment)} · {exercisePreview(workout, true)}</Paragraph></Box>
                 <Icon name="chevron-right" />
-              </Button>
+              </ListRow>
             );
           })}
-        </section>
+        </Section>
         {previousAssignments.length > 8 && <ActionButton variant="secondary" className="history-show-more" onClick={() => setShowAllHistory((current) => !current)}>{showAllHistory ? 'Показать последние' : `Показать ещё ${previousAssignments.length - 8}`}</ActionButton>}
         </>
       ) : <EmptyState icon="history" title="Предыдущих тренировок нет" text="Создай первую тренировку для этого ученика — позже её можно будет повторять на новые даты." />}
-    </main>
+    </Page>
   );
 }

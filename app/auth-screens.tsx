@@ -1,13 +1,15 @@
+import { UI_ASSETS } from './ui/assets';
+import { Image, Page, Section, Paragraph, PageTitle, Box, Form, Inline } from './ui/elements';
 import { useEffect, useState, type FormEvent } from 'react';
-import EmptyState from './empty-state';
+import EmptyState from './ui/empty-state';
 import type { AuthProfile, InvitationPreview } from './reppy-auth';
 import type { PendingTelegramRegistration } from './telegram-login';
 import { hasTelegramRedirectCallback } from './telegram-login';
-import { ActionButton, FormError, TextField, Button } from './ui-controls';
+import { ActionButton, FormError, TextField, Button } from './ui/controls';
 import { LoadingScreen } from './onboarding-screens';
 
 function AuthBrand() {
-  return <img className="auth-logo" src="logo-wordmark.png" alt="REPPY" />;
+  return <Image className="auth-logo" src={UI_ASSETS.wordmark} alt="REPPY" />;
 }
 
 function readableAuthError(reason: unknown) {
@@ -83,26 +85,26 @@ export function AccountScreen({
   };
 
   return (
-    <main className="auth-screen">
-      <section className="auth-card">
+    <Page className="auth-screen">
+      <Section className="auth-card">
         <AuthBrand />
-        <p className="eyebrow">Аккаунт REPPY</p>
-        <h1>ВОЙТИ ИЛИ СОЗДАТЬ</h1>
-        {!pending ? <div className="auth-form">
+        <Paragraph className="eyebrow">Аккаунт REPPY</Paragraph>
+        <PageTitle>ВОЙТИ ИЛИ СОЗДАТЬ</PageTitle>
+        {!pending ? <Box className="auth-form">
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
-          <p className="auth-description">Ученику нужна ссылка-приглашение от тренера.</p>
-        </div> : <form className="auth-form" onSubmit={create}>
-          <p className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</p>
-          <div><TextField id="trainer-telegram-name" label="Имя тренера" autoComplete="name" minLength={2} maxLength={120} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></div>
-          {pending.username && <p className="form-notice">Telegram: @{pending.username}</p>}
+          <Paragraph className="auth-description">Ученику нужна ссылка-приглашение от тренера.</Paragraph>
+        </Box> : <Form className="auth-form" onSubmit={create}>
+          <Paragraph className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</Paragraph>
+          <Box><TextField id="trainer-telegram-name" label="Имя тренера" autoComplete="name" minLength={2} maxLength={120} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Box>
+          {pending.username && <Paragraph className="form-notice">Telegram: @{pending.username}</Paragraph>}
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="check" type="submit" disabled={busy || displayName.trim().length < 2}>{busy ? 'Создаём кабинет…' : 'Создать кабинет тренера'}</ActionButton>
           <Button className="auth-text-button" type="button" disabled={busy} onClick={() => { setPending(null); setError(''); }}>Использовать другой Telegram</Button>
-        </form>}
+        </Form>}
         <ActionButton variant="secondary" icon="home" onClick={onHome}>На главную</ActionButton>
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }
 
@@ -184,48 +186,48 @@ export function SupabaseInvitationScreen({
   };
 
   if (previewError) {
-    return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка не работает" text={previewError} action="На главную" onAction={onHome} /></main>;
+    return <Page className="invitation-screen"><EmptyState icon="close" title="Ссылка не работает" text={previewError} action="На главную" onAction={onHome} /></Page>;
   }
   if (expired) {
-    return <main className="invitation-screen"><EmptyState icon="close" title="Ссылка устарела" text="Срок действия приглашения истёк. Попроси тренера создать новую ссылку." action="На главную" onAction={onHome} /></main>;
+    return <Page className="invitation-screen"><EmptyState icon="close" title="Ссылка устарела" text="Срок действия приглашения истёк. Попроси тренера создать новую ссылку." action="На главную" onAction={onHome} /></Page>;
   }
   if (!preview) {
     return <LoadingScreen message="Проверяем приглашение…" />;
   }
 
   return (
-    <main className="invitation-screen">
-      <section className="invitation-card auth-invitation-card">
-        <span className="invite-avatar">{preview.studentName.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span>
-        <p className="eyebrow">Приглашение в REPPY</p>
-        <h1>{preview.trainerName.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</h1>
-        <p>Привет, {preview.studentName}! Приглашение действует до {new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(preview.expiresAt))}.</p>
+    <Page className="invitation-screen">
+      <Section className="invitation-card auth-invitation-card">
+        <Inline className="invite-avatar">{preview.studentName.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</Inline>
+        <Paragraph className="eyebrow">Приглашение в REPPY</Paragraph>
+        <PageTitle>{preview.trainerName.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</PageTitle>
+        <Paragraph>Привет, {preview.studentName}! Приглашение действует до {new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(preview.expiresAt))}.</Paragraph>
 
         {signedIn ? (
-          <div className="auth-form">
+          <Box className="auth-form">
             {profile?.role === 'trainer' && <FormError>Аккаунт тренера нельзя привязать как ученика.</FormError>}
             {error && <FormError>{error}</FormError>}
             <ActionButton icon="check" disabled={busy || profile?.role === 'trainer'} onClick={accept}>{busy ? 'Принимаем…' : 'Принять приглашение'}</ActionButton>
-          </div>
+          </Box>
         ) : (
-          <div className="auth-form">
-            <p>Подтверди личность через Telegram — имя ученика уже указал тренер.</p>
+          <Box className="auth-form">
+            <Paragraph>Подтверди личность через Telegram — имя ученика уже указал тренер.</Paragraph>
             {error && <FormError>{error}</FormError>}
             <ActionButton icon="arrow-right" disabled={busy} onClick={() => void acceptWithTelegram()}>{busy ? 'Открываем Telegram…' : 'Принять через Telegram'}</ActionButton>
-          </div>
+          </Box>
         )}
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }
 
 export function MissingProfileScreen({ onSignOut }: { onSignOut: () => Promise<void> }) {
   return (
-    <main className="auth-screen">
-      <section className="auth-card">
+    <Page className="auth-screen">
+      <Section className="auth-card">
         <AuthBrand />
         <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть приглашение тренера. Тренер завершает регистрацию по одноразовой ссылке от REPPY." action="Выйти" onAction={() => void onSignOut()} />
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }

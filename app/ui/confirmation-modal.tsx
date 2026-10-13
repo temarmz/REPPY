@@ -1,5 +1,6 @@
+import { Box } from './elements';
 import ModalFrame from './modal-frame';
-import { ActionButton } from './ui-controls';
+import { ActionButton } from './controls';
 
 export default function ConfirmationModal({
   title,
@@ -18,10 +19,10 @@ export default function ConfirmationModal({
 }) {
   return (
     <ModalFrame title={title} description={text} className="confirmation-sheet" role="alertdialog" showHandle={false} onClose={onClose}>
-      <div className="confirmation-actions">
+      <Box className="confirmation-actions">
         <ActionButton variant="secondary" data-modal-initial-focus onClick={onClose}>Остаться</ActionButton>
         <ActionButton variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>{confirmLabel}</ActionButton>
-      </div>
+      </Box>
     </ModalFrame>
   );
 }

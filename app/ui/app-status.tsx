@@ -1,7 +1,9 @@
+import { UI_ASSETS } from './assets';
+import { Aside, Inline, Strong, Small, Page, Image, PageTitle, Paragraph } from './elements';
 import { createContext, useEffect, useState } from 'react';
-import type { PersistencePhase } from './use-reppy-data';
-import Icon, { type IconName } from './ui-icon';
-import { ActionButton, Button } from './ui-controls';
+import type { PersistencePhase } from '../use-reppy-data';
+import Icon, { type IconName } from './icon';
+import { ActionButton, Button } from './controls';
 
 export const PersistencePhaseContext = createContext<PersistencePhase>('idle');
 
@@ -76,23 +78,23 @@ export function AppStatusBanner({
   const error = status.kind === 'error' || status.kind === 'conflict';
 
   return (
-    <aside className={`app-status-banner ${status.kind} ${preview ? 'preview' : ''}`.trim()} role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'}>
+    <Aside className={`app-status-banner ${status.kind} ${preview ? 'preview' : ''}`.trim()} role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'}>
       <Icon name={status.icon} />
-      <span><strong>{status.title}</strong>{status.detail && <small>{status.detail}</small>}</span>
+      <Inline><Strong>{status.title}</Strong>{status.detail && <Small>{status.detail}</Small>}</Inline>
       {status.kind === 'error' && <Button type="button" onClick={onRetry}>Повторить</Button>}
       {status.kind === 'conflict' && onReload && <Button type="button" onClick={onReload}>Загрузить актуальные</Button>}
-    </aside>
+    </Aside>
   );
 }
 
 export function DataLoadError({ onRetry }: { onRetry: () => void }) {
   return (
-    <main className="system-state-screen" role="alert">
-      <img className="loading-logo" src="logo-full.png" alt="REPPY" />
-      <span className="system-state-icon"><Icon name="close" /></span>
-      <h1>Не удалось загрузить данные</h1>
-      <p>Проверь соединение и попробуй ещё раз. Мы не будем заменять данные пустой копией.</p>
+    <Page className="system-state-screen" role="alert">
+      <Image className="loading-logo" src={UI_ASSETS.logo} alt="REPPY" />
+      <Inline className="system-state-icon"><Icon name="close" /></Inline>
+      <PageTitle>Не удалось загрузить данные</PageTitle>
+      <Paragraph>Проверь соединение и попробуй ещё раз. Мы не будем заменять данные пустой копией.</Paragraph>
       <ActionButton icon="history" onClick={onRetry}>Повторить</ActionButton>
-    </main>
+    </Page>
   );
 }

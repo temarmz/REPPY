@@ -1,8 +1,12 @@
-import { Button } from './ui-controls';
+import { InitialsAvatar } from './avatar';
+import { UI_ASSETS } from './assets';
+import { NavigationButton } from './patterns';
+import { Inline, Box, Header, Image, Aside, Strong, Small, Nav, Bold } from './elements';
+import { Button } from './controls';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
-import Icon, { type IconName } from './ui-icon';
-import { observeMobileViewport } from './mobile-viewport';
-import { observeWorkoutFieldFocus } from './workout-field-focus';
+import Icon, { type IconName } from './icon';
+import { observeMobileViewport } from '../mobile-viewport';
+import { observeWorkoutFieldFocus } from '../workout-field-focus';
 
 export type AppArea = 'trainer' | 'student';
 export type AppTheme = 'dark' | 'light';
@@ -97,51 +101,51 @@ export default function AppShell({
   const navigation = (
     <>
       {nav.map((item) => (
-        <Button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
-          <span><Icon name={item.icon} /></span>{item.label}
-        </Button>
+        <NavigationButton key={item.route} active={activeRoute === item.route} onClick={() => navigateTab(item.route)}>
+          <Inline><Icon name={item.icon} /></Inline>{item.label}
+        </NavigationButton>
       ))}
     </>
   );
 
   return (
-    <div className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
-      {!focusMode && <header className="topbar">
+    <Box className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
+      {!focusMode && <Header className="topbar">
         <Button className="brand-mark brand-button" type="button" onClick={() => onNavigate('/')} aria-label="REPPY — на стартовый экран">
-          <img className="brand-logo" src="logo-wordmark.png" alt="" />
+          <Image className="brand-logo" src={UI_ASSETS.wordmark} alt="" />
         </Button>
-        <div className="topbar-actions">
+        <Box className="topbar-actions">
           {onSwitchRole && <Button className="role-switch" type="button" onClick={onSwitchRole} aria-label={`Переключиться в роль ${roleToOpen}`} title={`Переключиться в роль ${roleToOpen}`}>
-            <span>DEMO</span>
+            <Inline>DEMO</Inline>
             <Icon name="change" />
           </Button>}
           <Button className="theme-switch" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'} title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></Button>
           <Button className="avatar-button" type="button" onClick={onSettings} aria-label="Открыть настройки">
             {initials(displayName)}
           </Button>
-        </div>
-      </header>}
+        </Box>
+      </Header>}
 
       {systemStatus}
 
-      {!focusMode && <aside className="desktop-nav" aria-label="Основная навигация">
-        <div className="profile-block">
-          <span className="profile-avatar">{initials(displayName)}</span>
-          <div><strong>{displayName}</strong><small>{area === 'trainer' ? 'Персональный тренер' : 'Ученик'}</small></div>
-        </div>
-        <nav>{navigation}</nav>
-        {onSwitchRole && <Button className="side-demo" type="button" onClick={onSwitchRole}><b>DEMO</b> Переключить роль</Button>}
-      </aside>}
+      {!focusMode && <Aside className="desktop-nav" aria-label="Основная навигация">
+        <Box className="profile-block">
+          <InitialsAvatar className="profile-avatar" name={displayName} />
+          <Box><Strong>{displayName}</Strong><Small>{area === 'trainer' ? 'Персональный тренер' : 'Ученик'}</Small></Box>
+        </Box>
+        <Nav>{navigation}</Nav>
+        {onSwitchRole && <Button className="side-demo" type="button" onClick={onSwitchRole}><Bold>DEMO</Bold> Переключить роль</Button>}
+      </Aside>}
 
-      <div className="page-wrap page-transition">{children}</div>
+      <Box className="page-wrap page-transition">{children}</Box>
 
-      {!focusMode && !hideBottomNav && <nav className="bottom-nav" aria-label="Основная навигация">
+      {!focusMode && !hideBottomNav && <Nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
-          <Button key={item.route} className={activeRoute === item.route ? 'active' : ''} type="button" aria-current={activeRoute === item.route ? 'page' : undefined} onClick={() => navigateTab(item.route)}>
-            <span><Icon name={item.icon} /></span><small>{item.label}</small>
-          </Button>
+          <NavigationButton key={item.route} active={activeRoute === item.route} onClick={() => navigateTab(item.route)}>
+            <Inline><Icon name={item.icon} /></Inline><Small>{item.label}</Small>
+          </NavigationButton>
         ))}
-      </nav>}
-    </div>
+      </Nav>}
+    </Box>
   );
 }

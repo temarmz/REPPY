@@ -1,3 +1,7 @@
+import { InitialsAvatar } from './ui/avatar';
+import { ListRow } from './ui/patterns';
+import { SectionHeading, Field, Toast } from './ui/patterns';
+import { Box, Page, Section, Inline, Strong, Small, Italic, Header, Paragraph, SelectOption, DefinitionList, DefinitionTerm, DefinitionValue } from './ui/elements';
 import { lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   TRAINER_NAME,
@@ -8,16 +12,16 @@ import {
   type PaymentMethod,
   type Student,
 } from './reppy-data';
-import Icon, { iconAssetPaths } from './ui-icon';
+import Icon, { iconAssetPaths } from './ui/icon';
 import { useReppyData } from './use-reppy-data';
 import { StudentExerciseProgress } from './exercise-progress-view';
-import EmptyState from './empty-state';
-import AppShell, { type AppTheme } from './app-shell';
+import EmptyState from './ui/empty-state';
+import AppShell, { type AppTheme } from './ui/app-shell';
 import RetainedRouteViews from './retained-route-views';
-import { AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './app-status';
+import { AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './ui/app-status';
 import { downloadPersistenceDiagnostics } from './persistence-diagnostics';
-import ModalFrame, { MODAL_LAYER_EVENT } from './modal-frame';
-import { ActionButton, FormError, Button, Input, Select, Textarea } from './ui-controls';
+import ModalFrame, { MODAL_LAYER_EVENT } from './ui/modal-frame';
+import { ActionButton, FormError, Button, Input, Select, Textarea } from './ui/controls';
 import {
   recentSubscriptionPayments,
   subscriptionBalance,
@@ -396,7 +400,7 @@ export default function ReppyApp() {
         <PersistencePhaseContext value={persistencePhase}>
           <RetainedRouteViews path={path} renderRoute={renderRoute} />
         </PersistencePhaseContext>
-        {toast && <div className="toast" role="status"><Icon name="check" /> {toast}</div>}
+        {toast && <Toast>{toast}</Toast>}
       </AppShell>
       {settingsOpen && <SettingsModal
         accountMode={auth.enabled}
@@ -435,36 +439,36 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
     .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)));
   const sessions = [...data.sessions].filter((item) => item.studentId === studentId && item.completedAt).reverse();
   return (
-    <main className="content-page">
-      {trainerView && <div className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></div>}
+    <Page className="content-page">
+      {trainerView && <Box className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></Box>}
       <SubscriptionCard data={data} student={student} trainerView={trainerView} />
-      {trainerView && <section className="profile-schedule">
-        <div className="section-heading"><h2>Предстоящие тренировки</h2></div>
+      {trainerView && <Section className="profile-schedule">
+        <SectionHeading title="Предстоящие тренировки" />
         {trainerView && <Button className="list-primary-action" type="button" onClick={() => go(`/trainer/clients/${student.id}/assign`)}><Icon name="plus" /> Назначить тренировку</Button>}
-        {assignments.length ? <div className="connected-list">{assignments.map((assignment) => {
+        {assignments.length ? <Box className="connected-list">{assignments.map((assignment) => {
           const workout = findAssignmentWorkout(data, assignment);
           return (
-            <Button className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/assignments/${assignment.id}`)}>
-              <span><strong>{workout?.name}</strong><small>{assignmentScheduleLabel(assignment)}</small></span><i><Icon name="chevron-right" /></i>
-            </Button>
+            <ListRow className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/assignments/${assignment.id}`)}>
+              <Inline><Strong>{workout?.name}</Strong><Small>{assignmentScheduleLabel(assignment)}</Small></Inline><Italic><Icon name="chevron-right" /></Italic>
+            </ListRow>
           );
-        })}</div> : trainerView
+        })}</Box> : trainerView
           ? <EmptyState icon="calendar" title="Пока пусто" text="Назначь тренировку прямо из профиля ученика и подстрой план под него." />
           : <EmptyState icon="calendar" title="Пока пусто" text="Тренер ещё не добавил ближайшие занятия." />}
-      </section>}
+      </Section>}
 
-      {trainerView && <section className="section-block">
-        <div className="section-heading"><h2>Последняя активность</h2></div>
-        {sessions.length ? <div className="connected-list">{sessions.slice(0, 3).map((session) => (
-          <Button className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
-            <span className="done-badge"><Icon name="check" /></span><span><strong>{findSessionWorkout(data, session)?.name}</strong><small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</small></span><i><Icon name="chevron-right" /></i>
-          </Button>
-        ))}</div> : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
-      </section>}
+      {trainerView && <Section className="section-block">
+        <SectionHeading title="Последняя активность" />
+        {sessions.length ? <Box className="connected-list">{sessions.slice(0, 3).map((session) => (
+          <ListRow className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
+            <Inline className="done-badge"><Icon name="check" /></Inline><Inline><Strong>{findSessionWorkout(data, session)?.name}</Strong><Small>{formatDay(session.completedAt)}{session.mood ? ` · ${moodLabel(session.mood)}` : ''}</Small></Inline><Italic><Icon name="chevron-right" /></Italic>
+          </ListRow>
+        ))}</Box> : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
+      </Section>}
 
       {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
       {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
-    </main>
+    </Page>
   );
 }
 
@@ -474,27 +478,27 @@ function SubscriptionCard({ data, student, trainerView }: { data: DemoState; stu
   const balance = subscriptionBalance(data.subscriptionEntries, student.id);
   const hasEntries = entries.length > 0;
   return (
-    <section className={`subscription-card ${subscriptionTone(balance, hasEntries)}`} aria-label="Абонемент">
-      <header><span>АБОНЕМЕНТ</span><small>Без срока действия</small></header>
-      <div className="subscription-balance">
-        <strong>{subscriptionBalanceLabel(balance, hasEntries)}</strong>
-        {balance <= 0 && hasEntries && <p>{balance < 0 ? 'Новые занятия будут добавляться к долгу.' : 'Следующую тренировку можно провести в долг.'}</p>}
-        {!hasEntries && <p>{trainerView ? 'Добавь первое пополнение, чтобы начать учёт занятий.' : 'Тренер ещё не добавил пополнение.'}</p>}
-      </div>
-      {payments.length > 0 && <div className="recent-payments" aria-label="Последние пополнения">
-        <span>{trainerView ? 'ПОСЛЕДНЕЕ ПОПОЛНЕНИЕ' : 'ПОСЛЕДНИЕ ПОПОЛНЕНИЯ'}</span>
+    <Section className={`subscription-card ${subscriptionTone(balance, hasEntries)}`} aria-label="Абонемент">
+      <Header><Inline>АБОНЕМЕНТ</Inline><Small>Без срока действия</Small></Header>
+      <Box className="subscription-balance">
+        <Strong>{subscriptionBalanceLabel(balance, hasEntries)}</Strong>
+        {balance <= 0 && hasEntries && <Paragraph>{balance < 0 ? 'Новые занятия будут добавляться к долгу.' : 'Следующую тренировку можно провести в долг.'}</Paragraph>}
+        {!hasEntries && <Paragraph>{trainerView ? 'Добавь первое пополнение, чтобы начать учёт занятий.' : 'Тренер ещё не добавил пополнение.'}</Paragraph>}
+      </Box>
+      {payments.length > 0 && <Box className="recent-payments" aria-label="Последние пополнения">
+        <Inline>{trainerView ? 'ПОСЛЕДНЕЕ ПОПОЛНЕНИЕ' : 'ПОСЛЕДНИЕ ПОПОЛНЕНИЯ'}</Inline>
         {payments.map((payment) => (
-          <div key={payment.id}>
-            <strong>+{payment.lessonDelta} {lessonWord(payment.lessonDelta)}</strong>
-            <small>{formatRubles(payment.amountRub)} · {paymentMethodLabel(payment.paymentMethod)} · {formatSubscriptionDate(payment.occurredAt)}</small>
-          </div>
+          <Box key={payment.id}>
+            <Strong>+{payment.lessonDelta} {lessonWord(payment.lessonDelta)}</Strong>
+            <Small>{formatRubles(payment.amountRub)} · {paymentMethodLabel(payment.paymentMethod)} · {formatSubscriptionDate(payment.occurredAt)}</Small>
+          </Box>
         ))}
-      </div>}
-      {trainerView && <div className="subscription-actions">
+      </Box>}
+      {trainerView && <Box className="subscription-actions">
         <ActionButton icon="plus" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{payments.length ? 'Продлить' : 'Добавить абонемент'}</ActionButton>
         <ActionButton variant="secondary" icon="history" onClick={() => go(`/trainer/clients/${student.id}/subscription`)}>История</ActionButton>
-      </div>}
-    </section>
+      </Box>}
+    </Section>
   );
 }
 
@@ -542,26 +546,26 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   };
 
   return (
-    <section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
-      {compact ? <div className="athlete-inline-summary"><div><p>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</p><p>Ограничения: {student.contraindications || 'не указаны'}</p></div><Button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { clearUiDraft(draftKey); setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></Button></div> : <div className="section-heading"><h2>Данные и ограничения</h2>{alwaysExpanded && !editing ? <Button type="button" className="athlete-heading-edit" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать</Button> : !alwaysExpanded && <Button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) clearUiDraft(draftKey); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</Button>}</div>}
-      {(compact ? editing : expanded) && (editing ? <div className="athlete-form">
-        <div className="athlete-form-grid">
-          <label><span>Рост, см</span><Input type="number" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></label>
-          <label><span>Вес, кг</span><Input type="number" inputMode="decimal" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="86" /></label>
-        </div>
-        <label><span>Пол</span><Select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><option value="not-specified">Не указан</option><option value="male">Мужской</option><option value="female">Женский</option></Select></label>
-        <label><span>Мобильный телефон</span><Input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></label>
-        <label><span>Противопоказания и особенности</span><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><small>Опиши всё, что тренеру важно учитывать при составлении плана.</small></label>
+    <Section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
+      {compact ? <Box className="athlete-inline-summary"><Box><Paragraph>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</Paragraph><Paragraph>Ограничения: {student.contraindications || 'не указаны'}</Paragraph></Box><Button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { clearUiDraft(draftKey); setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></Button></Box> : <SectionHeading title={<>Данные и ограничения</>} >{alwaysExpanded && !editing ? <Button type="button" className="athlete-heading-edit" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать</Button> : !alwaysExpanded && <Button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) clearUiDraft(draftKey); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</Button>}</SectionHeading>}
+      {(compact ? editing : expanded) && (editing ? <Box className="athlete-form">
+        <Box className="athlete-form-grid">
+          <Field label={<>Рост, см</>} ><Input type="number" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></Field>
+          <Field label={<>Вес, кг</>} ><Input type="number" inputMode="decimal" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="86" /></Field>
+        </Box>
+        <Field label={<>Пол</>} ><Select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><SelectOption value="not-specified">Не указан</SelectOption><SelectOption value="male">Мужской</SelectOption><SelectOption value="female">Женский</SelectOption></Select></Field>
+        <Field label={<>Мобильный телефон</>} ><Input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></Field>
+        <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><Small>Опиши всё, что тренеру важно учитывать при составлении плана.</Small></Field>
         <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
         {compact && <ActionButton variant="secondary" onClick={() => { clearUiDraft(draftKey); setEditing(false); }}>Отмена</ActionButton>}
-      </div> : <>{!alwaysExpanded && <Button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</Button>}<dl className="athlete-summary">
-        <div><dt>Рост</dt><dd>{student.height ? `${student.height} см` : 'Не указан'}</dd></div>
-        <div><dt>Вес</dt><dd>{student.weight ? `${student.weight} кг` : 'Не указан'}</dd></div>
-        <div><dt>Пол</dt><dd>{genderLabel}</dd></div>
-        <div><dt>Телефон</dt><dd>{student.phone || 'Не указан'}</dd></div>
-        <div className="athlete-summary-wide"><dt>Противопоказания и особенности</dt><dd>{student.contraindications || 'Не указаны'}</dd></div>
-      </dl></>)}
-    </section>
+      </Box> : <>{!alwaysExpanded && <Button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</Button>}<DefinitionList className="athlete-summary">
+        <Box><DefinitionTerm>Рост</DefinitionTerm><DefinitionValue>{student.height ? `${student.height} см` : 'Не указан'}</DefinitionValue></Box>
+        <Box><DefinitionTerm>Вес</DefinitionTerm><DefinitionValue>{student.weight ? `${student.weight} кг` : 'Не указан'}</DefinitionValue></Box>
+        <Box><DefinitionTerm>Пол</DefinitionTerm><DefinitionValue>{genderLabel}</DefinitionValue></Box>
+        <Box><DefinitionTerm>Телефон</DefinitionTerm><DefinitionValue>{student.phone || 'Не указан'}</DefinitionValue></Box>
+        <Box className="athlete-summary-wide"><DefinitionTerm>Противопоказания и особенности</DefinitionTerm><DefinitionValue>{student.contraindications || 'Не указаны'}</DefinitionValue></Box>
+      </DefinitionList></>)}
+    </Section>
   );
 }
 
@@ -605,8 +609,8 @@ function SettingsModal({ accountMode = false, account, onClose, onReset, onSignO
 
   return (
     <ModalFrame title={resetConfirmationOpen ? 'Сбросить локальные данные?' : accountMode ? 'Настройки аккаунта' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel={accountMode ? 'Настройки аккаунта' : 'Настройки демо'} onClose={onClose}>
-      {resetConfirmationOpen ? <p>Все локальные изменения в учениках, тренировках и расписании будут удалены.</p> : accountMode && account ? <section className="account-details" aria-label="Данные аккаунта"><span className="account-avatar">{account.displayName.trim().charAt(0).toUpperCase()}</span><div><strong>{account.displayName}</strong><small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</small>{account.email && <span>{account.email}</span>}</div></section> : !accountMode ? <p>Сброс вернёт исходных учеников, тренировки и расписание.</p> : null}
-      {resetConfirmationOpen ? <div className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></div> : <div className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <div className="telegram-connection-status"><Icon name="check" /><span><strong>Telegram подключён</strong><small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</small></span></div> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}{onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}</div>}
+      {resetConfirmationOpen ? <Paragraph>Все локальные изменения в учениках, тренировках и расписании будут удалены.</Paragraph> : accountMode && account ? <Section className="account-details" aria-label="Данные аккаунта"><InitialsAvatar className="account-avatar" name={account.displayName} length={1} /><Box><Strong>{account.displayName}</Strong><Small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</Small>{account.email && <Inline>{account.email}</Inline>}</Box></Section> : !accountMode ? <Paragraph>Сброс вернёт исходных учеников, тренировки и расписание.</Paragraph> : null}
+      {resetConfirmationOpen ? <Box className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></Box> : <Box className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <Box className="telegram-connection-status"><Icon name="check" /><Inline><Strong>Telegram подключён</Strong><Small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</Small></Inline></Box> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}{onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}</Box>}
       {!resetConfirmationOpen && accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
     </ModalFrame>
   );

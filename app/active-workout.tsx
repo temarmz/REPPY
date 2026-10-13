@@ -1,3 +1,5 @@
+import { ProgressBar, Badge } from './ui/patterns';
+import { Page, Box, Header, Inline, Strong, Time, Bold, Section, PageTitle, Footer, Small } from './ui/elements';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
   cloneWorkout,
@@ -15,15 +17,15 @@ import {
   type WorkoutSetPlan,
   type WorkoutSession,
 } from './reppy-data';
-import Icon from './ui-icon';
-import { ActiveExerciseCard } from './workout-exercise-card';
-import ModalFrame from './modal-frame';
-import { ActionButton, Button } from './ui-controls';
-import ExerciseInstructionModal from './exercise-instruction-modal';
+import Icon from './ui/icon';
+import { ActiveExerciseCard } from './ui/workout-exercise-card';
+import ModalFrame from './ui/modal-frame';
+import { ActionButton, Button } from './ui/controls';
+import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
 import { goBack, useRoutePath } from './navigation';
 import { LoadingScreen } from './onboarding-screens';
-import { PersistencePhaseContext } from './app-status';
+import { PersistencePhaseContext } from './ui/app-status';
 import {
   clearUiDraft,
   loadUiDraft,
@@ -217,22 +219,22 @@ export default function ActiveWorkout({
       : undefined;
 
   return (
-    <main className="active-workout-page active-workout-list-page">
-      <div className="active-sticky-header">
-        <header className="active-header">
+    <Page className="active-workout-page active-workout-list-page">
+      <Box className="active-sticky-header">
+        <Header className="active-header">
           <Button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></Button>
-          <div className="active-header-copy"><span>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</span><strong>{workout.name} · <i className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</i></strong></div>
+          <Box className="active-header-copy"><Inline>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</Inline><Strong>{workout.name} · <Badge as="i" className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</Badge></Strong></Box>
           <Button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
-          <div className="active-timing"><time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</time><b>{progress}%</b></div>
-        </header>
-        <div className="active-progress" role="progressbar" aria-label="Прогресс тренировки" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: progress + '%' }} /></div>
-      </div>
+          <Box className="active-timing"><Time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</Time><Bold>{progress}%</Bold></Box>
+        </Header>
+        <ProgressBar className="active-progress" value={progress} />
+      </Box>
 
-      <section className="active-workout-overview">
-        <h1>{workout.name}</h1>
-      </section>
+      <Section className="active-workout-overview">
+        <PageTitle>{workout.name}</PageTitle>
+      </Section>
 
-      <section className="active-exercise-list">
+      <Section className="active-exercise-list">
         {workout.exercises.map((exercise, index) => {
           const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
           const minimumSets = Math.max(0, ...exerciseResults.filter((result) => result.completed).map((result) => result.setNumber));
@@ -257,7 +259,7 @@ export default function ActiveWorkout({
             />
           );
         })}
-      </section>
+      </Section>
 
       {pickerAfterId && <ExercisePicker persistenceKey={`picker:${pickerPersistenceKey}`} exercises={workout.exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
@@ -288,26 +290,26 @@ export default function ActiveWorkout({
         }}
       />}
 
-      <footer className="exercise-navigation single-action">
+      <Footer className="exercise-navigation single-action">
         <Button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</Button>
-      </footer>
-    </main>
+      </Footer>
+    </Page>
   );
 }
 
 function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose, onFinish }: { balance: number; unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (options: WorkoutFinishOptions) => void }) {
   return (
     <ModalFrame title="Завершить тренировку" eyebrow={canWaiveCharge ? 'АБОНЕМЕНТ' : undefined} className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
-      {unfinishedCount > 0 && <div className="finish-incomplete-warning"><Icon name="minus" /><div><strong>Есть незавершённые подходы</strong><small>Не отмечено: {unfinishedCount}. Результат сохранится в текущем виде.</small></div></div>}
-      {canWaiveCharge && <div className={`finish-balance-preview ${subscriptionTone(balance)}`}>
-        <span>СЕЙЧАС</span><strong>{subscriptionBalanceLabel(balance)}</strong>
+      {unfinishedCount > 0 && <Box className="finish-incomplete-warning"><Icon name="minus" /><Box><Strong>Есть незавершённые подходы</Strong><Small>Не отмечено: {unfinishedCount}. Результат сохранится в текущем виде.</Small></Box></Box>}
+      {canWaiveCharge && <Box className={`finish-balance-preview ${subscriptionTone(balance)}`}>
+        <Inline>СЕЙЧАС</Inline><Strong>{subscriptionBalanceLabel(balance)}</Strong>
         <Icon name="arrow-right" />
-        <span>ПОСЛЕ</span><strong>{subscriptionBalanceLabel(balance - 1)}</strong>
-      </div>}
-      <div className="finish-subscription-actions">
+        <Inline>ПОСЛЕ</Inline><Strong>{subscriptionBalanceLabel(balance - 1)}</Strong>
+      </Box>}
+      <Box className="finish-subscription-actions">
         <ActionButton icon="check" onClick={() => onFinish({ chargeSubscription: true })}>{canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</ActionButton>
         {canWaiveCharge && <ActionButton variant="secondary" icon="minus" onClick={() => onFinish({ chargeSubscription: false })}>Не списывать занятие</ActionButton>}
-      </div>
+      </Box>
     </ModalFrame>
   );
 }

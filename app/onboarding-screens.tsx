@@ -1,149 +1,151 @@
-import EmptyState from './empty-state';
+import { UI_ASSETS } from './ui/assets';
+import { Image, Page, Inline, Italic, Paragraph, Section, Box, PageTitle, LineBreak, Figure, FigCaption, Header, Heading, OrderedList, ListItem, Subheading, Card, List, Strong, Bold, Small } from './ui/elements';
+import EmptyState from './ui/empty-state';
 import { go } from './navigation';
 import { TRAINER_NAME, type Student } from './reppy-data';
-import Icon from './ui-icon';
-import { ActionButton, Button } from './ui-controls';
+import Icon from './ui/icon';
+import { ActionButton, Button } from './ui/controls';
 
 function Brand() {
   return (
     <Button className="brand-mark brand-button" type="button" onClick={() => go('/')} aria-label="REPPY — на стартовый экран">
-      <img className="brand-logo" src="logo-wordmark.png" alt="" />
+      <Image className="brand-logo" src={UI_ASSETS.wordmark} alt="" />
     </Button>
   );
 }
 
 export function LoadingScreen({ message, progress = false }: { message: string; progress?: boolean }) {
   return (
-    <main className="loading-screen" aria-busy="true">
-      <img className="loading-logo" src="logo-full.png" alt="REPPY" />
-      {progress && <span className="loading-bar" aria-hidden="true"><i /></span>}
-      <p>{message}</p>
-    </main>
+    <Page className="loading-screen" aria-busy="true">
+      <Image className="loading-logo" src={UI_ASSETS.logo} alt="REPPY" />
+      {progress && <Inline className="loading-bar" aria-hidden="true"><Italic /></Inline>}
+      <Paragraph>{message}</Paragraph>
+    </Page>
   );
 }
 
 export function WelcomeScreen({ onLogin, accountMode = false }: { onLogin: () => void; accountMode?: boolean }) {
   return (
-    <main className="welcome-page">
-      <section className="welcome-screen">
-        <div className="welcome-glow" aria-hidden="true" />
-        <section className="welcome-card">
+    <Page className="welcome-page">
+      <Section className="welcome-screen">
+        <Box className="welcome-glow" aria-hidden="true" />
+        <Section className="welcome-card">
           <Brand />
-          <div className="welcome-copy">
-            <p className="eyebrow">Персональные тренировки без хаоса</p>
-            <h1>ВЕДИ УЧЕНИКОВ.<br />ВИДЬ ПРОГРЕСС.</h1>
-            <p className="welcome-description">Расписание, программы, результаты подходов и абонементы — в одной понятной связи между тренером и учеником.</p>
-          </div>
+          <Box className="welcome-copy">
+            <Paragraph className="eyebrow">Персональные тренировки без хаоса</Paragraph>
+            <PageTitle>ВЕДИ УЧЕНИКОВ.<LineBreak />ВИДЬ ПРОГРЕСС.</PageTitle>
+            <Paragraph className="welcome-description">Расписание, программы, результаты подходов и абонементы — в одной понятной связи между тренером и учеником.</Paragraph>
+          </Box>
           <Button className="primary-button" type="button" onClick={onLogin}>
             <Icon name="arrow-right" /> {accountMode ? 'Войти в REPPY' : 'Попробовать REPPY'}
           </Button>
-          <div className="hero-points" aria-label={accountMode ? 'Преимущества REPPY' : 'Преимущества демо'}>
+          <Box className="hero-points" aria-label={accountMode ? 'Преимущества REPPY' : 'Преимущества демо'}>
             {accountMode
-              ? <><span>Тренер и ученик</span><span>Данные синхронизированы</span><span>Работает на iPhone</span></>
-              : <><span>Без регистрации</span><span>Обе роли</span><span>Работает на iPhone</span></>}
-          </div>
-        </section>
-        <figure className="hero-mascot">
-          <img src="logo.png" alt="Маскот REPPY — спортивный динозавр" />
-          <figcaption>TRAIN · TRACK · GROW</figcaption>
-        </figure>
-      </section>
+              ? <><Inline>Тренер и ученик</Inline><Inline>Данные синхронизированы</Inline><Inline>Работает на iPhone</Inline></>
+              : <><Inline>Без регистрации</Inline><Inline>Обе роли</Inline><Inline>Работает на iPhone</Inline></>}
+          </Box>
+        </Section>
+        <Figure className="hero-mascot">
+          <Image src={UI_ASSETS.mascot} alt="Маскот REPPY — спортивный динозавр" />
+          <FigCaption>TRAIN · TRACK · GROW</FigCaption>
+        </Figure>
+      </Section>
 
-      <section className="landing-section landing-flow" aria-labelledby="landing-flow-title">
-        <header className="landing-section-heading">
-          <p className="eyebrow">От плана до результата</p>
-          <h2 id="landing-flow-title">ОДНА ТРЕНИРОВКА.<br />ТРИ ПОНЯТНЫХ ШАГА.</h2>
-          <p>Никаких параллельных таблиц, переписок и потерянных результатов.</p>
-        </header>
-        <ol className="workflow-grid">
-          <li><span>01</span><Icon name="calendar" /><div><h3>Тренер назначает</h3><p>Выбирает ученика, дату и формат, затем адаптирует готовую программу под занятие.</p></div></li>
-          <li><span>02</span><Icon name="workout" /><div><h3>Ученик выполняет</h3><p>Заранее видит состав, а в зале отмечает подходы, веса и повторы по таймеру.</p></div></li>
-          <li><span>03</span><Icon name="success" /><div><h3>Оба видят итог</h3><p>Результат, самочувствие, комментарий и динамика сохраняются сразу после тренировки.</p></div></li>
-        </ol>
-      </section>
+      <Section className="landing-section landing-flow" aria-labelledby="landing-flow-title">
+        <Header className="landing-section-heading">
+          <Paragraph className="eyebrow">От плана до результата</Paragraph>
+          <Heading id="landing-flow-title">ОДНА ТРЕНИРОВКА.<LineBreak />ТРИ ПОНЯТНЫХ ШАГА.</Heading>
+          <Paragraph>Никаких параллельных таблиц, переписок и потерянных результатов.</Paragraph>
+        </Header>
+        <OrderedList className="workflow-grid">
+          <ListItem><Inline>01</Inline><Icon name="calendar" /><Box><Subheading>Тренер назначает</Subheading><Paragraph>Выбирает ученика, дату и формат, затем адаптирует готовую программу под занятие.</Paragraph></Box></ListItem>
+          <ListItem><Inline>02</Inline><Icon name="workout" /><Box><Subheading>Ученик выполняет</Subheading><Paragraph>Заранее видит состав, а в зале отмечает подходы, веса и повторы по таймеру.</Paragraph></Box></ListItem>
+          <ListItem><Inline>03</Inline><Icon name="success" /><Box><Subheading>Оба видят итог</Subheading><Paragraph>Результат, самочувствие, комментарий и динамика сохраняются сразу после тренировки.</Paragraph></Box></ListItem>
+        </OrderedList>
+      </Section>
 
-      <section className="landing-section role-section" aria-labelledby="roles-title">
-        <header className="landing-section-heading">
-          <p className="eyebrow">Каждому — только нужное</p>
-          <h2 id="roles-title">ДВА ИНТЕРФЕЙСА.<br />ОДНА АКТУАЛЬНАЯ КАРТИНА.</h2>
-        </header>
-        <div className="role-showcase-list">
-          <article className="role-showcase">
-            <div className="role-copy">
-              <p className="eyebrow">Для тренера</p>
-              <h3>День начинается с расписания</h3>
-              <p>Сразу видно, кто и во сколько приходит. Дальше — только действия по конкретному ученику.</p>
-              <ul>
-                <li><Icon name="check" /><span><strong>Планирование</strong>Шаблоны, назначения и календарь на ближайшие недели.</span></li>
-                <li><Icon name="check" /><span><strong>Контекст ученика</strong>Прогресс, ограничения, комментарии и история занятий.</span></li>
-                <li><Icon name="check" /><span><strong>Абонементы</strong>Остаток тренировок, оплаты и списание после занятия.</span></li>
-              </ul>
-            </div>
-            <figure className="landing-art-placeholder trainer-art">
-              <div aria-hidden="true"><span>ART 01</span><Icon name="calendar" /><b>REPPY</b></div>
-              <figcaption><strong>Тренер собирает неделю</strong><small>Место для авторской иллюстрации</small></figcaption>
-            </figure>
-          </article>
+      <Section className="landing-section role-section" aria-labelledby="roles-title">
+        <Header className="landing-section-heading">
+          <Paragraph className="eyebrow">Каждому — только нужное</Paragraph>
+          <Heading id="roles-title">ДВА ИНТЕРФЕЙСА.<LineBreak />ОДНА АКТУАЛЬНАЯ КАРТИНА.</Heading>
+        </Header>
+        <Box className="role-showcase-list">
+          <Card className="role-showcase">
+            <Box className="role-copy">
+              <Paragraph className="eyebrow">Для тренера</Paragraph>
+              <Subheading>День начинается с расписания</Subheading>
+              <Paragraph>Сразу видно, кто и во сколько приходит. Дальше — только действия по конкретному ученику.</Paragraph>
+              <List>
+                <ListItem><Icon name="check" /><Inline><Strong>Планирование</Strong>Шаблоны, назначения и календарь на ближайшие недели.</Inline></ListItem>
+                <ListItem><Icon name="check" /><Inline><Strong>Контекст ученика</Strong>Прогресс, ограничения, комментарии и история занятий.</Inline></ListItem>
+                <ListItem><Icon name="check" /><Inline><Strong>Абонементы</Strong>Остаток тренировок, оплаты и списание после занятия.</Inline></ListItem>
+              </List>
+            </Box>
+            <Figure className="landing-art-placeholder trainer-art">
+              <Box aria-hidden="true"><Inline>ART 01</Inline><Icon name="calendar" /><Bold>REPPY</Bold></Box>
+              <FigCaption><Strong>Тренер собирает неделю</Strong><Small>Место для авторской иллюстрации</Small></FigCaption>
+            </Figure>
+          </Card>
 
-          <article className="role-showcase reverse">
-            <div className="role-copy">
-              <p className="eyebrow">Для ученика</p>
-              <h3>На тренировке ничего не отвлекает</h3>
-              <p>До занятия — дата, формат и состав. Во время — текущие подходы, инструкции и таймер. После — понятная история.</p>
-              <ul>
-                <li><Icon name="check" /><span><strong>Перед тренировкой</strong>Просмотр программы, персональных видео и запрос другого времени без звонков.</span></li>
-                <li><Icon name="check" /><span><strong>Во время</strong>Вес, повторы, отметки подходов и общий таймер занятия.</span></li>
-                <li><Icon name="check" /><span><strong>После</strong>Самочувствие, комментарий тренеру и личная динамика.</span></li>
-              </ul>
-            </div>
-            <figure className="landing-art-placeholder student-art">
-              <div aria-hidden="true"><span>ART 02</span><Icon name="workout" /><b>REPPY</b></div>
-              <figcaption><strong>Ученик завершает подход</strong><small>Место для авторской иллюстрации</small></figcaption>
-            </figure>
-          </article>
-        </div>
-      </section>
+          <Card className="role-showcase reverse">
+            <Box className="role-copy">
+              <Paragraph className="eyebrow">Для ученика</Paragraph>
+              <Subheading>На тренировке ничего не отвлекает</Subheading>
+              <Paragraph>До занятия — дата, формат и состав. Во время — текущие подходы, инструкции и таймер. После — понятная история.</Paragraph>
+              <List>
+                <ListItem><Icon name="check" /><Inline><Strong>Перед тренировкой</Strong>Просмотр программы, персональных видео и запрос другого времени без звонков.</Inline></ListItem>
+                <ListItem><Icon name="check" /><Inline><Strong>Во время</Strong>Вес, повторы, отметки подходов и общий таймер занятия.</Inline></ListItem>
+                <ListItem><Icon name="check" /><Inline><Strong>После</Strong>Самочувствие, комментарий тренеру и личная динамика.</Inline></ListItem>
+              </List>
+            </Box>
+            <Figure className="landing-art-placeholder student-art">
+              <Box aria-hidden="true"><Inline>ART 02</Inline><Icon name="workout" /><Bold>REPPY</Bold></Box>
+              <FigCaption><Strong>Ученик завершает подход</Strong><Small>Место для авторской иллюстрации</Small></FigCaption>
+            </Figure>
+          </Card>
+        </Box>
+      </Section>
 
-      <section className="pricing-section" aria-labelledby="pricing-title">
-        <header className="pricing-heading">
-          <div><p className="eyebrow">Цена следует за практикой</p><h2 id="pricing-title">ПЛАТИ ЗА МАСШТАБ.<br />НЕ ЗА КАЖДОЕ ДЕЙСТВИЕ.</h2></div>
-          <p>Тариф определяется числом активных учеников — тех, кому назначена хотя бы одна тренировка в текущем месяце. Неактивные профили не считаются.</p>
-        </header>
-        <div className="student-free-note"><Icon name="users" /><span><strong>Для ученика — 0 ₽</strong>Всегда и независимо от тарифа тренера.</span></div>
-        <div className="price-tier-grid">
-          <article><span>СТАРТ</span><strong>0 ₽<small>/ месяц</small></strong><p><b>1</b> активный ученик</p></article>
-          <article className="featured"><span>ПРАКТИКА</span><strong>499 ₽<small>/ месяц</small></strong><p><b>2–5</b> активных учеников</p><i>Для частного тренера</i></article>
-          <article><span>КОМАНДА</span><strong>990 ₽<small>/ месяц</small></strong><p><b>6–15</b> активных учеников</p></article>
-          <article><span>СТУДИЯ</span><strong>1 490 ₽<small>/ месяц</small></strong><p><b>16+</b> активных учеников</p></article>
-        </div>
-        <p className="pricing-footnote">Внутри диапазона цена фиксирована. При изменении команды тариф автоматически обновится со следующего месяца.</p>
-      </section>
+      <Section className="pricing-section" aria-labelledby="pricing-title">
+        <Header className="pricing-heading">
+          <Box><Paragraph className="eyebrow">Цена следует за практикой</Paragraph><Heading id="pricing-title">ПЛАТИ ЗА МАСШТАБ.<LineBreak />НЕ ЗА КАЖДОЕ ДЕЙСТВИЕ.</Heading></Box>
+          <Paragraph>Тариф определяется числом активных учеников — тех, кому назначена хотя бы одна тренировка в текущем месяце. Неактивные профили не считаются.</Paragraph>
+        </Header>
+        <Box className="student-free-note"><Icon name="users" /><Inline><Strong>Для ученика — 0 ₽</Strong>Всегда и независимо от тарифа тренера.</Inline></Box>
+        <Box className="price-tier-grid">
+          <Card><Inline>СТАРТ</Inline><Strong>0 ₽<Small>/ месяц</Small></Strong><Paragraph><Bold>1</Bold> активный ученик</Paragraph></Card>
+          <Card className="featured"><Inline>ПРАКТИКА</Inline><Strong>499 ₽<Small>/ месяц</Small></Strong><Paragraph><Bold>2–5</Bold> активных учеников</Paragraph><Italic>Для частного тренера</Italic></Card>
+          <Card><Inline>КОМАНДА</Inline><Strong>990 ₽<Small>/ месяц</Small></Strong><Paragraph><Bold>6–15</Bold> активных учеников</Paragraph></Card>
+          <Card><Inline>СТУДИЯ</Inline><Strong>1 490 ₽<Small>/ месяц</Small></Strong><Paragraph><Bold>16+</Bold> активных учеников</Paragraph></Card>
+        </Box>
+        <Paragraph className="pricing-footnote">Внутри диапазона цена фиксирована. При изменении команды тариф автоматически обновится со следующего месяца.</Paragraph>
+      </Section>
 
-      <section className="landing-cta">
+      <Section className="landing-cta">
         {accountMode
-          ? <div><p className="eyebrow">Уже с нами?</p><h2>ВЕРНИСЬ К ТРЕНИРОВКАМ.</h2><p>Войди в аккаунт — расписание, ученики и результаты уже ждут в твоём кабинете.</p></div>
-          : <div><p className="eyebrow">Посмотри вживую</p><h2>ПРОЙДИ ПУТЬ ТРЕНЕРА И УЧЕНИКА.</h2><p>Демо уже заполнено примерами: можно назначить тренировку, выполнить её и проверить результат с обеих сторон.</p></div>}
+          ? <Box><Paragraph className="eyebrow">Уже с нами?</Paragraph><Heading>ВЕРНИСЬ К ТРЕНИРОВКАМ.</Heading><Paragraph>Войди в аккаунт — расписание, ученики и результаты уже ждут в твоём кабинете.</Paragraph></Box>
+          : <Box><Paragraph className="eyebrow">Посмотри вживую</Paragraph><Heading>ПРОЙДИ ПУТЬ ТРЕНЕРА И УЧЕНИКА.</Heading><Paragraph>Демо уже заполнено примерами: можно назначить тренировку, выполнить её и проверить результат с обеих сторон.</Paragraph></Box>}
         <Button className="primary-button" type="button" onClick={onLogin}><Icon name="arrow-right" /> {accountMode ? 'Войти в аккаунт' : 'Открыть демо'}</Button>
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }
 
 export function DemoInvitationScreen({ student, onAccept }: { student?: Student; onAccept: (student: Student) => void }) {
   if (!student) {
-    return <main className="invitation-screen"><Brand /><EmptyState icon="close" title="Ссылка не работает" text="Попроси тренера создать новое приглашение." action="На главную" onAction={() => go('/')} /></main>;
+    return <Page className="invitation-screen"><Brand /><EmptyState icon="close" title="Ссылка не работает" text="Попроси тренера создать новое приглашение." action="На главную" onAction={() => go('/')} /></Page>;
   }
   const initials = student.name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <main className="invitation-screen">
+    <Page className="invitation-screen">
       <Brand />
-      <section className="invitation-card">
-        <span className="invite-avatar">{initials}</span>
-        <p className="eyebrow">Приглашение в REPPY</p>
-        <h1>{TRAINER_NAME.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</h1>
-        <p>Привет, {student.name}! Здесь ты будешь получать тренировки и отмечать результаты прямо в зале.</p>
+      <Section className="invitation-card">
+        <Inline className="invite-avatar">{initials}</Inline>
+        <Paragraph className="eyebrow">Приглашение в REPPY</Paragraph>
+        <PageTitle>{TRAINER_NAME.toUpperCase()} ЗОВЁТ ТЕБЯ В КОМАНДУ</PageTitle>
+        <Paragraph>Привет, {student.name}! Здесь ты будешь получать тренировки и отмечать результаты прямо в зале.</Paragraph>
         <ActionButton icon="check" onClick={() => onAccept(student)}>Принять приглашение</ActionButton>
-      </section>
-    </main>
+      </Section>
+    </Page>
   );
 }

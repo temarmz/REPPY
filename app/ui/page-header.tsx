@@ -1,14 +1,15 @@
-import { Button } from './ui-controls';
+import { Header, Box, Paragraph, PageTitle } from './elements';
+import { Button } from './controls';
 import type { ReactNode } from 'react';
-import Icon from './ui-icon';
+import Icon from './icon';
 
 export default function PageHeader({ eyebrow, preserveEyebrowCase = false, title, action, onBack }: { eyebrow?: string; preserveEyebrowCase?: boolean; title: string; action?: ReactNode; onBack?: () => void }) {
-  return <header className="page-header">
-    <div>
+  return <Header className="page-header">
+    <Box>
       {onBack && <Button className="back-button" type="button" onClick={onBack}><Icon name="chevron-left" /> Назад</Button>}
-      {eyebrow && <p className={`eyebrow ${preserveEyebrowCase ? 'preserve-case' : ''}`}>{eyebrow}</p>}
-      <h1>{title}</h1>
-    </div>
+      {eyebrow && <Paragraph className={`eyebrow ${preserveEyebrowCase ? 'preserve-case' : ''}`}>{eyebrow}</Paragraph>}
+      <PageTitle>{title}</PageTitle>
+    </Box>
     {action}
-  </header>;
+  </Header>;
 }

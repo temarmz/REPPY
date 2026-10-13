@@ -1,7 +1,9 @@
-import { Button, Input, Textarea } from './ui-controls';
+import { Field } from './patterns';
+import { Box, Inline, Card, Header, Heading, Small, Footer, Section, Strong } from './elements';
+import { Button, Input, Textarea } from './controls';
 import { useState, type ReactNode } from 'react';
-import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data';
-import Icon from './ui-icon';
+import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from '../reppy-data';
+import Icon from './icon';
 
 function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric', emptyWhenZero = false }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal'; emptyWhenZero?: boolean }) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -14,7 +16,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
       if (emptyWhenZero) onChange(0);
       return;
     }
-    const parsed = Number(nextDraft.replace(',', '.'));
+    const parsed = Number(nextDraft.replace(',', '..'));
     if (!Number.isFinite(parsed)) {
       setDraft(null);
       return;
@@ -28,7 +30,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     if (inputMode === 'decimal' && !/^\d*(?:[.,]\d*)?$/.test(nextDraft)) return;
     setDraft(nextDraft);
     if (!nextDraft.trim()) { if (emptyWhenZero) onChange(0); return; }
-    const parsed = Number(nextDraft.replace(',', '.'));
+    const parsed = Number(nextDraft.replace(',', '..'));
     if (nextDraft.trim() && Number.isFinite(parsed)) onChange(Math.max(min, parsed));
   }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
@@ -50,13 +52,13 @@ function SetCountControl({
     return <Button className="add-first-set" type="button" aria-label={`Добавить подход — ${exerciseName}`} onClick={onAdd}><Icon name="plus" /> Добавить подход</Button>;
   }
   return (
-    <div className="set-count-control" role="group" aria-label={`Подходы — ${exerciseName}`}>
-      <span>Подходы</span>
-      <div className="set-count-actions">
+    <Box className="set-count-control" role="group" aria-label={`Подходы — ${exerciseName}`}>
+      <Inline>Подходы</Inline>
+      <Box className="set-count-actions">
         <Button type="button" disabled={!canRemove} onClick={onRemove} aria-label={`Удалить последний подход — ${exerciseName}`}><Icon name="minus" /></Button>
         <Button type="button" onClick={onAdd} aria-label={`Добавить подход — ${exerciseName}`}><Icon name="plus" /></Button>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
@@ -93,26 +95,26 @@ function ExerciseCardFrame({
   ].filter(Boolean).join(' ');
 
   return (
-    <article
+    <Card
       className={className}
       data-exercise-card={mode}
       data-plan-exercise={mode === 'plan' ? exercise.id : undefined}
       data-active-exercise={mode === 'active' ? exercise.id : undefined}
     >
-      <header className="active-exercise-card-header">
-        <span className="active-exercise-number">{String(index + 1).padStart(2, '0')}</span>
-        <div><h2>{exercise.name}</h2><small className="active-exercise-meta">{metadata}</small></div>
-        <div className="active-exercise-corner-actions">
+      <Header className="active-exercise-card-header">
+        <Inline className="active-exercise-number">{String(index + 1).padStart(2, '0')}</Inline>
+        <Box><Heading>{exercise.name}</Heading><Small className="active-exercise-meta">{metadata}</Small></Box>
+        <Box className="active-exercise-corner-actions">
           {orderControls}
-          <div className="exercise-info-controls">
+          <Box className="exercise-info-controls">
           <Button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></Button>
           <Button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></Button>
-          </div>
-        </div>
-      </header>
+          </Box>
+        </Box>
+      </Header>
       {children}
       {footer}
-    </article>
+    </Card>
   );
 }
 
@@ -124,10 +126,10 @@ function ExerciseOrderControls({ exercise, index, totalExercises, onMoveUp, onMo
   onMoveDown: () => void;
 }) {
   return (
-      <div className="exercise-order-controls" role="group" aria-label={'Порядок — ' + exercise.name}>
+      <Box className="exercise-order-controls" role="group" aria-label={'Порядок — ' + exercise.name}>
         <Button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="move-up" /></Button>
         <Button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="move-down" /></Button>
-      </div>
+      </Box>
   );
 }
 
@@ -136,7 +138,7 @@ function ExerciseCommentButton({ exercise, open, onToggle }: { exercise: Workout
 }
 
 function ExerciseComment({ exercise, onNoteChange }: { exercise: WorkoutExercise; onNoteChange: (note: string) => void }) {
-  return <label className="active-comment-field"><span>Комментарий к упражнению</span><Textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></label>;
+  return <Field label={<>Комментарий к упражнению</>} className="active-comment-field"><Textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></Field>;
 }
 
 type SharedExerciseCardProps = {
@@ -186,19 +188,19 @@ export function PlanExerciseCard({
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       orderControls={<ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
+      footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
-      {plans.length > 0 && <section className="active-card-sets plan-card-sets">
+      {plans.length > 0 && <Section className="active-card-sets plan-card-sets">
         {plans.map((set, setIndex) => (
-          <article className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
-            <div className="set-number"><span>ПОДХОД</span><strong>{setIndex + 1}</strong></div>
-            <div className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
-              {!bodyweight && <label><span>КГ</span><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></label>}
-              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} emptyWhenZero onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></label>
-            </div>
-          </article>
+          <Card className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
+            <Box className="set-number"><Inline>ПОДХОД</Inline><Strong>{setIndex + 1}</Strong></Box>
+            <Box className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
+              {!bodyweight && <Field label={<>КГ</>} ><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></Field>}
+              <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} emptyWhenZero onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></Field>
+            </Box>
+          </Card>
         ))}
-      </section>}
+      </Section>}
       {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
     </ExerciseCardFrame>
   );
@@ -238,16 +240,16 @@ export function ActiveExerciseCard({
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       orderControls={<ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
-      footer={<footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></footer>}
+      footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
-      {results.length > 0 && <section className="active-card-sets">
+      {results.length > 0 && <Section className="active-card-sets">
         {results.map((result) => (
-          <article className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
-            <div className="set-number"><span>ПОДХОД</span><strong>{result.setNumber}</strong></div>
-            <div className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
-              {exercise.loadMode !== 'bodyweight' && <label><span>КГ</span><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></label>}
-              <label><span>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</span><EditableNumberInput value={result.actualReps} inputMode="numeric" emptyWhenZero onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></label>
-            </div>
+          <Card className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
+            <Box className="set-number"><Inline>ПОДХОД</Inline><Strong>{result.setNumber}</Strong></Box>
+            <Box className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
+              {exercise.loadMode !== 'bodyweight' && <Field label={<>КГ</>} ><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></Field>}
+              <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={result.actualReps} inputMode="numeric" emptyWhenZero onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></Field>
+            </Box>
             <Button
               type="button"
               disabled={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0))}
@@ -255,9 +257,9 @@ export function ActiveExerciseCard({
               onClick={() => onResultChange(result.setNumber, { completed: !result.completed })}
               aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}
             ><Icon name="check" /></Button>
-          </article>
+          </Card>
         ))}
-      </section>}
+      </Section>}
       {commentOpen && <ExerciseComment exercise={exercise} onNoteChange={onNoteChange} />}
     </ExerciseCardFrame>
   );
