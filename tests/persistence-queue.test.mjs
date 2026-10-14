@@ -186,6 +186,7 @@ test('отменённый автоповтор не удаляет новую �
 test('deadline обрывает зависший запрос и медленное тело ответа', async () => {
   const fetcher = async (_, { signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }));
   await assert.rejects(createBoundedFetch(fetcher, 5)('https://example.test/rest/v1/rpc/save'), { code: 'REPPY_TIMEOUT' });
+  await assert.rejects(createBoundedFetch(fetcher, 5)('https://example.test/functions/v1/telegram-auth'), { code: 'REPPY_TIMEOUT' });
   const headersOnly = async (_, { signal }) => new Response(new ReadableStream({
     start(controller) { signal.addEventListener('abort', () => controller.error(new DOMException('Aborted', 'AbortError')), { once: true }); },
   }));
