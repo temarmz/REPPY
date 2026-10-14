@@ -3,9 +3,11 @@ import { recordPersistence } from './persistence-diagnostics.ts';
 export function createBoundedFetch(fetcher: typeof fetch = globalThis.fetch, timeoutMs = 12000): typeof fetch {
   return async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    // Uploads/videos have their own lifecycle; limit database and Auth JSON only.
-    if (!/\/rest\/v1\/|\/auth\/v1\//.test(url)) return fetcher(input, init);
-    const operation = /\/auth\/v1\//.test(url) ? 'auth.request' : 'database.request';
+    // Uploads/videos have their own lifecycle; limit Supabase JSON APIs only.
+    if (!/\/rest\/v1\/|\/auth\/v1\/|\/functions\/v1\//.test(url)) return fetcher(input, init);
+    const operation = /\/auth\/v1\//.test(url) ? 'auth.request'
+      : /\/functions\/v1\//.test(url) ? 'function.request'
+        : 'database.request';
     const started = performance.now();
     const controller = new AbortController();
     const parent = init?.signal ?? (input instanceof Request ? input.signal : undefined);
