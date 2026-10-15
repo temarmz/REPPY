@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { Role } from './reppy-data';
 import { getSupabaseClient, supabaseConfig } from './supabase-client';
@@ -42,10 +42,16 @@ export function useReppyAuth() {
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [status, setStatus] = useState<AuthStatus>(client ? 'loading' : 'disabled');
   const [error, setError] = useState<string>('');
+  const profileRequestRef = useRef(0);
+  const authEventRef = useRef(0);
+  const sessionUserIdRef = useRef<string | null>(null);
 
   const loadProfile = useCallback(async (nextSession: Session | null) => {
+    const request = ++profileRequestRef.current;
     if (!client || !nextSession) {
+      if (request !== profileRequestRef.current) return;
       setProfile(null);
+      setError('');
       setStatus(client ? 'anonymous' : 'disabled');
       return;
     }
@@ -56,6 +62,7 @@ export function useReppyAuth() {
       .eq('id', nextSession.user.id)
       .maybeSingle();
 
+    if (request !== profileRequestRef.current) return;
     if (profileError) {
       setError(profileError.message);
       setStatus('error');
@@ -76,21 +83,38 @@ export function useReppyAuth() {
   useEffect(() => {
     if (!client) return;
     let active = true;
+    const initialAuthEvent = authEventRef.current;
 
     void client.auth.getSession().then(({ data, error: sessionError }) => {
-      if (!active) return;
+      if (!active || authEventRef.current !== initialAuthEvent) return;
       if (sessionError) {
         setError(sessionError.message);
         setStatus('error');
         return;
       }
+      sessionUserIdRef.current = data.session?.user.id ?? null;
       setSession(data.session);
       void loadProfile(data.session);
     });
 
     const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
+      authEventRef.current += 1;
+      profileRequestRef.current += 1;
+      const nextUserId = nextSession?.user.id ?? null;
+      const userChanged = sessionUserIdRef.current !== nextUserId;
+      sessionUserIdRef.current = nextUserId;
       setSession(nextSession);
+      setError('');
+      if (!nextSession) {
+        setProfile(null);
+        setStatus('anonymous');
+      } else {
+        if (userChanged) {
+          setProfile(null);
+          setStatus('loading');
+        }
+      }
       window.setTimeout(() => {
         if (active) void loadProfile(nextSession);
       }, 0);

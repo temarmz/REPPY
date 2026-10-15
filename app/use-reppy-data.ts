@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { createInitialState, type DemoState, type Student } from './reppy-data';
 import { applyReppyCommand, type ReppyCommand } from './reppy-commands';
-import { createLocalStorageRepository, isReppyConflictError, type ReppyRepository } from './reppy-repository';
+import { isReppyConflictError, type ReppyRepository } from './reppy-repository';
+import { createBrowserRepository } from './browser-repository.ts';
 import { createPersistenceQueue } from './persistence-queue';
 
 export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
@@ -19,10 +20,6 @@ type ReppyDataController = {
   dispatch: (command: ReppyCommand) => void;
   setData: Dispatch<SetStateAction<DemoState>>;
 };
-
-function createBrowserRepository() {
-  return createLocalStorageRepository(window.localStorage);
-}
 
 function toError(reason: unknown) {
   return reason instanceof Error ? reason : new Error('Не удалось обратиться к хранилищу данных.');
