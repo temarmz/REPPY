@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createInitialState } from '../app/reppy-data.ts';
 import { createBrowserRepository } from '../app/browser-repository.ts';
 
-test('browser repository keeps the current session usable when localStorage is blocked', async () => {
+test('browser repository defers blocked localStorage access to the recoverable load path', async () => {
+  let accessed = false;
   const repository = createBrowserRepository(() => {
+    accessed = true;
     throw new DOMException('Storage access is denied', 'SecurityError');
   });
-  const state = createInitialState();
-  state.students.push({ ...state.students[0], id: 'local-storage-fallback-test', name: 'Edited in this tab' });
 
-  await repository.save(state);
-
-  const loaded = await repository.load();
-  assert.equal(loaded.students.find((student) => student.id === 'local-storage-fallback-test')?.name, 'Edited in this tab');
+  assert.equal(accessed, false);
+  await assert.rejects(repository.load(), { name: 'SecurityError' });
+  assert.equal(accessed, true);
 });
