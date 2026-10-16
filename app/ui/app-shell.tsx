@@ -90,9 +90,11 @@ export default function AppShell({
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('app-viewport-locked', !focusMode);
     document.body.classList.toggle('app-viewport-locked', !focusMode);
-    const stopViewport = !focusMode ? observeMobileViewport(window, document.documentElement) : undefined;
+    // Portalled dialogs also need these bounds while the workout itself uses
+    // document scrolling in focus mode.
+    const stopViewport = observeMobileViewport(window, document.documentElement);
     return () => {
-      stopViewport?.();
+      stopViewport();
       document.documentElement.classList.remove('app-viewport-locked');
       document.body.classList.remove('app-viewport-locked');
     };

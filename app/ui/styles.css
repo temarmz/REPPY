@@ -795,10 +795,26 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .add-exercise .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
 .add-exercise + .exercise-editor-list { margin-top: var(--space-12); }
 .form-error { margin: var(--space-15) 0 0; border-radius: var(--radius-14); padding: var(--space-12) var(--space-14); background: var(--tint-ff5343-100); color: var(--palette-ff8c80); font-size: var(--font-size-12); }
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: end center; padding: var(--space-18); background: var(--tint-000000-720); backdrop-filter: blur(10px); }
+.modal-backdrop {
+  --modal-padding: var(--space-18);
+  --modal-bottom-padding: var(--modal-padding);
+  --modal-available-height: calc(var(--app-visible-height, 100dvh) - var(--modal-padding) - var(--modal-bottom-padding));
+  position: fixed;
+  inset: 0;
+  top: var(--app-visible-top, 0px);
+  bottom: auto;
+  height: var(--app-visible-height, 100dvh);
+  z-index: 100;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  place-items: end center;
+  padding: var(--modal-padding) var(--modal-padding) var(--modal-bottom-padding);
+  background: var(--tint-000000-720);
+  backdrop-filter: blur(10px);
+}
 body.modal-open { overflow: hidden; }
 body.modal-open .bottom-nav { display: none; }
-.bottom-sheet { width: min(100%, 600px); max-height: min(82svh, var(--size-720)); overflow: hidden; border-radius: var(--radius-30) var(--radius-30) var(--radius-20) var(--radius-20); padding: var(--space-12) var(--space-20) var(--space-22); background: var(--palette-171b17); box-shadow: 0 -30px 80px var(--tint-000000-350); }
+.bottom-sheet { width: min(100%, 600px); max-height: min(82svh, var(--size-720), var(--modal-available-height)); min-height: 0; overflow: hidden; overflow-y: auto; border-radius: var(--radius-30) var(--radius-30) var(--radius-20) var(--radius-20); padding: var(--space-12) var(--space-20) var(--space-22); background: var(--palette-171b17); box-shadow: 0 -30px 80px var(--tint-000000-350); }
 .sheet-handle { width: var(--size-42); height: var(--size-4); margin: 0 auto var(--space-18); border-radius: var(--radius-999); background: var(--palette-4a5049); }
 .sheet-title { display: flex; align-items: center; justify-content: space-between; gap: var(--space-20); margin-bottom: var(--space-18); }
 .sheet-title h2 { margin: 0; font-size: var(--font-size-22); letter-spacing: normal; }
@@ -949,7 +965,7 @@ body.modal-open .bottom-nav { display: none; }
 .auth-invitation-card .auth-form { margin-top: var(--space-26); }
 .auth-invitation-card .auth-text-button { margin-bottom: 0; }
 
-.settings-modal { width: min(100%, 520px); max-height: calc(100dvh - var(--size-16)); overflow-y: auto; border-radius: var(--radius-30); padding: var(--space-25); background: var(--palette-171b17); }
+.settings-modal { width: min(100%, 520px); max-height: min(calc(100dvh - var(--size-16)), var(--modal-available-height)); min-height: 0; overflow-y: auto; border-radius: var(--radius-30); padding: var(--space-25); background: var(--palette-171b17); }
 .settings-modal .sheet-title { align-items: flex-start; }
 .settings-modal .eyebrow { margin: 0 0 var(--space-7); }
 .settings-modal h2 { margin: 0; }
@@ -1036,7 +1052,7 @@ body.modal-open .bottom-nav { display: none; }
   .workout-card { min-height: var(--size-205); }
   .workout-card h2 { font-size: var(--font-size-36); }
   .form-card { margin: 0 var(--space-negative-3); }
-  .modal-backdrop { padding: var(--space-8) var(--space-8) max(var(--space-8), env(safe-area-inset-bottom, var(--space-0))); }
+  .modal-backdrop { --modal-padding: var(--space-8); --modal-bottom-padding: max(var(--space-8), env(safe-area-inset-bottom, var(--space-0))); }
   .bottom-sheet { border-radius: var(--radius-27) var(--radius-27) var(--radius-16) var(--radius-16); }
   .sticky-actions { position: sticky; bottom: 91px; z-index: 15; padding: var(--space-8); border-radius: var(--radius-22); background: var(--tint-070908-900); backdrop-filter: blur(12px); }
   .student-workout-card { min-height: var(--size-360); padding: var(--space-23); }
