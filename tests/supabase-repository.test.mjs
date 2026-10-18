@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSupabaseRepository } from '../app/supabase-repository.ts';
 import { createWorkoutSession, updateSessionWorkout } from '../app/reppy-data.ts';
+import { createPersistenceQueue } from '../app/persistence-queue.ts';
 
 function assignedWorkoutClient({ active = false } = {}) {
   const studentId = crypto.randomUUID();
@@ -145,4 +146,110 @@ test('ученик сохраняет дробный вес и пустой до
   assert.equal(calls[0].payload.p_workout_snapshot.exercises[0].exerciseId, definitionId);
   assert.equal(calls[0].payload.p_results.length, 1);
   assert.equal(calls[0].payload.p_results[0].actualWeight, 2.5);
+});
+
+for (const delivery of ['pending', 'rejected', 'error']) {
+  test(`committed workout releases the persistence queue when Telegram delivery is ${delivery}`, async (t) => {
+    const { client, repository, calls } = assignedWorkoutClient({ active: true });
+    const data = await repository.load();
+    t.mock.method(console, 'warn', () => {});
+    let finishDelivery;
+    const pendingDelivery = new Promise((resolve) => { finishDelivery = resolve; });
+    let deliveries = 0;
+    client.functions.invoke = async () => {
+      deliveries++;
+      if (delivery === 'pending') return pendingDelivery;
+      if (delivery === 'rejected') throw new Error('Notification transport disconnected');
+      return { error: new Error('Notification service unavailable') };
+    };
+    const phases = [];
+    const queue = createPersistenceQueue(repository, (phase) => phases.push(phase));
+    try {
+      const sessionId = data.sessions[0].id;
+      queue.enqueue({ type: 'session.complete', sessionId, chargeSubscription: true }, data);
+      queue.enqueue({ type: 'session.feedback', sessionId, comment: 'Saved after completion' }, data);
+      await new Promise(setImmediate);
+      assert.deepEqual(calls.map((call) => call.name), ['complete_workout_session', 'save_session_feedback']);
+      assert.equal(deliveries, 1);
+      assert.equal(queue.pendingCount, 0);
+      assert.equal(phases.includes('error'), false);
+      assert.equal(phases.at(-1), 'idle');
+    } finally {
+      finishDelivery({ error: null });
+      queue.dispose();
+    }
+  });
+}
+
+test('a failed workout write still blocks the queue and does not trigger Telegram delivery', async (t) => {
+  const { client, repository } = assignedWorkoutClient({ active: true });
+  const data = await repository.load();
+  let deliveries = 0;
+  client.functions.invoke = async () => { deliveries++; return { error: null }; };
+  client.rpc = async () => ({ data: null, error: { message: 'Permission denied' } });
+  const phases = [];
+  const queue = createPersistenceQueue(repository, (phase) => phases.push(phase));
+  t.after(() => queue.dispose());
+  queue.enqueue({ type: 'session.complete', sessionId: data.sessions[0].id, chargeSubscription: true }, data);
+  await new Promise(setImmediate);
+  assert.equal(queue.pendingCount, 1);
+  assert.equal(phases.at(-1), 'error');
+  assert.equal(deliveries, 0);
+});
+
+test('Realtime refreshes missed updates on initial subscription and reconnect, then stops after disposal', async () => {
+  const { client, tables, repository } = assignedWorkoutClient();
+  const initial = await repository.load();
+  let statusChanged;
+  let databaseChanged;
+  let removed = false;
+  const channel = {
+    on(_event, _filter, callback) { databaseChanged = callback; return this; },
+    subscribe(callback) { statusChanged = callback; return this; },
+  };
+  client.channel = () => channel;
+  client.realtime = { setAuth: async () => {} };
+  client.removeChannel = async (removedChannel) => { assert.equal(removedChannel, channel); removed = true; };
+  const refreshes = [];
+  const stop = repository.subscribe(() => { refreshes.push(repository.load()); });
+  try {
+    await new Promise(setImmediate);
+    // Changes between the initial load and subscribing have no database event to replay.
+    tables.assignments[0].scheduled_for = '2026-10-08';
+    statusChanged?.('SUBSCRIBED');
+    assert.equal(refreshes.length, 1);
+    assert.equal((await refreshes[0]).assignments[0].scheduledFor, '2026-10-08');
+    assert.equal(initial.assignments[0].scheduledFor, '2026-10-07');
+    statusChanged('CHANNEL_ERROR');
+    assert.equal(refreshes.length, 1);
+    tables.assignments[0].scheduled_for = '2026-10-09';
+    statusChanged('SUBSCRIBED');
+    assert.equal(refreshes.length, 2);
+    assert.equal((await refreshes[1]).assignments[0].scheduledFor, '2026-10-09');
+    databaseChanged();
+    assert.equal(refreshes.length, 3);
+    await refreshes[2];
+    stop();
+    assert.equal(removed, true);
+    statusChanged('SUBSCRIBED');
+    databaseChanged();
+    assert.equal(refreshes.length, 3);
+  } finally {
+    if (!removed) stop();
+  }
+});
+
+test('disposing while Realtime auth is pending prevents the old account from subscribing', async () => {
+  const { client, repository } = assignedWorkoutClient();
+  let finishAuth;
+  let subscriptions = 0;
+  const channel = { on() { return this; }, subscribe() { subscriptions++; return this; } };
+  client.channel = () => channel;
+  client.realtime = { setAuth: () => new Promise((resolve) => { finishAuth = resolve; }) };
+  client.removeChannel = async () => {};
+  const stop = repository.subscribe(() => assert.fail('Disposed account received an update'));
+  stop();
+  finishAuth();
+  await new Promise(setImmediate);
+  assert.equal(subscriptions, 0);
 });
