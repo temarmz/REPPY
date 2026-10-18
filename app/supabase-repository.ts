@@ -432,17 +432,23 @@ export function createSupabaseRepository(
     if (acceptRevisions) uncertainProgress.clear();
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
-      void client.functions.invoke('telegram-notifications', { body: {} })
-        .then(({ error }) => {
-          if (error) console.warn('Telegram notification retry was deferred.', error);
-        })
-        .catch((error: unknown) => console.warn('Telegram notification retry was deferred.', error));
+      requestTelegramDelivery();
     }
     return state;
   }
 
   async function save() {
     // Hosted persistence is command-based. LocalStorageRepository still saves snapshots.
+  }
+
+  function requestTelegramDelivery() {
+    // The database outbox and server scheduler own delivery. A slow notification
+    // request must not hold up acknowledgement of an already committed command.
+    void client.functions.invoke('telegram-notifications', { body: {} })
+      .then(({ error }) => {
+        if (error) console.warn('Telegram notification delivery was deferred.', error);
+      })
+      .catch((error: unknown) => console.warn('Telegram notification delivery was deferred.', error));
   }
 
   const uncertainProgress = new Map<string, { revision: number; snapshot: Workout; results: Array<{
@@ -726,8 +732,7 @@ export function createSupabaseRepository(
     }
 
     if (telegramNotificationCreated) {
-      const delivery = await client.functions.invoke('telegram-notifications', { body: {} });
-      if (delivery.error) console.warn('Telegram notification delivery was deferred.', delivery.error);
+      requestTelegramDelivery();
     }
   }
 
@@ -764,16 +769,21 @@ export function createSupabaseRepository(
     createStudentInvitation,
     subscribe(onChange) {
       let active = true;
+      const refresh = () => { if (active) onChange(); };
       let channel = client.channel(`reppy-sync:${profile.id}:${uuid()}`);
       for (const table of REALTIME_TABLES) {
         channel = channel.on('postgres_changes', {
           event: '*',
           schema: 'public',
           table,
-        }, onChange);
+        }, refresh);
       }
       void client.realtime.setAuth().then(() => {
-        if (active) channel.subscribe();
+        if (active) channel.subscribe((status) => {
+          // Realtime does not replay changes missed before joining or while
+          // disconnected. Rejoining must establish a fresh snapshot.
+          if (status === 'SUBSCRIBED') refresh();
+        });
       }).catch(() => undefined);
       return () => {
         active = false;
