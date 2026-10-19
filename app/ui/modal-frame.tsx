@@ -3,6 +3,7 @@ import { Button } from './controls';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './icon';
+import { pushHistoryEntry } from '../browser-history';
 
 export const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 
@@ -13,7 +14,7 @@ export function hasOpenModalLayers() {
   return openModalLayers > 0 || closingModalLayers > 0;
 }
 
-export function ModalLayer({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+export function ModalLayer({ children, onClose, trackHistory = true }: { children: ReactNode; onClose: () => void; trackHistory?: boolean }) {
   const layerRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const modalId = `reppy-modal-${useId()}`;
@@ -33,8 +34,8 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
       appShell.setAttribute('aria-hidden', 'true');
     }
     const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
-    if (currentState.reppyModal !== modalId) {
-      window.history.pushState({ ...currentState, reppyModal: modalId }, '', window.location.href);
+    if (trackHistory && currentState.reppyModal !== modalId) {
+      pushHistoryEntry({ ...currentState, reppyModal: modalId });
     }
     const focusInitialControl = () => {
       const root = layerRef.current;
@@ -100,7 +101,7 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
         }
       };
 
-      if (window.history.state?.reppyModal !== modalId) {
+      if (!trackHistory || window.history.state?.reppyModal !== modalId) {
         finishClose();
         return;
       }
@@ -119,7 +120,7 @@ export function ModalLayer({ children, onClose }: { children: ReactNode; onClose
       window.addEventListener('popstate', settleHistory, { once: true });
       window.history.back();
     };
-  }, [modalId]);
+  }, [modalId, trackHistory]);
 
   return createPortal(<Box className="modal-layer-root" ref={layerRef}>{children}</Box>, document.body);
 }
@@ -135,6 +136,7 @@ export default function ModalFrame({
   ariaLabel,
   closeLabel = 'Закрыть',
   showHandle = surface === 'sheet',
+  trackHistory = true,
   onClose,
   children,
 }: {
@@ -148,6 +150,7 @@ export default function ModalFrame({
   ariaLabel?: string;
   closeLabel?: string;
   showHandle?: boolean;
+  trackHistory?: boolean;
   onClose: () => void;
   children?: ReactNode;
 }) {
@@ -156,7 +159,7 @@ export default function ModalFrame({
   const surfaceClassName = `${surface === 'sheet' ? 'bottom-sheet ' : ''}${className}`.trim();
 
   return (
-    <ModalLayer onClose={onClose}>
+    <ModalLayer onClose={onClose} trackHistory={trackHistory}>
       <Box className="modal-backdrop" role="presentation" onMouseDown={onClose}>
         <Section
           className={surfaceClassName}
