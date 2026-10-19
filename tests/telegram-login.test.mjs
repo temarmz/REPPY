@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { telegramSignIn } from '../app/telegram-login.ts';
+import { completeTelegramRedirect, restoreTelegramCallbackRoute, telegramSignIn } from '../app/telegram-login.ts';
 
 function installTelegramWindow(result = 'telegram-id-token', { replacePopupProxy = false } = {}) {
   const popup = {
@@ -126,4 +126,46 @@ test('ошибка Telegram без Response.json не показывает те�
   };
 
   await assert.rejects(() => telegramSignIn(client), /Не удалось связаться с Telegram/);
+});
+
+test('Telegram redirect restores its route and clears callback credentials without losing the history position', async (t) => {
+  const previousWindow = globalThis.window;
+  t.after(() => { globalThis.window = previousWindow; });
+  const pending = { action: 'login', state: 'qa-state', nonce: 'qa-nonce', verifier: 'qa-verifier',
+    returnHash: '#/auth/sign-in', startedAt: Date.now() };
+  let stored = JSON.stringify(pending);
+  const location = new URL('https://temarmz.github.io/REPPY/?code=qa-code&state=qa-state');
+  const history = {
+    state: { reppyIndex: 7, reppyModal: 'old-modal' },
+    replaceState(state, _unused, url) { this.state = state; location.href = new URL(url, location).href; },
+  };
+  globalThis.window = {
+    location, history,
+    sessionStorage: { getItem: () => stored, removeItem: () => { stored = null; } },
+  };
+  restoreTelegramCallbackRoute();
+  assert.equal(location.hash, pending.returnHash);
+  assert.equal(location.search, '?code=qa-code&state=qa-state');
+  const actions = [];
+  let sessions = 0;
+  const client = {
+    functions: { invoke: async (_name, { body }) => {
+      actions.push(body.action);
+      return { data: body.action === 'exchange-code' ? { idToken: 'qa-id-token' }
+        : { status: 'authenticated', tokenHash: 'qa-session-token' }, error: null };
+    } },
+    auth: { verifyOtp: async ({ token_hash }) => {
+      assert.equal(token_hash, 'qa-session-token'); sessions++;
+      return { error: null };
+    } },
+  };
+  const completion = completeTelegramRedirect(client);
+  assert.equal(completeTelegramRedirect(client), completion);
+  assert.equal(await completion, null);
+  assert.deepEqual(actions, ['exchange-code', 'login']);
+  assert.equal(sessions, 1);
+  assert.equal(stored, null);
+  assert.equal(location.search, '');
+  assert.equal(location.hash, pending.returnHash);
+  assert.deepEqual(history.state, { reppyIndex: 7 });
 });

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ConfirmationModal from './ui/confirmation-modal';
 import { hasOpenModalLayers } from './ui/modal-frame';
+import { HISTORY_ENTRY_EVENT, historyIndex, pushHistoryEntry, replaceHistoryEntry } from './browser-history';
 
 const NAVIGATION_EVENT = 'reppy:navigate';
 export const RELEASE_ROUTE_STATE_EVENT = 'reppy:release-route-state';
@@ -22,8 +23,6 @@ export type ReppyScrollPosition = {
 export const TOP_SCROLL_POSITION: ReppyScrollPosition = { pageTop: 0, pageLeft: 0, windowTop: 0, windowLeft: 0 };
 
 let activeNavigationBlocker: NavigationBlocker | null = null;
-let restoringBlockedHistory = false;
-let pendingHistoryBlocker: NavigationBlocker | null = null;
 let navigationScope = 'demo';
 
 export function hashPath() {
@@ -69,7 +68,7 @@ function saveRouteScrollPosition(path: string, position = currentScrollPosition(
 function saveCurrentScrollPosition() {
   saveRouteScrollPosition(hashPath());
   const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
-  window.history.replaceState({ ...currentState, reppyScroll: currentScrollPosition() }, '', window.location.href);
+  replaceHistoryEntry({ ...currentState, reppyScroll: currentScrollPosition() });
 }
 
 function restoreScrollPosition(position: ReppyScrollPosition) {
@@ -90,15 +89,15 @@ function performNavigation(path: string, replace = false) {
   const { reppyModal: _modalEntry, ...navigationState } = previousState;
   const nextScroll = loadRouteScrollPosition(path);
   if (replace || _modalEntry) {
-    window.history.replaceState({ ...navigationState, reppyEntry: true, reppyScroll: nextScroll }, '', `#${path}`);
+    replaceHistoryEntry({ ...navigationState, reppyEntry: true, reppyScroll: nextScroll }, `#${path}`);
   } else {
-    window.history.pushState({ ...previousState, reppyEntry: true, reppyScroll: nextScroll }, '', `#${path}`);
+    pushHistoryEntry({ ...previousState, reppyEntry: true, reppyScroll: nextScroll }, `#${path}`);
   }
   notifyNavigation();
 }
 
 export function replaceInitialRoute(path: string) {
-  window.history.replaceState({ reppyEntry: false, reppyScroll: loadRouteScrollPosition(path) }, '', `#${path}`);
+  replaceHistoryEntry({ reppyEntry: false, reppyScroll: loadRouteScrollPosition(path) }, `#${path}`);
   notifyNavigation();
 }
 
@@ -140,29 +139,36 @@ export function useHashNavigation() {
   useEffect(() => {
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = 'manual';
+    let currentIndex = historyIndex() ?? 0;
+    let restoring: { delta: number; blocker: NavigationBlocker | null } | null = null;
+    replaceHistoryEntry(window.history.state ?? {}, window.location.href, currentIndex);
     const commitPath = () => {
       const nextPath = hashPath();
+      // New hash entries have null state. Legacy app entries without a position
+      // retain the previous one-step Back fallback on older browsers.
+      currentIndex = historyIndex() ?? currentIndex + (window.history.state ? -1 : 1);
+      replaceHistoryEntry(window.history.state ?? {}, window.location.href, currentIndex);
       currentPathRef.current = nextPath;
       setPath(nextPath);
     };
     const handleNavigation = (event?: Event) => {
-      if (event?.type === 'hashchange' && restoringBlockedHistory) return;
-      if (event?.type === 'popstate' && hasOpenModalLayers()) {
+      if (event?.type === 'hashchange' && restoring) return;
+      if (event?.type === 'popstate' && restoring) {
+        const { delta, blocker } = restoring;
+        restoring = null;
         commitPath();
-        return;
-      }
-      if (event?.type === 'popstate' && restoringBlockedHistory) {
-        restoringBlockedHistory = false;
-        const blocker = pendingHistoryBlocker;
-        pendingHistoryBlocker = null;
-        commitPath();
-        blocker?.(() => window.history.go(window.history.state?.reppyModal ? -2 : -1));
+        blocker?.(() => window.history.go(delta));
         return;
       }
       if (event?.type === 'popstate' && activeNavigationBlocker && hashPath() !== currentPathRef.current) {
-        restoringBlockedHistory = true;
-        pendingHistoryBlocker = activeNavigationBlocker;
-        window.history.forward();
+        const targetIndex = historyIndex() ?? currentIndex + ((event as PopStateEvent).state ? -1 : 1);
+        replaceHistoryEntry(window.history.state ?? {}, window.location.href, targetIndex);
+        const delta = targetIndex - currentIndex;
+        if (!delta) { commitPath(); return; }
+        // A modal Back dismisses the modal; restore the form without opening
+        // another discard prompt. Otherwise replay the original traversal.
+        restoring = { delta, blocker: hasOpenModalLayers() ? null : activeNavigationBlocker };
+        window.history.go(-delta);
         return;
       }
       commitPath();
@@ -171,11 +177,13 @@ export function useHashNavigation() {
     window.addEventListener('hashchange', handleNavigation);
     window.addEventListener('popstate', handleNavigation);
     window.addEventListener(NAVIGATION_EVENT, handleNavigation);
+    window.addEventListener(HISTORY_ENTRY_EVENT, handleNavigation);
     return () => {
       window.history.scrollRestoration = previousRestoration;
       window.removeEventListener('hashchange', handleNavigation);
       window.removeEventListener('popstate', handleNavigation);
       window.removeEventListener(NAVIGATION_EVENT, handleNavigation);
+      window.removeEventListener(HISTORY_ENTRY_EVENT, handleNavigation);
     };
   }, []);
 
@@ -272,6 +280,7 @@ export function useUnsavedNavigationGuard(isDirty: boolean, onDiscard?: () => vo
         text="Изменения на этом экране ещё не сохранены."
         confirmLabel="Выйти без сохранения"
         danger
+        trackHistory={false}
         onClose={() => setPendingNavigation(null)}
         onConfirm={discardAndContinue}
       />

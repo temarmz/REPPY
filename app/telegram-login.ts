@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { replaceHistoryEntry } from './browser-history.ts';
 
 export type PendingTelegramRegistration = {
   idToken: string;
@@ -55,7 +56,7 @@ export function hasTelegramRedirectCallback(action?: RedirectIntent['action']) {
 export function restoreTelegramCallbackRoute() {
   if (!hasTelegramRedirectCallback() || window.location.hash) return;
   const pending = loadPendingRedirect();
-  if (pending?.returnHash) window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${pending.returnHash}`);
+  if (pending?.returnHash) replaceHistoryEntry({}, `${window.location.pathname}${window.location.search}${pending.returnHash}`);
 }
 
 async function beginRedirectAuthorization(intent: RedirectIntent) {
@@ -268,7 +269,7 @@ export function completeTelegramRedirect(client: SupabaseClient) {
     });
     if (!exchange.idToken) throw new Error('Telegram не вернул подтверждение входа.');
     const cleanUrl = `${window.location.pathname}${pending.returnHash}`;
-    window.history.replaceState(null, '', cleanUrl);
+    replaceHistoryEntry({}, cleanUrl);
     window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
     const authorization = { idToken: exchange.idToken, nonce: pending.nonce };
     const result = await callTelegramAuth(client, pending.action === 'login'

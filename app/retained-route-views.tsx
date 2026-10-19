@@ -10,13 +10,18 @@ export default function RetainedRouteViews({ path, renderRoute }: {
   path: string;
   renderRoute: (path: string) => ReactNode;
 }) {
-  const [visited, setVisited] = useState([path]);
-  const routes = visited.includes(path) ? visited : [...visited, path];
-  if (routes !== visited) setVisited(routes);
+  const [cache, setCache] = useState({ visited: [path], released: [] as string[] });
+  // History traversal is asynchronous. Keep a released active view until the
+  // route changes, then remove it so Back cannot revive a discarded draft.
+  const retained = cache.visited.filter((route) => route === path || !cache.released.includes(route));
+  const routes = retained.includes(path) ? retained : [...retained, path];
+  if (!cache.visited.includes(path) || cache.released.some((route) => route !== path)) {
+    setCache({ visited: routes, released: cache.released.filter((route) => route === path) });
+  }
   useEffect(() => {
     const release = (event: Event) => {
       const route = (event as CustomEvent<string>).detail;
-      setVisited((current) => current.filter((item) => item !== route));
+      setCache((current) => ({ ...current, released: [...new Set([...current.released, route])] }));
     };
     window.addEventListener(RELEASE_ROUTE_STATE_EVENT, release);
     return () => window.removeEventListener(RELEASE_ROUTE_STATE_EVENT, release);
