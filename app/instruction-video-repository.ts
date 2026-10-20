@@ -39,8 +39,10 @@ async function authenticatedClient() {
 }
 
 export async function saveInstructionVideo(file: File, studentId?: string): Promise<InstructionVideo> {
-  const authenticated = studentId ? await authenticatedClient() : null;
+  const authenticated = await authenticatedClient();
+  if (!authenticated && getSupabaseClient()) throw new Error('Нужно снова войти в аккаунт для работы с видео.');
   if (authenticated) {
+    if (!studentId) throw new Error('Не выбран ученик для загрузки видео.');
     const { client, userId } = authenticated;
     const relationshipResult = await client
       .from('trainer_student_relationships')
