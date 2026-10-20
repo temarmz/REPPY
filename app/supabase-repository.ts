@@ -174,6 +174,7 @@ export function createSupabaseRepository(
   const remoteSessionId = new Map<string, string>();
   const remoteSubscriptionId = new Map<string, string>();
   const remoteExerciseDefinitionId = new Map<string, string>();
+  const pendingExerciseDefinitionId = new Map<string, string>();
   const remoteExerciseInstanceId = new Map<string, string>();
   const sessionRevision = new Map<string, number>();
   const assignmentRevision = new Map<string, number>();
@@ -229,7 +230,7 @@ export function createSupabaseRepository(
     const rows = [...missing.values()].map((exercise) => {
       const groups = exerciseMuscleGroups(exercise);
       return {
-        id: getRemoteId(remoteExerciseDefinitionId, exercise.exerciseId),
+        id: getRemoteId(pendingExerciseDefinitionId, exercise.exerciseId),
         owner_id: profile.id,
         name: exercise.name,
         primary_muscle: groups[0] ?? 'Другое',
@@ -239,7 +240,12 @@ export function createSupabaseRepository(
         load_mode: exercise.loadMode,
       };
     });
-    throwIfError(await client.from('exercise_definitions').insert(rows));
+    // Keep allocated IDs stable across retries without treating a failed write as confirmed.
+    throwIfError(await client.from('exercise_definitions').upsert(rows, { onConflict: 'id', ignoreDuplicates: true }));
+    for (const exercise of missing.values()) {
+      remoteExerciseDefinitionId.set(exercise.exerciseId, pendingExerciseDefinitionId.get(exercise.exerciseId)!);
+      pendingExerciseDefinitionId.delete(exercise.exerciseId);
+    }
   }
 
   async function load(options?: { accept?: () => boolean }): Promise<DemoState> {
@@ -505,9 +511,9 @@ export function createSupabaseRepository(
     if (command.type === 'exercise-definition.create') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может сохранять свои упражнения.');
       const definition = command.definition;
-      const definitionId = getRemoteId(remoteExerciseDefinitionId, definition.id);
+      const definitionId = remoteExerciseDefinitionId.get(definition.id) ?? getRemoteId(pendingExerciseDefinitionId, definition.id);
       const groups = exerciseMuscleGroups(definition);
-      throwIfError(await client.from('exercise_definitions').insert({
+      throwIfError(await client.from('exercise_definitions').upsert({
         id: definitionId,
         owner_id: profile.id,
         name: definition.name.trim(),
@@ -516,7 +522,9 @@ export function createSupabaseRepository(
         equipment: definition.equipment,
         measure_type: definition.measureType,
         load_mode: definition.loadMode,
-      }));
+      }, { onConflict: 'id', ignoreDuplicates: true }));
+      remoteExerciseDefinitionId.set(definition.id, definitionId);
+      pendingExerciseDefinitionId.delete(definition.id);
     } else if (command.type === 'exercise-definition.update') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может изменять свои упражнения.');
       const definition = command.definition;
@@ -588,7 +596,7 @@ export function createSupabaseRepository(
       await ensureExerciseDefinitions([assignment.workoutSnapshot]);
       const relationshipId = relationshipByStudent.get(assignment.studentId);
       if (!relationshipId) throw new Error('Не найдена связь тренера с учеником.');
-      throwIfError(await client.from('assignments').insert({
+      throwIfError(await client.from('assignments').upsert({
         id: getRemoteId(remoteAssignmentId, assignment.id),
         relationship_id: relationshipId,
         assigned_at: assignment.assignedAt,
@@ -601,7 +609,7 @@ export function createSupabaseRepository(
         repeated_from_assignment_id: assignment.repeatedFromAssignmentId
           ? getRemoteId(remoteAssignmentId, assignment.repeatedFromAssignmentId)
           : null,
-      }));
+      }, { onConflict: 'id', ignoreDuplicates: true }));
       assignmentRevision.set(assignment.id, 1);
       telegramNotificationCreated = true;
     } else if (command.type === 'assignment.update') {
@@ -709,10 +717,10 @@ export function createSupabaseRepository(
         comment: entry.comment || null,
       };
       if (command.type === 'subscription.payment.create') {
-        throwIfError(await client.from('subscription_entries').insert({
+        throwIfError(await client.from('subscription_entries').upsert({
           id: getRemoteId(remoteSubscriptionId, entry.id),
           ...values,
-        }));
+        }, { onConflict: 'id', ignoreDuplicates: true }));
         subscriptionRevision.set(entry.id, 1);
       } else {
         let updateSubscription = client.from('subscription_entries').update({

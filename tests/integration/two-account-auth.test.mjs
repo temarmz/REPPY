@@ -240,6 +240,67 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   await assert.rejects(recoveryRepository.execute({ type: 'session.progress', sessionId }, recoveryState), { code: 'REPPY_NETWORK' });
   const trainerRepository = createSupabaseRepository(trainer, { id: trainerUser.id, role: 'trainer' });
   const trainerState = await trainerRepository.load();
+
+  const customDefinition = { id: `retry-${suffix}`, name: `Retry exercise ${suffix}`,
+    equipment: 'Другое', measureType: 'reps', loadMode: 'external' };
+  let loseDefinitionResponse = true;
+  const retryTrainer = createSupabaseRepository({
+    from(table) {
+      const query = trainer.from(table);
+      if (table !== 'exercise_definitions') return query;
+      return { upsert: async (...args) => {
+        const result = await query.upsert(...args);
+        assertSuccess(result, 'create custom definition through RLS');
+        if (loseDefinitionResponse) {
+          loseDefinitionResponse = false;
+          return { data: null, error: { message: 'Failed to fetch' } };
+        }
+        return result;
+      } };
+    },
+  }, { id: trainerUser.id, role: 'trainer' });
+  const createDefinition = { type: 'exercise-definition.create', definition: customDefinition };
+  await assert.rejects(retryTrainer.execute(createDefinition, trainerState), { code: 'REPPY_NETWORK' });
+  const storedDefinition = assertSuccess(await trainer.from('exercise_definitions').select('id')
+    .eq('name', customDefinition.name).single(), 'read committed custom exercise');
+  assertSuccess(await trainer.from('exercise_definitions').update({ name: 'Updated on another device' })
+    .eq('id', storedDefinition.id), 'edit committed custom exercise');
+  await retryTrainer.execute(createDefinition, trainerState);
+  assert.deepEqual(assertSuccess(await trainer.from('exercise_definitions').select('id, name')
+    .eq('id', storedDefinition.id), 'read retried exercise'), [{ id: storedDefinition.id, name: 'Updated on another device' }]);
+  assert.deepEqual(assertSuccess(await student.from('exercise_definitions').select('id')
+    .eq('id', storedDefinition.id), 'student cannot read private retried exercise'), []);
+
+  for (const table of ['assignments', 'subscription_entries']) {
+    const transport = { from: (name) => trainer.from(name), rpc: (...args) => trainer.rpc(...args), functions: trainer.functions };
+    const retryRepository = createSupabaseRepository(transport, { id: trainerUser.id, role: 'trainer' });
+    const state = await retryRepository.load();
+    const command = table === 'assignments'
+      ? { type: 'assignment.create', assignment: { ...state.assignments[0], id: `retry-assignment-${suffix}` } }
+      : { type: 'subscription.payment.create', entry: { id: `retry-payment-${suffix}`, studentId: state.students[0].id,
+        kind: 'payment', lessonDelta: 2, occurredAt: new Date().toISOString(), amountRub: 1000, paymentMethod: 'cash' } };
+    let remoteId;
+    let loseResponse = true;
+    transport.from = (name) => {
+      const query = trainer.from(name);
+      if (name !== table) return query;
+      return { upsert: async (row, options) => {
+        remoteId = row.id;
+        const result = await query.upsert(row, options);
+        assertSuccess(result, `create ${table} through RLS`);
+        if (loseResponse) {
+          loseResponse = false;
+          return { data: null, error: { message: 'Failed to fetch' } };
+        }
+        return result;
+      } };
+    };
+    await assert.rejects(retryRepository.execute(command, state), { code: 'REPPY_NETWORK' });
+    await retryRepository.execute(command, state);
+    assert.deepEqual(assertSuccess(await trainer.from(table).select('id').eq('id', remoteId), `retried ${table}`), [{ id: remoteId }]);
+    assert.deepEqual(assertSuccess(await outsider.from(table).select('id').eq('id', remoteId), `outsider cannot read ${table}`), []);
+  }
+
   const trainerSession = trainerState.sessions.find((item) => item.id === sessionId);
   trainerSession.results = trainerSession.results.map((item) => item.exerciseId === privateExerciseInstanceId
     ? { ...item, actualWeight: 5.5 } : item);

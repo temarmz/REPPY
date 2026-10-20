@@ -253,3 +253,125 @@ test('disposing while Realtime auth is pending prevents the old account from sub
   await new Promise(setImmediate);
   assert.equal(subscriptions, 0);
 });
+
+for (const committed of [false, true]) {
+  test(`retry ensures a custom exercise exists after a ${committed ? 'lost response' : 'failed insert'}`, async () => {
+    const { client, tables } = assignedWorkoutClient();
+    const trainerId = tables.trainer_student_relationships[0].trainer_id;
+    const repository = createSupabaseRepository(client, { id: trainerId, role: 'trainer' });
+    client.rpc = async () => ({ data: [], error: null });
+    const data = await repository.load();
+    const assignment = structuredClone(data.assignments[0]);
+    assignment.id = 'new-assignment';
+    assignment.workoutSnapshot.exercises[0].exerciseId = 'new-custom-exercise';
+    const definitions = new Map();
+    const ids = [];
+    let attempts = 0;
+    let assigned = false;
+    client.from = (table) => {
+      if (table === 'exercise_definitions') {
+        const write = async (rows, options) => {
+          rows = Array.isArray(rows) ? rows : [rows];
+          ids.push(rows[0].id);
+          attempts++;
+          if (attempts === 1) {
+            if (committed) rows.forEach((row) => definitions.set(row.id, row));
+            return { error: { message: 'Failed to fetch' } };
+          }
+          if (!options?.ignoreDuplicates && rows.some((row) => definitions.has(row.id))) {
+            return { error: { code: '23505', message: 'duplicate key' } };
+          }
+          rows.forEach((row) => { if (!definitions.has(row.id)) definitions.set(row.id, row); });
+          return { error: null };
+        };
+        return { insert: write, upsert: write };
+      }
+      assert.equal(table, 'assignments');
+      return { upsert: async (row) => {
+        assert.ok(definitions.has(row.workout_snapshot.exercises[0].exerciseId), 'assignment references an unsaved definition');
+        assigned = true;
+        return { error: null };
+      } };
+    };
+    await assert.rejects(repository.execute({ type: 'assignment.create', assignment }, data), { code: 'REPPY_NETWORK' });
+    await repository.execute({ type: 'assignment.create', assignment }, data);
+    assert.equal(attempts, 2);
+    assert.equal(ids[0], ids[1]);
+    assert.equal(definitions.size, 1);
+    assert.equal(assigned, true);
+  });
+}
+
+test('retrying a committed custom library creation releases the queue without overwriting later edits', async (t) => {
+  const { client, tables } = assignedWorkoutClient();
+  const repository = createSupabaseRepository(client, { id: tables.trainer_student_relationships[0].trainer_id, role: 'trainer' });
+  const definition = { id: 'custom-local', name: 'Original', equipment: 'Другое', measureType: 'reps', loadMode: 'external' };
+  let stored;
+  let attempts = 0;
+  client.from = (table) => {
+    assert.equal(table, 'exercise_definitions');
+    const write = async (row, options) => {
+      attempts++;
+      if (attempts === 1) {
+        stored = { ...row, name: 'Edited on another device' };
+        return { error: { message: 'Failed to fetch' } };
+      }
+      assert.equal(row.id, stored.id);
+      if (!options?.ignoreDuplicates) return { error: { code: '23505', message: 'duplicate key' } };
+      return { error: null };
+    };
+    return { insert: write, upsert: write };
+  };
+  const phases = [];
+  const queue = createPersistenceQueue(repository, (phase) => phases.push(phase));
+  t.after(() => queue.dispose());
+  queue.enqueue({ type: 'exercise-definition.create', definition }, {});
+  await new Promise(setImmediate);
+  assert.equal(queue.pendingCount, 1);
+  assert.equal(phases.at(-1), 'error');
+  queue.retry();
+  await new Promise(setImmediate);
+  assert.equal(queue.pendingCount, 0);
+  assert.equal(phases.at(-1), 'idle');
+  assert.equal(stored.name, 'Edited on another device');
+});
+
+for (const kind of ['assignment', 'payment']) {
+  test(`retrying a committed ${kind} does not block the queue or overwrite the existing record`, async (t) => {
+    const { client, tables } = assignedWorkoutClient();
+    client.rpc = async () => ({ data: [], error: null });
+    const repository = createSupabaseRepository(client, { id: tables.trainer_student_relationships[0].trainer_id, role: 'trainer' });
+    const data = await repository.load();
+    const assignment = { ...data.assignments[0], id: 'new-local-assignment' };
+    const entry = { id: 'new-local-payment', studentId: data.students[0].id, kind: 'payment',
+      lessonDelta: 4, occurredAt: new Date().toISOString(), amountRub: 1000, paymentMethod: 'cash' };
+    const command = kind === 'assignment' ? { type: 'assignment.create', assignment } : { type: 'subscription.payment.create', entry };
+    let stored;
+    let attempts = 0;
+    client.from = (table) => {
+      assert.equal(table, kind === 'assignment' ? 'assignments' : 'subscription_entries');
+      const write = async (row, options) => {
+        attempts++;
+        if (attempts === 1) {
+          stored = { ...row, revision: 2, comment: 'Updated on another device' };
+          return { error: { message: 'Failed to fetch' } };
+        }
+        assert.equal(row.id, stored.id);
+        if (!options?.ignoreDuplicates) return { error: { code: '23505', message: 'duplicate key' } };
+        return { error: null };
+      };
+      return { insert: write, upsert: write };
+    };
+    const queue = createPersistenceQueue(repository, () => {});
+    t.after(() => queue.dispose());
+    queue.enqueue(command, data);
+    await new Promise(setImmediate);
+    assert.equal(queue.pendingCount, 1);
+    queue.retry();
+    await new Promise(setImmediate);
+    assert.equal(queue.pendingCount, 0);
+    assert.equal(attempts, 2);
+    assert.equal(stored.revision, 2);
+    assert.equal(stored.comment, 'Updated on another device');
+  });
+}
