@@ -43,6 +43,7 @@ export function useReppyData(
   const saveVersionRef = useRef(0);
   const refreshSequenceRef = useRef(0);
   const remoteQueueRef = useRef<ReturnType<typeof createPersistenceQueue> | null>(null);
+  const repositoryLifetimeRef = useRef<{ repository: ReppyRepository } | null>(null);
 
   useEffect(() => {
     dataRef.current = data;
@@ -67,6 +68,8 @@ export function useReppyData(
 
   useEffect(() => {
     let cancelled = false;
+    const lifetime = { repository };
+    repositoryLifetimeRef.current = lifetime;
     const queue = repository.execute ? createPersistenceQueue(repository, (phase, error) => {
       if (cancelled) return;
       setPersistenceError(error ?? null);
@@ -93,6 +96,7 @@ export function useReppyData(
 
     return () => {
       cancelled = true;
+      if (repositoryLifetimeRef.current === lifetime) repositoryLifetimeRef.current = null;
       queue?.dispose();
       if (remoteQueueRef.current === queue) remoteQueueRef.current = null;
     };
@@ -204,7 +208,12 @@ export function useReppyData(
     if (!queue) saveQueueRef.current = request.then(() => undefined);
     void request
       .then((nextData) => {
-        if (cancelled || version !== saveVersionRef.current || remoteQueueRef.current?.pendingCount) return;
+        if (cancelled) return;
+        if (version !== saveVersionRef.current) {
+          setReloadAttempt((current) => current + 1);
+          return;
+        }
+        if (remoteQueueRef.current?.pendingCount) return;
         dataRef.current = nextData;
         setData(nextData);
         setPersistenceError(null);
@@ -261,7 +270,12 @@ export function useReppyData(
 
   const createStudentInvitation = useCallback(async (name: string) => {
     if (!repository.createStudentInvitation) throw new Error('Приглашения доступны только в аккаунте тренера.');
+    const lifetime = repositoryLifetimeRef.current;
+    if (lifetime?.repository !== repository) throw new DOMException('Аккаунт изменился. Повтори действие в текущем аккаунте.', 'AbortError');
     const invitation = await repository.createStudentInvitation(name);
+    if (repositoryLifetimeRef.current !== lifetime) throw new DOMException('Аккаунт изменился. Повтори действие в текущем аккаунте.', 'AbortError');
+    // This confirmed RPC bypasses the command queue, so invalidate older reads too.
+    saveVersionRef.current += 1;
     const nextData = applyReppyCommand(dataRef.current, { type: 'student.create', student: invitation.student });
     dataRef.current = nextData;
     setData(nextData);
