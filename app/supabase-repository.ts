@@ -146,6 +146,16 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function canonicalUpdateValues(values: Record<string, unknown>) {
+  return canonicalJson(Object.fromEntries(Object.entries(values).map(([key, value]) => [key,
+    (key === 'occurred_at' || key === 'reschedule_requested_at') && typeof value === 'string'
+      ? new Date(value).toISOString()
+      : (key === 'scheduled_time' || key === 'reschedule_scheduled_time') && typeof value === 'string' && value.length === 5
+        ? `${value}:00`
+        : key === 'amount_rub' && value !== null ? Number(value) : value,
+  ])));
+}
+
 function revisionConflict(entity: string) {
   return new ReppyConflictError(`${entity} уже изменён на другом устройстве.`);
 }
@@ -435,7 +445,10 @@ export function createSupabaseRepository(
     // An accepted reload establishes a fresh editing baseline, including after
     // a lost acknowledgement followed by a conflict. A superseded background
     // read must leave the original uncertain write available for reconciliation.
-    if (acceptRevisions) uncertainProgress.clear();
+    if (acceptRevisions) {
+      uncertainProgress.clear();
+      uncertainUpdates.clear();
+    }
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
       requestTelegramDelivery();
@@ -460,6 +473,46 @@ export function createSupabaseRepository(
   const uncertainProgress = new Map<string, { revision: number; snapshot: Workout; results: Array<{
     exerciseInstanceId: string; setNumber: number; actualReps: number; actualWeight: number; completed: boolean;
   }> }>();
+
+  const uncertainUpdates = new Map<string, { revision: number; values: Record<string, unknown> }>();
+
+  async function updateRevisionedRow(table: 'assignments' | 'subscription_entries', localId: string, remoteId: string,
+    values: Record<string, unknown>, revisions: Map<string, number>, entity: string) {
+    const key = `${table}:${localId}`;
+    const uncertain = uncertainUpdates.get(key);
+    if (uncertain) {
+      const remote = await client.from(table).select('*').eq('id', remoteId).maybeSingle();
+      throwIfError(remote);
+      const row = remote.data;
+      if (!row) throw revisionConflict(entity);
+      const saved = Object.fromEntries(Object.keys(uncertain.values).map((column) => [column, row[column]]));
+      // Only the immediately following revision with the full intended payload
+      // can acknowledge a lost response. Later changes still require a reload.
+      if (row.revision === uncertain.revision + 1
+        && canonicalUpdateValues(saved) === canonicalUpdateValues(uncertain.values)
+        && canonicalUpdateValues(values) === canonicalUpdateValues(uncertain.values)) {
+        revisions.set(localId, row.revision);
+        uncertainUpdates.delete(key);
+        return;
+      }
+      if (row.revision !== uncertain.revision) throw revisionConflict(entity);
+    }
+    const expectedRevision = revisions.get(localId);
+    try {
+      let query = client.from(table).update(values).eq('id', remoteId);
+      if (expectedRevision !== undefined) query = query.eq('revision', expectedRevision);
+      const updated = await query.select('revision').maybeSingle();
+      throwIfError(updated);
+      if (!updated.data) throw revisionConflict(entity);
+      revisions.set(localId, updated.data.revision);
+      uncertainUpdates.delete(key);
+    } catch (reason) {
+      if (expectedRevision !== undefined && isTransientPersistenceError(reason)) {
+        uncertainUpdates.set(key, { revision: expectedRevision, values: clone(values) });
+      }
+      throw reason;
+    }
+  }
 
   async function saveProgress(session: WorkoutSession) {
     const sessionId = getRemoteId(remoteSessionId, session.id);
@@ -625,7 +678,7 @@ export function createSupabaseRepository(
         assignmentRevision.set(assignment.id, (requested.data as AssignmentRow).revision);
       } else {
         await ensureExerciseDefinitions([assignment.workoutSnapshot]);
-        let updateAssignment = client.from('assignments').update({
+        await updateRevisionedRow('assignments', assignment.id, getRemoteId(remoteAssignmentId, assignment.id), {
           scheduled_for: assignment.scheduledFor,
           scheduled_time: assignment.format === 'in-person' ? timeForDatabase(assignment.scheduledTime) : null,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
@@ -637,13 +690,7 @@ export function createSupabaseRepository(
           reschedule_scheduled_for: assignment.rescheduleRequest?.scheduledFor ?? null,
           reschedule_scheduled_time: timeForDatabase(assignment.rescheduleRequest?.scheduledTime),
           reschedule_requested_at: assignment.rescheduleRequest?.requestedAt ?? null,
-        }).eq('id', getRemoteId(remoteAssignmentId, assignment.id));
-        const expectedRevision = assignmentRevision.get(assignment.id);
-        if (expectedRevision) updateAssignment = updateAssignment.eq('revision', expectedRevision);
-        const updatedAssignment = await updateAssignment.select('revision').maybeSingle();
-        throwIfError(updatedAssignment);
-        if (!updatedAssignment.data) throw revisionConflict('Назначение');
-        assignmentRevision.set(assignment.id, updatedAssignment.data.revision);
+        }, assignmentRevision, 'Назначение');
       }
       telegramNotificationCreated = true;
     } else if (command.type === 'assignment.delete') {
@@ -723,19 +770,13 @@ export function createSupabaseRepository(
         }, { onConflict: 'id', ignoreDuplicates: true }));
         subscriptionRevision.set(entry.id, 1);
       } else {
-        let updateSubscription = client.from('subscription_entries').update({
+        await updateRevisionedRow('subscription_entries', entry.id, getRemoteId(remoteSubscriptionId, entry.id), {
           lesson_delta: values.lesson_delta,
           occurred_at: values.occurred_at,
           amount_rub: values.amount_rub,
           payment_method: values.payment_method,
           comment: values.comment,
-        }).eq('id', getRemoteId(remoteSubscriptionId, entry.id));
-        const expectedRevision = subscriptionRevision.get(entry.id);
-        if (expectedRevision) updateSubscription = updateSubscription.eq('revision', expectedRevision);
-        const updatedSubscription = await updateSubscription.select('revision').maybeSingle();
-        throwIfError(updatedSubscription);
-        if (!updatedSubscription.data) throw revisionConflict('Платёж');
-        subscriptionRevision.set(entry.id, updatedSubscription.data.revision);
+        }, subscriptionRevision, 'Платёж');
       }
     }
 

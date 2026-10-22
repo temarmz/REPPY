@@ -299,6 +299,54 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
     await retryRepository.execute(command, state);
     assert.deepEqual(assertSuccess(await trainer.from(table).select('id').eq('id', remoteId), `retried ${table}`), [{ id: remoteId }]);
     assert.deepEqual(assertSuccess(await outsider.from(table).select('id').eq('id', remoteId), `outsider cannot read ${table}`), []);
+
+    // A committed UPDATE with a lost response must not become a false conflict.
+    // Keep the real PostgREST builder, replacing only its final acknowledgement.
+    transport.from = (name) => {
+      const query = trainer.from(name);
+      if (name !== table) return query;
+      return {
+        select: query.select.bind(query),
+        update(values) {
+          const update = query.update(values);
+          const maybeSingle = update.maybeSingle.bind(update);
+          update.maybeSingle = async () => {
+            const result = await maybeSingle();
+            assertSuccess(result, `update ${table} through RLS`);
+            if (loseResponse) {
+              loseResponse = false;
+              return { data: null, error: { message: 'Failed to fetch' } };
+            }
+            return result;
+          };
+          return update;
+        },
+      };
+    };
+    const editingState = await retryRepository.load();
+    const editingCommand = table === 'assignments'
+      ? { type: 'assignment.update', assignment: editingState.assignments.find((item) => item.id === remoteId) }
+      : { type: 'subscription.payment.update', entry: editingState.subscriptionEntries.find((item) => item.id === remoteId) };
+    if (table === 'assignments') {
+      editingCommand.assignment.workoutSnapshot.name = 'Updated with uncertain response';
+      editingCommand.assignment.rescheduleRequest = { scheduledFor: '2026-10-24', scheduledTime: '19:00', requestedAt: '2026-10-22T12:00:00.000Z' };
+    } else {
+      Object.assign(editingCommand.entry, { lessonDelta: 5, amountRub: 2500.5, occurredAt: '2026-10-22T12:00:00.000Z', comment: 'Updated' });
+    }
+    loseResponse = true;
+    await assert.rejects(retryRepository.execute(editingCommand, editingState), { code: 'REPPY_NETWORK' });
+    const committedUpdate = assertSuccess(await trainer.from(table).select('*').eq('id', remoteId).single(), `committed ${table} update`);
+    await retryRepository.execute(editingCommand, editingState);
+    assert.deepEqual(assertSuccess(await trainer.from(table).select('*').eq('id', remoteId).single(), `recovered ${table} update`), committedUpdate);
+
+    // A later revision must stay a conflict rather than acknowledge this retry.
+    loseResponse = true;
+    await assert.rejects(retryRepository.execute(editingCommand, editingState), { code: 'REPPY_NETWORK' });
+    const change = table === 'assignments' ? { scheduled_for: '2026-10-25' } : { amount_rub: 999 };
+    assertSuccess(await trainer.from(table).update(change).eq('id', remoteId), `another device edits ${table}`);
+    const concurrentUpdate = assertSuccess(await trainer.from(table).select('*').eq('id', remoteId).single(), `concurrent ${table} update`);
+    await assert.rejects(retryRepository.execute(editingCommand, editingState), { code: 'REPPY_CONFLICT' });
+    assert.deepEqual(assertSuccess(await trainer.from(table).select('*').eq('id', remoteId).single(), `protected ${table} update`), concurrentUpdate);
   }
 
   const trainerSession = trainerState.sessions.find((item) => item.id === sessionId);
