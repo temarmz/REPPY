@@ -47,6 +47,9 @@ function fixture(kind, { committed = true } = {}) {
                 // PostgREST serializes timestamps/numerics differently from the input.
                 if (record.occurred_at) record.occurred_at = new Date(record.occurred_at).toISOString().replace('Z', '+00:00');
                 if (record.amount_rub !== undefined) record.amount_rub = Number(record.amount_rub).toFixed(2);
+                for (const column of ['scheduled_time', 'reschedule_scheduled_time']) {
+                  if (record[column]?.length === 5) record[column] += ':00';
+                }
               }
               if (writes === 1) return { data: null, error: { message: 'Failed to fetch' } };
               return { data: record ? { revision: record.revision } : null, error: null };
@@ -97,7 +100,7 @@ for (const kind of ['assignment', 'payment']) {
     });
   }
 
-  for (const change of ['different-values', 'later-revision', 'deleted']) {
+  for (const change of ['different-values', 'later-revision', 'deleted', ...(kind === 'assignment' ? ['different-seconds'] : [])]) {
     test(`${kind}: uncertain update does not acknowledge or overwrite ${change}`, async () => {
       const f = fixture(kind);
       const data = await f.repository.load();
@@ -106,7 +109,8 @@ for (const kind of ['assignment', 'payment']) {
       if (change === 'different-values') {
         if (kind === 'assignment') f.row.workout_snapshot.name = 'Other device';
         else f.row.amount_rub = '999.00';
-      } else if (change === 'later-revision') f.row.revision++;
+      } else if (change === 'different-seconds') f.row.reschedule_scheduled_time = '19:00:30';
+      else if (change === 'later-revision') f.row.revision++;
       else f.tables[f.table] = [];
       await assert.rejects(f.repository.execute(command, data), { code: 'REPPY_CONFLICT' });
       assert.equal(f.writes, 1);

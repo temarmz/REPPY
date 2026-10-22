@@ -150,7 +150,9 @@ function canonicalUpdateValues(values: Record<string, unknown>) {
   return canonicalJson(Object.fromEntries(Object.entries(values).map(([key, value]) => [key,
     (key === 'occurred_at' || key === 'reschedule_requested_at') && typeof value === 'string'
       ? new Date(value).toISOString()
-      : key === 'amount_rub' && value !== null ? Number(value) : value,
+      : (key === 'scheduled_time' || key === 'reschedule_scheduled_time') && typeof value === 'string' && value.length === 5
+        ? `${value}:00`
+        : key === 'amount_rub' && value !== null ? Number(value) : value,
   ])));
 }
 
