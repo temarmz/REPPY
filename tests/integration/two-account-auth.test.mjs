@@ -241,6 +241,63 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   const trainerRepository = createSupabaseRepository(trainer, { id: trainerUser.id, role: 'trainer' });
   const trainerState = await trainerRepository.load();
 
+  for (const failTable of ['students', 'trainer_student_relationships']) {
+    const writes = { students: 0, trainer_student_relationships: 0 };
+    let loseProfileResponse = true;
+    const profileTransport = {
+      rpc: trainer.rpc.bind(trainer), functions: trainer.functions,
+      from(table) {
+        const query = trainer.from(table);
+        if (!(table in writes)) return query;
+        return {
+          select: query.select.bind(query),
+          update(values) {
+            const update = query.update(values);
+            const maybeSingle = update.maybeSingle.bind(update);
+            update.maybeSingle = async () => {
+              writes[table]++;
+              const result = await maybeSingle();
+              assertSuccess(result, `update profile ${table} through RLS`);
+              if (loseProfileResponse && table === failTable) {
+                loseProfileResponse = false;
+                return { data: null, error: { message: 'Failed to fetch' } };
+              }
+              return result;
+            };
+            return update;
+          },
+        };
+      },
+    };
+    const profiles = createSupabaseRepository(profileTransport, { id: trainerUser.id, role: 'trainer' });
+    const profileState = await profiles.load();
+    const originalStudent = profileState.students.find((item) => item.id === invitation.studentId);
+    const profileCommand = { type: 'student.update', student: { ...originalStudent,
+      name: `Recovered ${failTable}`, height: 182.5, weight: 75.25,
+      color: originalStudent.color === 'orange' ? 'violet' : 'orange' } };
+    await assert.rejects(profiles.execute(profileCommand, profileState), { code: 'REPPY_NETWORK' });
+    const acceptedProfile = assertSuccess(await trainer.from('students').select('*').eq('id', invitation.studentId).single(), 'read partially accepted profile');
+    await profiles.execute(profileCommand, profileState);
+    assert.deepEqual(writes, { students: 1, trainer_student_relationships: 1 });
+    assert.deepEqual(assertSuccess(await trainer.from('students').select('*').eq('id', invitation.studentId).single(), 'read recovered profile'), acceptedProfile);
+    assert.equal(Number(acceptedProfile.height_cm), 182.5);
+    assert.equal(Number(acceptedProfile.weight_kg), 75.25);
+    assert.equal(assertSuccess(await trainer.from('trainer_student_relationships').select('color')
+      .eq('id', invitation.relationshipId).single(), 'read recovered color').color, profileCommand.student.color);
+
+    // A later real edit remains protected on either side of a lost response.
+    loseProfileResponse = true;
+    await assert.rejects(profiles.execute(profileCommand, profileState), { code: 'REPPY_NETWORK' });
+    assertSuccess(await trainer.from('students').update({ name: 'Concurrent profile edit' }).eq('id', invitation.studentId), 'another device edits profile');
+    const beforeRetry = { ...writes };
+    await assert.rejects(profiles.execute(profileCommand, profileState), { code: 'REPPY_CONFLICT' });
+    assert.deepEqual(writes, beforeRetry);
+    assert.equal(assertSuccess(await trainer.from('students').select('name')
+      .eq('id', invitation.studentId).single(), 'concurrent profile is not overwritten').name, 'Concurrent profile edit');
+    assert.deepEqual(assertSuccess(await outsider.from('students').select('id')
+      .eq('id', invitation.studentId), 'outsider cannot read profile during recovery'), []);
+  }
+
   const customDefinition = { id: `retry-${suffix}`, name: `Retry exercise ${suffix}`,
     equipment: 'Другое', measureType: 'reps', loadMode: 'external' };
   let loseDefinitionResponse = true;

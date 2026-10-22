@@ -515,11 +515,18 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   }>(draftKey));
   const [expanded, setExpanded] = useState(restoredDraft?.expanded ?? alwaysExpanded);
   const [editing, setEditing] = useState(restoredDraft?.editing ?? false);
-  const [height, setHeight] = useState(restoredDraft?.height ?? (student.height ? String(student.height) : ''));
-  const [weight, setWeight] = useState(restoredDraft?.weight ?? (student.weight ? String(student.weight) : ''));
+  const [height, setHeight] = useState(typeof restoredDraft?.height === 'string' ? restoredDraft.height : (student.height ? String(student.height) : ''));
+  const [weight, setWeight] = useState(typeof restoredDraft?.weight === 'string' ? restoredDraft.weight : (student.weight ? String(student.weight) : ''));
   const [gender, setGender] = useState<Student['gender']>(restoredDraft?.gender ?? student.gender ?? 'not-specified');
   const [phone, setPhone] = useState(restoredDraft?.phone ?? student.phone ?? '');
   const [contraindications, setContraindications] = useState(restoredDraft?.contraindications ?? student.contraindications ?? '');
+  const [validationAttempted, setValidationAttempted] = useState(false);
+  const parsedHeight = Number(height);
+  const parsedWeight = Number(weight.replace(',', '.'));
+  const metricError = height.trim() && (!Number.isFinite(parsedHeight) || parsedHeight < 50 || parsedHeight > 260)
+    ? 'Укажи рост от 50 до 260 см.'
+    : weight.trim() && (!Number.isFinite(parsedWeight) || parsedWeight < 20 || parsedWeight > 500)
+      ? 'Укажи вес от 20 до 500 кг.' : '';
   const genderLabel = gender === 'male' ? 'Мужской' : gender === 'female' ? 'Женский' : 'Не указан';
 
   useEffect(() => {
@@ -531,12 +538,12 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   }, [contraindications, draftKey, editing, expanded, gender, height, phone, weight]);
 
   const save = () => {
-    const parsedHeight = Number(height);
-    const parsedWeight = Number(weight.replace(',', '.'));
+    setValidationAttempted(true);
+    if (metricError) return;
     onSave({
       ...student,
-      height: height.trim() && Number.isFinite(parsedHeight) ? Math.max(0, parsedHeight) : undefined,
-      weight: weight.trim() && Number.isFinite(parsedWeight) ? Math.max(0, parsedWeight) : undefined,
+      height: height.trim() ? parsedHeight : undefined,
+      weight: weight.trim() ? parsedWeight : undefined,
       gender,
       phone: phone.trim(),
       contraindications: contraindications.trim(),
@@ -550,12 +557,13 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
       {compact ? <Box className="athlete-inline-summary"><Box><Paragraph>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</Paragraph><Paragraph>Ограничения: {student.contraindications || 'не указаны'}</Paragraph></Box><Button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { clearUiDraft(draftKey); setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></Button></Box> : <SectionHeading title={<>Данные и ограничения</>} >{alwaysExpanded && !editing ? <Button type="button" className="athlete-heading-edit" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать</Button> : !alwaysExpanded && <Button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) clearUiDraft(draftKey); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</Button>}</SectionHeading>}
       {(compact ? editing : expanded) && (editing ? <Box className="athlete-form">
         <Box className="athlete-form-grid">
-          <Field label={<>Рост, см</>} ><Input type="number" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></Field>
-          <Field label={<>Вес, кг</>} ><Input type="number" inputMode="decimal" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="86" /></Field>
+          <Field label={<>Рост, см</>} ><Input type="number" min="50" max="260" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></Field>
+          <Field label={<>Вес, кг</>} ><Input type="number" min="20" max="500" inputMode="decimal" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="86" /></Field>
         </Box>
         <Field label={<>Пол</>} ><Select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><SelectOption value="not-specified">Не указан</SelectOption><SelectOption value="male">Мужской</SelectOption><SelectOption value="female">Женский</SelectOption></Select></Field>
         <Field label={<>Мобильный телефон</>} ><Input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></Field>
         <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><Small>Опиши всё, что тренеру важно учитывать при составлении плана.</Small></Field>
+        {validationAttempted && metricError && <FormError>{metricError}</FormError>}
         <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
         {compact && <ActionButton variant="secondary" onClick={() => { clearUiDraft(draftKey); setEditing(false); }}>Отмена</ActionButton>}
       </Box> : <>{!alwaysExpanded && <Button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</Button>}<DefinitionList className="athlete-summary">
