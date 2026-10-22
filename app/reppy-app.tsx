@@ -515,8 +515,8 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   }>(draftKey));
   const [expanded, setExpanded] = useState(restoredDraft?.expanded ?? alwaysExpanded);
   const [editing, setEditing] = useState(restoredDraft?.editing ?? false);
-  const [height, setHeight] = useState(restoredDraft?.height ?? (student.height ? String(student.height) : ''));
-  const [weight, setWeight] = useState(restoredDraft?.weight ?? (student.weight ? String(student.weight) : ''));
+  const [height, setHeight] = useState(typeof restoredDraft?.height === 'string' ? restoredDraft.height : (student.height ? String(student.height) : ''));
+  const [weight, setWeight] = useState(typeof restoredDraft?.weight === 'string' ? restoredDraft.weight : (student.weight ? String(student.weight) : ''));
   const [gender, setGender] = useState<Student['gender']>(restoredDraft?.gender ?? student.gender ?? 'not-specified');
   const [phone, setPhone] = useState(restoredDraft?.phone ?? student.phone ?? '');
   const [contraindications, setContraindications] = useState(restoredDraft?.contraindications ?? student.contraindications ?? '');

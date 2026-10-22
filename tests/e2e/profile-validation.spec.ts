@@ -1,5 +1,27 @@
 import { expect, test } from '@playwright/test';
 
+test('malformed numeric fields in a restored profile draft cannot crash the screen', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
+  const original = await page.evaluate(() => {
+    const student = JSON.parse(localStorage.getItem('reppy-demo-v0')!).students.find((item: { id: string }) => item.id === 'artem');
+    localStorage.setItem('reppy-ui:draft:athlete:artem:compact', JSON.stringify({ savedAt: Date.now(), value: {
+      expanded: true, editing: true, height: 181, weight: { value: 82.5 }, gender: 'male', phone: '', contraindications: 'Draft remains usable',
+    } }));
+    return student;
+  });
+  await page.goto('/#/trainer/clients/artem');
+  const form = page.locator('.athlete-form');
+  await expect(form).toBeVisible();
+  await expect(form.getByLabel('Рост, см')).toHaveValue(original.height ? String(original.height) : '');
+  await expect(form.getByLabel('Вес, кг')).toHaveValue(original.weight ? String(original.weight) : '');
+  await form.getByRole('button', { name: 'Сохранить данные' }).click();
+  await expect(form).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 for (const theme of ['dark', 'light'] as const) {
   for (const role of ['trainer', 'student'] as const) {
     for (const [width, height] of [[320, 568], [390, 844], [440, 844], [844, 320], [1280, 800]]) {
