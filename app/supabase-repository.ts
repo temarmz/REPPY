@@ -152,7 +152,7 @@ function canonicalUpdateValues(values: Record<string, unknown>) {
       ? new Date(value).toISOString()
       : (key === 'scheduled_time' || key === 'reschedule_scheduled_time') && typeof value === 'string' && value.length === 5
         ? `${value}:00`
-        : key === 'amount_rub' && value !== null ? Number(value) : value,
+        : ['amount_rub', 'height_cm', 'weight_kg'].includes(key) && value !== null ? Number(value) : value,
   ])));
 }
 
@@ -448,6 +448,8 @@ export function createSupabaseRepository(
     if (acceptRevisions) {
       uncertainProgress.clear();
       uncertainUpdates.clear();
+      uncertainProfileUpdates.clear();
+      acceptedProfileSteps.clear();
     }
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
@@ -475,6 +477,47 @@ export function createSupabaseRepository(
   }> }>();
 
   const uncertainUpdates = new Map<string, { revision: number; values: Record<string, unknown> }>();
+  const uncertainProfileUpdates = new Map<string, { updatedAt: string | undefined; values: Record<string, unknown> }>();
+  const acceptedProfileSteps = new Map<string, { fingerprint: string; updatedAt: string }>();
+
+  async function updateProfileRow(table: 'students' | 'trainer_student_relationships', localId: string, remoteId: string,
+    values: Record<string, unknown>, timestamps: Map<string, string>, entity: string): Promise<string> {
+    const key = `${table}:${localId}`;
+    const uncertain = uncertainProfileUpdates.get(key);
+    if (uncertain) {
+      const remote = await client.from(table).select('*').eq('id', remoteId).maybeSingle();
+      throwIfError(remote);
+      const row = remote.data;
+      if (!row) throw revisionConflict(entity);
+      const saved = Object.fromEntries(Object.keys(uncertain.values).map((column) => [column, row[column]]));
+      // updated_at has no sequence number. Reconcile equivalent intended fields
+      // without rewriting the row; a different payload still requires reload.
+      if (row.updated_at !== uncertain.updatedAt
+        && canonicalUpdateValues(saved) === canonicalUpdateValues(uncertain.values)
+        && canonicalUpdateValues(values) === canonicalUpdateValues(uncertain.values)) {
+        timestamps.set(localId, row.updated_at);
+        uncertainProfileUpdates.delete(key);
+        return row.updated_at;
+      }
+      if (row.updated_at !== uncertain.updatedAt) throw revisionConflict(entity);
+    }
+    const expectedUpdatedAt = timestamps.get(localId);
+    try {
+      let query = client.from(table).update(values).eq('id', remoteId);
+      if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt);
+      const updated = await query.select('updated_at').maybeSingle();
+      throwIfError(updated);
+      if (!updated.data) throw revisionConflict(entity);
+      timestamps.set(localId, updated.data.updated_at);
+      uncertainProfileUpdates.delete(key);
+      return updated.data.updated_at;
+    } catch (reason) {
+      if (isTransientPersistenceError(reason)) {
+        uncertainProfileUpdates.set(key, { updatedAt: expectedUpdatedAt, values: clone(values) });
+      }
+      throw reason;
+    }
+  }
 
   async function updateRevisionedRow(table: 'assignments' | 'subscription_entries', localId: string, remoteId: string,
     values: Record<string, unknown>, revisions: Map<string, number>, entity: string) {
@@ -618,31 +661,31 @@ export function createSupabaseRepository(
       trainerByStudent.set(student.id, profile.id);
     } else if (command.type === 'student.update') {
       const student = command.student;
-      let updateStudent = client.from('students').update({
+      const values = {
         name: student.name,
         phone: student.phone || null,
         height_cm: student.height ?? null,
         weight_kg: student.weight ?? null,
         gender: student.gender ?? null,
         contraindications: student.contraindications || null,
-      }).eq('id', getRemoteId(remoteStudentId, student.id));
-      const expectedUpdatedAt = studentUpdatedAt.get(student.id);
-      if (expectedUpdatedAt) updateStudent = updateStudent.eq('updated_at', expectedUpdatedAt);
-      const updatedStudent = await updateStudent.select('updated_at').maybeSingle();
-      throwIfError(updatedStudent);
-      if (!updatedStudent.data) throw revisionConflict('Профиль ученика');
-      studentUpdatedAt.set(student.id, updatedStudent.data.updated_at);
-      if (profile.role === 'trainer') {
-        let updateRelationship = client.from('trainer_student_relationships')
-          .update({ color: student.color })
-          .eq('id', relationshipByStudent.get(student.id)!);
-        const expectedRelationshipUpdatedAt = relationshipUpdatedAt.get(student.id);
-        if (expectedRelationshipUpdatedAt) updateRelationship = updateRelationship.eq('updated_at', expectedRelationshipUpdatedAt);
-        const updatedRelationship = await updateRelationship.select('updated_at').maybeSingle();
-        throwIfError(updatedRelationship);
-        if (!updatedRelationship.data) throw revisionConflict('Карточка ученика');
-        relationshipUpdatedAt.set(student.id, updatedRelationship.data.updated_at);
+      };
+      const fingerprint = canonicalUpdateValues({ ...values, color: student.color });
+      const remoteId = getRemoteId(remoteStudentId, student.id);
+      const accepted = acceptedProfileSteps.get(student.id);
+      if (accepted) {
+        if (accepted.fingerprint !== fingerprint) throw revisionConflict('Профиль ученика');
+        const current = await client.from('students').select('updated_at').eq('id', remoteId).maybeSingle();
+        throwIfError(current);
+        if (current.data?.updated_at !== accepted.updatedAt) throw revisionConflict('Профиль ученика');
+      } else {
+        const updatedAt = await updateProfileRow('students', student.id, remoteId, values, studentUpdatedAt, 'Профиль ученика');
+        if (profile.role === 'trainer') acceptedProfileSteps.set(student.id, { fingerprint, updatedAt });
       }
+      if (profile.role === 'trainer') {
+        await updateProfileRow('trainer_student_relationships', student.id, relationshipByStudent.get(student.id)!,
+          { color: student.color }, relationshipUpdatedAt, 'Карточка ученика');
+      }
+      acceptedProfileSteps.delete(student.id);
     } else if (command.type === 'assignment.create') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может назначить тренировку.');
       const assignment = command.assignment;
@@ -840,6 +883,8 @@ export function createSupabaseRepository(
       };
     },
     async clear() {
+      uncertainProfileUpdates.clear();
+      acceptedProfileSteps.clear();
       relationshipByStudent.clear();
       trainerByStudent.clear();
       remoteStudentId.clear();
