@@ -65,7 +65,6 @@ export function InviteStudent({
     setBusy(true);
     setError('');
     try {
-      clearUiDraft(draftKey);
       if (onInvite) {
         const invitation = await onInvite(clean);
         setCreated(invitation);

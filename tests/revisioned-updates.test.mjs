@@ -144,3 +144,14 @@ for (const kind of ['assignment', 'payment']) {
     assert.equal(f.writes, 2);
   });
 }
+
+test('lost payment acknowledgement reconciles the database decimal precision', async () => {
+  const f = fixture('payment');
+  const data = await f.repository.load();
+  const command = f.command(data);
+  command.entry.amountRub = 1000.555;
+  await assert.rejects(f.repository.execute(command, data), { code: 'REPPY_NETWORK' });
+  f.row.amount_rub = '1000.56';
+  await f.repository.execute(command, data);
+  assert.equal(f.writes, 1);
+});

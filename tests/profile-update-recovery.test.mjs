@@ -149,3 +149,16 @@ test('student profile retry never writes trainer-only relationship color', async
   assert.deepEqual(f.writes, { students: 1, trainer_student_relationships: 0 });
   assert.equal(f.relationship.color, 'lime');
 });
+
+test('lost profile acknowledgement reconciles PostgreSQL rounding to two decimal places', async () => {
+  const f = fixture();
+  const data = await f.repository.load();
+  const command = f.command(data);
+  command.student.weight = 75.255;
+  await assert.rejects(f.repository.execute(command, data), { code: 'REPPY_NETWORK' });
+  // PostgreSQL numeric(6,2) rounds decimal ties away from zero.
+  f.student.weight_kg = '75.26';
+  await f.repository.execute(command, data);
+  assert.equal(f.writes.students, 1);
+  assert.equal(f.relationship.color, 'orange');
+});

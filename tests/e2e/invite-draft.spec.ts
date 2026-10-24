@@ -52,3 +52,18 @@ test('unowned legacy invitation drafts cannot be restored into an account or dem
   await page.evaluate(() => window.inviteDraftQa.selectAccount('demo'));
   await expect(name).toHaveValue('');
 });
+
+test('failed invitation preserves its draft across reload and can be retried', async ({ page }) => {
+  await page.goto('/__qa_invite_draft__');
+  const name = page.getByLabel('Имя ученика');
+  await name.fill('Сохранённый ученик');
+  await page.evaluate(() => { window.inviteDraftQa.fail = true; });
+  await page.getByRole('button', { name: 'Продолжить' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Сеть недоступна');
+  await page.reload();
+  await expect(name).toHaveValue('Сохранённый ученик');
+  await page.getByRole('button', { name: 'Продолжить' }).click();
+  await expect(page.getByText('Сохранённый ученик почти в команде')).toBeVisible();
+  await page.reload();
+  await expect(name).toHaveValue('');
+});

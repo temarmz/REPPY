@@ -99,7 +99,7 @@ export function useReppyAuth() {
 
     const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
-      authEventRef.current += 1;
+      const authEvent = ++authEventRef.current;
       profileRequestRef.current += 1;
       const nextUserId = nextSession?.user.id ?? null;
       const userChanged = sessionUserIdRef.current !== nextUserId;
@@ -116,12 +116,13 @@ export function useReppyAuth() {
         }
       }
       window.setTimeout(() => {
-        if (active) void loadProfile(nextSession);
+        if (active && authEvent === authEventRef.current) void loadProfile(nextSession);
       }, 0);
     });
 
     return () => {
       active = false;
+      profileRequestRef.current += 1;
       listener.subscription.unsubscribe();
     };
   }, [client, loadProfile]);

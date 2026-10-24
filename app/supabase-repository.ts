@@ -146,13 +146,18 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+// Match PostgreSQL numeric(..., 2), including decimal ties (toFixed uses
+// binary rounding and would turn e.g. 75.255 into 75.25 instead of 75.26).
+const databaseDecimal = new Intl.NumberFormat('en-US', { useGrouping: false, maximumFractionDigits: 2 });
+
 function canonicalUpdateValues(values: Record<string, unknown>) {
   return canonicalJson(Object.fromEntries(Object.entries(values).map(([key, value]) => [key,
     (key === 'occurred_at' || key === 'reschedule_requested_at') && typeof value === 'string'
       ? new Date(value).toISOString()
       : (key === 'scheduled_time' || key === 'reschedule_scheduled_time') && typeof value === 'string' && value.length === 5
         ? `${value}:00`
-        : ['amount_rub', 'height_cm', 'weight_kg'].includes(key) && value !== null ? Number(value) : value,
+        : ['amount_rub', 'height_cm', 'weight_kg'].includes(key) && value !== null
+          ? Number(databaseDecimal.format(Number(value))) : value,
   ])));
 }
 
