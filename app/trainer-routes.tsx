@@ -48,9 +48,10 @@ function workoutForRepeat(data: DemoState, assignment: Assignment) {
   return completedSession ? workoutFromSession(completedSession) : findAssignmentWorkout(data, assignment);
 }
 
-export default function TrainerRoutes({ path, data, dispatch, showToast, createStudentInvitation, StudentProfileComponent }: {
+export default function TrainerRoutes({ path, data, draftIdentity, dispatch, showToast, createStudentInvitation, StudentProfileComponent }: {
   path: string;
   data: DemoState;
+  draftIdentity: string;
   dispatch: (command: ReppyCommand) => void;
   showToast: (message: string) => void;
   createStudentInvitation: ((name: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
@@ -154,6 +155,8 @@ export default function TrainerRoutes({ path, data, dispatch, showToast, createS
     } else if (path === '/trainer/clients/invite') {
       content = (
         <InviteStudent
+          key={draftIdentity}
+          draftIdentity={draftIdentity}
           onCreate={(student) => dispatch({ type: 'student.create', student })}
           onInvite={createStudentInvitation ?? undefined}
         />

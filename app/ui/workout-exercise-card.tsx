@@ -16,7 +16,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
       if (emptyWhenZero) onChange(0);
       return;
     }
-    const parsed = Number(nextDraft.replace(',', '..'));
+    const parsed = Number(nextDraft.replace(',', '.'));
     if (!Number.isFinite(parsed)) {
       setDraft(null);
       return;
@@ -30,7 +30,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     if (inputMode === 'decimal' && !/^\d*(?:[.,]\d*)?$/.test(nextDraft)) return;
     setDraft(nextDraft);
     if (!nextDraft.trim()) { if (emptyWhenZero) onChange(0); return; }
-    const parsed = Number(nextDraft.replace(',', '..'));
+    const parsed = Number(nextDraft.replace(',', '.'));
     if (nextDraft.trim() && Number.isFinite(parsed)) onChange(Math.max(min, parsed));
   }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
