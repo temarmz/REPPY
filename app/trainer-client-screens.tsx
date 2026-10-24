@@ -34,13 +34,15 @@ function exercisePreview(workout?: Workout, withPlan = false) {
 }
 
 export function InviteStudent({
+  draftIdentity,
   onCreate,
   onInvite,
 }: {
+  draftIdentity: string;
   onCreate: (student: Student) => void;
   onInvite?: (name: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
 }) {
-  const draftKey = 'invite-student';
+  const draftKey = `invite-student:${draftIdentity}`;
   const [name, setName] = useState(() => loadUiDraft<{ name: string }>(draftKey)?.name ?? '');
   const [created, setCreated] = useState<{ student: Student; token?: string; expiresAt?: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -55,7 +57,7 @@ export function InviteStudent({
   useEffect(() => {
     if (created || !name.trim()) clearUiDraft(draftKey);
     else saveUiDraft(draftKey, { name });
-  }, [created, name]);
+  }, [created, draftKey, name]);
 
   const create = async () => {
     const clean = name.trim();

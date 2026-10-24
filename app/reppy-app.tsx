@@ -364,6 +364,7 @@ export default function ReppyApp() {
       return <TrainerRoutes
         path={route}
         data={data}
+        draftIdentity={auth.profile?.id ?? 'demo'}
         dispatch={dispatch}
         showToast={showToast}
         createStudentInvitation={createStudentInvitation}
