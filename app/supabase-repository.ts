@@ -194,6 +194,7 @@ export function createSupabaseRepository(
   const sessionRevision = new Map<string, number>();
   const assignmentRevision = new Map<string, number>();
   const subscriptionRevision = new Map<string, number>();
+  const subscriptionRelationship = new Map<string, string>();
   const studentUpdatedAt = new Map<string, string>();
   const relationshipUpdatedAt = new Map<string, string>();
 
@@ -331,6 +332,7 @@ export function createSupabaseRepository(
     }
     for (const entry of subscriptionRows) {
       remoteSubscriptionId.set(entry.id, entry.id);
+      subscriptionRelationship.set(entry.id, entry.relationship_id);
       if (acceptRevisions) subscriptionRevision.set(entry.id, entry.revision);
     }
 
@@ -455,6 +457,7 @@ export function createSupabaseRepository(
       uncertainUpdates.clear();
       uncertainProfileUpdates.clear();
       acceptedProfileSteps.clear();
+      uncertainPaymentDeletes.clear();
     }
     if (!notificationRecoveryAttempted) {
       notificationRecoveryAttempted = true;
@@ -484,6 +487,7 @@ export function createSupabaseRepository(
   const uncertainUpdates = new Map<string, { revision: number; values: Record<string, unknown> }>();
   const uncertainProfileUpdates = new Map<string, { updatedAt: string | undefined; values: Record<string, unknown> }>();
   const acceptedProfileSteps = new Map<string, { fingerprint: string; updatedAt: string }>();
+  const uncertainPaymentDeletes = new Map<string, { remoteId: string; relationshipId: string; revision: number }>();
 
   async function updateProfileRow(table: 'students' | 'trainer_student_relationships', localId: string, remoteId: string,
     values: Record<string, unknown>, timestamps: Map<string, string>, entity: string): Promise<string> {
@@ -791,12 +795,51 @@ export function createSupabaseRepository(
       throwIfError(await client.rpc('delete_subscription', { p_relationship_id: relationshipId }));
     } else if (command.type === 'subscription.payment.delete') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может удалять абонемент.');
-      throwIfError(await client.rpc('delete_subscription_payment', {
-        p_entry_id: getRemoteId(remoteSubscriptionId, command.entryId),
-        p_expected_revision: subscriptionRevision.get(command.entryId) ?? 1,
-      }));
+      const uncertain = uncertainPaymentDeletes.get(command.entryId);
+      const remoteId = uncertain?.remoteId ?? getRemoteId(remoteSubscriptionId, command.entryId);
+      const revision = uncertain?.revision ?? subscriptionRevision.get(command.entryId) ?? 1;
+      let alreadyDeleted = false;
+      if (uncertain) {
+        const payment = await client.from('subscription_entries').select('id, relationship_id, kind, revision').eq('id', remoteId).maybeSingle();
+        throwIfError(payment);
+        // An invisible payment alone is not proof of deletion: recheck the
+        // owning relationship through RLS, including account and archive state.
+        const relationship = await client.from('trainer_student_relationships').select('trainer_id, status')
+          .eq('id', uncertain.relationshipId).maybeSingle();
+        throwIfError(relationship);
+        if (!relationship.data || relationship.data.trainer_id !== profile.id || relationship.data.status === 'archived'
+          || (payment.data && (payment.data.relationship_id !== uncertain.relationshipId
+            || payment.data.kind !== 'payment' || payment.data.revision !== revision))) {
+          uncertainPaymentDeletes.delete(command.entryId);
+          throw revisionConflict('Платёж');
+        }
+        alreadyDeleted = !payment.data;
+        if (alreadyDeleted) {
+          const currentUser = await client.auth.getUser();
+          throwIfError(currentUser);
+          if (currentUser.data.user?.id !== profile.id) {
+            uncertainPaymentDeletes.delete(command.entryId);
+            throw revisionConflict('Платёж');
+          }
+        }
+      }
+      if (!alreadyDeleted) {
+        try {
+          throwIfError(await client.rpc('delete_subscription_payment', { p_entry_id: remoteId, p_expected_revision: revision }));
+        } catch (reason) {
+          const relationshipId = uncertain?.relationshipId ?? subscriptionRelationship.get(command.entryId);
+          if (isTransientPersistenceError(reason) && relationshipId) {
+            uncertainPaymentDeletes.set(command.entryId, { remoteId, relationshipId, revision });
+          } else {
+            uncertainPaymentDeletes.delete(command.entryId);
+          }
+          throw reason;
+        }
+      }
+      uncertainPaymentDeletes.delete(command.entryId);
       remoteSubscriptionId.delete(command.entryId);
       subscriptionRevision.delete(command.entryId);
+      subscriptionRelationship.delete(command.entryId);
     } else {
       const entry = command.entry;
       if (entry.kind !== 'payment') throw new Error('Можно изменять только пополнения.');
@@ -817,6 +860,7 @@ export function createSupabaseRepository(
           ...values,
         }, { onConflict: 'id', ignoreDuplicates: true }));
         subscriptionRevision.set(entry.id, 1);
+        subscriptionRelationship.set(entry.id, relationshipId);
       } else {
         await updateRevisionedRow('subscription_entries', entry.id, getRemoteId(remoteSubscriptionId, entry.id), {
           lesson_delta: values.lesson_delta,
@@ -890,6 +934,8 @@ export function createSupabaseRepository(
     async clear() {
       uncertainProfileUpdates.clear();
       acceptedProfileSteps.clear();
+      uncertainPaymentDeletes.clear();
+      subscriptionRelationship.clear();
       relationshipByStudent.clear();
       trainerByStudent.clear();
       remoteStudentId.clear();
