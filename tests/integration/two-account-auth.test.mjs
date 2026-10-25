@@ -406,6 +406,49 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
     assert.deepEqual(assertSuccess(await trainer.from(table).select('*').eq('id', remoteId).single(), `protected ${table} update`), concurrentUpdate);
   }
 
+  for (const scenario of ['committed', 'uncommitted', 'concurrent-edit', 'account-changed', 'related-student']) {
+    const paymentId = crypto.randomUUID();
+    assertSuccess(await trainer.from('subscription_entries').insert({ id: paymentId, relationship_id: invitation.relationshipId,
+      kind: 'payment', lesson_delta: 2, amount_rub: 1000, payment_method: 'cash', occurred_at: new Date().toISOString() }), 'create payment for delete recovery');
+    let loseResponse = true;
+    let deleteCalls = 0;
+    let reader = trainer;
+    const transport = { from: name => reader.from(name), auth: { getUser: () => reader.auth.getUser() }, functions: trainer.functions,
+      async rpc(name, args) {
+        if (name !== 'delete_subscription_payment') return trainer.rpc(name, args);
+        deleteCalls++;
+        if (loseResponse) {
+          loseResponse = false;
+          if (['committed', 'account-changed', 'related-student'].includes(scenario)) {
+            assertSuccess(await trainer.rpc(name, args), 'delete payment before losing acknowledgement');
+          }
+          return { error: { message: 'Failed to fetch' } };
+        }
+        return trainer.rpc(name, args);
+      } };
+    const repository = createSupabaseRepository(transport, { id: trainerUser.id, role: 'trainer' });
+    const state = await repository.load();
+    const command = { type: 'subscription.payment.delete', entryId: paymentId };
+    await assert.rejects(repository.execute(command, state), { code: 'REPPY_NETWORK' });
+    if (scenario === 'account-changed') reader = outsider;
+    if (scenario === 'related-student') reader = student;
+    if (scenario === 'concurrent-edit') {
+      assertSuccess(await trainer.from('subscription_entries').update({ amount_rub: 999 }).eq('id', paymentId), 'concurrent payment edit');
+    }
+    if (['concurrent-edit', 'account-changed', 'related-student'].includes(scenario)) {
+      await assert.rejects(repository.execute(command, state), { code: 'REPPY_CONFLICT' });
+      assert.equal(deleteCalls, 1, 'no repeat delete after changed record or unavailable relationship');
+      if (scenario === 'concurrent-edit') {
+        assert.equal(assertSuccess(await trainer.from('subscription_entries').select('amount_rub').eq('id', paymentId).single(), 'protected concurrent payment').amount_rub, 999);
+      }
+    } else {
+      await repository.execute(command, state);
+      assert.equal(deleteCalls, scenario === 'committed' ? 1 : 2);
+      assert.deepEqual(assertSuccess(await trainer.from('subscription_entries').select('id').eq('id', paymentId), 'payment is deleted'), []);
+    }
+    assert.deepEqual(assertSuccess(await outsider.from('subscription_entries').select('id').eq('id', paymentId), 'outsider cannot inspect recovered payment'), []);
+  }
+
   const trainerSession = trainerState.sessions.find((item) => item.id === sessionId);
   trainerSession.results = trainerSession.results.map((item) => item.exerciseId === privateExerciseInstanceId
     ? { ...item, actualWeight: 5.5 } : item);
