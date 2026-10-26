@@ -337,7 +337,7 @@ function WorkoutExerciseEditor({
     return stored === 'start' || exercises.some((exercise) => exercise.id === stored) ? stored : null;
   });
   const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(() => {
-    const stored = loadUiDraft<{ exerciseId: string }>(`instruction:${persistenceKey}`);
+    const stored = loadUiDraft(`instruction:${persistenceKey}`);
     return exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
   });
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
@@ -418,8 +418,7 @@ function WorkoutExerciseEditor({
 
   return (
     <Section className="workout-plan-editor">
-      <Box className="form-section-heading"><Heading>Упражнения</Heading></Box>
-      <Button className="floating-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
+      <Box className="form-section-heading"><Heading>Упражнения</Heading><Button className="plan-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение" title="Добавить упражнение"><Icon name="plus" /></Button></Box>
       <Box className="active-exercise-list plan-exercise-list">
         {exercises.map((exercise, index) => (
           <PlanExerciseCard

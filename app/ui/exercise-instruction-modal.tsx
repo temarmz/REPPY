@@ -33,7 +33,10 @@ export default function ExerciseInstructionModal({
   const resolvedEquipment = exercise.equipment ?? definition?.equipment;
   const equipment = resolvedEquipment && resolvedEquipment !== 'Свой вес' ? resolvedEquipment : null;
   const draftKey = persistenceKey ?? `instruction:${exercise.id}`;
-  const [instructionText, setInstructionText] = useState(() => loadUiDraft<{ instructionText: string }>(draftKey)?.instructionText ?? exercise.instructionText ?? '');
+  const [instructionText, setInstructionText] = useState(() => {
+    const draft = loadUiDraft(draftKey);
+    return typeof draft?.instructionText === 'string' ? draft.instructionText : exercise.instructionText ?? '';
+  });
   const [instructionVideo, setInstructionVideo] = useState(exercise.instructionVideo);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);

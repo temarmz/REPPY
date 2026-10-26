@@ -43,7 +43,10 @@ export function InviteStudent({
   onInvite?: (name: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
 }) {
   const draftKey = `invite-student:${draftIdentity}`;
-  const [name, setName] = useState(() => loadUiDraft<{ name: string }>(draftKey)?.name ?? '');
+  const [name, setName] = useState(() => {
+    const draft = loadUiDraft(draftKey);
+    return typeof draft?.name === 'string' ? draft.name : '';
+  });
   const [created, setCreated] = useState<{ student: Student; token?: string; expiresAt?: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);

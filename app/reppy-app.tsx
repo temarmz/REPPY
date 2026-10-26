@@ -505,22 +505,14 @@ function SubscriptionCard({ data, student, trainerView }: { data: DemoState; stu
 
 function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = false }: { student: Student; onSave: (student: Student) => void; alwaysExpanded?: boolean; compact?: boolean }) {
   const draftKey = `athlete:${student.id}:${compact ? 'compact' : 'full'}`;
-  const [restoredDraft] = useState(() => loadUiDraft<{
-    expanded: boolean;
-    editing: boolean;
-    height: string;
-    weight: string;
-    gender: Student['gender'];
-    phone: string;
-    contraindications: string;
-  }>(draftKey));
-  const [expanded, setExpanded] = useState(restoredDraft?.expanded ?? alwaysExpanded);
-  const [editing, setEditing] = useState(restoredDraft?.editing ?? false);
+  const [restoredDraft] = useState(() => loadUiDraft(draftKey));
+  const [expanded, setExpanded] = useState(typeof restoredDraft?.expanded === 'boolean' ? restoredDraft.expanded : alwaysExpanded);
+  const [editing, setEditing] = useState(typeof restoredDraft?.editing === 'boolean' ? restoredDraft.editing : false);
   const [height, setHeight] = useState(typeof restoredDraft?.height === 'string' ? restoredDraft.height : (student.height ? String(student.height) : ''));
   const [weight, setWeight] = useState(typeof restoredDraft?.weight === 'string' ? restoredDraft.weight : (student.weight ? String(student.weight) : ''));
-  const [gender, setGender] = useState<Student['gender']>(restoredDraft?.gender ?? student.gender ?? 'not-specified');
-  const [phone, setPhone] = useState(restoredDraft?.phone ?? student.phone ?? '');
-  const [contraindications, setContraindications] = useState(restoredDraft?.contraindications ?? student.contraindications ?? '');
+  const [gender, setGender] = useState<Student['gender']>(restoredDraft?.gender === 'male' || restoredDraft?.gender === 'female' || restoredDraft?.gender === 'not-specified' ? restoredDraft.gender : student.gender ?? 'not-specified');
+  const [phone, setPhone] = useState(typeof restoredDraft?.phone === 'string' ? restoredDraft.phone : student.phone ?? '');
+  const [contraindications, setContraindications] = useState(typeof restoredDraft?.contraindications === 'string' ? restoredDraft.contraindications : student.contraindications ?? '');
   const [validationAttempted, setValidationAttempted] = useState(false);
   const parsedHeight = Number(height);
   const parsedWeight = Number(weight.replace(',', '.'));

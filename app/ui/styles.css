@@ -780,7 +780,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .workout-form { padding-bottom: var(--space-30); }
 .form-section-heading { display: flex; align-items: center; justify-content: space-between; margin: var(--space-37) 0 var(--space-15); }
 .form-section-heading h2 { margin: 0; font-size: var(--font-size-19); }
-.form-section-heading span { display: grid; width: var(--size-30); height: var(--size-30); place-items: center; border-radius: var(--radius-10); background: var(--tint-c6ff3d-100); color: var(--lime); font-size: var(--font-size-12); font-weight:var(--font-weight-900); }
+.form-section-heading > span { display: grid; width: var(--size-30); height: var(--size-30); place-items: center; border-radius: var(--radius-10); background: var(--tint-c6ff3d-100); color: var(--lime); font-size: var(--font-size-12); font-weight:var(--font-weight-900); }
 .exercise-editor-list { display: grid; gap: var(--space-12); }
 .exercise-editor { border-radius: var(--radius-22); padding: var(--space-17); background: var(--palette-0a0c0a); }
 .exercise-editor-head { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: var(--space-12); margin-bottom: var(--space-16); }
@@ -1615,8 +1615,8 @@ body.modal-open .bottom-nav { display: none; }
 .training-format-field button.selected { border-color: var(--tint-c6ff3d-300); background: var(--lime); color: var(--ink); }
 .training-format-field > p { margin: 0 var(--space-2); color: var(--muted); font-size: var(--font-size-12); line-height: 1.45; }
 .workout-plan-editor { margin-top: var(--space-26); }
-.floating-exercise-add { position: fixed; right: max(22px, calc((100vw - 720px) / 2 + 22px)); bottom: calc(94px + env(safe-area-inset-bottom)); z-index: 51; display: grid; width: calc(var(--size-60) * var(--ui-control-width-scale)); height: calc(var(--size-60) * var(--ui-control-height-scale)); place-items: center; border: 0; border-radius: 50%; background: var(--lime); color: var(--ink); box-shadow: 0 8px 28px var(--tint-000000-350); cursor: pointer; }
-.floating-exercise-add .ui-icon { width: calc(var(--size-27) * var(--ui-icon-scale)); height: calc(var(--size-27) * var(--ui-icon-scale)); }
+.plan-exercise-add { display: grid; flex-shrink: 0; width: calc(var(--size-60) * var(--ui-control-width-scale)); height: calc(var(--size-60) * var(--ui-control-height-scale)); place-items: center; border: 0; border-radius: 50%; background: var(--lime); color: var(--ink); box-shadow: 0 8px 28px var(--tint-000000-350); cursor: pointer; }
+.plan-exercise-add .ui-icon { width: calc(var(--size-27) * var(--ui-icon-scale)); height: calc(var(--size-27) * var(--ui-icon-scale)); }
 .picker-exercise-row { display: flex; min-height: var(--size-64); align-items: center; justify-content: space-between; gap: var(--space-12); border-bottom: 1px solid var(--tint-ffffff-70); padding: var(--space-8) var(--space-4); }
 .picker-exercise-row > div:first-child { display: grid; min-width: 0; gap: var(--space-4); }
 .picker-exercise-row strong { font-size: var(--button-font-size); }
@@ -1631,7 +1631,7 @@ body.modal-open .bottom-nav { display: none; }
 .picker-list .picker-quantity button .ui-icon { width: calc(var(--size-22) * var(--ui-icon-scale)); height: calc(var(--size-22) * var(--ui-icon-scale)); background: currentColor; color: inherit; }
 .picker-list .picker-quantity button:not(:disabled):active { transform: scale(.94); }
 .picker-list .picker-quantity button:disabled { opacity: .35; cursor: not-allowed; }
-.workout-plan-editor .form-section-heading { margin: 0 0 var(--space-15); }
+.workout-plan-editor .form-section-heading { gap: var(--space-15); margin: 0 0 var(--space-15); }
 .plan-exercise-list { gap: var(--space-18); }
 .plan-exercise-card { background: var(--palette-121512); }
 .plan-card-sets .plan-set-card { min-height: var(--size-96); grid-template-columns: 62px minmax(0,1fr); }
@@ -1959,7 +1959,6 @@ body.modal-open .bottom-nav { display: none; }
 .plan-context-card .schedule-field.date-picker-field > button strong { font-size: var(--font-size-14); }
 .plan-submit-actions {
   margin-top: var(--space-24);
-  padding-right: var(--space-76);
 }
 .plan-delete-button {
   width: 100%;
@@ -2506,7 +2505,7 @@ html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider)
 
 html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .progress-chart svg, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state > span, .history-copy-icon, .student-request-status > .ui-icon, .exercise-coach-note .ui-icon, .active-coach-note > .ui-icon, .active-edit-toggle .ui-icon, .exercise-comment-button .ui-icon, .active-exercise-footer-actions button .ui-icon, .result-coach-note .ui-icon, .readonly-coach-note .ui-icon, .student-subscription-status > span, .subscription-entry-delta.positive, .session-subscription-status > .ui-icon, .feedback-intro > span, .success-mood .ui-icon, .session-feedback strong .ui-icon) { color: var(--lime-strong); }
-html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .agenda-status, .history-status.completed, .reschedule-request-card > div:first-child > span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading > span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .agenda-status, .history-status.completed, .reschedule-request-card > div:first-child > span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.readonly-coach-note, .reschedule-request-card p, .student-request-status p, .exercise-coach-note, .active-coach-note strong, .exercise-instruction-body p, .subscription-entry-list p, .confirmation-sheet > p) { color: var(--palette-465043) !important; }
 html[data-theme="light"] .readonly-exercise-card h2 { border-top-color: var(--tint-4f7111-140); color: var(--palette-465043); }
 html[data-theme="light"] .athlete-details { border-top-color: var(--divider); }

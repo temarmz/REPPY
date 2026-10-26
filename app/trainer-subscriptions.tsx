@@ -17,7 +17,7 @@ import ConfirmationModal from './ui/confirmation-modal';
 import { go } from './navigation';
 import PageHeader from './route-page-header';
 import { lessonWord, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
-import { clearUiDraft, loadUiDraft, saveUiDraft } from './ui-persistence';
+import { clearUiDraft, isDraftDateString, loadUiDraft, saveUiDraft } from './ui-persistence';
 
 function formatRubles(amount = 0) {
   return new Intl.NumberFormat('ru-RU').format(amount) + ' ₽';
@@ -107,13 +107,7 @@ export function SubscriptionPaymentForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const source = initial ?? defaults;
   const draftKey = `subscription:${student.id}:${initial?.id ?? 'new'}`;
-  const [restoredDraft] = useState(() => loadUiDraft<{
-    lessons: string;
-    amountRub: string;
-    paymentMethod: PaymentMethod;
-    occurredAt: string;
-    comment: string;
-  }>(draftKey));
+  const [restoredDraft] = useState(() => loadUiDraft(draftKey));
   const initialValues = useMemo(() => ({
     lessons: String(source?.lessonDelta ?? 8),
     amountRub: String(source?.amountRub ?? 11400),
@@ -121,11 +115,11 @@ export function SubscriptionPaymentForm({
     occurredAt: initial?.occurredAt.slice(0, 10) ?? dateKey(),
     comment: initial?.comment ?? '',
   }), [initial?.comment, initial?.occurredAt, source?.lessonDelta, source?.amountRub, source?.paymentMethod]);
-  const [lessons, setLessons] = useState(restoredDraft?.lessons ?? initialValues.lessons);
-  const [amountRub, setAmountRub] = useState(restoredDraft?.amountRub ?? initialValues.amountRub);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(restoredDraft?.paymentMethod ?? initialValues.paymentMethod);
-  const [occurredAt, setOccurredAt] = useState(restoredDraft?.occurredAt ?? initialValues.occurredAt);
-  const [comment, setComment] = useState(restoredDraft?.comment ?? initialValues.comment);
+  const [lessons, setLessons] = useState(typeof restoredDraft?.lessons === 'string' ? restoredDraft.lessons : initialValues.lessons);
+  const [amountRub, setAmountRub] = useState(typeof restoredDraft?.amountRub === 'string' ? restoredDraft.amountRub : initialValues.amountRub);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(restoredDraft?.paymentMethod === 'cash' || restoredDraft?.paymentMethod === 'transfer' ? restoredDraft.paymentMethod : initialValues.paymentMethod);
+  const [occurredAt, setOccurredAt] = useState(isDraftDateString(restoredDraft?.occurredAt) ? restoredDraft.occurredAt : initialValues.occurredAt);
+  const [comment, setComment] = useState(typeof restoredDraft?.comment === 'string' ? restoredDraft.comment : initialValues.comment);
   const [error, setError] = useState('');
 
   useEffect(() => {

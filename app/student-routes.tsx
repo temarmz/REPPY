@@ -34,7 +34,7 @@ import {
 } from './schedule-display';
 import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledger';
 import { subscriptionBalanceLabel, subscriptionTone } from './workout-display';
-import { clearUiDraft, loadUiDraft, saveUiDraft } from './ui-persistence';
+import { clearUiDraft, isDraftDateString, isDraftTimeString, loadUiDraft, saveUiDraft } from './ui-persistence';
 
 const ActiveWorkout = lazy(() => import('./active-workout'));
 
@@ -63,10 +63,10 @@ function StudentAssignmentDetails({
 }) {
   const workout = findAssignmentWorkout(data, assignment);
   const draftKey = `reschedule:${assignment.id}`;
-  const [restoredDraft] = useState(() => loadUiDraft<{ requestOpen: boolean; scheduledFor: string; scheduledTime: string }>(draftKey));
-  const [requestOpen, setRequestOpen] = useState(restoredDraft?.requestOpen ?? false);
-  const [scheduledFor, setScheduledFor] = useState(restoredDraft?.scheduledFor ?? assignment.rescheduleRequest?.scheduledFor ?? assignment.scheduledFor);
-  const [scheduledTime, setScheduledTime] = useState(restoredDraft?.scheduledTime ?? assignment.rescheduleRequest?.scheduledTime ?? assignment.scheduledTime ?? '18:00');
+  const [restoredDraft] = useState(() => loadUiDraft(draftKey));
+  const [requestOpen, setRequestOpen] = useState(typeof restoredDraft?.requestOpen === 'boolean' ? restoredDraft.requestOpen : false);
+  const [scheduledFor, setScheduledFor] = useState(isDraftDateString(restoredDraft?.scheduledFor) ? restoredDraft.scheduledFor : assignment.rescheduleRequest?.scheduledFor ?? assignment.scheduledFor);
+  const [scheduledTime, setScheduledTime] = useState(isDraftTimeString(restoredDraft?.scheduledTime) ? restoredDraft.scheduledTime : assignment.rescheduleRequest?.scheduledTime ?? assignment.scheduledTime ?? '18:00');
 
   useEffect(() => {
     if (requestOpen && !assignment.rescheduleRequest) saveUiDraft(draftKey, { requestOpen, scheduledFor, scheduledTime });
@@ -148,9 +148,9 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 
 function WorkoutFeedback({ data, session, backPath, onComplete }: { data: DemoState; session: WorkoutSession; backPath: string; onComplete: (mood: MoodRating, comment: string) => void }) {
   const draftKey = `feedback:${session.id}`;
-  const [restoredDraft] = useState(() => loadUiDraft<{ mood: MoodRating | null; comment: string }>(draftKey));
-  const [mood, setMood] = useState<MoodRating | null>(restoredDraft?.mood ?? null);
-  const [comment, setComment] = useState(restoredDraft?.comment ?? '');
+  const [restoredDraft] = useState(() => loadUiDraft(draftKey));
+  const [mood, setMood] = useState<MoodRating | null>(restoredDraft?.mood === 'great' || restoredDraft?.mood === 'good' || restoredDraft?.mood === 'tired' || restoredDraft?.mood === 'hard' ? restoredDraft.mood : null);
+  const [comment, setComment] = useState(typeof restoredDraft?.comment === 'string' ? restoredDraft.comment : '');
   const workout = findSessionWorkout(data, session);
 
   useEffect(() => {
