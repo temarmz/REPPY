@@ -1,6 +1,6 @@
 import { UI_ASSETS } from './assets';
 import { Aside, Inline, Strong, Small, Page, Image, PageTitle, Paragraph } from './elements';
-import { createContext, useEffect, useState } from 'react';
+import { Component, createContext, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import type { PersistencePhase } from '../use-reppy-data';
 import Icon, { type IconName } from './icon';
 import { ActionButton, Button } from './controls';
@@ -97,4 +97,27 @@ export function DataLoadError({ onRetry }: { onRetry: () => void }) {
       <ActionButton icon="history" onClick={onRetry}>Повторить</ActionButton>
     </Page>
   );
+}
+
+export class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // Keep the original error in the console for remote Web Inspector debugging.
+    console.error('REPPY render failed', error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <Page className="system-state-screen" role="alert">
+      <Image className="loading-logo" src={UI_ASSETS.logo} alt="REPPY" />
+      <PageTitle>Не удалось открыть экран</PageTitle>
+      <Paragraph>Приложение столкнулось с ошибкой. Перезагрузи страницу, чтобы восстановить работу. Ранее сохранённые черновики останутся на этом устройстве.</Paragraph>
+      <ActionButton icon="history" onClick={() => window.location.reload()}>Перезагрузить</ActionButton>
+    </Page>;
+  }
 }

@@ -19,7 +19,29 @@
     <title>REPPY — тренировки для тренера и ученика</title>
   </head>
   <body>
+    <!-- Independent of the app bundle: a failed or outdated JS asset must not leave a black screen. -->
+    <div id="boot-recovery" role="status" style="position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;background:#070908;color:#f5f6ef;font:600 16px system-ui,sans-serif;text-align:center">
+      <strong style="font-size:28px">REPPY</strong>
+      <span id="boot-message">Загружаем приложение…</span>
+      <button id="boot-retry" type="button" hidden style="min-height:56px;border:0;border-radius:12px;padding:0 24px;background:#a9db55;color:#171b16;font:700 16px system-ui,sans-serif">Перезагрузить</button>
+    </div>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      document.getElementById('boot-retry').addEventListener('click', () => {
+        const freshUrl = new URL(location.href);
+        freshUrl.searchParams.set('reppy-retry', String(Date.now()));
+        location.replace(freshUrl.href);
+      });
+      const showBootRecovery = () => {
+        if (document.getElementById('boot-recovery').hidden) return;
+        document.getElementById('boot-message').textContent = 'Не удалось открыть приложение. Проверь соединение и попробуй снова.';
+        document.getElementById('boot-retry').hidden = false;
+      };
+      setTimeout(showBootRecovery, 8000);
+      window.addEventListener('error', (event) => {
+        if (event.target instanceof HTMLScriptElement) showBootRecovery();
+      }, true);
+    </script>
+    <script type="module" src="/src/main.tsx" onerror="showBootRecovery()"></script>
   </body>
 </html>

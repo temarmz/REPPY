@@ -37,7 +37,7 @@ for (const theme of ['dark', 'light'] as const) {
     }
     await page.evaluate(() => { location.hash = '/trainer/calendar'; });
     await expect(page.locator('.calendar-grid button').first()).toHaveCSS('font-size', '18px');
-    expect(await page.locator('button:not([data-ui-control]), input:not([data-ui-control]), select:not([data-ui-control]), textarea:not([data-ui-control])').count()).toBe(0);
+    expect(await page.locator('#root button:not([data-ui-control]), #root input:not([data-ui-control]), #root select:not([data-ui-control]), #root textarea:not([data-ui-control])').count()).toBe(0);
   });
 }
 

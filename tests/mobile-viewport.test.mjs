@@ -8,6 +8,7 @@ function viewportFixture() {
   let id = 0;
   const target = Object.assign(new EventTarget(), {
     innerHeight: 844, visualViewport: viewport,
+    document: Object.assign(new EventTarget(), { visibilityState: 'visible' }),
     requestAnimationFrame: (callback) => { callbacks.set(++id, callback); return id; },
     cancelAnimationFrame: (key) => callbacks.delete(key),
   });
@@ -33,6 +34,25 @@ test('реальная видимая высота, клавиатура и см
   fixture.target.dispatchEvent(new Event('resize'));
   fixture.flush();
   assert.equal(fixture.values.get('--app-visible-height'), '400px');
+  stop();
+});
+
+test('возвращение из фона не применяет временно неверные координаты WebView', () => {
+  const fixture = viewportFixture();
+  const stop = observeMobileViewport(fixture.target, fixture.root);
+  fixture.viewport.height = 1;
+  fixture.viewport.offsetTop = 800;
+  fixture.target.document.dispatchEvent(new Event('visibilitychange'));
+  fixture.flush();
+  assert.equal(fixture.values.get('--app-visible-height'), '720px');
+  assert.equal(fixture.values.get('--app-visible-top'), '0px');
+
+  fixture.viewport.height = 700;
+  fixture.viewport.offsetTop = 800;
+  fixture.target.document.dispatchEvent(new Event('visibilitychange'));
+  fixture.flush();
+  assert.equal(fixture.values.get('--app-visible-height'), '700px');
+  assert.equal(fixture.values.get('--app-visible-top'), '144px');
   stop();
 });
 
