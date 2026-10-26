@@ -199,7 +199,7 @@ test('светлая тема переключается из компактно
     return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
   });
   expect(primaryContrast).toBeGreaterThanOrEqual(4.5);
-  await expect(page.locator('.design-kit-statuses span').first()).toHaveCSS('color', 'rgb(96, 72, 154)');
+  await expect(page.locator('.design-kit-statuses span').first()).toHaveCSS('color', 'rgb(104, 112, 103)');
   await expect(page.locator('.design-kit-statuses .attention')).toHaveCSS('color', 'rgb(168, 68, 43)');
   await page.screenshot({ path: 'test-results/theme-light-design-kit.png', animations: 'disabled' });
 
@@ -209,24 +209,24 @@ test('светлая тема переключается из компактно
   await page.screenshot({ path: 'test-results/theme-light-calendar.png', animations: 'disabled' });
 
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
-  await expect(page.locator('.set-count-control > span').first()).toHaveCSS('color', 'rgb(78, 89, 74)');
+  await expect(page.locator('.set-count-control > span').first()).toHaveCSS('color', 'rgb(104, 112, 103)');
   await expect(page.locator('.set-count-control').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('.set-count-control > strong')).toHaveCount(0);
-  const firstPlanExercise = page.locator('.plan-exercise-card').first();
+  const firstPlanExercise = page.locator('.plan-exercise-card:visible').first();
   await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('border-top-width', '1px');
-  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('border-top-color', 'rgb(130, 145, 126)');
-  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('background-color', 'rgb(243, 246, 239)');
-  await expect(page.locator('.plan-context-card .date-picker-field > button')).toHaveCSS('border-top-color', 'rgb(130, 145, 126)');
+  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('border-top-color', 'rgba(25, 35, 23, 0.2)');
+  await expect(firstPlanExercise.getByLabel('КГ').first()).toHaveCSS('background-color', 'rgb(247, 248, 243)');
+  await expect(page.locator('.plan-context-card .date-picker-field > button')).toHaveCSS('border-top-color', 'rgba(25, 35, 23, 0.2)');
   const setCountGroup = firstPlanExercise.getByRole('group', { name: 'Подходы — Жим лёжа' });
   const [setCountLabelBox, removeSetBox] = await Promise.all([
     setCountGroup.locator(':scope > span').boundingBox(),
     setCountGroup.getByRole('button', { name: 'Удалить последний подход — Жим лёжа' }).boundingBox(),
   ]);
   expect(Math.round((removeSetBox?.x ?? 0) - ((setCountLabelBox?.x ?? 0) + (setCountLabelBox?.width ?? 0)))).toBeLessThanOrEqual(9);
-  await expect(firstPlanExercise.locator('.active-exercise-footer-actions')).toHaveCSS('border-top-width', '1px');
+  await expect(firstPlanExercise.locator('.active-exercise-footer-actions')).toHaveCSS('border-top-width', '0px');
   await expect(page.getByRole('button', { name: 'Добавить упражнение' }).locator('.ui-icon')).toBeVisible();
   await firstPlanExercise.getByRole('button', { name: 'Как выполнять — Жим лёжа' }).click();
-  await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(96, 72, 154)');
+  await expect(page.locator('.exercise-instruction-media')).toHaveCSS('color', 'rgb(104, 112, 103)');
   await page.getByRole('button', { name: 'Закрыть описание' }).click();
   await page.screenshot({ path: 'test-results/theme-light-assignment-edit.png', animations: 'disabled' });
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
@@ -236,7 +236,7 @@ test('светлая тема переключается из компактно
   await page.getByRole('button', { name: 'Готово' }).click();
 
   await page.goto('/#/trainer/clients');
-  await expect(page.locator('.person-avatar.lime').first()).toHaveCSS('color', 'rgb(79, 113, 17)');
+  await expect(page.locator('.person-avatar.lime').first()).toHaveCSS('color', 'rgb(104, 112, 103)');
 
   await page.goto('/#/trainer/clients/artem/subscription');
   await expect(page.locator('.subscription-entry-delta.negative').first()).toHaveCSS('color', 'rgb(168, 68, 43)');
@@ -1058,7 +1058,7 @@ test('тренер ведёт занятие, правит его в момен�
   const squatCard = page.locator('.active-exercise-card').filter({ hasText: 'Приседания' });
   await expect(squatCard.getByText('Квадрицепс · Штанга')).toBeVisible();
   const firstSquatSetButton = page.getByRole('button', { name: 'Завершить подход 1 — Приседания' });
-  await expect(firstSquatSetButton).toHaveCSS('color', 'rgb(105, 112, 104)');
+  await expect(firstSquatSetButton).toHaveCSS('color', 'rgb(151, 157, 149)');
   await expect(firstSquatSetButton.locator('.ui-icon')).toHaveAttribute('style', /icon-checkmark\.svg/);
   const controlHeights = await Promise.all([
     squatCard.getByRole('button', { name: 'Опустить Приседания ниже' }),

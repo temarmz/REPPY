@@ -10,8 +10,8 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => { location.hash = '/trainer/design-kit'; });
     await expect(page.getByRole('heading', { name: 'ДИЗАЙН-КИТ' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Маленькая', exact: true })).toHaveCSS('min-height', '44px');
-    await expect(page.getByRole('button', { name: 'Средняя', exact: true })).toHaveCSS('min-height', '52px');
-    await expect(page.getByRole('button', { name: 'Большая', exact: true })).toHaveCSS('min-height', '60px');
+    await expect(page.getByRole('button', { name: 'Средняя', exact: true })).toHaveCSS('min-height', '48px');
+    await expect(page.getByRole('button', { name: 'Большая', exact: true })).toHaveCSS('min-height', '56px');
     await page.evaluate(() => {
       document.documentElement.style.setProperty('--button-font-size', '18px');
       document.documentElement.style.setProperty('--control-height-small', '48px');
@@ -78,7 +78,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => { location.hash = '/trainer'; });
     await expect(page.getByRole('switch', { name: 'Все дни' })).toHaveCSS('min-height', '55px');
     await expect(page.locator('.bottom-nav button').first()).toHaveCSS('font-size', '15.4px');
-    await expect(page.locator('.plan-day-card').first()).toHaveCSS('border-radius', '32.5px');
+    await expect(page.locator('.plan-day-card').first()).toHaveCSS('border-radius', '25px');
     expect(await page.locator('main:not([data-ui-element]), section:not([data-ui-element]), article:not([data-ui-element]), h1:not([data-ui-element]), h2:not([data-ui-element])').count()).toBe(0);
   });
 }

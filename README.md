@@ -60,6 +60,7 @@ npm run backup:verify
 ## Документация
 
 - [Библиотека компонентов и правила изменения дизайна](docs/component-library.md)
+- [Постоянные принципы дизайна: поверхности, цвета и размеры](docs/design-principles.md)
 
 - [ТЗ: прогрессия ученика по упражнениям](docs/student-exercise-progress.md)
 - [ТЗ: абонементы учеников](docs/subscriptions.md)

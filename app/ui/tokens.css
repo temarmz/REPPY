@@ -12,10 +12,13 @@
   --ui-icon-scale: 1;
 
   --radius-8: calc(8px * var(--ui-radius-scale));
-  --control-height-small: var(--size-44);
-  --control-height-medium: var(--size-52);
-  --control-height-large: var(--size-60);
-  --control-radius: var(--radius-16);
+  --control-height-small: calc(var(--size-44) * var(--ui-control-height-scale));
+  --control-height-medium: calc(var(--size-48) * var(--ui-control-height-scale));
+  --control-height-large: calc(var(--size-56) * var(--ui-control-height-scale));
+  --control-height-hero: calc(var(--size-60) * var(--ui-control-height-scale));
+  --control-radius: var(--radius-12);
+  --card-radius: var(--radius-20);
+  --modal-radius: var(--radius-24);
   --control-padding: var(--space-16);
   --focus-ring-width: 3px;
   --focus-ring-offset: 3px;
@@ -884,6 +887,8 @@
   --app-bg: var(--palette-070908);
   --text-primary: var(--palette-f5f6ef);
   --control-bg: var(--palette-090b09);
+  --field-bg: var(--control-bg);
+  --field-outline: var(--tint-ffffff-120);
   --overlay-surface: var(--palette-171b17);
   --divider: var(--tint-ffffff-65);
   --lime-strong: var(--palette-b7e85a);
@@ -912,8 +917,8 @@ html[data-theme="light"] {
   --brand-soft: var(--tint-5d8012-100);
   --lime: var(--palette-acd957);
   --lime-strong: var(--palette-4f7111);
-  --field-outline: var(--palette-82917e);
-  --field-bg: var(--palette-f3f6ef);
+  --field-outline: var(--tint-192317-200);
+  --field-bg: var(--control-bg);
 }
 
 html[data-theme="light"] { --error-color: var(--palette-a84336); }

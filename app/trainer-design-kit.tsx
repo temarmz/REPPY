@@ -6,13 +6,16 @@ import Icon from './ui/icon';
 import { SectionHeading, Field, Badge, ProgressBar, ListRow, NavigationButton, Toast } from './ui/patterns';
 import { Page, Paragraph, Section, Box, Heading, Inline, Italic, Strong, Small, SelectOption, Card, Nav } from './ui/elements';
 import { useState } from 'react';
-import { dateKey, type Workout } from './reppy-data';
+import { dateKey, type Workout, type SetResult } from './reppy-data';
 import { AppStatusBanner } from './ui/app-status';
 import WorkoutScheduleFields from './ui/workout-schedule-fields';
 import { ActionButton, TextField, Input, Select, Textarea, Switch, IconButton, FormError } from './ui/controls';
 import ConfirmationModal from './ui/confirmation-modal';
 import PageHeader from './route-page-header';
 import ReadOnlyExerciseList from './ui/read-only-exercise-list';
+import { ActiveExerciseCard, PlanExerciseCard } from './ui/workout-exercise-card';
+import ExerciseInstructionModal from './ui/exercise-instruction-modal';
+import { exerciseMetadata } from './workout-display';
 
 const exampleWorkout: Workout = {
   id: 'kit-workout', name: 'Пример тренировки', createdAt: '2026-01-01T00:00:00Z',
@@ -30,6 +33,15 @@ export default function DesignKitScreen() {
   const [scheduledTime, setScheduledTime] = useState('18:00');
   const [toggleActive, setToggleActive] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [instructionOpen, setInstructionOpen] = useState(false);
+  const [exercise, setExercise] = useState(exampleWorkout.exercises[0]);
+  const [results, setResults] = useState<SetResult[]>(() => exampleWorkout.exercises[0].plannedSets.map((set, index) => ({ exerciseId: 'kit-bench', setNumber: index + 1, actualWeight: set.targetWeight, actualReps: set.targetReps, completed: index === 0 })));
+  const exerciseProps = {
+    exercise, metadata: exerciseMetadata(exercise), index: 0, totalExercises: 1, recentlyMoved: false,
+    onMoveUp: () => undefined, onMoveDown: () => undefined,
+    onShowInstruction: () => setInstructionOpen(true), onShowActions: () => setModalOpen(true),
+    onNoteChange: (coachNote: string) => setExercise((current) => ({ ...current, coachNote })),
+  };
   return (
     <Page className="content-page narrow-page design-kit-page">
       <PageHeader back="/trainer" eyebrow="Внутренний экран" title="ДИЗАЙН-КИТ" />
@@ -58,7 +70,7 @@ export default function DesignKitScreen() {
       </Section>
 
       <Section className="design-kit-section" aria-labelledby="kit-sizes-title">
-        <SectionHeading title={<>Размеры и скругления</>}  titleId="kit-sizes-title"><Inline>Общие параметры</Inline></SectionHeading>
+        <SectionHeading title={<>Размеры и скругления</>}  titleId="kit-sizes-title"><Inline>44 / 48 / 56 px</Inline></SectionHeading>
         <Box className="design-kit-metrics" role="list">
           <Box role="listitem"><Italic className="kit-radius-small" /><Inline>Малое скругление</Inline></Box>
           <Box role="listitem"><Italic className="kit-radius-medium" /><Inline>Поля и контролы</Inline></Box>
@@ -114,8 +126,28 @@ export default function DesignKitScreen() {
       </Section>
 
       <Section className="design-kit-section" aria-labelledby="kit-exercise-title">
-        <SectionHeading title={<>Карточка упражнения</>}  titleId="kit-exercise-title"><Inline>Эталон порядка</Inline></SectionHeading>
+        <SectionHeading title={<>Карточка упражнения</>}  titleId="kit-exercise-title"><Inline>Просмотр</Inline></SectionHeading>
         <ReadOnlyExerciseList workout={exampleWorkout} />
+      </Section>
+
+      <Section className="design-kit-section" aria-label="Планирование упражнения">
+        <SectionHeading title="Планирование упражнения" />
+        <PlanExerciseCard {...exerciseProps}
+          canRemoveSet={exercise.plannedSets.length > 1}
+          onAddSet={() => setExercise((current) => ({ ...current, plannedSets: [...current.plannedSets, { targetWeight: 80, targetReps: 8 }] }))}
+          onRemoveSet={() => setExercise((current) => ({ ...current, plannedSets: current.plannedSets.slice(0, -1) }))}
+          onSetChange={(index, patch) => setExercise((current) => ({ ...current, plannedSets: current.plannedSets.map((set, setIndex) => setIndex === index ? { ...set, ...patch } : set) }))}
+        />
+      </Section>
+
+      <Section className="design-kit-section" aria-label="Выполнение упражнения">
+        <SectionHeading title="Выполнение упражнения" />
+        <ActiveExerciseCard {...exerciseProps} results={results}
+          canRemoveSet={results.length > 1}
+          onAddSet={() => setResults((current) => [...current, { exerciseId: exercise.id, setNumber: current.length + 1, actualWeight: 80, actualReps: 8, completed: false }])}
+          onRemoveSet={() => setResults((current) => current.slice(0, -1))}
+          onResultChange={(setNumber, patch) => setResults((current) => current.map((set) => set.setNumber === setNumber ? { ...set, ...patch } : set))}
+        />
       </Section>
 
       <Section className="design-kit-section" aria-labelledby="kit-patterns-title">
@@ -145,6 +177,7 @@ export default function DesignKitScreen() {
       </Section>
 
       {modalOpen && <ConfirmationModal title="Пример модального окна" text="Здесь проверяются фон, отступы, кнопки и контраст модального слоя." confirmLabel="Подтвердить" onClose={() => setModalOpen(false)} onConfirm={() => setModalOpen(false)} />}
+      {instructionOpen && <ExerciseInstructionModal exercise={exercise} onClose={() => setInstructionOpen(false)} />}
     </Page>
   );
 }
