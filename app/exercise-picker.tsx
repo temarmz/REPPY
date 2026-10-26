@@ -4,7 +4,7 @@ import { exerciseLibrary, exerciseMuscleGroups, makeId, muscleGroups, type Exerc
 import Icon from './ui/icon';
 import ModalFrame from './ui/modal-frame';
 import { ActionButton, Button, Input } from './ui/controls';
-import { loadUiDraft, saveUiDraft } from './ui-persistence';
+import { loadExercisePickerDraft, saveUiDraft } from './ui-persistence';
 
 export type ExercisePickerChoice = {
   id: string;
@@ -61,13 +61,7 @@ export function ExercisePicker({
   canRemove: (exerciseId: string) => boolean;
 }) {
   const draftKey = persistenceKey ?? 'picker';
-  const [restoredDraft] = useState(() => loadUiDraft<{
-    search: string;
-    selectedMuscle: 'all' | MuscleGroup;
-    customLoadMode: 'external' | 'bodyweight';
-    customMeasureType: 'reps' | 'duration';
-    customMuscleGroups?: MuscleGroup[];
-  }>(draftKey));
+  const [restoredDraft] = useState(() => loadExercisePickerDraft(draftKey));
   const [search, setSearch] = useState(restoredDraft?.search ?? '');
   const [selectedMuscle, setSelectedMuscle] = useState<'all' | MuscleGroup>(restoredDraft?.selectedMuscle ?? 'all');
   const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>(restoredDraft?.customLoadMode ?? 'external');
