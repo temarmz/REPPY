@@ -751,8 +751,11 @@ test('упражнение можно добавить повторно и уб�
   const submit = page.getByRole('button', { name: 'Назначить тренировку' });
   await submit.scrollIntoViewIfNeeded();
   const submitBox = await submit.boundingBox();
-  const floatingBox = await page.getByRole('button', { name: 'Добавить упражнение' }).boundingBox();
-  expect(submitBox && floatingBox && submitBox.x + submitBox.width).toBeLessThanOrEqual(floatingBox?.x ?? 0);
+  const addBoxAfter = await page.getByRole('button', { name: 'Добавить упражнение' }).boundingBox();
+  expect(submitBox).not.toBeNull();
+  expect(addBoxAfter).not.toBeNull();
+  expect(Math.max(0, Math.min(submitBox!.x + submitBox!.width, addBoxAfter!.x + addBoxAfter!.width) - Math.max(submitBox!.x, addBoxAfter!.x))
+    * Math.max(0, Math.min(submitBox!.y + submitBox!.height, addBoxAfter!.y + addBoxAfter!.height) - Math.max(submitBox!.y, addBoxAfter!.y))).toBe(0);
 });
 
 test('онлайн-тренировка переиспользует назначение, инструкцию и списание абонемента', async ({ page }) => {

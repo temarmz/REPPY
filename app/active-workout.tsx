@@ -86,7 +86,7 @@ export default function ActiveWorkout({
     return stored && stored !== 'start' && workout.exercises.some((exercise) => exercise.id === stored) ? stored : null;
   });
   const [instructionExercise, setInstructionExercise] = useState<WorkoutExercise | null>(() => {
-    const stored = loadUiDraft<{ exerciseId: string }>(`instruction:${pickerPersistenceKey}`);
+    const stored = loadUiDraft(`instruction:${pickerPersistenceKey}`);
     return workout.exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
   });
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);

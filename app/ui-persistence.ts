@@ -63,12 +63,19 @@ function isDraftDate(value: unknown) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+export function isDraftDateString(value: unknown): value is string {
+  return typeof value === 'string' && value !== '' && isDraftDate(value);
+}
+
+export function isDraftTimeString(value: unknown): value is string {
+  return typeof value === 'string' && (value === '' || /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value));
+}
+
 function isWorkoutDraft(value: unknown): value is WorkoutComposerDraft {
   if (!isRecord(value) || !Array.isArray(value.exercises) || !value.exercises.every(isWorkoutExercise)) return false;
   return typeof value.name === 'string' && (value.format === 'in-person' || value.format === 'online')
     && isDraftDate(value.scheduledFor)
-    && (value.scheduledTime === undefined || value.scheduledTime === ''
-      || (typeof value.scheduledTime === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.scheduledTime)))
+    && (value.scheduledTime === undefined || isDraftTimeString(value.scheduledTime))
     && new Set(value.exercises.map(exercise => exercise.id)).size === value.exercises.length;
 }
 
@@ -182,17 +189,19 @@ export function clearWorkoutComposerDraft(key: string) {
   }
 }
 
-export function loadUiDraft<T>(key: string): T | null {
+export function loadUiDraft(key: string): Record<string, unknown> | null {
   try {
     const raw = window.localStorage.getItem(storageKey(UI_DRAFT_PREFERENCE, key));
     if (!raw) return null;
-    const stored = JSON.parse(raw) as StoredUiDraft<T>;
-    if (!stored || typeof stored.savedAt !== 'number' || Date.now() - stored.savedAt > UI_STATE_MAX_AGE) {
-      window.localStorage.removeItem(storageKey(UI_DRAFT_PREFERENCE, key));
+    const stored: unknown = JSON.parse(raw);
+    if (!isRecord(stored) || typeof stored.savedAt !== 'number' || !Number.isFinite(stored.savedAt)
+      || Date.now() - stored.savedAt > UI_STATE_MAX_AGE || !isRecord(stored.value)) {
+      clearUiDraft(key);
       return null;
     }
     return stored.value;
   } catch {
+    clearUiDraft(key);
     return null;
   }
 }
@@ -215,7 +224,7 @@ export function clearUiDraft(key: string) {
 }
 
 export function loadExercisePickerDraft(key: string): ExercisePickerDraft | null {
-  const value = loadUiDraft<unknown>(key);
+  const value = loadUiDraft(key);
   if (isPickerDraft(value)) return value;
   clearUiDraft(key);
   return null;

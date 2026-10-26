@@ -16,7 +16,7 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(repeats).toBeFocused();
       const overlap = () => repeats.evaluate(element => {
         const field = element.getBoundingClientRect();
-        const button = document.querySelector('[data-route-active="true"] .floating-exercise-add')!.getBoundingClientRect();
+        const button = document.querySelector('[data-route-active="true"] .plan-exercise-add')!.getBoundingClientRect();
         return Math.max(0, Math.min(field.right, button.right) - Math.max(field.left, button.left))
           * Math.max(0, Math.min(field.bottom, button.bottom) - Math.max(field.top, button.top));
       });

@@ -45,11 +45,6 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     if (header) top = Math.max(top, header.getBoundingClientRect().bottom);
     const label = field.closest('label');
     const rect = (label ?? field).getBoundingClientRect();
-    const addButton = field.closest('[data-workout-composer]')?.querySelector('.floating-exercise-add');
-    if (addButton?.getClientRects().length) {
-      const button = addButton.getBoundingClientRect();
-      if (rect.right > button.left && rect.left < button.right) bottom = Math.min(bottom, button.top);
-    }
     const delta = fieldScrollDelta(rect, top + 16, bottom - 24);
     if (Math.abs(delta) < 1) return;
     if (scrollsPage) page.scrollTop += delta;
