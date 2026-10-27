@@ -18,6 +18,9 @@
   --control-height-hero: calc(var(--size-60) * var(--ui-control-height-scale));
   --control-radius: var(--radius-12);
   --card-radius: var(--radius-20);
+  --card-list-gap: var(--space-24);
+  --exercise-title-font-size: var(--font-size-18);
+  --page-title-font-size: clamp(var(--font-size-34), 5vw, var(--font-size-54));
   --modal-radius: var(--radius-24);
   --control-padding: var(--space-16);
   --focus-ring-width: 3px;
@@ -887,6 +890,9 @@
   --app-bg: var(--palette-070908);
   --text-primary: var(--palette-f5f6ef);
   --control-bg: var(--palette-090b09);
+  --button-bg: var(--tint-ffffff-70);
+  --button-hover-bg: var(--tint-ffffff-120);
+  --button-on-light-bg: var(--tint-192317-80);
   --field-bg: var(--control-bg);
   --field-outline: var(--tint-ffffff-120);
   --overlay-surface: var(--palette-171b17);
@@ -910,6 +916,8 @@ html[data-theme="light"] {
   --surface-2: var(--palette-f2f4ee);
   --surface-3: var(--palette-e5e9e1);
   --control-bg: var(--palette-f7f8f3);
+  --button-bg: var(--tint-192317-80);
+  --button-hover-bg: var(--tint-192317-120);
   --overlay-surface: var(--palette-white);
   --muted: var(--palette-687067);
   --ui-outline: var(--tint-192317-120);
@@ -924,3 +932,11 @@ html[data-theme="light"] {
 html[data-theme="light"] { --error-color: var(--palette-a84336); }
 
 html[data-theme="light"] { --badge-warning-text: var(--palette-86492d); }
+
+@media (max-width: 800px) {
+  :root { --page-title-font-size: clamp(var(--font-size-30), 8.5vw, var(--font-size-38)); }
+}
+
+@media (max-width: 470px) {
+  :root { --page-title-font-size: clamp(var(--font-size-28), 7.8vw, var(--font-size-34)); }
+}

@@ -353,7 +353,7 @@ test('тренер видит единые карточки расписания
 
   const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
   await expect(allDaysToggle).toHaveAttribute('aria-checked', 'false');
-  await expect(allDaysToggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(allDaysToggle).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(allDaysToggle).toHaveCSS('border-top-width', '0px');
   await expect(allDaysToggle.locator('.schedule-view-icon')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   const occupiedOnlyDays = page.locator('.schedule-days-list .plan-day-card');
