@@ -90,9 +90,18 @@ export default function AppShell({
       ? { route, identifier: touch.identifier, x: touch.clientX, y: touch.clientY }
       : null;
   };
+  const moveBottomNavTouch = (event: TouchEvent<HTMLButtonElement>) => {
+    const start = bottomNavTouch.current;
+    if (!start) return;
+    const touch = event.touches.length === 1 ? event.touches[0] : null;
+    if (!touch || touch.identifier !== start.identifier || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10) {
+      bottomNavTouch.current = null;
+    }
+  };
   const endBottomNavTouch = (route: string, event: TouchEvent<HTMLButtonElement>) => {
     const start = bottomNavTouch.current;
     bottomNavTouch.current = null;
+    if (event.touches.length) return;
     const touch = start && Array.from(event.changedTouches).find((item) => item.identifier === start.identifier);
     if (!touch || start.route !== route || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10) return;
     // iOS can swallow the synthesized click while momentum scrolling continues.
@@ -163,6 +172,7 @@ export default function AppShell({
         {nav.map((item) => (
           <NavigationButton key={item.route} active={activeRoute === item.route} onClick={() => navigateTab(item.route)}
             onTouchStart={(event) => startBottomNavTouch(item.route, event)}
+            onTouchMove={moveBottomNavTouch}
             onTouchEnd={(event) => endBottomNavTouch(item.route, event)}
             onTouchCancel={() => { bottomNavTouch.current = null; }}>
             <Inline><Icon name={item.icon} /></Inline><Small>{item.label}</Small>
