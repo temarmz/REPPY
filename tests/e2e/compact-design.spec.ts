@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 async function expectVisibleButtonSurfaces(page: import('@playwright/test').Page) {
   const transparent = await page.locator('button:visible').evaluateAll((buttons) => buttons
     .filter((button) => {
+      if (button.matches('.bottom-nav button:not(.active)')) return false;
       const style = getComputedStyle(button);
       const alpha = style.backgroundColor.match(/rgba?\([^)]*,\s*([\d.]+)\)$/)?.[1];
       return style.backgroundColor === 'transparent' || alpha === '0';

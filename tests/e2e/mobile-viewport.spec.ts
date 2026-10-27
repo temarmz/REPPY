@@ -1,36 +1,67 @@
 import { expect, test } from '@playwright/test';
 
-test('меню доходит до края экрана, safe-area находится внутри и скролл его не сдвигает', async ({ page }) => {
+test('плавающее меню сохраняет боковые отступы, safe area и положение при скролле', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
   await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
   await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
   // Desktop browser engines do not expose the hardware home-indicator inset.
-  // Exercise the actual CSS padding path with iPhone's usual 34px safe area.
+  // Exercise the floating bar's bottom margin with iPhone's usual 34px safe area.
   await page.addStyleTag({ content: ':root { --app-safe-bottom: 34px; }' });
   const nav = page.locator('.bottom-nav');
-  for (const size of [{ width: 440, height: 956 }, { width: 390, height: 700 }, { width: 740, height: 390 }]) {
+  for (const size of [{ width: 440, height: 956 }, { width: 390, height: 700 }, { width: 360, height: 700 }, { width: 740, height: 390 }]) {
     await page.setViewportSize(size);
     await expect.poll(async () => {
       const box = await nav.boundingBox();
-      return Math.abs((box?.y ?? 0) + (box?.height ?? 0) - size.height);
+      return Math.abs((box?.y ?? 0) + (box?.height ?? 0) - (size.height - 42));
     }).toBeLessThanOrEqual(1);
-    await expect(nav).toHaveCSS('padding-bottom', '34px');
+    await expect(nav).toHaveCSS('margin-left', '12px');
+    await expect(nav).toHaveCSS('margin-right', '12px');
+    await expect(nav).toHaveCSS('margin-bottom', '42px');
+    await expect(nav).toHaveCSS('border-bottom-left-radius', '22px');
+    await expect(nav).toHaveCSS('border-bottom-right-radius', '22px');
+    const navBox = await nav.boundingBox();
+    expect(navBox!.x).toBe(12);
+    expect(navBox!.x + navBox!.width).toBe(size.width - 12);
     const button = await nav.getByRole('button', { name: 'Сегодня' }).boundingBox();
-    expect(button!.y + button!.height).toBeLessThanOrEqual(size.height - 34);
+    expect(button!.y + button!.height).toBeLessThanOrEqual(size.height - 42);
     await page.locator('.page-wrap').evaluate((element) => { element.scrollTop = element.scrollHeight; });
     await expect.poll(async () => {
       const box = await nav.boundingBox();
-      return Math.abs(box!.y + box!.height - size.height);
+      return Math.abs(box!.y + box!.height - (size.height - 42));
     }).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
     await nav.getByRole('button', { name: 'Календарь' }).tap();
     await expect(nav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
     await nav.getByRole('button', { name: 'Сегодня' }).tap();
   }
+  await expect(nav.locator('button:not(.active)').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(nav.locator('button.active')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.setViewportSize({ width: 440, height: 956 });
+  await page.screenshot({ path: 'test-results/iphone-bottom-nav-dark.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+  await expect(nav.locator('button:not(.active)').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(nav.locator('button.active')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.screenshot({ path: 'test-results/iphone-bottom-nav.png', animations: 'disabled' });
+});
+
+test('экран загрузки имеет ровный чёрный фон и однотонный индикатор', async ({ page }) => {
+  let releaseAsset!: () => void;
+  const heldAsset = new Promise<void>((resolve) => { releaseAsset = resolve; });
+  await page.route('**/good-sm.png', async (route) => {
+    await heldAsset;
+    await route.continue();
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const loading = page.locator('.loading-screen');
+  await expect(loading).toBeVisible();
+  await expect(loading).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(loading.locator('.loading-bar i')).toHaveCSS('background-image', 'none');
+  await expect(loading.locator('.loading-logo')).toHaveCSS('filter', 'none');
+  expect(await loading.evaluate((element) => getComputedStyle(element, '::before').content)).toBe('none');
+  await page.screenshot({ path: 'test-results/loading-black.png', animations: 'disabled' });
+  releaseAsset();
 });
 
 test('меню не обрезается, когда видимая область iPhone меньше CSS viewport', async ({ page }) => {
