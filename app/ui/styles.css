@@ -282,7 +282,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 .brand-button { border: 0; padding: 0; background: var(--button-bg); cursor: pointer; }
 .welcome-card > .brand-button { margin-left: 0; }
-.topbar .brand-button { margin-left: 0; }
+.topbar .brand-button { margin-left: 0; background: transparent; }
 
 
 /* ===== 02-shell-common.css ===== */
@@ -678,7 +678,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .empty-state > span .ui-icon { width: calc(var(--size-24) * var(--ui-icon-scale)); height: calc(var(--size-24) * var(--ui-icon-scale)); }
 .empty-state h3 { margin: var(--space-17) 0 var(--space-7); font-size: var(--font-size-18); }
 .empty-state p { max-width: 390px; margin: 0; color: var(--muted); font-size: var(--font-size-13); line-height: 1.5; }
-.empty-state button { display: inline-flex; min-height: var(--control-height-small); margin-top: var(--space-15); align-items: center; gap: var(--space-6); border: 0; background: var(--surface-2); color: var(--text-primary); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
+.empty-state button { display: inline-flex; min-height: var(--control-height-small); margin-top: var(--space-15); align-items: center; gap: var(--space-6); border: 0; background: var(--button-bg); color: var(--text-primary); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
 
 .client-grid { display: grid; grid-template-columns: 1fr; gap: var(--card-list-gap); }
 .client-card {
@@ -708,7 +708,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
   border: 0;
   border-radius: var(--control-radius);
   padding: var(--space-8) var(--space-16);
-  background: var(--surface-2);
+  background: var(--button-bg);
   cursor: pointer;
   font-size: var(--button-font-size);
   font-weight:var(--font-weight-800);
@@ -889,7 +889,7 @@ body.modal-open .bottom-nav { display: none; }
 .set-card > button .ui-icon { width: calc(var(--size-27) * var(--ui-icon-scale)); height: calc(var(--size-27) * var(--ui-icon-scale)); }
 .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
 .exercise-navigation { position: fixed; right: 0; bottom: 0; left: 0; z-index: 50; display: flex; justify-content: center; gap: var(--space-10); border-top: 1px solid var(--tint-ffffff-70); padding: var(--space-12) max(var(--space-18), calc((100vw - var(--space-720)) / 2)) max(var(--space-12), env(safe-area-inset-bottom)); background: var(--tint-090b09-940); backdrop-filter: blur(18px); }
-.exercise-navigation button { display: inline-flex; min-height: var(--control-height-large); align-items: center; justify-content: center; gap: var(--space-7); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-17); background: var(--surface-2); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
+.exercise-navigation button { display: inline-flex; min-height: var(--control-height-large); align-items: center; justify-content: center; gap: var(--space-7); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-17); background: var(--button-bg); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
 .exercise-navigation button .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
 .exercise-navigation .next-exercise, .exercise-navigation .finish-workout { flex: 1; max-width: 500px; background: var(--palette-ecefe9); color: var(--ink); }
 .exercise-navigation .finish-workout { background: var(--lime); color: var(--ink); }
@@ -1017,8 +1017,8 @@ body.modal-open .bottom-nav { display: none; }
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
-  .bottom-nav { position: relative; z-index: 60; display: flex; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; margin: 0 var(--space-12) max(var(--space-12), calc(var(--app-safe-bottom) + var(--space-8))); border: 1px solid var(--tint-ffffff-100); border-radius: var(--radius-22); padding: var(--space-5) var(--space-12); background: var(--surface); box-shadow: 0 8px 28px var(--tint-000000-340); }
-  .bottom-nav button { display: grid; min-width: calc(var(--size-74) * var(--ui-control-width-scale)); min-height: var(--control-height-medium); place-content: center; justify-items: center; gap: var(--space-4); border: 0; border-radius: var(--control-radius); background: transparent; color: var(--palette-7e847c); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  .bottom-nav { position: relative; z-index: 60; display: flex; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; margin: 0 var(--space-12) max(var(--space-12), calc(var(--app-safe-bottom) + var(--space-8))); border: 1px solid var(--tint-ffffff-100); border-radius: var(--radius-999); padding: var(--space-5); background: var(--surface); box-shadow: 0 8px 28px var(--tint-000000-340); }
+  .bottom-nav button { display: grid; min-width: calc(var(--size-74) * var(--ui-control-width-scale)); min-height: var(--control-height-medium); place-content: center; justify-items: center; gap: var(--space-4); border: 0; border-radius: var(--radius-999); background: transparent; color: var(--palette-7e847c); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
   .bottom-nav button small { font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
@@ -1400,7 +1400,7 @@ body.modal-open .bottom-nav { display: none; }
 .athlete-form textarea { min-height: calc(var(--size-150) * var(--ui-control-height-scale)); resize: vertical; padding-block: var(--space-15); line-height: 1.5; }
 .athlete-form label > small { color: var(--muted); font-size: var(--font-size-12); line-height: 1.5; }
 .athlete-form .primary-button { margin-top: var(--space-5); }
-.details-edit-button { display: inline-flex; width: 100%; min-height: var(--control-height-medium); align-items: center; justify-content: center; gap: var(--space-7); margin: 0 0 var(--space-12); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-16); background: var(--surface-2); color: var(--text-primary); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-800); text-align: center; }
+.details-edit-button { display: inline-flex; width: 100%; min-height: var(--control-height-medium); align-items: center; justify-content: center; gap: var(--space-7); margin: 0 0 var(--space-12); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-16); background: var(--button-bg); color: var(--text-primary); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-800); text-align: center; }
 .details-edit-button .ui-icon { width: calc(var(--size-16) * var(--ui-icon-scale)); height: calc(var(--size-16) * var(--ui-icon-scale)); }
 .profile-links { display: grid; gap: var(--space-10); margin-top: var(--space-25); }
 .student-plan-heading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-16); margin-bottom: var(--space-18); }
@@ -1409,7 +1409,7 @@ body.modal-open .bottom-nav { display: none; }
 
 .workout-assignments { display: grid; gap: var(--space-8); margin-top: var(--space-18); border-radius: var(--card-radius); padding: var(--space-18); background: var(--surface); }
 .workout-assignments h2 { margin: 0 0 var(--space-5); font-size: var(--font-size-18); }
-.workout-assignments > button { display: grid; width: 100%; min-height: calc(var(--size-68) * var(--ui-control-height-scale)); grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-13); border: 0; border-radius: var(--control-radius); padding: var(--space-10) var(--space-12); background: var(--palette-090b09); color: inherit; cursor: pointer; text-align: left; }
+.workout-assignments > button { display: grid; width: 100%; min-height: calc(var(--size-68) * var(--ui-control-height-scale)); grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-13); border: 0; border-radius: var(--control-radius); padding: var(--space-10) var(--space-12); background: var(--button-bg); color: inherit; cursor: pointer; text-align: left; }
 .workout-assignments > button > span:not(.person-avatar) { display: grid; gap: var(--space-4); }
 .workout-assignments > button > .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); color: var(--muted); }
 .workout-assignments strong { font-size: var(--font-size-14); }
@@ -1473,7 +1473,7 @@ body.modal-open .bottom-nav { display: none; }
 .exercise-picker-sheet .sheet-title p { margin: var(--space-5) 0 0; color: var(--muted); font-size: var(--font-size-12); line-height: 1.4; }
 .muscle-filter { display: flex; gap: var(--space-7); margin-top: var(--space-12); overflow-x: auto; padding-bottom: var(--space-4); scrollbar-width: none; }
 .muscle-filter::-webkit-scrollbar { display: none; }
-.muscle-filter button { flex: 0 0 auto; min-height: calc(var(--size-34) * var(--ui-control-height-scale)); border: 1px solid transparent; border-radius: var(--radius-999); padding: 0 var(--space-12); background: var(--surface-2); color: var(--muted); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
+.muscle-filter button { flex: 0 0 auto; min-height: calc(var(--size-34) * var(--ui-control-height-scale)); border: 1px solid transparent; border-radius: var(--radius-999); padding: 0 var(--space-12); background: var(--button-bg); color: var(--muted); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
 .muscle-filter button.selected { border-color: var(--tint-c6ff3d-380); background: var(--tint-c6ff3d-120); color: var(--lime); }
 .picker-list button > div { display: grid; min-width: 0; gap: var(--space-4); }
 .picker-list button strong { font-size: var(--button-font-size); }
@@ -1585,7 +1585,7 @@ body.modal-open .bottom-nav { display: none; }
 .set-count-control { display: flex; min-width: 0; min-height: var(--control-height-small); align-items: stretch; justify-content: flex-start; gap: var(--space-8); }
 .set-count-control > span { align-self: center; overflow: hidden; color: var(--palette-d9ddd6); font-size: var(--button-font-size); font-weight:var(--font-weight-800); text-overflow: ellipsis; }
 .set-count-actions { display: flex; align-items: stretch; gap: var(--space-6); }
-.active-exercise-footer-actions .set-count-actions > button { display: grid; width: calc(var(--size-44) * var(--ui-control-width-scale)); min-height: var(--control-height-small); place-items: center; border-color: var(--tint-ffffff-100); border-radius: var(--control-radius); padding: var(--space-6) var(--space-8); background: var(--surface-2); }
+.active-exercise-footer-actions .set-count-actions > button { display: grid; width: calc(var(--size-44) * var(--ui-control-width-scale)); min-height: var(--control-height-small); place-items: center; border-color: var(--tint-ffffff-100); border-radius: var(--control-radius); padding: var(--space-6) var(--space-8); background: var(--button-bg); }
 .active-exercise-footer-actions .set-count-actions > button:disabled { cursor: not-allowed; opacity: .28; }
 .active-exercise-footer-actions .set-count-actions > button .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
 .active-exercise-footer-actions .add-first-set { display: flex; min-height: var(--control-height-small); align-items: center; justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); padding: var(--space-6) var(--space-8); background: var(--button-bg); color: var(--text-primary); font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
@@ -1634,11 +1634,11 @@ body.modal-open .bottom-nav { display: none; }
 .custom-exercise-builder > div:first-child strong { font-size: var(--font-size-14); }
 .custom-exercise-builder > div:first-child small { color: var(--muted); font-size: var(--font-size-11); }
 .custom-muscle-groups { display: flex; flex-wrap: wrap; gap: var(--space-7); }
-.picker-list .custom-muscle-groups button { min-height: calc(var(--size-38) * var(--ui-control-height-scale)); border: 1px solid transparent; border-radius: var(--radius-999); padding: 0 var(--space-11); background: var(--surface-2); color: var(--muted); font-size: var(--font-size-11); font-weight:var(--font-weight-800); }
+.picker-list .custom-muscle-groups button { min-height: calc(var(--size-38) * var(--ui-control-height-scale)); border: 1px solid transparent; border-radius: var(--radius-999); padding: 0 var(--space-11); background: var(--button-bg); color: var(--muted); font-size: var(--font-size-11); font-weight:var(--font-weight-800); }
 .picker-list .custom-muscle-groups button.selected { border-color: var(--tint-c6ff3d-420); background: var(--tint-c6ff3d-120); color: var(--lime); }
 .custom-exercise-hint { color: var(--palette-ff9b77); font-size: var(--font-size-11); }
 .picker-list .custom-load-mode { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-7); }
-.picker-list .custom-load-mode button { min-height: var(--control-height-small); justify-content: center; border: 1px solid transparent; border-radius: var(--control-radius); padding: 0 var(--space-10); background: var(--surface-2); color: var(--muted); font-size: var(--button-font-size); text-align: center; }
+.picker-list .custom-load-mode button { min-height: var(--control-height-small); justify-content: center; border: 1px solid transparent; border-radius: var(--control-radius); padding: 0 var(--space-10); background: var(--button-bg); color: var(--muted); font-size: var(--button-font-size); text-align: center; }
 .picker-list .custom-load-mode button.selected { border-color: var(--tint-c6ff3d-420); background: var(--tint-c6ff3d-120); color: var(--lime); }
 .picker-list .custom-exercise-builder .custom-exercise-option { min-height: var(--control-height-medium); justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-12); background: var(--lime); color: var(--ink); font-size: var(--button-font-size); font-weight:var(--font-weight-900); text-align: center; }
 .picker-list .custom-exercise-builder .custom-exercise-option:disabled { cursor: not-allowed; opacity: .42; }
@@ -2005,7 +2005,7 @@ body.modal-open .bottom-nav { display: none; }
 .trend-flat, .trend-mixed { color: var(--muted); }
 
 @media (max-width: 800px) {
-  .bottom-nav { gap: var(--space-2); padding-inline: var(--space-4); }
+  .bottom-nav { gap: var(--space-2); }
   .bottom-nav button { flex: 1 1 auto; padding-inline: 0; }
 }
 
@@ -2107,7 +2107,7 @@ body.modal-open .bottom-nav { display: none; }
 .schedule-field.date-picker-field > button { min-height: var(--control-height-large); border-color: var(--tint-ffffff-120); }
 .payment-method-field { display: grid; gap: var(--space-9); margin: 0; border: 0; padding: 0; }
 .payment-method-field > div { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
-.payment-method-field button { display: flex; min-height: var(--control-height-medium); align-items: center; justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); background: var(--surface-2); color: var(--muted); cursor: pointer; font-weight:var(--font-weight-800); }
+.payment-method-field button { display: flex; min-height: var(--control-height-medium); align-items: center; justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); background: var(--button-bg); color: var(--muted); cursor: pointer; font-weight:var(--font-weight-800); }
 .payment-method-field button.selected { border-color: var(--tint-c6ff3d-420); background: var(--brand-soft); color: var(--lime); }
 .payment-method-field button .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
 
@@ -2325,8 +2325,7 @@ textarea::placeholder { color: var(--palette-747b72); opacity: 1; }
   .topbar-actions { gap: var(--space-7); }
   .role-switch { gap: var(--space-5); padding: 0 var(--space-7) 0 var(--space-5); min-height: var(--control-height-small); border: 0; background: var(--button-bg); }
   .avatar-button { width: calc(var(--size-40) * var(--ui-control-width-scale)); flex: 0 0 40px; }
-  .bottom-nav { padding-inline: var(--space-2); }
-  .bottom-nav button { min-width: 0; border-radius: var(--control-radius); }
+  .bottom-nav button { min-width: 0; }
   .bottom-nav button small { overflow: hidden; max-width: 100%; font-size: var(--button-font-size); text-overflow: ellipsis; white-space: nowrap; }
 }
 
@@ -2387,7 +2386,7 @@ html[data-theme="light"] .schedule-view-toggle.active .toggle-track i { backgrou
 
 html[data-theme="light"] :is(.wide-secondary, .empty-state button, .details-edit-button) {
   border-color: var(--ui-outline);
-  background: var(--surface-2);
+  background: var(--button-bg);
   color: var(--palette-2f372d);
 }
 html[data-theme="light"] :is(.trainer-plan-header > button, .schedule-add-button, .empty-day-plus) { border-color: var(--ui-outline); background: var(--button-bg); }
@@ -2427,7 +2426,7 @@ html[data-theme="light"] :is(.field-label, .schedule-field span, .athlete-form l
 
 html[data-theme="light"] :is(.bottom-sheet, .settings-modal) { background: var(--overlay-surface); color: var(--text-primary); box-shadow: 0 24px 80px var(--tint-1d261a-200); }
 html[data-theme="light"] .modal-backdrop { background: var(--tint-181f16-460); }
-html[data-theme="light"] .sheet-title > button { background: var(--surface-2); color: var(--palette-30372e); }
+html[data-theme="light"] .sheet-title > button { background: var(--button-bg); color: var(--palette-30372e); }
 html[data-theme="light"] .sheet-handle { background: var(--palette-cbd0c8); }
 
 html[data-theme="light"] .calendar-toolbar button { border-color: var(--ui-outline); background: var(--button-bg); color: var(--palette-30372e); }
@@ -2564,7 +2563,7 @@ button[data-ui-size="large"] { min-height: var(--control-height-large); }
 .ui-preview-card > p { font-size: var(--font-size-14); line-height: 1.5; }
 .ui-preview-card .workout-progress { margin-top: var(--space-18); }
 .ui-preview-nav { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-16); }
-.ui-preview-nav button { min-height: var(--control-height-small); border: 1px solid var(--ui-outline); border-radius: var(--control-radius); padding: 0 var(--control-padding); background: var(--surface-2); cursor: pointer; }
+.ui-preview-nav button { min-height: var(--control-height-small); border: 1px solid var(--ui-outline); border-radius: var(--control-radius); padding: 0 var(--control-padding); background: var(--button-bg); cursor: pointer; }
 .ui-preview-nav button.active { background: var(--lime); color: var(--ink); }
 .toast.preview { position: static; transform: none; width: fit-content; max-width: 100%; margin-top: var(--space-16); }
 .ui-component-inventory { display: flex; flex-wrap: wrap; gap: var(--space-8); }

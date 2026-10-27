@@ -19,12 +19,14 @@ test('плавающее меню сохраняет боковые отступ
     await expect(nav).toHaveCSS('margin-left', '12px');
     await expect(nav).toHaveCSS('margin-right', '12px');
     await expect(nav).toHaveCSS('margin-bottom', '42px');
-    await expect(nav).toHaveCSS('border-bottom-left-radius', '22px');
-    await expect(nav).toHaveCSS('border-bottom-right-radius', '22px');
+    await expect(nav).toHaveCSS('border-bottom-left-radius', '999px');
+    await expect(nav).toHaveCSS('border-bottom-right-radius', '999px');
+    await expect(nav.getByRole('button', { name: 'Сегодня' })).toHaveCSS('border-radius', '999px');
     const navBox = await nav.boundingBox();
     expect(navBox!.x).toBe(12);
     expect(navBox!.x + navBox!.width).toBe(size.width - 12);
     const button = await nav.getByRole('button', { name: 'Сегодня' }).boundingBox();
+    expect(Math.abs((button!.y - navBox!.y) - (navBox!.y + navBox!.height - button!.y - button!.height))).toBeLessThanOrEqual(1);
     expect(button!.y + button!.height).toBeLessThanOrEqual(size.height - 42);
     await page.locator('.page-wrap').evaluate((element) => { element.scrollTop = element.scrollHeight; });
     await expect.poll(async () => {

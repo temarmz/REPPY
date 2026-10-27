@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 async function expectVisibleButtonSurfaces(page: import('@playwright/test').Page) {
   const transparent = await page.locator('button:visible').evaluateAll((buttons) => buttons
     .filter((button) => {
-      if (button.matches('.bottom-nav button:not(.active)')) return false;
+      if (button.matches('.bottom-nav button:not(.active), .topbar .brand-button')) return false;
       const style = getComputedStyle(button);
       const alpha = style.backgroundColor.match(/rgba?\([^)]*,\s*([\d.]+)\)$/)?.[1];
       return style.backgroundColor === 'transparent' || alpha === '0';
@@ -19,6 +19,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.reload();
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
     if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+    await expect(page.locator('.topbar .brand-button')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expectVisibleButtonSurfaces(page);
 
     await page.goto('/#/trainer/clients/invite');
@@ -82,5 +83,17 @@ for (const theme of ['dark', 'light'] as const) {
     await expectVisibleButtonSurfaces(page);
     await page.goto('/#/student/calendar');
     await expectVisibleButtonSurfaces(page);
+    await page.goto('/#/student/assignments/assignment-artem-push-today');
+    const reschedule = page.getByRole('button', { name: 'Предложить другое время' });
+    await expect(reschedule).toBeVisible();
+    const backgroundDifference = await reschedule.evaluate((element) => {
+      const parse = (color: string) => color.match(/[\d.]+/g)!.map(Number);
+      const [red, green, blue, alpha = 1] = parse(getComputedStyle(element).backgroundColor);
+      const [baseRed, baseGreen, baseBlue] = parse(getComputedStyle(document.querySelector('.app-shell')!).backgroundColor);
+      return Math.max(...[red - baseRed, green - baseGreen, blue - baseBlue].map((channel) => Math.abs(channel * alpha)));
+    });
+    expect(backgroundDifference).toBeGreaterThan(10);
+    await expectVisibleButtonSurfaces(page);
+    await page.screenshot({ path: `test-results/design-refresh/student-assignment-${theme}.png` });
   });
 }
