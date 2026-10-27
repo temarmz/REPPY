@@ -2,6 +2,7 @@ import { Box } from './ui/elements';
 import { Activity, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { LoadingScreen } from './onboarding-screens';
 import { RELEASE_ROUTE_STATE_EVENT, RoutePathContext } from './navigation';
+import { AppErrorBoundary } from './ui/app-status';
 
 // Keep the React state and DOM of visited screens for the lifetime of this
 // account's cabinet. Activity suspends effects on inactive screens (timers,
@@ -27,13 +28,16 @@ export default function RetainedRouteViews({ path, renderRoute }: {
     return () => window.removeEventListener(RELEASE_ROUTE_STATE_EVENT, release);
   }, []);
 
+  // A failed screen must not dispose the account controller or pending writes.
   return routes.map((route) => (
     <Activity key={route} mode={route === path ? 'visible' : 'hidden'}>
       <Box data-route-view={route} data-route-active={route === path ? 'true' : 'false'}>
         <RoutePathContext value={route}>
-          <Suspense fallback={<LoadingScreen message="Загружаем экран…" />}>
-            {renderRoute(route)}
-          </Suspense>
+          <AppErrorBoundary>
+            <Suspense fallback={<LoadingScreen message="Загружаем экран…" />}>
+              {renderRoute(route)}
+            </Suspense>
+          </AppErrorBoundary>
         </RoutePathContext>
       </Box>
     </Activity>
