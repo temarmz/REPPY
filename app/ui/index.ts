@@ -11,7 +11,7 @@ export { default as ModalFrame } from './modal-frame';
 export { default as ConfirmationModal } from './confirmation-modal';
 export { default as EmptyState } from './empty-state';
 export { default as AppShell } from './app-shell';
-export { AppErrorBoundary, AppStatusBanner, DataLoadError } from './app-status';
+export { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError } from './app-status';
 export { default as MonthDatePicker } from './month-date-picker';
 export { default as WorkoutScheduleFields, DatePickerField } from './workout-schedule-fields';
 export { default as ReadOnlyExerciseList } from './read-only-exercise-list';

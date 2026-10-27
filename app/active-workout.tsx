@@ -139,6 +139,7 @@ export default function ActiveWorkout({
   };
 
   const updateExerciseNote = (exerciseId: string, coachNote: string) => {
+    if (workout.exercises.find((exercise) => exercise.id === exerciseId)?.coachNote === coachNote) return;
     updateWorkout(workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, coachNote } : exercise));
   };
 
@@ -153,6 +154,8 @@ export default function ActiveWorkout({
   };
 
   const updateResult = (exerciseId: string, setNumber: number, patch: Partial<SetResult>) => {
+    const current = session.results.find((result) => result.exerciseId === exerciseId && result.setNumber === setNumber);
+    if (!current || Object.entries(patch).every(([key, value]) => current[key as keyof SetResult] === value)) return;
     onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch } : result));
   };
 

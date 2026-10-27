@@ -2,7 +2,7 @@ import { InitialsAvatar } from './ui/avatar';
 import { ListRow } from './ui/patterns';
 import { SectionHeading, Field, Toast } from './ui/patterns';
 import { Box, Page, Section, Inline, Strong, Small, Italic, Header, Paragraph, SelectOption, DefinitionList, DefinitionTerm, DefinitionValue } from './ui/elements';
-import { lazy, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   TRAINER_NAME,
   findAssignmentWorkout,
@@ -18,7 +18,9 @@ import { StudentExerciseProgress } from './exercise-progress-view';
 import EmptyState from './ui/empty-state';
 import AppShell, { type AppTheme } from './ui/app-shell';
 import RetainedRouteViews from './retained-route-views';
-import { AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './ui/app-status';
+import StudentRoutes from './student-routes';
+import TrainerRoutes from './trainer-routes';
+import { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './ui/app-status';
 import { downloadPersistenceDiagnostics } from './persistence-diagnostics';
 import ModalFrame, { MODAL_LAYER_EVENT } from './ui/modal-frame';
 import { ActionButton, FormError, Button, Input, Select, Textarea } from './ui/controls';
@@ -65,9 +67,6 @@ import {
   saveThemePreference,
   saveUiDraft,
 } from './ui-persistence';
-
-const StudentRoutes = lazy(() => import('./student-routes'));
-const TrainerRoutes = lazy(() => import('./trainer-routes'));
 
 function findStudent(data: DemoState, id: string) {
   return data.students.find((student) => student.id === id);
@@ -128,6 +127,8 @@ export default function ReppyApp() {
   const online = useOnlineStatus();
   const path = useHashNavigation();
   const [assetsReady, setAssetsReady] = useState(false);
+  const [shellFailed, setShellFailed] = useState(false);
+  const [shellRecoveryKey, setShellRecoveryKey] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modalLayerOpen, setModalLayerOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -384,6 +385,7 @@ export default function ReppyApp() {
 
   return (
     <>
+      <AppErrorBoundary key={shellRecoveryKey} hideFallback onFailure={() => setShellFailed(true)}>
       <AppShell
         key={`${auth.profile?.id ?? 'demo'}:${area}:${area === 'student' ? data.activeStudentId : ''}`}
         area={area}
@@ -396,13 +398,20 @@ export default function ReppyApp() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onSettings={() => setSettingsOpen(true)}
-        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} />}
+        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} hideSaving={path.startsWith('/trainer/workout/') || path.startsWith('/student/workout/')} />}
       >
         <PersistencePhaseContext value={persistencePhase}>
           <RetainedRouteViews path={path} renderRoute={renderRoute} />
         </PersistencePhaseContext>
         {toast && <Toast>{toast}</Toast>}
       </AppShell>
+      </AppErrorBoundary>
+      {shellFailed && <AppErrorScreen onRecover={() => {
+        setSettingsOpen(false);
+        go(area === 'student' ? '/student' : '/trainer');
+        setShellRecoveryKey((current) => current + 1);
+        setShellFailed(false);
+      }} />}
       {settingsOpen && <SettingsModal
         accountMode={auth.enabled}
         account={auth.profile ? {

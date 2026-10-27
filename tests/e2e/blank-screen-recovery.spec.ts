@@ -11,17 +11,18 @@ test('a failed app bundle still leaves a visible reload action', async ({ page }
   await expect(page.getByRole('button', { name: 'Попробовать REPPY' })).toBeVisible();
 });
 
-test('a failed lazy screen does not remove the entire interface', async ({ page }) => {
-  await page.route('**/assets/trainer-routes-*.js', (route) => route.abort());
+test('opening another screen never requests a removed route bundle', async ({ page }) => {
+  let routeBundleRequests = 0;
+  await page.route('**/assets/trainer-routes-*.js', (route) => {
+    routeBundleRequests += 1;
+    return route.abort();
+  });
   await page.goto('/');
   await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-
-  await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
-  await expect(page.getByRole('button', { name: 'Перезагрузить' })).toBeVisible();
+  await page.goto('/#/trainer/workout/assignment-artem-push-today');
+  await expect(page.locator('.active-exercise-card').first()).toBeVisible();
+  expect(routeBundleRequests).toBe(0);
   await expect(page.locator('#boot-recovery')).toBeHidden();
-  await page.unrouteAll();
-  await page.getByRole('button', { name: 'Перезагрузить' }).click();
-  await expect(page.locator('.app-shell')).toBeVisible();
 });
 
 test('the independent boot screen disappears once the app renders', async ({ page }) => {

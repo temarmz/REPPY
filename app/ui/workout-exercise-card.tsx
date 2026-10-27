@@ -13,7 +13,7 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
     const nextDraft = draft ?? displayValue;
     if (!nextDraft.trim()) {
       setDraft(null);
-      if (emptyWhenZero) onChange(0);
+      if (emptyWhenZero && value !== 0) onChange(0);
       return;
     }
     const parsed = Number(nextDraft.replace(',', '.'));
@@ -22,16 +22,20 @@ function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = '
       return;
     }
     setDraft(null);
-    onChange(Math.max(min, parsed));
+    const nextValue = Math.max(min, parsed);
+    if (nextValue !== value) onChange(nextValue);
   };
 
   return <Input type={inputMode === 'decimal' ? 'text' : 'number'} min={min} step={inputMode === 'decimal' ? 'any' : step} inputMode={inputMode} placeholder={emptyWhenZero ? '—' : undefined} value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
     const nextDraft = event.target.value;
     if (inputMode === 'decimal' && !/^\d*(?:[.,]\d*)?$/.test(nextDraft)) return;
     setDraft(nextDraft);
-    if (!nextDraft.trim()) { if (emptyWhenZero) onChange(0); return; }
+    if (!nextDraft.trim()) { if (emptyWhenZero && value !== 0) onChange(0); return; }
     const parsed = Number(nextDraft.replace(',', '.'));
-    if (nextDraft.trim() && Number.isFinite(parsed)) onChange(Math.max(min, parsed));
+    if (nextDraft.trim() && Number.isFinite(parsed)) {
+      const nextValue = Math.max(min, parsed);
+      if (nextValue !== value) onChange(nextValue);
+    }
   }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 

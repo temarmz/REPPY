@@ -2,7 +2,7 @@ import { UI_ASSETS } from './ui/assets';
 import { ListRow } from './ui/patterns';
 import { SectionHeading, Field, ProgressBar } from './ui/patterns';
 import { Page, Paragraph, Inline, Time, Section, Box, Strong, Small, Heading, Bold, Fieldset, Legend, Italic, Image, PageTitle, LineBreak } from './ui/elements';
-import { lazy, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createWorkoutSession,
   dateKey,
@@ -35,8 +35,7 @@ import {
 import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledger';
 import { subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import { clearUiDraft, isDraftDateString, isDraftTimeString, loadUiDraft, saveUiDraft } from './ui-persistence';
-
-const ActiveWorkout = lazy(() => import('./active-workout'));
+import ActiveWorkout from './active-workout';
 
 const STUDENT_COPY = {
   emptyAssignments: 'На ближайшие две недели тренер пока ничего не назначил.',

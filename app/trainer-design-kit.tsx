@@ -7,7 +7,7 @@ import { SectionHeading, Field, Badge, ProgressBar, ListRow, NavigationButton, T
 import { Page, Paragraph, Section, Box, Heading, Inline, Italic, Strong, Small, SelectOption, Card, Nav } from './ui/elements';
 import { useState } from 'react';
 import { dateKey, type Workout, type SetResult } from './reppy-data';
-import { AppStatusBanner } from './ui/app-status';
+import { AppErrorScreen, AppStatusBanner } from './ui/app-status';
 import WorkoutScheduleFields from './ui/workout-schedule-fields';
 import { ActionButton, TextField, Input, Select, Textarea, Switch, IconButton, FormError } from './ui/controls';
 import ConfirmationModal from './ui/confirmation-modal';
@@ -123,6 +123,7 @@ export default function DesignKitScreen() {
           <AppStatusBanner phase="error" online onRetry={() => undefined} preview />
           <AppStatusBanner phase="error" online conflict onRetry={() => undefined} onReload={() => undefined} preview />
         </Box>
+        <AppErrorScreen onRecover={() => undefined} preview />
       </Section>
 
       <Section className="design-kit-section" aria-labelledby="kit-exercise-title">

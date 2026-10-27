@@ -1,4 +1,4 @@
-import { lazy, type ComponentType, type ReactNode } from 'react';
+import { type ComponentType, type ReactNode } from 'react';
 import {
   createWorkoutSession,
   dateKey,
@@ -25,19 +25,12 @@ import SessionResult from './session-result';
 import WorkoutCalendar from './workout-calendar';
 import { isScheduleDate } from './schedule-display';
 import { lessonWord } from './workout-display';
-const ActiveWorkout = lazy(() => import('./active-workout'));
-const TrainerHome = lazy(() => import('./trainer-dashboard').then((module) => ({ default: module.TrainerHome })));
-const ClientsList = lazy(() => import('./trainer-dashboard').then((module) => ({ default: module.ClientsList })));
-const DesignKitScreen = lazy(() => import('./trainer-design-kit'));
-const SubscriptionHistory = lazy(() => import('./trainer-subscriptions').then((module) => ({ default: module.SubscriptionHistory })));
-const SubscriptionPaymentForm = lazy(() => import('./trainer-subscriptions').then((module) => ({ default: module.SubscriptionPaymentForm })));
-const InviteStudent = lazy(() => import('./trainer-client-screens').then((module) => ({ default: module.InviteStudent })));
-const StudentWorkoutHistory = lazy(() => import('./trainer-client-screens').then((module) => ({ default: module.StudentWorkoutHistory })));
-const AssignmentDetails = lazy(() => import('./trainer-workout-editor').then((module) => ({ default: module.AssignmentDetails })));
-const AssignWorkoutToStudent = lazy(() => import('./trainer-workout-editor').then((module) => ({ default: module.AssignWorkoutToStudent })));
-const EditAssignment = lazy(() => import('./trainer-workout-editor').then((module) => ({ default: module.EditAssignment })));
-const NewAssignmentForStudent = lazy(() => import('./trainer-workout-editor').then((module) => ({ default: module.NewAssignmentForStudent })));
-const RepeatAssignment = lazy(() => import('./trainer-workout-editor').then((module) => ({ default: module.RepeatAssignment })));
+import ActiveWorkout from './active-workout';
+import { TrainerHome, ClientsList } from './trainer-dashboard';
+import DesignKitScreen from './trainer-design-kit';
+import { SubscriptionHistory, SubscriptionPaymentForm } from './trainer-subscriptions';
+import { InviteStudent, StudentWorkoutHistory } from './trainer-client-screens';
+import { AssignmentDetails, AssignWorkoutToStudent, EditAssignment, NewAssignmentForStudent, RepeatAssignment } from './trainer-workout-editor';
 
 function findStudent(data: DemoState, id: string) {
   return data.students.find((student) => student.id === id);

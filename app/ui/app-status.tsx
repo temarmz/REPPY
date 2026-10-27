@@ -1,9 +1,11 @@
 import { UI_ASSETS } from './assets';
 import { Aside, Inline, Strong, Small, Page, Image, PageTitle, Paragraph } from './elements';
 import { Component, createContext, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { PersistencePhase } from '../use-reppy-data';
 import Icon, { type IconName } from './icon';
 import { ActionButton, Button } from './controls';
+import { downloadUiErrorDiagnostics, recordUiError } from '../ui-error-diagnostics';
 
 export const PersistencePhaseContext = createContext<PersistencePhase>('idle');
 
@@ -63,6 +65,7 @@ export function AppStatusBanner({
   preview = false,
   conflict = false,
   onReload,
+  hideSaving = false,
 }: {
   phase: PersistencePhase;
   online: boolean;
@@ -72,9 +75,10 @@ export function AppStatusBanner({
   preview?: boolean;
   conflict?: boolean;
   onReload?: () => void;
+  hideSaving?: boolean;
 }) {
   const status = resolveStatus(phase, online, persistenceError, remote, conflict);
-  if (!status) return null;
+  if (!status || (hideSaving && status.kind === 'saving')) return null;
   const error = status.kind === 'error' || status.kind === 'conflict';
 
   return (
@@ -99,7 +103,19 @@ export function DataLoadError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+export function AppErrorScreen({ onRecover, preview = false }: { onRecover?: () => void; preview?: boolean }) {
+  const fallback = <Page className={`system-state-screen ${onRecover && !preview ? 'recovery-overlay' : ''} ${preview ? 'preview' : ''}`.trim()} role="alert">
+    <Image className="loading-logo" src={UI_ASSETS.logo} alt="REPPY" />
+    <PageTitle>Не удалось открыть экран</PageTitle>
+    <Paragraph>Приложение столкнулось с ошибкой. Ранее сохранённые черновики останутся на этом устройстве.</Paragraph>
+    {onRecover && <ActionButton icon="arrow-right" onClick={onRecover}>Вернуться на главную</ActionButton>}
+    {!onRecover && <ActionButton icon="history" onClick={() => window.location.reload()}>Перезагрузить</ActionButton>}
+    <Button className="system-state-diagnostics" type="button" onClick={downloadUiErrorDiagnostics}>Скачать журнал ошибки</Button>
+  </Page>;
+  return onRecover && !preview ? createPortal(fallback, document.body) : fallback;
+}
+
+export class AppErrorBoundary extends Component<{ children: ReactNode; onFailure?: () => void; hideFallback?: boolean }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -109,15 +125,12 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, { faile
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Keep the original error in the console for remote Web Inspector debugging.
     console.error('REPPY render failed', error, info.componentStack);
+    recordUiError(error, info.componentStack ?? '');
+    this.props.onFailure?.();
   }
 
   render() {
     if (!this.state.failed) return this.props.children;
-    return <Page className="system-state-screen" role="alert">
-      <Image className="loading-logo" src={UI_ASSETS.logo} alt="REPPY" />
-      <PageTitle>Не удалось открыть экран</PageTitle>
-      <Paragraph>Приложение столкнулось с ошибкой. Перезагрузи страницу, чтобы восстановить работу. Ранее сохранённые черновики останутся на этом устройстве.</Paragraph>
-      <ActionButton icon="history" onClick={() => window.location.reload()}>Перезагрузить</ActionButton>
-    </Page>;
+    return this.props.hideFallback ? null : <AppErrorScreen />;
   }
 }

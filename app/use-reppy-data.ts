@@ -39,6 +39,7 @@ export function useReppyData(
   const [reloadAttempt, setReloadAttempt] = useState(0);
   const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
   const dataRef = useRef(data);
+  const loadedSnapshotRef = useRef<DemoState | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
   const refreshSequenceRef = useRef(0);
@@ -81,6 +82,7 @@ export function useReppyData(
       .then((nextData) => {
         if (cancelled) return;
         dataRef.current = nextData;
+        loadedSnapshotRef.current = nextData;
         setData(nextData);
         setLoadedRepository(repository);
         setHydrated(true);
@@ -146,8 +148,9 @@ export function useReppyData(
     if (!hydrated || loadedRepository !== repository) return;
     if (repository.execute) return;
     let cancelled = false;
-    const version = ++saveVersionRef.current;
     const snapshot = data;
+    if (snapshot === loadedSnapshotRef.current && saveAttempt === 0) return;
+    const version = ++saveVersionRef.current;
 
     const request = saveQueueRef.current
       .catch(() => undefined)

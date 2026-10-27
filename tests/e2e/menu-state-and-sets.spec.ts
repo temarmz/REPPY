@@ -8,6 +8,18 @@ async function demo(page: Page, student = false) {
   if (student) await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
 }
 
+test('долгая навигация не накапливает скрытые экраны без ограничения', async ({ page }) => {
+  await demo(page);
+  for (let index = 0; index < 18; index += 1) {
+    const route = `/trainer/clients/qa-${index}`;
+    await page.evaluate((next) => { location.hash = next; }, route);
+    await expect(page.locator('[data-route-active="true"]')).toHaveAttribute('data-route-view', route);
+  }
+  await expect(page.locator('[data-route-view]')).toHaveCount(12);
+  await page.evaluate(() => { location.hash = '/trainer'; });
+  await expect(page.locator('[data-route-active="true"]')).toHaveAttribute('data-route-view', '/trainer');
+});
+
 test('вкладки сохраняют раскрытый профиль, незавершённый ввод, календарь и независимый скролл', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 600 });
   await demo(page, true);
@@ -161,16 +173,18 @@ for (const width of [320, 440]) {
   test(`один пустой подход, дробный вес и ровная сетка на ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await demo(page, true);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') ?? '{}').role)).toBe('student');
     // Reproduce an old session that has a three-set snapshot but no saved results.
     await page.evaluate(() => {
       const data = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
       const assignment = data.assignments.find((item: { id: string }) => item.id === 'assignment-artem-push-today');
+      data.sessions = data.sessions.filter((item: { assignmentId: string; completedAt?: string }) => item.assignmentId !== assignment.id || item.completedAt);
       data.sessions.push({ id: 'interrupted-start', assignmentId: assignment.id, studentId: assignment.studentId,
         startedAt: new Date().toISOString(), recordedBy: 'student', workoutSnapshot: assignment.workoutSnapshot, results: [] });
       localStorage.setItem('reppy-demo-v0', JSON.stringify(data));
     });
-    await page.goto('/#/student/workout/assignment-artem-push-today');
     await page.reload();
+    await page.goto('/#/student/workout/assignment-artem-push-today');
     const card = page.locator('[data-route-active="true"] .active-exercise-card').first();
     await expect(card.locator('.set-card')).toHaveCount(0);
     await card.getByRole('button', { name: /Добавить подход/ }).click();

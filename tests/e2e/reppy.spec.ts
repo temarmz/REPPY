@@ -594,9 +594,9 @@ test('создание, копирование, редактирование и 
     '/trainer/assignments/assignment-artem-push-today/repeat',
   ]) {
     await page.goto(`/#${route}`);
-    await expect(page.locator('main[data-workout-composer]')).toHaveCount(1);
-    await expect(page.locator('.workout-plan-editor')).toHaveCount(1);
-    await expect(page.locator('.plan-submit-actions .primary-button')).toHaveCount(1);
+    await expect(page.locator('[data-route-active="true"] main[data-workout-composer]')).toHaveCount(1);
+    await expect(page.locator('[data-route-active="true"] .workout-plan-editor')).toHaveCount(1);
+    await expect(page.locator('[data-route-active="true"] .plan-submit-actions .primary-button')).toHaveCount(1);
   }
 });
 

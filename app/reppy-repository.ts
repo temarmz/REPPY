@@ -60,7 +60,12 @@ export function createLocalStorageRepository(
         }
         return initial;
       }
-      return migrateDemoState(parsed);
+      const migrated = migrateDemoState(parsed);
+      if ((parsed.schemaVersion ?? 0) < migrated.schemaVersion) {
+        try { storage.setItem(key, JSON.stringify(migrated)); }
+        catch { /* Keep the migrated data in memory when storage is read-only. */ }
+      }
+      return migrated;
     },
 
     async save(state) {

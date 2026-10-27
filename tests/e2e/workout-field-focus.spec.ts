@@ -34,3 +34,27 @@ for (const mode of ['plan', 'active']) {
     await expect.poll(async () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--workout-keyboard-space').trim())).toBe('');
   });
 }
+
+test('неизменённое поле подхода не создаёт повторное сохранение', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.reload();
+  await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
+  await page.goto('/#/trainer/workout/assignment-artem-push-today');
+  await expect(page.locator('.save-state')).toHaveText('Сохранено');
+  const field = page.locator('[data-route-active="true"] .active-exercise-card').first().getByLabel('КГ').first();
+  await expect(field).toBeVisible();
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    (window as Window & { workoutSaveCount?: number }).workoutSaveCount = 0;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'reppy-demo-v0') (window as Window & { workoutSaveCount?: number }).workoutSaveCount!++;
+      return original.call(this, key, value);
+    };
+  });
+  await field.focus();
+  await field.blur();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as Window & { workoutSaveCount?: number }).workoutSaveCount)).toBe(0);
+  await expect(page.locator('.app-status-banner.saving')).toHaveCount(0);
+});
