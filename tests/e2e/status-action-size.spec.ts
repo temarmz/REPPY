@@ -16,6 +16,27 @@ for (const theme of ['dark', 'light'] as const) {
         const bounds = await action.boundingBox();
         expect(bounds!.height).toBeGreaterThanOrEqual(48);
         await expect(action).toHaveCSS('min-height', '48px');
+        expect(await banner.evaluate(element => {
+          const button = element.querySelector('button')!.getBoundingClientRect();
+          const outer = element.getBoundingClientRect();
+          const copy = element.querySelector(':scope > span:not(.ui-icon)');
+          if (!copy) return false;
+          const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);
+          let textRects = 0;
+          let node: Node | null;
+          while ((node = walker.nextNode())) {
+            if (!node.textContent?.trim()) continue;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            for (const rect of range.getClientRects()) {
+              textRects++;
+              const overlap = Math.max(0, Math.min(rect.right, button.right) - Math.max(rect.left, button.left))
+                * Math.max(0, Math.min(rect.bottom, button.bottom) - Math.max(rect.top, button.top));
+              if (overlap > 0 || rect.left < outer.left || rect.right > outer.right) return false;
+            }
+          }
+          return textRects > 0;
+        })).toBe(true);
         await action.focus();
         await expect(action).toBeFocused();
       }
