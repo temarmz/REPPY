@@ -1030,7 +1030,7 @@ body.modal-open .bottom-nav { display: none; }
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
-  .bottom-nav { position: relative; z-index: 60; isolation: isolate; display: flex; width: 100%; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; border: 1px solid var(--tint-ffffff-100); border-bottom: 0; border-radius: var(--card-radius) var(--radius-22) 0 0; padding: var(--space-5) var(--space-12) max(var(--space-5), var(--app-safe-bottom)); background: var(--tint-151915-970); box-shadow: 0 -12px 38px var(--tint-000000-340); transform: translateZ(0); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  .bottom-nav { position: relative; z-index: 60; display: flex; width: 100%; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; border: 1px solid var(--tint-ffffff-100); border-bottom: 0; border-radius: var(--card-radius) var(--radius-22) 0 0; padding: var(--space-5) var(--space-12) max(var(--space-5), var(--app-safe-bottom)); background: var(--surface); box-shadow: 0 -12px 38px var(--tint-000000-340); }
   .bottom-nav button { display: grid; min-width: calc(var(--size-74) * var(--ui-control-width-scale)); min-height: var(--control-height-medium); place-content: center; justify-items: center; gap: var(--space-4); border: 0; border-radius: var(--control-radius); background: transparent; color: var(--palette-7e847c); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
@@ -2389,7 +2389,7 @@ html[data-theme="light"] .side-demo { border-color: var(--tint-4f7111-200); back
 
 html[data-theme="light"] .bottom-nav {
   border-color: var(--ui-outline);
-  background: var(--tint-fafbf7-960);
+  background: var(--surface);
   box-shadow: none;
 }
 html[data-theme="light"] .bottom-nav button { color: var(--palette-687166); }

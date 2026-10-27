@@ -55,3 +55,29 @@ test('меню не обрезается, когда видимая област
   await nav.getByRole('button', { name: 'Календарь' }).tap();
   await expect(page).toHaveURL(/#\/trainer\/calendar$/);
 });
+
+for (const role of ['student', 'trainer'] as const) {
+  test(`первое касание меню переключает ${role} во время скролла даже без click`, async ({ page }) => {
+    await page.setViewportSize({ width: role === 'student' ? 390 : 360, height: 700 });
+    await page.goto('/');
+    await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+    await page.reload();
+    await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
+    if (role === 'student') await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+
+    const nav = page.locator('.bottom-nav');
+    const target = role === 'student' ? 'Профиль' : 'Ученики';
+    await nav.getByRole('button', { name: target }).tap();
+    await expect(nav.getByRole('button', { name: target })).toHaveAttribute('aria-current', 'page');
+    await nav.getByRole('button', { name: 'Календарь' }).tap();
+    await expect(nav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
+
+    // Reproduce iOS swallowing the synthesized click while the page is moving.
+    await page.evaluate(() => document.addEventListener('click', (event) => {
+      if ((event.target as Element).closest('.bottom-nav')) event.stopImmediatePropagation();
+    }, true));
+    await page.locator('.page-wrap').evaluate((element) => element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' }));
+    await nav.getByRole('button', { name: target }).tap();
+    await expect(nav.getByRole('button', { name: target })).toHaveAttribute('aria-current', 'page');
+  });
+}

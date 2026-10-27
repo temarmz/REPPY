@@ -82,7 +82,7 @@ function StudentAssignmentDetails({
 
   return (
     <Page className="content-page narrow-page student-assignment-page">
-      <RoutePageHeader back={backPath} eyebrow={activeSession ? 'Незавершённая тренировка' : 'Предстоящая тренировка'} title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={backPath} semanticBack eyebrow={activeSession ? 'Незавершённая тренировка' : 'Предстоящая тренировка'} title={workout.name.toUpperCase()} />
       <Paragraph className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><Inline>{formatScheduleDay(assignment.scheduledFor)}</Inline><Inline aria-hidden="true">·</Inline><Time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</Time></Paragraph>
       {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <Section className="student-request-status"><Icon name="check" /><Box><Strong>Новое время предложено</Strong><Paragraph>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</Paragraph><Small>Тренер увидит запрос и подтвердит или отклонит его.</Small></Box></Section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
