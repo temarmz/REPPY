@@ -5,6 +5,7 @@ import { go, RELEASE_ROUTE_STATE_EVENT, RoutePathContext } from './navigation';
 import { AppErrorBoundary, AppErrorScreen } from './ui/app-status';
 
 const MAX_RETAINED_ROUTES = 12;
+type RetainedRoute = { path: string; failed: boolean; recovery: number };
 
 // Keep recent screens in memory for tab restoration without growing the hidden
 // DOM indefinitely during long sessions. Activity suspends inactive effects.
@@ -12,14 +13,13 @@ export default function RetainedRouteViews({ path, renderRoute }: {
   path: string;
   renderRoute: (path: string) => ReactNode;
 }) {
-  const [cache, setCache] = useState({ visited: [path], released: [] as string[] });
-  const [failedRoute, setFailedRoute] = useState<string | null>(null);
+  const [cache, setCache] = useState({ visited: [{ path, failed: false, recovery: 0 }] as RetainedRoute[], released: [] as string[] });
   // History traversal is asynchronous. Keep a released active view until the
   // route changes, then remove it so Back cannot revive a discarded draft.
-  const retained = cache.visited.filter((route) => route === path || !cache.released.includes(route));
-  const candidates = retained.includes(path) ? retained : [...retained, path];
-  const keep = new Set([path, ...candidates.filter((route) => route !== path).slice(-(MAX_RETAINED_ROUTES - 1))]);
-  const routes = candidates.filter((route) => keep.has(route));
+  const retained = cache.visited.filter((route) => route.path === path || !cache.released.includes(route.path));
+  const candidates = retained.some((route) => route.path === path) ? retained : [...retained, { path, failed: false, recovery: 0 }];
+  const keep = new Set([path, ...candidates.filter((route) => route.path !== path).slice(-(MAX_RETAINED_ROUTES - 1)).map((route) => route.path)]);
+  const routes = candidates.filter((route) => keep.has(route.path));
   if (cache.visited.length !== routes.length || cache.visited.some((route, index) => route !== routes[index]) || cache.released.some((route) => route !== path)) {
     setCache({ visited: routes, released: cache.released.filter((route) => route === path) });
   }
@@ -34,20 +34,28 @@ export default function RetainedRouteViews({ path, renderRoute }: {
 
   // A failed screen must not dispose the account controller or pending writes.
   return <Fragment>{routes.map((route) => (
-    <Activity key={route} mode={route === path ? 'visible' : 'hidden'}>
-      <Box data-route-view={route} data-route-active={route === path ? 'true' : 'false'}>
-        <RoutePathContext value={route}>
-          <AppErrorBoundary hideFallback onFailure={() => setFailedRoute(route)}>
+    <Activity key={route.path} mode={route.path === path ? 'visible' : 'hidden'}>
+      <Box data-route-view={route.path} data-route-active={route.path === path ? 'true' : 'false'}>
+        <RoutePathContext value={route.path}>
+          <AppErrorBoundary key={route.recovery} hideFallback onFailure={() => setCache((current) => ({ ...current,
+            visited: current.visited.map((view) => view.path === route.path ? { ...view, failed: true } : view),
+          }))}>
             <Suspense fallback={<LoadingScreen message="Загружаем экран…" />}>
-              {renderRoute(route)}
+              {renderRoute(route.path)}
             </Suspense>
           </AppErrorBoundary>
         </RoutePathContext>
       </Box>
     </Activity>
-  ))}{failedRoute === path && <AppErrorScreen onRecover={() => {
-    window.dispatchEvent(new CustomEvent(RELEASE_ROUTE_STATE_EVENT, { detail: path }));
-    setFailedRoute(null);
-    go(path.startsWith('/student') ? '/student' : '/trainer');
+  ))}{routes.some((route) => route.path === path && route.failed) && <AppErrorScreen onRecover={() => {
+    const home = path.startsWith('/student') ? '/student' : '/trainer';
+    if (path !== home) window.dispatchEvent(new CustomEvent(RELEASE_ROUTE_STATE_EVENT, { detail: path }));
+    // The destination can itself be failed, including recovery on the same URL.
+    // Retry only that boundary; keep healthy screens and pending writes intact.
+    setCache((current) => ({ ...current,
+      visited: current.visited.map((route) => route.path === home && route.failed
+        ? { ...route, failed: false, recovery: route.recovery + 1 } : route),
+    }));
+    go(home);
   }} />}</Fragment>;
 }

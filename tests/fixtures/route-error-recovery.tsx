@@ -1,4 +1,4 @@
-import { lazy, useEffect, useLayoutEffect, useState } from 'react';
+import { lazy, useEffect, useId, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInitialState, type DemoState } from '../../app/reppy-data';
 import { applyReppyCommand } from '../../app/reppy-commands';
@@ -18,14 +18,19 @@ export type RecoveryFixture = {
   mounts: number;
   unmounts: number;
   release: () => void;
+  failRoute: (route: string) => void;
+  resolveRoute: (route: string) => void;
 };
 declare global { interface Window { routeRecoveryQa: RecoveryFixture } }
 
-const initial: DemoState = { ...createInitialState(), role: 'student', loggedIn: true };
+const area = location.hash.startsWith('#/trainer') ? 'trainer' : 'student';
+const initial: DemoState = { ...createInitialState(), role: area, loggedIn: true };
 let confirmed = initial;
 let release: () => void;
 const held = new Promise<void>(resolve => { release = resolve; });
-const fixture: RecoveryFixture = { controller: null, calls: [], confirmedPhone: undefined, mounts: 0, unmounts: 0, release: () => release() };
+const failingRoutes = new Set<string>();
+const fixture: RecoveryFixture = { controller: null, calls: [], confirmedPhone: undefined, mounts: 0, unmounts: 0, release: () => release(),
+  failRoute: () => { throw new Error('Fixture not mounted'); }, resolveRoute: route => { failingRoutes.delete(route); } };
 window.routeRecoveryQa = fixture;
 const repository: ReppyRepository = {
   async load() { return structuredClone(confirmed); },
@@ -40,11 +45,13 @@ const repository: ReppyRepository = {
   async clear() {},
 };
 const FailedScreen = lazy(() => Promise.reject(new Error('Isolated lazy screen request failed')));
+function FailedRender(): never { throw new Error('Isolated screen render failed'); }
 
 function ProfileDraft({ onSave }: { onSave: (phone: string) => void }) {
   const [phone, setPhone] = useState('');
+  const phoneId = useId();
   return <Page className="content-page narrow-page"><Section className="form-card">
-    <TextField id="qa-phone" label="Телефон для проверки" value={phone} onChange={event => setPhone(event.target.value)} />
+    <TextField id={phoneId} label="Телефон для проверки" value={phone} onChange={event => setPhone(event.target.value)} />
     <ActionButton icon="check" onClick={() => onSave(phone)}>Сохранить для проверки</ActionButton>
   </Section></Page>;
 }
@@ -52,14 +59,19 @@ function ProfileDraft({ onSave }: { onSave: (phone: string) => void }) {
 function Harness() {
   const controller = useReppyData(repository);
   const path = useHashNavigation();
+  const [, invalidate] = useState(0);
   const [theme] = useState<'dark' | 'light'>(() => localStorage.getItem('reppy-ui:theme') === 'light' ? 'light' : 'dark');
-  useLayoutEffect(() => { fixture.controller = controller; document.documentElement.dataset.theme = theme; });
+  useLayoutEffect(() => {
+    fixture.controller = controller;
+    fixture.failRoute = route => { failingRoutes.add(route); invalidate(value => value + 1); };
+    document.documentElement.dataset.theme = theme;
+  });
   useEffect(() => { fixture.mounts++; return () => { fixture.unmounts++; }; }, []);
   if (!controller.hydrated) return null;
-  return <AppShell area="student" path={path} displayName="Изолированный ученик" hideBottomNav={false}
+  return <AppShell area={area} path={path} displayName="Изолированный аккаунт" hideBottomNav={false}
     onNavigate={go} onNavigateTab={goToMenuTab}
     systemStatus={<AppStatusBanner phase={controller.persistencePhase} online remote onRetry={controller.retryPersistence} />}>
-    <RetainedRouteViews path={path} renderRoute={route => route === '/student/calendar' ? <FailedScreen /> : <ProfileDraft onSave={phone => {
+    <RetainedRouteViews path={path} renderRoute={route => failingRoutes.has(route) ? <FailedRender /> : route === '/student/calendar' ? <FailedScreen /> : <ProfileDraft onSave={phone => {
       const student = controller.data.students[0];
       controller.dispatch({ type: 'student.update', student: { ...student, phone: '+7 111 111-11-11' } });
       controller.dispatch({ type: 'student.update', student: { ...student, phone } });
