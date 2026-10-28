@@ -3,7 +3,7 @@ import { collectExerciseProgress } from './exercise-progress';
 import { UI_COMPONENTS } from './ui/catalog';
 import { InitialsAvatar } from './ui/avatar';
 import Icon from './ui/icon';
-import { SectionHeading, Field, Badge, ProgressBar, ListRow, NavigationButton, Toast } from './ui/patterns';
+import { SectionHeading, Field, Badge, ProgressBar, ListRow, NavigationButton } from './ui/patterns';
 import { Page, Paragraph, Section, Box, Heading, Inline, Italic, Strong, Small, SelectOption, Card, Nav } from './ui/elements';
 import { useState } from 'react';
 import { dateKey, type Workout, type SetResult } from './reppy-data';
@@ -163,7 +163,6 @@ export default function DesignKitScreen() {
           <ListRow className="workout-row"><Inline className="workout-number">01</Inline><Inline><Strong>Строка списка</Strong><Small>Название и описание</Small></Inline><Icon name="chevron-right" /></ListRow>
         </Box>
         <Nav className="ui-preview-nav" aria-label="Пример навигации"><NavigationButton active>Активная вкладка</NavigationButton><NavigationButton active={false}>Обычная вкладка</NavigationButton></Nav>
-        <Toast className="preview">Изменения сохранены</Toast>
       </Section>
 
       <Section className="design-kit-section" aria-labelledby="kit-chart-title">

@@ -415,7 +415,7 @@ test('тренер видит единые карточки расписания
   await repeatSubmit.click();
 
   await expect(page).toHaveURL(/#\/trainer$/);
-  await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
+  await expect(page.locator('.toast')).toHaveCount(0);
   const assignedDay = page.locator('.schedule-days-list .plan-day-card').filter({ has: page.locator(`time[datetime="${selectedDate}"]`) });
   await expect(assignedDay).toContainText('Мария А.');
 
@@ -624,7 +624,8 @@ test('редактирование назначения не создаёт ск
   await setFirstExerciseWeight(page, 85);
   await expect(page.getByRole('checkbox')).toHaveCount(0);
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
-  await expect(page.getByRole('status')).toContainText('Назначение сохранено');
+  await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-artem-push-today$/);
+  await expect(page.locator('.toast')).toHaveCount(0);
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}'));
   expect(saved).not.toHaveProperty('workouts');
@@ -683,7 +684,7 @@ test('тренер назначает тренировку из профиля �
   await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
-  await expect(page.getByRole('status')).toContainText('Тренировка назначена: Мария А.');
+  await expect(page.locator('.toast')).toHaveCount(0);
   const assigned = page.locator('.profile-schedule .workout-row').filter({ hasText: 'Грудь и плечи' }).first();
   await assigned.click();
   await expect(page.locator('.readonly-exercise-card:visible').first()).toContainText('62.5 кг × 8');
@@ -1124,6 +1125,7 @@ test('тренер ведёт занятие, правит его в момен�
   await muscleSelector.getByRole('button', { name: 'Спина', exact: true }).click();
   await muscleSelector.getByRole('button', { name: 'Бицепс', exact: true }).click();
   await customPicker.getByRole('button', { name: 'Сохранить и добавить «Тяга полотенца»' }).click();
+  await expect(page.locator('.toast')).toHaveCount(0);
   await page.getByRole('dialog', { name: 'Добавить упражнения' }).getByRole('button', { name: 'Готово' }).click();
   const customCard = page.locator('.active-exercise-card').filter({ hasText: 'Тяга полотенца' });
   await expect(customCard).toBeVisible();
@@ -1152,6 +1154,7 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(editMuscles.getByRole('button', { name: 'Бицепс', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await editMuscles.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
   await personalPicker.getByRole('button', { name: 'Сохранить изменения' }).click();
+  await expect(page.locator('.toast')).toHaveCount(0);
   await personalPicker.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
   await expect(personalPicker.getByText('Тяга полотенца')).toBeVisible();
   await expect(personalPicker.getByText('Спина, Бицепс, Квадрицепс · Другое')).toBeVisible();
@@ -1197,7 +1200,7 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(deleteDialog).toContainText('Тренировка и её результат будут удалены');
   await deleteDialog.getByRole('button', { name: 'Удалить тренировку' }).click();
   await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
-  await expect(page.getByRole('status')).toContainText('Завершённая тренировка удалена');
+  await expect(page.locator('.toast')).toHaveCount(0);
 });
 
 test('упражнение со своим весом не показывает килограммы в плане', async ({ page }) => {

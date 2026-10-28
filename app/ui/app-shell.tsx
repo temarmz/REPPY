@@ -7,6 +7,7 @@ import { useLayoutEffect, useRef, type ReactNode, type TouchEvent } from 'react'
 import Icon, { type IconName } from './icon';
 import { observeMobileViewport } from '../mobile-viewport';
 import { observeWorkoutFieldFocus } from '../workout-field-focus';
+import { observeProfileFieldFocus } from '../profile-field-focus';
 import { suppressEmulatedClickAt } from './touch-activation';
 
 export type AppArea = 'trainer' | 'student';
@@ -100,12 +101,14 @@ export default function AppShell({
     navigateTab(route);
   };
   const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
+  const profileScrollMode = path === '/student/profile' || path === '/trainer/profile';
 
   useLayoutEffect(() => observeWorkoutFieldFocus(window, document), []);
+  useLayoutEffect(() => profileScrollMode ? observeProfileFieldFocus(window, document) : undefined, [profileScrollMode]);
 
   useLayoutEffect(() => {
-    document.documentElement.classList.toggle('app-viewport-locked', !focusMode);
-    document.body.classList.toggle('app-viewport-locked', !focusMode);
+    document.documentElement.classList.toggle('app-viewport-locked', !focusMode && !profileScrollMode);
+    document.body.classList.toggle('app-viewport-locked', !focusMode && !profileScrollMode);
     // Portalled dialogs also need these bounds while the workout itself uses
     // document scrolling in focus mode.
     const stopViewport = observeMobileViewport(window, document.documentElement);
@@ -114,7 +117,7 @@ export default function AppShell({
       document.documentElement.classList.remove('app-viewport-locked');
       document.body.classList.remove('app-viewport-locked');
     };
-  }, [focusMode]);
+  }, [focusMode, profileScrollMode]);
 
   const navigation = (
     <>
@@ -127,7 +130,7 @@ export default function AppShell({
   );
 
   return (
-    <Box className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
+    <Box className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''} ${profileScrollMode ? 'profile-scroll-mode' : ''}`}>
       {!focusMode && <Header className="topbar">
         <Button className="brand-mark brand-button" type="button" onClick={() => onNavigate('/')} aria-label="REPPY — на стартовый экран">
           <Image className="brand-logo" src={UI_ASSETS.wordmark} alt="" />

@@ -192,7 +192,7 @@ function WorkoutSuccess({ data, session, backPath }: { data: DemoState; session:
   );
 }
 
-export default function StudentRoutes({ path, data, dispatch, showToast }: { path: string; data: DemoState; dispatch: (command: ReppyCommand) => void; showToast: (message: string) => void }) {
+export default function StudentRoutes({ path, data, dispatch }: { path: string; data: DemoState; dispatch: (command: ReppyCommand) => void }) {
   const menuRoot = path.startsWith('/student/calendar/') ? '/student/calendar' : '/student';
   const assignmentDetailsMatch = path.match(/^\/student\/(?:calendar\/)?assignments\/([^/]+)$/);
   const activeMatch = path.match(/^\/student\/(?:calendar\/)?workout\/([^/]+)$/);
@@ -208,7 +208,6 @@ export default function StudentRoutes({ path, data, dispatch, showToast }: { pat
       backPath={menuRoot}
       onRequest={(scheduledFor, scheduledTime) => {
         dispatch({ type: 'assignment.update', assignment: { ...assignment, rescheduleRequest: { scheduledFor, scheduledTime, requestedAt: new Date().toISOString() } } });
-        showToast('Новое время отправлено тренеру');
       }}
       onStart={() => go(`${menuRoot}/workout/${assignment.id}`)}
     /> : <NotFound />;
