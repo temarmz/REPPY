@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 test('просмотр тренировки всегда возвращает в календарь, даже после переключения вкладок', async ({ page }) => {
@@ -5,7 +6,7 @@ test('просмотр тренировки всегда возвращает в
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
   await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await profileAction(page, 'Переключиться в роль ученика');
 
   const assignment = await page.evaluate(() => {
     const data = JSON.parse(localStorage.getItem('reppy-demo-v0')!);

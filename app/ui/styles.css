@@ -886,7 +886,7 @@ body.modal-open .bottom-nav { display: none; }
 .set-card input { width: 100%; height: var(--control-height-medium); border: 1px solid var(--field-outline); border-radius: var(--control-radius); background: var(--field-bg); color: var(--text-primary); font-size: var(--font-size-22); font-weight:var(--font-weight-900); text-align: center; }
 .set-card.completed input { background: var(--field-bg); }
 .set-card > button { display: grid; width: calc(var(--size-48) * var(--ui-control-width-scale)); height: var(--control-height-medium); place-items: center; border: 1px solid var(--field-outline); border-radius: var(--control-radius); background: var(--field-bg); color: var(--muted); cursor: pointer; font-size: var(--font-size-31); font-weight:var(--font-weight-900); }
-.set-card > button .ui-icon { width: calc(var(--size-30) * var(--ui-icon-scale)); height: calc(var(--size-30) * var(--ui-icon-scale)); }
+.set-card > button .ui-icon { width: calc(var(--size-27) * var(--ui-icon-scale)); height: calc(var(--size-27) * var(--ui-icon-scale)); }
 .set-card.completed > button { border-color: var(--lime); background: var(--lime); color: var(--ink); }
 .exercise-navigation { position: fixed; right: 0; bottom: 0; left: 0; z-index: 50; display: flex; justify-content: center; gap: var(--space-10); border-top: 1px solid var(--tint-ffffff-70); padding: var(--space-12) max(var(--space-18), calc((100vw - var(--space-720)) / 2)) max(var(--space-12), env(safe-area-inset-bottom)); background: var(--tint-090b09-940); backdrop-filter: blur(18px); }
 .exercise-navigation button { display: inline-flex; min-height: var(--control-height-large); align-items: center; justify-content: center; gap: var(--space-7); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-17); background: var(--button-bg); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
@@ -961,10 +961,13 @@ body.modal-open .bottom-nav { display: none; }
 .demo-stats b { color: var(--palette-white); font-size: var(--font-size-22); }
 .settings-modal > p { margin: var(--space-20) var(--space-2); color: var(--muted); font-size: var(--font-size-12); line-height: 1.5; }
 .account-details { display: flex; align-items: center; gap: var(--space-14); margin: var(--space-20) 0; border: 0; border-radius: var(--control-radius); padding: var(--space-14); background: var(--surface); }
+.profile-settings { max-width: 640px; }
+.profile-settings .account-details { margin-top: 0; }
+.profile-settings .settings-actions { margin-top: var(--space-18); }
 .account-avatar { display: grid; width: var(--size-48); height: var(--size-48); flex: 0 0 auto; place-items: center; border-radius: var(--control-radius); background: var(--lime); color: var(--palette-11150e); font-size: var(--font-size-19); font-weight:var(--font-weight-950); }
 .account-details > div { display: grid; min-width: 0; gap: var(--space-2); }
 .account-details strong { font-size: var(--font-size-16); }
-.account-details small { color: var(--lime); font-size: var(--font-size-11); font-weight:var(--font-weight-800); text-transform: uppercase; }
+.account-details small { color: var(--lime-strong); font-size: var(--font-size-11); font-weight:var(--font-weight-800); text-transform: uppercase; }
 .account-details div > span { margin-top: var(--space-3); color: var(--muted); font-size: var(--font-size-13); overflow-wrap: anywhere; }
 .reset-button { display: inline-flex; width: 100%; min-height: var(--control-height-large); align-items: center; justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); background: var(--button-bg); color: var(--error-color); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-850); text-align: center; padding: var(--space-8) var(--space-16); }
 .reset-button .ui-icon { width: calc(var(--size-16) * var(--ui-icon-scale)); height: calc(var(--size-16) * var(--ui-icon-scale)); }
@@ -1387,7 +1390,7 @@ body.modal-open .bottom-nav { display: none; }
 .athlete-heading-edit .ui-icon { width: calc(var(--size-15) * var(--ui-icon-scale)); height: calc(var(--size-15) * var(--ui-icon-scale)); }
 .athlete-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-20) var(--space-28); margin: var(--space-4) var(--space-2) 0; }
 .athlete-summary > div { display: grid; min-width: 0; gap: var(--space-5); }
-.athlete-summary dt { color: var(--palette-777e76); font-size: var(--font-size-11); font-weight:var(--font-weight-750); }
+.athlete-summary dt { color: var(--muted); font-size: var(--font-size-11); font-weight:var(--font-weight-750); }
 .athlete-summary dd { margin: 0; color: var(--text-primary); font-size: var(--font-size-15); line-height: 1.45; overflow-wrap: anywhere; }
 .athlete-summary .athlete-summary-wide { grid-column: 1 / -1; border-top: 1px solid var(--divider); padding-top: var(--space-17); }
 .athlete-form { display: grid; gap: var(--space-14); border-radius: var(--card-radius); padding: clamp(var(--space-18), 4vw, var(--space-24)); background: var(--surface); }
@@ -1587,9 +1590,9 @@ body.modal-open .bottom-nav { display: none; }
 .set-count-actions { display: flex; align-items: stretch; gap: var(--space-6); }
 .active-exercise-footer-actions .set-count-actions > button { display: grid; width: calc(var(--size-44) * var(--ui-control-width-scale)); min-height: var(--control-height-small); place-items: center; border-color: var(--tint-ffffff-100); border-radius: var(--control-radius); padding: var(--space-6) var(--space-8); background: var(--button-bg); }
 .active-exercise-footer-actions .set-count-actions > button:disabled { cursor: not-allowed; opacity: .28; }
-.active-exercise-footer-actions .set-count-actions > button .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
+.active-exercise-footer-actions .set-count-actions > button .ui-icon { width: calc(var(--size-24) * var(--ui-icon-scale)); height: calc(var(--size-24) * var(--ui-icon-scale)); }
 .active-exercise-footer-actions .add-first-set { display: flex; min-height: var(--control-height-small); align-items: center; justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); padding: var(--space-6) var(--space-8); background: var(--button-bg); color: var(--text-primary); font-size: var(--button-font-size); font-weight:var(--font-weight-850); }
-.active-exercise-footer-actions .add-first-set .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
+.active-exercise-footer-actions .add-first-set .ui-icon { width: calc(var(--size-24) * var(--ui-icon-scale)); height: calc(var(--size-24) * var(--ui-icon-scale)); }
 .picker-list .custom-exercise-option { border: 1px solid var(--tint-c6ff3d-200); border-radius: var(--control-radius); padding: var(--space-9) var(--space-11); background: var(--tint-c6ff3d-60); }
 .exercise-navigation.single-action .finish-workout { width: min(100%, 820px); max-width: 820px; }
 
@@ -1831,7 +1834,7 @@ body.modal-open .bottom-nav { display: none; }
   padding: var(--space-18);
 }
 .readonly-exercise-card > header .exercise-help { display: grid; width: calc(var(--size-42) * var(--ui-control-width-scale)); height: calc(var(--size-42) * var(--ui-control-height-scale)); place-items: center; border: 0; border-radius: var(--control-radius); background: var(--button-bg); color: var(--muted); cursor: pointer; }
-.readonly-exercise-card > header .exercise-help .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
+.readonly-exercise-card > header .exercise-help .ui-icon { width: calc(var(--size-24) * var(--ui-icon-scale)); height: calc(var(--size-24) * var(--ui-icon-scale)); }
 .readonly-exercise-card > header > span {
   color: var(--lime);
   font-family: var(--app-font-mono);
@@ -1871,8 +1874,9 @@ body.modal-open .bottom-nav { display: none; }
   border-bottom: 0;
 }
 .readonly-set-list span {
-  color: var(--muted);
+  color: var(--text-secondary);
   font-size: var(--font-size-12);
+  font-weight: var(--font-weight-750);
 }
 .readonly-set-list strong {
   font-family: var(--app-font-mono);

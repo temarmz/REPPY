@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test, type Page } from '@playwright/test';
 
 async function openFreshDemo(page: Page) {
@@ -34,31 +35,32 @@ test('лендинг кратко объясняет продукт и не пе
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
 });
 
-test('настройки демо остаются поверх нижнего меню на коротком экране', async ({ page }) => {
+test('сброс демо подтверждается поверх нижнего меню на коротком экране', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 520 });
   await openFreshDemo(page);
-  await page.getByRole('button', { name: 'Открыть настройки' }).click();
-
-  const dialog = page.getByRole('dialog', { name: 'Настройки демо' });
+  await page.goto('/#/trainer/profile');
   const resetButton = page.getByRole('button', { name: 'Сбросить демо-данные' });
-  await expect(dialog).toBeVisible();
   await expect(resetButton).toBeVisible();
+  await resetButton.click();
+  const dialog = page.getByRole('dialog', { name: 'Сбросить локальные данные?' });
+  await expect(dialog).toBeVisible();
+  const confirmButton = dialog.getByRole('button', { name: 'Сбросить данные' });
   await expect(page.locator('.bottom-nav')).toHaveCount(0);
-  const isButtonOnTop = await resetButton.evaluate((element) => {
+  const isButtonOnTop = await confirmButton.evaluate((element) => {
     const box = element.getBoundingClientRect();
     return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest('button') === element;
   });
   expect(isButtonOnTop).toBe(true);
-  const resetBox = await resetButton.boundingBox();
+  const resetBox = await confirmButton.boundingBox();
   expect(resetBox!.y + resetBox!.height).toBeLessThanOrEqual(520);
-  await page.getByRole('button', { name: 'Закрыть' }).click();
+  await page.getByRole('button', { name: 'Остаться' }).click();
   await expect(page.locator('.bottom-nav')).toBeVisible();
 });
 
 test('внутренний дизайн-кит собирает реальные контролы и модальный слой', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openFreshDemo(page);
-  await page.getByRole('button', { name: 'Открыть настройки' }).click();
+  await page.goto('/#/trainer/profile');
   await page.getByRole('button', { name: 'Открыть дизайн-кит' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/design-kit$/);
@@ -128,7 +130,7 @@ test('системные состояния показывают конфлик�
   });
 
   await context.setOffline(true);
-  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await profileAction(page, 'Переключиться в роль ученика');
   const saveError = page.getByRole('alert').filter({ hasText: 'Не удалось сохранить изменения' });
   await expect(saveError).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toHaveCount(0);
@@ -156,21 +158,16 @@ test('ошибка загрузки не подменяет данные и по
   await expect(page.getByRole('button', { name: 'Попробовать REPPY' })).toBeVisible();
 });
 
-test('светлая тема переключается из компактной шапки, сохраняется и держит контраст', async ({ page }) => {
+test('светлая тема переключается из профиля, сохраняется и держит контраст', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openFreshDemo(page);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-  const roleSwitch = page.getByRole('button', { name: 'Переключиться в роль ученика' });
-  const themeSwitch = page.getByRole('button', { name: 'Включить светлую тему' });
-  const roleBox = await roleSwitch.boundingBox();
-  const themeBox = await themeSwitch.boundingBox();
-  expect(roleBox?.width ?? 999).toBeLessThan(90);
-  expect(Math.round(themeBox?.width ?? 0)).toBe(40);
-
-  await themeSwitch.click();
+  await profileAction(page, 'Включить светлую тему');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.goto('/#/trainer/profile');
   await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
+  await page.goto('/#/trainer');
   await expect(page.locator('.today-schedule')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
   await expect(allDaysToggle.locator('.schedule-view-icon .ui-icon')).toHaveCSS('width', '19px');
@@ -253,11 +250,12 @@ test('светлая тема переключается из компактно
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#/trainer');
-  await roleSwitch.click();
+  await profileAction(page, 'Переключиться в роль ученика');
   await expect(page).toHaveURL(/#\/student$/);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.goto('/#/student/profile');
   await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
   await page.screenshot({ path: 'test-results/theme-light-student.png', animations: 'disabled' });
 
@@ -492,8 +490,8 @@ test('нижнее меню остаётся кликабельным после
   expect(Math.round(scrolledNavBox?.y ?? -1)).toBe(Math.round(initialNavBox?.y ?? -2));
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-  await page.getByRole('button', { name: 'Открыть настройки' }).click();
-  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await bottomNav.getByRole('button', { name: 'Профиль' }).tap();
+  await expect(page).toHaveURL(/#\/trainer\/profile$/);
   await expect(page.locator('.app-shell')).not.toHaveAttribute('inert', '');
   await expect(page.locator('.modal-layer-root')).toHaveCount(0);
   await bottomNav.getByRole('button', { name: 'Календарь' }).tap();
@@ -810,7 +808,7 @@ test('онлайн-тренировка переиспользует назна�
   await expect(repeatedInstruction.locator('video')).toBeVisible();
   await repeatedInstruction.getByRole('button', { name: 'Закрыть описание' }).click();
 
-  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await profileAction(page, 'Переключиться в роль ученика');
   await page.goto(`/#/student/assignments/${assignment.id}`);
   await expect(page.locator('.student-assignment-schedule')).toHaveCount(0);
   await expect(page.locator('.student-assignment-meta')).toContainText('Онлайн · в удобное время');
@@ -892,7 +890,7 @@ test('тренер пополняет и исправляет абонемент
   await expect(page.locator('.subscription-entry-list > button').first()).toContainText('12 000 ₽ · наличные');
   await expect(page.locator('.subscription-entry-list > button').first()).toContainText('Исправлено тренером');
 
-  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await profileAction(page, 'Переключиться в роль ученика');
   await expect(page.getByLabel('Остаток абонемента')).toContainText('Осталось 17 занятий');
   await page.goto('/#/student/profile');
   await expect(page.getByRole('region', { name: 'Абонемент', exact: true })).toContainText('Осталось 17 занятий');
@@ -986,7 +984,7 @@ test('тренер может завершить занятие в долг и �
 test('результат ученика виден тренеру и не меняется вместе с назначением', async ({ page }) => {
   await openFreshDemo(page);
 
-  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await profileAction(page, 'Переключиться в роль ученика');
   await expect(page).toHaveURL(/#\/student$/);
   await expect(page.getByLabel('Остаток абонемента')).toContainText('Осталось 11 занятий');
   await page.getByRole('button', { name: 'Посмотреть тренировку' }).click();
@@ -1011,7 +1009,7 @@ test('результат ученика виден тренеру и не мен
   await expect(page.getByRole('main').getByText('Осталось 10 занятий')).toBeVisible();
 
   await page.getByRole('button', { name: 'Готово' }).click();
-  await page.getByRole('button', { name: 'Переключиться в роль тренера' }).click();
+  await profileAction(page, 'Переключиться в роль тренера');
 
   await page.evaluate(() => {
     const raw = localStorage.getItem('reppy-demo-v0');

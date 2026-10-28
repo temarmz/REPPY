@@ -2,7 +2,7 @@ import { InitialsAvatar } from './ui/avatar';
 import { ListRow } from './ui/patterns';
 import { SectionHeading, Field, Toast } from './ui/patterns';
 import { Box, Page, Section, Inline, Strong, Small, Italic, Header, Paragraph, SelectOption, DefinitionList, DefinitionTerm, DefinitionValue } from './ui/elements';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   TRAINER_NAME,
   findAssignmentWorkout,
@@ -129,7 +129,6 @@ export default function ReppyApp() {
   const [assetsReady, setAssetsReady] = useState(false);
   const [shellFailed, setShellFailed] = useState(false);
   const [shellRecoveryKey, setShellRecoveryKey] = useState(0);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [modalLayerOpen, setModalLayerOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [theme, setTheme] = useState<AppTheme>(loadThemePreference);
@@ -251,7 +250,6 @@ export default function ReppyApp() {
   const resetDemo = () => {
     void clearInstructionVideos().catch(() => undefined);
     resetData();
-    setSettingsOpen(false);
     go('/');
   };
 
@@ -361,7 +359,24 @@ export default function ReppyApp() {
     : path.startsWith('/student') ? 'student' : 'trainer';
 
   const renderRoute = (route: string) => {
+    const accountSettings = <ProfileSettings
+      accountMode={auth.enabled}
+      account={auth.profile ? {
+        displayName: auth.profile.displayName,
+        role: auth.profile.role,
+        email: auth.session?.user.email?.endsWith('@users.reppy.invalid') ? '' : auth.session?.user.email ?? '',
+      } : { displayName: area === 'trainer' ? TRAINER_NAME : findStudent(data, data.activeStudentId)?.name ?? 'Ученик', role: area, email: '' }}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+      onSwitchRole={auth.enabled ? undefined : switchRole}
+      onReset={resetDemo}
+      onSignOut={auth.enabled ? async () => { await auth.signOut(); go('/', true); } : undefined}
+      onOpenDesignKit={area === 'trainer' ? () => go('/trainer/design-kit') : undefined}
+      onConnectTelegram={auth.enabled ? async () => { const link = await auth.createTelegramLink(); window.location.assign(link); } : undefined}
+      onLoadTelegramConnection={auth.enabled ? auth.getTelegramConnection : undefined}
+    />;
     if (area === 'trainer') {
+      if (route === '/trainer/profile') return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />{accountSettings}</Page>;
       return <TrainerRoutes
         path={route}
         data={data}
@@ -377,7 +392,7 @@ export default function ReppyApp() {
       return <StudentProfile data={data} studentId={data.activeStudentId} onUpdate={(updated) => {
         dispatch({ type: 'student.update', student: updated });
         showToast('Профиль сохранён');
-      }} />;
+      }} settings={accountSettings} />;
     } else {
       return <StudentRoutes path={route} data={data} dispatch={dispatch} showToast={showToast} />;
     }
@@ -391,13 +406,9 @@ export default function ReppyApp() {
         area={area}
         path={path}
         displayName={auth.profile?.displayName ?? (area === 'trainer' ? TRAINER_NAME : findStudent(data, data.activeStudentId)?.name ?? 'Ученик')}
-        hideBottomNav={settingsOpen || modalLayerOpen}
+        hideBottomNav={modalLayerOpen}
         onNavigate={go}
         onNavigateTab={goToMenuTab}
-        onSwitchRole={auth.enabled ? undefined : switchRole}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        onSettings={() => setSettingsOpen(true)}
         systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} hideSaving={path.startsWith('/trainer/workout/') || path.startsWith('/student/workout/')} />}
       >
         <PersistencePhaseContext value={persistencePhase}>
@@ -407,41 +418,16 @@ export default function ReppyApp() {
       </AppShell>
       </AppErrorBoundary>
       {shellFailed && <AppErrorScreen onRecover={() => {
-        setSettingsOpen(false);
         go(area === 'student' ? '/student' : '/trainer');
         setShellRecoveryKey((current) => current + 1);
         setShellFailed(false);
       }} />}
-      {settingsOpen && <SettingsModal
-        accountMode={auth.enabled}
-        account={auth.profile ? {
-          displayName: auth.profile.displayName,
-          role: auth.profile.role,
-          email: auth.session?.user.email?.endsWith('@users.reppy.invalid') ? '' : auth.session?.user.email ?? '',
-        } : undefined}
-        onClose={() => setSettingsOpen(false)}
-        onReset={resetDemo}
-        onSignOut={auth.enabled ? async () => {
-          await auth.signOut();
-          setSettingsOpen(false);
-          go('/', true);
-        } : undefined}
-        onOpenDesignKit={!auth.enabled || auth.profile?.role === 'trainer' ? () => {
-          setSettingsOpen(false);
-          go('/trainer/design-kit');
-        } : undefined}
-        onConnectTelegram={auth.enabled ? async () => {
-          const link = await auth.createTelegramLink();
-          window.location.assign(link);
-        } : undefined}
-        onLoadTelegramConnection={auth.enabled ? auth.getTelegramConnection : undefined}
-      />}
     </>
   );
 }
 
 
-function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean }) {
+function StudentProfile({ data, studentId, onUpdate, trainerView = false, settings }: { data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean; settings?: ReactNode }) {
   const student = findStudent(data, studentId);
   if (!student) return <NotFound />;
   const assignments = data.assignments
@@ -477,6 +463,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false }: { da
       </Section>}
 
       {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
+      {settings}
       {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
     </Page>
   );
@@ -530,6 +517,20 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
     : weight.trim() && (!Number.isFinite(parsedWeight) || parsedWeight < 20 || parsedWeight > 500)
       ? 'Укажи вес от 20 до 500 кг.' : '';
   const genderLabel = gender === 'male' ? 'Мужской' : gender === 'female' ? 'Женский' : 'Не указан';
+  const resetFields = () => {
+    setHeight(student.height ? String(student.height) : '');
+    setWeight(student.weight ? String(student.weight) : '');
+    setGender(student.gender ?? 'not-specified');
+    setPhone(student.phone ?? '');
+    setContraindications(student.contraindications ?? '');
+    setValidationAttempted(false);
+  };
+  const cancelEdit = () => {
+    clearUiDraft(draftKey);
+    resetFields();
+    setEditing(false);
+  };
+  const startEdit = () => { resetFields(); setEditing(true); };
 
   useEffect(() => {
     if (!editing) {
@@ -556,7 +557,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
 
   return (
     <Section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
-      {compact ? <Box className="athlete-inline-summary"><Box><Paragraph>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</Paragraph><Paragraph>Ограничения: {student.contraindications || 'не указаны'}</Paragraph></Box><Button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { clearUiDraft(draftKey); setEditing(false); return; } setHeight(student.height ? String(student.height) : ''); setWeight(student.weight ? String(student.weight) : ''); setGender(student.gender ?? 'not-specified'); setPhone(student.phone ?? ''); setContraindications(student.contraindications ?? ''); setEditing(true); }}><Icon name="edit" /></Button></Box> : <SectionHeading title={<>Данные и ограничения</>} >{alwaysExpanded && !editing ? <Button type="button" className="athlete-heading-edit" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать</Button> : !alwaysExpanded && <Button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) clearUiDraft(draftKey); setEditing(false); }}>{expanded ? 'Скрыть' : 'Показать'}</Button>}</SectionHeading>}
+      {compact ? <Box className="athlete-inline-summary"><Box><Paragraph>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</Paragraph><Paragraph>Ограничения: {student.contraindications || 'не указаны'}</Paragraph></Box><Button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { cancelEdit(); return; } startEdit(); }}><Icon name="edit" /></Button></Box> : <SectionHeading title={<>Данные и ограничения</>} >{alwaysExpanded && !editing ? <Button type="button" className="athlete-heading-edit" onClick={startEdit}><Icon name="edit" /> Редактировать</Button> : !alwaysExpanded && <Button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) cancelEdit(); }}>{expanded ? 'Скрыть' : 'Показать'}</Button>}</SectionHeading>}
       {(compact ? editing : expanded) && (editing ? <Box className="athlete-form">
         <Box className="athlete-form-grid">
           <Field label={<>Рост, см</>} ><Input type="number" min="50" max="260" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></Field>
@@ -567,8 +568,8 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
         <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><Small>Опиши всё, что тренеру важно учитывать при составлении плана.</Small></Field>
         {validationAttempted && metricError && <FormError>{metricError}</FormError>}
         <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
-        {compact && <ActionButton variant="secondary" onClick={() => { clearUiDraft(draftKey); setEditing(false); }}>Отмена</ActionButton>}
-      </Box> : <>{!alwaysExpanded && <Button className="details-edit-button" type="button" onClick={() => setEditing(true)}><Icon name="edit" /> Редактировать данные</Button>}<DefinitionList className="athlete-summary">
+        <ActionButton variant="secondary" onClick={cancelEdit}>Отмена</ActionButton>
+      </Box> : <>{!alwaysExpanded && <Button className="details-edit-button" type="button" onClick={startEdit}><Icon name="edit" /> Редактировать данные</Button>}<DefinitionList className="athlete-summary">
         <Box><DefinitionTerm>Рост</DefinitionTerm><DefinitionValue>{student.height ? `${student.height} см` : 'Не указан'}</DefinitionValue></Box>
         <Box><DefinitionTerm>Вес</DefinitionTerm><DefinitionValue>{student.weight ? `${student.weight} кг` : 'Не указан'}</DefinitionValue></Box>
         <Box><DefinitionTerm>Пол</DefinitionTerm><DefinitionValue>{genderLabel}</DefinitionValue></Box>
@@ -579,7 +580,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   );
 }
 
-function SettingsModal({ accountMode = false, account, onClose, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode?: boolean; account?: { displayName: string; role: 'trainer' | 'student'; email: string }; onClose: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
+function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
@@ -618,10 +619,19 @@ function SettingsModal({ accountMode = false, account, onClose, onReset, onSignO
   };
 
   return (
-    <ModalFrame title={resetConfirmationOpen ? 'Сбросить локальные данные?' : accountMode ? 'Настройки аккаунта' : 'Настройки демо'} eyebrow="REPPY V0" className="settings-modal" surface="center" ariaLabel={accountMode ? 'Настройки аккаунта' : 'Настройки демо'} onClose={onClose}>
-      {resetConfirmationOpen ? <Paragraph>Все локальные изменения в учениках, тренировках и расписании будут удалены.</Paragraph> : accountMode && account ? <Section className="account-details" aria-label="Данные аккаунта"><InitialsAvatar className="account-avatar" name={account.displayName} length={1} /><Box><Strong>{account.displayName}</Strong><Small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</Small>{account.email && <Inline>{account.email}</Inline>}</Box></Section> : !accountMode ? <Paragraph>Сброс вернёт исходных учеников, тренировки и расписание.</Paragraph> : null}
-      {resetConfirmationOpen ? <Box className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></Box> : <Box className="settings-actions">{accountMode && onConnectTelegram && (telegramConnection?.connected ? <Box className="telegram-connection-status"><Icon name="check" /><Inline><Strong>Telegram подключён</Strong><Small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</Small></Inline></Box> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}{telegramError && <FormError>{telegramError}</FormError>}{onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}{accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}</Box>}
-      {!resetConfirmationOpen && accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
-    </ModalFrame>
+    <Section className="profile-settings section-block" aria-label="Настройки профиля">
+      <Section className="account-details" aria-label="Данные аккаунта"><InitialsAvatar className="account-avatar" name={account.displayName} length={1} /><Box><Strong>{account.displayName}</Strong><Small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</Small>{account.email && <Inline>{account.email}</Inline>}</Box></Section>
+      <SectionHeading title="Настройки" />
+      <Box className="settings-actions">
+        <ActionButton variant="secondary" icon={theme === 'dark' ? 'sun' : 'moon'} onClick={onToggleTheme}>{theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}</ActionButton>
+        {onSwitchRole && <ActionButton variant="secondary" icon="change" onClick={onSwitchRole}>Переключиться в роль {account.role === 'trainer' ? 'ученика' : 'тренера'}</ActionButton>}
+        {accountMode && onConnectTelegram && (telegramConnection?.connected ? <Box className="telegram-connection-status"><Icon name="check" /><Inline><Strong>Telegram подключён</Strong><Small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</Small></Inline></Box> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}
+        {telegramError && <FormError>{telegramError}</FormError>}
+        {onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}
+        {accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
+        {accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}
+      </Box>
+      {resetConfirmationOpen && <ModalFrame title="Сбросить локальные данные?" className="settings-modal" surface="center" ariaLabel="Сбросить локальные данные?" onClose={() => setResetConfirmationOpen(false)}><Paragraph>Все локальные изменения в учениках, тренировках и расписании будут удалены.</Paragraph><Box className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></Box></ModalFrame>}
+    </Section>
   );
 }

@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function visibleViewport(page: Page, height: number, top: number) {
@@ -22,16 +23,15 @@ for (const theme of ['dark', 'light']) {
       await page.setViewportSize({ width, height: 844 });
       await page.goto('/');
       await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-      if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
-      await page.getByRole('button', { name: 'Открыть настройки' }).click();
-      const settings = page.getByRole('dialog', { name: 'Настройки демо' });
+      if (theme === 'light') await profileAction(page, 'Включить светлую тему');
+      await page.goto('/#/trainer/profile');
+      await page.getByRole('button', { name: 'Сбросить демо-данные' }).click();
+      const settings = page.getByRole('dialog', { name: 'Сбросить локальные данные?' });
       await expect(settings).toBeVisible();
-      await page.screenshot({ path: testInfo.outputPath('settings-full.png') });
+      await page.screenshot({ path: testInfo.outputPath('reset-full.png') });
       await visibleViewport(page, 360, 60);
       await fitsVisibleViewport(settings, 360, 60);
-      await settings.getByRole('button', { name: 'Сбросить демо-данные' }).click();
       await settings.getByRole('button', { name: 'Остаться' }).click();
-      await settings.getByRole('button', { name: 'Закрыть', exact: true }).click();
 
       await visibleViewport(page, 844, 0);
       await page.goto('/#/trainer/design-kit');
@@ -55,7 +55,7 @@ for (const theme of ['dark', 'light']) {
   test(`workout focus mode keeps instruction sheet within the visible viewport: ${theme}`, async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+    if (theme === 'light') await profileAction(page, 'Включить светлую тему');
     await page.goto('/#/trainer/workout/assignment-artem-push-today');
     await page.getByRole('button', { name: /^Как выполнять —/ }).first().click();
     const instruction = page.getByRole('dialog');

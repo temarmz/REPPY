@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test, type Page } from '@playwright/test';
 
 async function demo(page: Page, student = false) {
@@ -5,7 +6,7 @@ async function demo(page: Page, student = false) {
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
   await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-  if (student) await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  if (student) await profileAction(page, 'Переключиться в роль ученика');
 }
 
 test('долгая навигация не накапливает скрытые экраны без ограничения', async ({ page }) => {

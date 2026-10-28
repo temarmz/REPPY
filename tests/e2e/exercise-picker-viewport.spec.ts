@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 import { createInitialState } from '../../app/reppy-data';
 
@@ -48,7 +49,7 @@ for (const theme of ['dark', 'light']) {
   test(`exercise picker survives a reduced visual viewport while searching: ${theme}`, async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+    if (theme === 'light') await profileAction(page, 'Включить светлую тему');
     await page.goto('/#/trainer/clients/artem/assign/new');
     await page.getByRole('button', { name: 'Добавить упражнение', exact: true }).click();
     const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });

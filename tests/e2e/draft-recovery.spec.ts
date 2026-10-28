@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 const assignmentId = 'assignment-artem-push-today';
@@ -11,7 +12,7 @@ for (const theme of ['dark', 'light'] as const) {
       await page.setViewportSize({ width, height });
       await page.goto('/');
       await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-      if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+      if (theme === 'light') await profileAction(page, 'Включить светлую тему');
       const route = `/trainer/assignments/${assignmentId}/edit`;
       await page.goto(`/#${route}`);
       const cards = page.locator('[data-route-active="true"] .plan-exercise-card');
@@ -66,8 +67,8 @@ for (const theme of ['dark', 'light'] as const) {
         await page.setViewportSize({ width, height });
         await page.goto('/');
         await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-        if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
-        if (mode === 'student') await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+        if (theme === 'light') await profileAction(page, 'Включить светлую тему');
+        if (mode === 'student') await profileAction(page, 'Переключиться в роль ученика');
         const route = mode === 'plan' ? `/trainer/assignments/${assignmentId}/edit` : `/${mode}/workout/${assignmentId}`;
         await page.goto(`/#${route}`);
         const cards = page.locator('[data-route-active="true"] .active-exercise-card');

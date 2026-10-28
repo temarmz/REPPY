@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 async function expectVisibleButtonSurfaces(page: import('@playwright/test').Page) {
@@ -18,7 +19,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+    if (theme === 'light') await profileAction(page, 'Включить светлую тему');
     await expect(page.locator('.topbar .brand-button')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expectVisibleButtonSurfaces(page);
 
@@ -79,7 +80,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.goto('/#/trainer/clients');
     await expectVisibleButtonSurfaces(page);
     await expect(page.locator('.client-grid')).toHaveCSS('gap', '24px');
-    await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+    await profileAction(page, 'Переключиться в роль ученика');
     await expectVisibleButtonSurfaces(page);
     await page.goto('/#/student/calendar');
     await expectVisibleButtonSurfaces(page);

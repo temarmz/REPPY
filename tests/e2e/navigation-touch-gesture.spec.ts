@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 for (const theme of ['dark', 'light'] as const) {
@@ -7,8 +8,8 @@ for (const theme of ['dark', 'light'] as const) {
         await page.setViewportSize({ width, height });
         await page.goto('/');
         await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-        if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
-        if (role === 'student') await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+        if (theme === 'light') await profileAction(page, 'Включить светлую тему');
+        if (role === 'student') await profileAction(page, 'Переключиться в роль ученика');
         const initialRoute = role === 'student' ? '/student/profile' : '/trainer/clients/invite';
         await page.goto(`/#${initialRoute}`);
         if (role === 'student') await page.locator('.athlete-heading-edit').click();

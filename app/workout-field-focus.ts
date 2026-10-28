@@ -10,12 +10,12 @@ export function fieldScrollDelta(field: { top: number; bottom: number }, top: nu
 // an obscured field after layout settles, and scroll its actual container.
 export function observeWorkoutFieldFocus(target: Window, document: Document) {
   let frame = 0;
-  let settleTimer: ReturnType<typeof setTimeout> | null = null;
+  const timers = new Set<ReturnType<typeof setTimeout>>();
   const clear = () => {
     target.cancelAnimationFrame(frame);
     frame = 0;
-    if (settleTimer !== null) clearTimeout(settleTimer);
-    settleTimer = null;
+    for (const timer of timers) clearTimeout(timer);
+    timers.clear();
   };
   const adjust = () => {
     frame = 0;
@@ -48,17 +48,17 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     const delta = fieldScrollDelta(rect, top + 16, bottom - 24);
     if (Math.abs(delta) < 1) return;
     if (scrollsPage) page.scrollTop += delta;
-    else target.scrollBy({ top: delta, behavior: 'smooth' });
+    else target.scrollBy({ top: delta, behavior: 'instant' });
   };
   const schedule = () => { if (!frame) frame = target.requestAnimationFrame(adjust); };
-  const settle = (delay: number) => {
-    if (settleTimer !== null) clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => { settleTimer = null; schedule(); }, delay);
+  const later = (delay: number) => {
+    const timer = setTimeout(() => { timers.delete(timer); schedule(); }, delay);
+    timers.add(timer);
   };
-  const focus = () => { clear(); settle(420); };
-  const resize = () => settle(240);
+  const focus = () => { clear(); schedule(); later(100); later(350); later(650); };
+  const resize = () => { schedule(); later(150); };
   document.addEventListener('focusin', focus);
-  const blur = () => { clear(); settle(240); };
+  const blur = () => { clear(); later(350); later(650); };
   document.addEventListener('focusout', blur);
   target.visualViewport?.addEventListener('resize', resize);
   target.addEventListener('resize', resize);

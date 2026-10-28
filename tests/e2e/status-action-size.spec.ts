@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 for (const theme of ['dark', 'light'] as const) {
@@ -6,7 +7,7 @@ for (const theme of ['dark', 'light'] as const) {
       await page.setViewportSize({ width, height });
       await page.goto('/');
       await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-      if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+      if (theme === 'light') await profileAction(page, 'Включить светлую тему');
       await page.goto('/#/trainer/design-kit');
       for (const state of ['error', 'conflict']) {
         const banner = page.locator(`.app-status-banner.preview.${state}`);

@@ -52,12 +52,12 @@ function ProfileDraft({ onSave }: { onSave: (phone: string) => void }) {
 function Harness() {
   const controller = useReppyData(repository);
   const path = useHashNavigation();
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('reppy-ui:theme') === 'light' ? 'light' : 'dark');
+  const [theme] = useState<'dark' | 'light'>(() => localStorage.getItem('reppy-ui:theme') === 'light' ? 'light' : 'dark');
   useLayoutEffect(() => { fixture.controller = controller; document.documentElement.dataset.theme = theme; });
   useEffect(() => { fixture.mounts++; return () => { fixture.unmounts++; }; }, []);
   if (!controller.hydrated) return null;
   return <AppShell area="student" path={path} displayName="Изолированный ученик" hideBottomNav={false}
-    onNavigate={go} onNavigateTab={goToMenuTab} theme={theme} onToggleTheme={() => setTheme(current => current === 'dark' ? 'light' : 'dark')} onSettings={() => {}}
+    onNavigate={go} onNavigateTab={goToMenuTab}
     systemStatus={<AppStatusBanner phase={controller.persistencePhase} online remote onRetry={controller.retryPersistence} />}>
     <RetainedRouteViews path={path} renderRoute={route => route === '/student/calendar' ? <FailedScreen /> : <ProfileDraft onSave={phone => {
       const student = controller.data.students[0];

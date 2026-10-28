@@ -2,6 +2,7 @@ import { Inline } from './elements';
 export type IconName =
   | 'home'
   | 'users'
+  | 'user'
   | 'workout'
   | 'calendar'
   | 'history'
@@ -29,6 +30,7 @@ export type IconName =
 const iconFiles: Record<IconName, string> = {
   home: 'icon-home-reppy.svg',
   users: 'icon-users-list.svg',
+  user: 'icon-user.svg',
   workout: 'icon-dumbbell-reppy.svg',
   calendar: 'icon-calendar-reppy.svg',
   history: 'icon-history.svg',

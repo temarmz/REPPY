@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 test('malformed numeric fields in a restored profile draft cannot crash the screen', async ({ page }) => {
@@ -29,8 +30,8 @@ for (const theme of ['dark', 'light'] as const) {
         await page.setViewportSize({ width, height });
         await page.goto('/');
         await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-        if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
-        if (role === 'student') await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+        if (theme === 'light') await profileAction(page, 'Включить светлую тему');
+        if (role === 'student') await profileAction(page, 'Переключиться в роль ученика');
         await page.goto(role === 'trainer' ? '/#/trainer/clients/artem' : '/#/student/profile');
         const edit = role === 'trainer' ? page.getByRole('button', { name: 'Редактировать данные ученика' })
           : page.locator('.athlete-heading-edit');

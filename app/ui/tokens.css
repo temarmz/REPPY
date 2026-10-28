@@ -882,6 +882,7 @@
   --lime: var(--palette-b7e85a);
   --paper: var(--palette-f5f6ef);
   --muted: var(--palette-979d95);
+  --text-secondary: var(--palette-c8ccc5);
   --violet: var(--palette-7a4cff);
   --pink: var(--palette-ff4fd8);
   --orange: var(--palette-ff6a35);
@@ -920,6 +921,7 @@ html[data-theme="light"] {
   --button-hover-bg: var(--tint-192317-120);
   --overlay-surface: var(--palette-white);
   --muted: var(--palette-687067);
+  --text-secondary: var(--palette-465043);
   --ui-outline: var(--tint-192317-120);
   --divider: var(--tint-192317-90);
   --brand-soft: var(--tint-5d8012-100);

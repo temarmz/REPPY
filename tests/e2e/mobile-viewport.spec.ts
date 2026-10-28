@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 test('плавающее меню сохраняет боковые отступы, safe area и положение при скролле', async ({ page }) => {
@@ -5,7 +6,7 @@ test('плавающее меню сохраняет боковые отступ
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
   await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-  await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+  await profileAction(page, 'Переключиться в роль ученика');
   // Desktop browser engines do not expose the hardware home-indicator inset.
   // Exercise the floating bar's bottom margin with iPhone's usual 34px safe area.
   await page.addStyleTag({ content: ':root { --app-safe-bottom: 34px; }' });
@@ -42,7 +43,7 @@ test('плавающее меню сохраняет боковые отступ
   await expect(nav.locator('button.active')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.setViewportSize({ width: 440, height: 956 });
   await page.screenshot({ path: 'test-results/iphone-bottom-nav-dark.png', animations: 'disabled' });
-  await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+  await profileAction(page, 'Включить светлую тему');
   await expect(nav.locator('button:not(.active)').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(nav.locator('button.active')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await page.screenshot({ path: 'test-results/iphone-bottom-nav.png', animations: 'disabled' });
@@ -96,7 +97,7 @@ for (const role of ['student', 'trainer'] as const) {
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
     await page.reload();
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    if (role === 'student') await page.getByRole('button', { name: 'Переключиться в роль ученика' }).click();
+    if (role === 'student') await profileAction(page, 'Переключиться в роль ученика');
 
     const nav = page.locator('.bottom-nav');
     const target = role === 'student' ? 'Профиль' : 'Ученики';

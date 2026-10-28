@@ -1,3 +1,4 @@
+import { profileAction } from './profile-action';
 import { expect, test } from '@playwright/test';
 
 for (const theme of ['dark', 'light'] as const) {
@@ -6,7 +7,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+    if (theme === 'light') await profileAction(page, 'Включить светлую тему');
     await page.evaluate(() => { location.hash = '/trainer/design-kit'; });
     await expect(page.getByRole('heading', { name: 'ДИЗАЙН-КИТ' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Маленькая', exact: true })).toHaveCSS('min-height', '44px');
@@ -47,7 +48,7 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    if (theme === 'light') await page.getByRole('button', { name: 'Включить светлую тему' }).click();
+    if (theme === 'light') await profileAction(page, 'Включить светлую тему');
     await page.evaluate(() => { location.hash = '/trainer/design-kit'; });
     const name = page.getByLabel('Название тренировки');
     const nameHeight = (await name.boundingBox())!.height;
