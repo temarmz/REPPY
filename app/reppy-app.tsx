@@ -1,8 +1,8 @@
 import { InitialsAvatar } from './ui/avatar';
 import { ListRow } from './ui/patterns';
-import { SectionHeading, Field, Toast } from './ui/patterns';
+import { SectionHeading, Field } from './ui/patterns';
 import { Box, Page, Section, Inline, Strong, Small, Italic, Header, Paragraph, SelectOption, DefinitionList, DefinitionTerm, DefinitionValue } from './ui/elements';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
   TRAINER_NAME,
   findAssignmentWorkout,
@@ -130,7 +130,6 @@ export default function ReppyApp() {
   const [shellFailed, setShellFailed] = useState(false);
   const [shellRecoveryKey, setShellRecoveryKey] = useState(0);
   const [modalLayerOpen, setModalLayerOpen] = useState(false);
-  const [toast, setToast] = useState('');
   const [theme, setTheme] = useState<AppTheme>(loadThemePreference);
   const videoCleanupProfile = useRef<string | null>(null);
 
@@ -222,14 +221,6 @@ export default function ReppyApp() {
   }, [auth.enabled, auth.profile, auth.status, hydrated, path]);
 
   useRouteScrollRestoration(path, hydrated && assetsReady && data.loggedIn && (!auth.enabled || auth.status === 'authenticated'), auth.profile?.id ?? `demo:${data.activeStudentId}`);
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(''), 2600);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
-  const showToast = (message: string) => setToast(message);
-
   const login = () => {
     setData((current) => ({ ...current, loggedIn: true, role: 'trainer' }));
     go('/trainer');
@@ -382,7 +373,6 @@ export default function ReppyApp() {
         data={data}
         draftIdentity={auth.profile?.id ?? 'demo'}
         dispatch={dispatch}
-        showToast={showToast}
         createStudentInvitation={createStudentInvitation}
         StudentProfileComponent={StudentProfile}
       />;
@@ -391,10 +381,9 @@ export default function ReppyApp() {
     } else if (route === '/student/profile') {
       return <StudentProfile data={data} studentId={data.activeStudentId} onUpdate={(updated) => {
         dispatch({ type: 'student.update', student: updated });
-        showToast('Профиль сохранён');
       }} settings={accountSettings} />;
     } else {
-      return <StudentRoutes path={route} data={data} dispatch={dispatch} showToast={showToast} />;
+      return <StudentRoutes path={route} data={data} dispatch={dispatch} />;
     }
   };
 
@@ -409,12 +398,11 @@ export default function ReppyApp() {
         hideBottomNav={modalLayerOpen}
         onNavigate={go}
         onNavigateTab={goToMenuTab}
-        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} hideSaving={path.startsWith('/trainer/workout/') || path.startsWith('/student/workout/')} />}
+        systemStatus={<AppStatusBanner phase={persistencePhase} error={persistenceError} conflict={persistenceConflict} online={online} remote={auth.enabled} onRetry={retryPersistence} onReload={reloadCurrentData} hideSaving />}
       >
         <PersistencePhaseContext value={persistencePhase}>
           <RetainedRouteViews path={path} renderRoute={renderRoute} />
         </PersistencePhaseContext>
-        {toast && <Toast>{toast}</Toast>}
       </AppShell>
       </AppErrorBoundary>
       {shellFailed && <AppErrorScreen onRecover={() => {
@@ -531,6 +519,9 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
     setEditing(false);
   };
   const startEdit = () => { resetFields(); setEditing(true); };
+  const keepFieldFocus = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.closest('.athlete-form')?.contains(document.activeElement)) event.preventDefault();
+  };
 
   useEffect(() => {
     if (!editing) {
@@ -567,8 +558,8 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
         <Field label={<>Мобильный телефон</>} ><Input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></Field>
         <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><Small>Опиши всё, что тренеру важно учитывать при составлении плана.</Small></Field>
         {validationAttempted && metricError && <FormError>{metricError}</FormError>}
-        <ActionButton icon="check" onClick={save}>Сохранить данные</ActionButton>
-        <ActionButton variant="secondary" onClick={cancelEdit}>Отмена</ActionButton>
+        <ActionButton icon="check" onPointerDown={keepFieldFocus} onClick={save}>Сохранить данные</ActionButton>
+        <ActionButton variant="secondary" onPointerDown={keepFieldFocus} onClick={cancelEdit}>Отмена</ActionButton>
       </Box> : <>{!alwaysExpanded && <Button className="details-edit-button" type="button" onClick={startEdit}><Icon name="edit" /> Редактировать данные</Button>}<DefinitionList className="athlete-summary">
         <Box><DefinitionTerm>Рост</DefinitionTerm><DefinitionValue>{student.height ? `${student.height} см` : 'Не указан'}</DefinitionValue></Box>
         <Box><DefinitionTerm>Вес</DefinitionTerm><DefinitionValue>{student.weight ? `${student.weight} кг` : 'Не указан'}</DefinitionValue></Box>

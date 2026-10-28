@@ -30,8 +30,9 @@ test('вкладки сохраняют раскрытый профиль, не�
   await page.getByRole('button', { name: 'Редактировать', exact: true }).click();
   const field = page.getByLabel('Рост, см');
   await field.fill('183');
-  await scroll.evaluate((element) => { element.scrollTop = 180; });
-  const profileDepth = await scroll.evaluate((element) => element.scrollTop);
+  await field.evaluate((element: HTMLInputElement) => element.blur());
+  await page.evaluate(() => window.scrollTo(0, 180));
+  const profileDepth = await page.evaluate(() => window.scrollY);
   expect(profileDepth).toBeGreaterThan(0);
   await nav.getByRole('button', { name: 'Календарь' }).click();
   await page.getByRole('button', { name: 'Следующий месяц' }).click();
@@ -42,9 +43,9 @@ test('вкладки сохраняют раскрытый профиль, не�
   await nav.getByRole('button', { name: 'Сегодня' }).click();
   await nav.getByRole('button', { name: 'Профиль' }).click();
   await expect(field).toHaveValue('183');
-  await expect.poll(async () => Math.abs(await scroll.evaluate((element) => element.scrollTop) - profileDepth)).toBeLessThanOrEqual(1);
+  await expect.poll(async () => Math.abs(await page.evaluate(() => window.scrollY) - profileDepth)).toBeLessThanOrEqual(1);
   await nav.getByRole('button', { name: 'Профиль' }).click();
-  await expect.poll(async () => Math.abs(await scroll.evaluate((element) => element.scrollTop) - profileDepth)).toBeLessThanOrEqual(1);
+  await expect.poll(async () => Math.abs(await page.evaluate(() => window.scrollY) - profileDepth)).toBeLessThanOrEqual(1);
   await nav.getByRole('button', { name: 'Календарь' }).click();
   await expect(page.locator('[data-route-active="true"] .calendar-toolbar h2')).toHaveText(month);
   await expect(page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]')).toHaveAttribute('aria-label', selected!);

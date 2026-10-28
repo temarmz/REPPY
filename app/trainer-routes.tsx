@@ -24,7 +24,6 @@ import NotFound from './not-found';
 import SessionResult from './session-result';
 import WorkoutCalendar from './workout-calendar';
 import { isScheduleDate } from './schedule-display';
-import { lessonWord } from './workout-display';
 import ActiveWorkout from './active-workout';
 import { TrainerHome, ClientsList } from './trainer-dashboard';
 import DesignKitScreen from './trainer-design-kit';
@@ -41,23 +40,20 @@ function workoutForRepeat(data: DemoState, assignment: Assignment) {
   return completedSession ? workoutFromSession(completedSession) : findAssignmentWorkout(data, assignment);
 }
 
-export default function TrainerRoutes({ path, data, draftIdentity, dispatch, showToast, createStudentInvitation, StudentProfileComponent }: {
+export default function TrainerRoutes({ path, data, draftIdentity, dispatch, createStudentInvitation, StudentProfileComponent }: {
   path: string;
   data: DemoState;
   draftIdentity: string;
   dispatch: (command: ReppyCommand) => void;
-  showToast: (message: string) => void;
   createStudentInvitation: ((name: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
   StudentProfileComponent: ComponentType<{ data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean }>;
 }) {
   let content: ReactNode;
   const createCustomExercise = (definition: DemoState['customExercises'][number]) => {
     dispatch({ type: 'exercise-definition.create', definition });
-    showToast(`Упражнение «${definition.name}» сохранено`);
   };
   const updateCustomExercise = (definition: DemoState['customExercises'][number]) => {
     dispatch({ type: 'exercise-definition.update', definition });
-    showToast(`Упражнение «${definition.name}» обновлено`);
   };
     const [progressPath, progressSearch = ''] = path.split('?');
     const progressMatch = progressPath.match(/^\/trainer\/clients\/([^/]+)\/progress(?:\/([^/]+))?$/);
@@ -104,7 +100,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
             const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
             dispatch({ type: 'assignment.create', assignment });
-            showToast(`Тренировка назначена: ${student.name}`);
             go('/trainer', true);
           }}
         />
@@ -132,7 +127,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
               workoutSnapshot,
             };
             dispatch({ type: 'assignment.create', assignment });
-            showToast(`Тренировка назначена: ${student.name}`);
             go('/trainer', true);
           }}
         />
@@ -167,12 +161,10 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           initial={payment}
           onSave={(input) => {
             dispatch({ type: 'subscription.payment.update', entry: updateSubscriptionPayment(payment, input) });
-            showToast('Пополнение исправлено');
             go(`/trainer/clients/${student.id}/subscription`, true);
           }}
           onDelete={() => {
             dispatch({ type: 'subscription.payment.delete', entryId: payment.id });
-            showToast('Пополнение удалено');
             go(`/trainer/clients/${student.id}/subscription`, true);
           }}
         />
@@ -186,7 +178,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           defaults={lastPayment}
           onSave={(input) => {
             dispatch({ type: 'subscription.payment.create', entry: createSubscriptionPayment(student.id, input) });
-            showToast(`Абонемент пополнен на ${input.lessons} ${lessonWord(input.lessons)}`);
             go(`/trainer/clients/${student.id}`, true);
           }}
         />
@@ -198,7 +189,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
         student={student}
         onDelete={() => {
           dispatch({ type: 'subscription.clear', studentId: student.id });
-          showToast('Абонемент и его история удалены');
           go(`/trainer/clients/${student.id}`);
         }}
       /> : <NotFound />;
@@ -224,7 +214,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
             const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
             dispatch({ type: 'assignment.create', assignment });
-            showToast(`Тренировка назначена: ${student.name}`);
             go(`/trainer/clients/${student.id}`);
           }}
         />
@@ -250,7 +239,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
               workoutSnapshot,
             };
             dispatch({ type: 'assignment.create', assignment });
-            showToast(`Тренировка назначена: ${student.name}`);
             go(`/trainer/clients/${student.id}`);
           }}
         />
@@ -261,7 +249,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
     } else if (clientMatch || progressMatch) {
       content = <StudentProfileComponent data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView onUpdate={(updated) => {
         dispatch({ type: 'student.update', student: updated });
-        showToast('Профиль ученика сохранён');
       }} />;
     } else if (assignmentEditMatch) {
       const assignment = data.assignments.find((item) => item.id === assignmentEditMatch[1]);
@@ -273,7 +260,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           onUpdateCustomExercise={updateCustomExercise}
           onSave={(updated) => {
             dispatch({ type: 'assignment.update', assignment: updated });
-            showToast('Назначение сохранено');
             go(`/trainer/assignments/${updated.id}`);
           }}
           onDelete={(deleted) => {
@@ -282,7 +268,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
               assignmentId: deleted.id,
               sessionId: data.sessions.find((session) => session.assignmentId === deleted.id)?.id,
             });
-            showToast('Тренировка удалена из расписания');
             go(`/trainer/clients/${deleted.studentId}`);
           }}
         />
@@ -300,7 +285,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           onSave={(scheduledFor, scheduledTime, format, workout) => {
             const next = { ...repeatAssignment(assignment, workout, scheduledFor, scheduledTime), format };
             dispatch({ type: 'assignment.create', assignment: next });
-            showToast('Повтор тренировки назначен');
             go(`/trainer/assignments/${next.id}`);
           }}
         />
@@ -319,11 +303,9 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
             scheduledTime: request.scheduledTime,
             rescheduleRequest: undefined,
           } });
-          showToast('Новое время подтверждено');
         }}
         onDeclineRequest={() => {
           dispatch({ type: 'assignment.update', assignment: { ...assignment, rescheduleRequest: undefined } });
-          showToast('Запрос отклонён');
         }}
       /> : <NotFound />;
     } else if (trainerActiveMatch) {
@@ -354,7 +336,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
           onFinish={(sessionId, { chargeSubscription }) => {
             const completedAt = new Date().toISOString();
             dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt, chargeSubscription, workoutName: workout.name });
-            showToast(chargeSubscription ? 'Тренировка завершена, занятие списано' : 'Тренировка завершена без списания');
             go(`/trainer/sessions/${sessionId}`, true);
           }}
         />
@@ -368,7 +349,6 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, sho
         onRepeat={() => go(`/trainer/assignments/${session.assignmentId}/repeat`)}
         onDelete={() => {
           dispatch({ type: 'session.archive', session, workoutName: session.workoutSnapshot.name });
-          showToast('Завершённая тренировка удалена');
           go(`/trainer/clients/${session.studentId}`);
         }}
       /> : <NotFound />;
