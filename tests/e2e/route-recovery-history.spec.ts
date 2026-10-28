@@ -24,7 +24,7 @@ async function openFixture(page: Page, area: 'trainer' | 'student', theme: strin
     `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="${styleUrl}"></head><body><div id="root"></div><script>${bundle.replaceAll('</script', '<\\/script')}</script></body></html>` }));
   await page.goto(`/__qa_route_history__#/${area}/profile`);
   await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.controller?.hydrated)).toBe(true);
-  await page.getByLabel('Телефон для проверки').fill('+7 222 222-22-22');
+  await page.getByRole('textbox', { name: 'Телефон для проверки' }).fill('+7 222 222-22-22');
   await page.getByRole('button', { name: 'Сохранить для проверки' }).click();
   await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.calls)).toEqual(['+7 111 111-11-11']);
 }
@@ -56,11 +56,11 @@ for (const area of ['trainer', 'student'] as const) {
         await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-ui-errors-v1') ?? '[]').length)).toBe(errorsBeforeRetry + 1);
         await page.evaluate(home => window.routeRecoveryQa.resolveRoute(home), home);
         await page.getByRole('button', { name: 'Вернуться на главную' }).click();
-        await expect(page.locator('[data-route-active="true"]').getByLabel('Телефон для проверки')).toBeVisible();
+        await expect(page.locator('[data-route-active="true"]').getByRole('textbox', { name: 'Телефон для проверки' })).toBeVisible();
         await expect(page.getByRole('alert')).toHaveCount(0);
         await page.goBack();
         await expect(page).toHaveURL(new RegExp(`#/${area}/profile$`));
-        await expect(page.locator('[data-route-active="true"]').getByLabel('Телефон для проверки')).toHaveValue('+7 222 222-22-22');
+        await expect(page.locator('[data-route-active="true"]').getByRole('textbox', { name: 'Телефон для проверки' })).toHaveValue('+7 222 222-22-22');
         await finishWrites(page);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({ path: testInfo.outputPath('home-recovered.png'), animations: 'disabled' });
@@ -87,7 +87,7 @@ for (const area of ['trainer', 'student'] as const) {
       await page.evaluate(first => window.routeRecoveryQa.resolveRoute(first), first);
       await page.getByRole('button', { name: 'Вернуться на главную' }).click();
       await expect(page).toHaveURL(new RegExp(`#${first}$`));
-      await expect(page.locator('[data-route-active="true"]').getByLabel('Телефон для проверки')).toBeVisible();
+      await expect(page.locator('[data-route-active="true"]').getByRole('textbox', { name: 'Телефон для проверки' })).toBeVisible();
       await finishWrites(page);
     });
 

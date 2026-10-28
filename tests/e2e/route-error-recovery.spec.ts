@@ -27,7 +27,7 @@ for (const theme of ['dark', 'light'] as const) {
         `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="${styleUrl}"></head><body><div id="root"></div><script>${bundle.replaceAll('</script', '<\\/script')}</script></body></html>` }));
       await page.goto('/__qa_route_recovery__#/student/profile');
       await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.controller?.hydrated)).toBe(true);
-      const phone = page.locator('[data-route-active="true"]').getByLabel('Телефон для проверки');
+      const phone = page.locator('[data-route-active="true"]').getByRole('textbox', { name: 'Телефон для проверки' });
       await phone.fill('+7 222 222-22-22');
       await page.getByRole('button', { name: 'Сохранить для проверки' }).click();
       await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.calls)).toEqual(['+7 111 111-11-11']);
