@@ -6,6 +6,7 @@ import { createBrowserRepository } from './browser-repository.ts';
 import { createPersistenceQueue } from './persistence-queue';
 
 export type PersistencePhase = 'loading' | 'idle' | 'saving' | 'error';
+type RepositoryLifetime = { repository: ReppyRepository };
 
 type ReppyDataController = {
   data: DemoState;
@@ -38,13 +39,14 @@ export function useReppyData(
   const [saveAttempt, setSaveAttempt] = useState(0);
   const [reloadAttempt, setReloadAttempt] = useState(0);
   const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
+  const [loadedLifetime, setLoadedLifetime] = useState<RepositoryLifetime | null>(null);
   const dataRef = useRef(data);
   const loadedSnapshotRef = useRef<DemoState | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
   const refreshSequenceRef = useRef(0);
   const remoteQueueRef = useRef<ReturnType<typeof createPersistenceQueue> | null>(null);
-  const repositoryLifetimeRef = useRef<{ repository: ReppyRepository } | null>(null);
+  const repositoryLifetimeRef = useRef<RepositoryLifetime | null>(null);
 
   useEffect(() => {
     dataRef.current = data;
@@ -85,6 +87,7 @@ export function useReppyData(
         loadedSnapshotRef.current = nextData;
         setData(nextData);
         setLoadedRepository(repository);
+        setLoadedLifetime(lifetime);
         setHydrated(true);
         setPersistenceError(null);
         setPersistencePhase('idle');
@@ -248,13 +251,16 @@ export function useReppyData(
   }, [hydrated, repository]);
 
   const dispatch = useCallback((command: ReppyCommand) => {
+    // Async work from a disposed screen must not enter another account's lane,
+    // even when the same repository object has since been opened again.
+    if (!loadedLifetime || loadedLifetime !== repositoryLifetimeRef.current || loadedLifetime.repository !== repository) return;
     const nextData = applyReppyCommand(dataRef.current, command);
     dataRef.current = nextData;
     setData(nextData);
     if (!repository.execute) return;
     saveVersionRef.current += 1;
     remoteQueueRef.current?.enqueue(command, nextData);
-  }, [repository]);
+  }, [loadedLifetime, repository]);
 
   const reset = useCallback(() => {
     const initial = createInitialState();

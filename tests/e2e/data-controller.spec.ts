@@ -31,6 +31,21 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const returnToAccount of [false, true]) {
+  test(`a stale dispatch cannot reach a ${returnToAccount ? 'new lifecycle of the same repository' : 'different account queue'}`, async ({ page }) => {
+    await page.evaluate(() => { window.reppyQa.captureDispatch(); window.reppyQa.selectAccount('b'); });
+    await ready(page, 'b');
+    if (returnToAccount) {
+      await page.evaluate(() => window.reppyQa.selectAccount('a'));
+      await ready(page, 'a');
+    }
+    await page.evaluate(() => { window.reppyQa.sendCapturedUpdate(); window.reppyQa.updateCurrentProfile(); });
+    const account = returnToAccount ? 'a' : 'b';
+    await expect.poll(() => page.evaluate(() => window.reppyQa.writes))
+      .toEqual([{ account, studentId: `${account}-existing`, phone: 'current-account-update' }]);
+    await expect.poll(() => page.evaluate(() => window.reppyQa.controller?.persistencePhase)).toBe('idle');
+    await expect.poll(() => page.evaluate(() => window.reppyQa.controller?.data.students[0].phone)).toBe('current-account-update');
+  });
+
   test(`late invitation cannot update a ${returnToAccount ? 'new lifecycle of the original account' : 'different account'}`, async ({ page }) => {
     await page.evaluate(() => { window.reppyQa.startInvitation(); window.reppyQa.selectAccount('b'); });
     await ready(page, 'b');
