@@ -141,7 +141,7 @@ export function ClientsList({ data }: { data: DemoState }) {
     <Page className="content-page">
       <Button className="list-primary-action" type="button" onClick={() => go('/trainer/clients/invite')}><Icon name="plus" /> Пригласить ученика</Button>
       <Section className="client-grid">
-        {data.students.map((student) => {
+        {data.students.length ? data.students.map((student) => {
           const subscriptionEntries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
           const balance = subscriptionBalance(data.subscriptionEntries, student.id);
           const assigned = data.assignments
@@ -162,7 +162,7 @@ export function ClientsList({ data }: { data: DemoState }) {
               <Italic><Icon name="chevron-right" /></Italic>
             </Button>
           );
-        })}
+        }) : <EmptyState icon="users" title="Учеников пока нет" text="Пригласи первого ученика, чтобы составить ему план тренировок." action="Пригласить ученика" onAction={() => go('/trainer/clients/invite')} />}
       </Section>
     </Page>
   );

@@ -1386,7 +1386,7 @@ body.modal-open .bottom-nav { display: none; }
 .athlete-details.always-expanded { margin-top: 0; border-top: 0; padding-top: 0; }
 .athlete-details .section-heading { margin-bottom: var(--space-12); }
 .athlete-details .section-heading h2 { color: var(--palette-b9beb7); font-size: var(--font-size-17); }
-.athlete-details .section-heading button { min-height: calc(var(--size-38) * var(--ui-control-height-scale)); font-size: var(--button-font-size); }
+.athlete-details .section-heading button { min-height: var(--control-height-small); font-size: var(--button-font-size); }
 .athlete-heading-edit { display: inline-flex; align-items: center; gap: var(--space-6); }
 .athlete-heading-edit .ui-icon { width: calc(var(--size-15) * var(--ui-icon-scale)); height: calc(var(--size-15) * var(--ui-icon-scale)); }
 .athlete-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-20) var(--space-28); margin: var(--space-4) var(--space-2) 0; }
@@ -2321,6 +2321,8 @@ textarea::placeholder { color: var(--palette-747b72); opacity: 1; }
 }
 
 @media (max-width: 380px) {
+  .app-shell:not(.focus-mode) .calendar-page { padding-right: var(--space-6); padding-left: var(--space-6); }
+  .calendar-page .calendar-card { padding-right: var(--space-8); padding-left: var(--space-8); }
   .active-exercise-footer-actions { grid-template-columns: 1fr; border-top: 0; padding-top: var(--space-6); margin-top: var(--space-8); gap: var(--space-8); }
   .set-count-control { width: 100%; justify-content: space-between; min-height: var(--control-height-small); }
   .active-exercise-footer-actions > button { width: 100%; }

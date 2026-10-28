@@ -39,6 +39,7 @@ jobs:
   frontend-checks:
     needs: backend-integration
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -53,9 +54,19 @@ jobs:
       - name: Type check
         run: npm run typecheck
       - name: Install browser for end-to-end tests
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Build and run end-to-end tests
         run: npm run test:e2e
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   deploy:
     needs: frontend-checks
