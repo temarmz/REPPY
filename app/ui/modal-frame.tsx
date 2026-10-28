@@ -14,7 +14,9 @@ export function hasOpenModalLayers() {
   return openModalLayers > 0 || closingModalLayers > 0;
 }
 
-export function ModalLayer({ children, onClose, trackHistory = true }: { children: ReactNode; onClose: () => void; trackHistory?: boolean }) {
+export function ModalLayer({ children, onClose, trackHistory = true, closeOnHistoryBack = true }: {
+  children: ReactNode; onClose: () => void; trackHistory?: boolean; closeOnHistoryBack?: boolean;
+}) {
   const layerRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const modalId = `reppy-modal-${useId()}`;
@@ -83,7 +85,7 @@ export function ModalLayer({ children, onClose, trackHistory = true }: { childre
       onCloseRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('popstate', handleHistoryBack, { capture: true });
+    if (closeOnHistoryBack) window.addEventListener('popstate', handleHistoryBack, { capture: true });
     return () => {
       window.cancelAnimationFrame(focusFrame);
       window.clearTimeout(focusRetryTimer);
@@ -120,7 +122,7 @@ export function ModalLayer({ children, onClose, trackHistory = true }: { childre
       window.addEventListener('popstate', settleHistory, { once: true });
       window.history.back();
     };
-  }, [modalId, trackHistory]);
+  }, [closeOnHistoryBack, modalId, trackHistory]);
 
   return createPortal(<Box className="modal-layer-root" ref={layerRef}>{children}</Box>, document.body);
 }

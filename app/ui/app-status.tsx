@@ -1,10 +1,10 @@
 import { UI_ASSETS } from './assets';
 import { Aside, Inline, Strong, Small, Page, Image, PageTitle, Paragraph } from './elements';
 import { Component, createContext, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import type { PersistencePhase } from '../use-reppy-data';
 import Icon, { type IconName } from './icon';
 import { ActionButton, Button } from './controls';
+import { ModalLayer } from './modal-frame';
 import { downloadUiErrorDiagnostics, recordUiError } from '../ui-error-diagnostics';
 
 export const PersistencePhaseContext = createContext<PersistencePhase>('idle');
@@ -112,7 +112,7 @@ export function AppErrorScreen({ onRecover, preview = false }: { onRecover?: () 
     {!onRecover && <ActionButton icon="history" onClick={() => window.location.reload()}>Перезагрузить</ActionButton>}
     <Button className="system-state-diagnostics" type="button" onClick={downloadUiErrorDiagnostics}>Скачать журнал ошибки</Button>
   </Page>;
-  return onRecover && !preview ? createPortal(fallback, document.body) : fallback;
+  return onRecover && !preview ? <ModalLayer onClose={onRecover} trackHistory={false} closeOnHistoryBack={false}>{fallback}</ModalLayer> : fallback;
 }
 
 export class AppErrorBoundary extends Component<{ children: ReactNode; onFailure?: () => void; hideFallback?: boolean }, { failed: boolean }> {

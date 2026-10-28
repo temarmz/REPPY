@@ -41,7 +41,8 @@ for (const theme of ['dark', 'light'] as const) {
         mounts: window.routeRecoveryQa.mounts, unmounts: window.routeRecoveryQa.unmounts, calls: window.routeRecoveryQa.calls,
       }))), contentType: 'application/json' });
       expect(await page.evaluate(() => window.routeRecoveryQa.unmounts)).toBe(0);
-      await expect(nav).toBeVisible();
+      await expect(page.locator('.app-shell')).toHaveAttribute('inert', '');
+      await expect(page.getByRole('button', { name: 'Вернуться на главную' })).toBeFocused();
 
       await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
       await expect(page.getByRole('button', { name: 'Перезагрузить', exact: true })).toHaveCount(0);
