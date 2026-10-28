@@ -1,5 +1,5 @@
 import { Box, Video, Inline, Label, Paragraph, Small, Strong, Subheading } from './elements';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { exerciseLibrary, type WorkoutExercise } from '../reppy-data';
 import Icon from './icon';
 import ModalFrame from './modal-frame';
@@ -43,6 +43,10 @@ export default function ExerciseInstructionModal({
   const [videoMissing, setVideoMissing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const saveRequest = useRef<object | null>(null);
+
+  useEffect(() => () => { saveRequest.current = null; }, []);
+  const close = () => { saveRequest.current = null; onClose(); };
 
   useEffect(() => {
     if (instructionText === (exercise.instructionText ?? '')) clearUiDraft(draftKey);
@@ -88,22 +92,31 @@ export default function ExerciseInstructionModal({
   };
 
   const save = async () => {
+    if (saveRequest.current) return;
+    const request = {};
+    saveRequest.current = request;
     setSaving(true);
     setError('');
     try {
       const nextVideo = pendingFile ? await saveInstructionVideo(pendingFile, studentId) : instructionVideo;
-      clearUiDraft(draftKey);
+      if (saveRequest.current !== request) return;
       onSave?.({ instructionText: instructionText.trim() || undefined, instructionVideo: nextVideo });
+      clearUiDraft(draftKey);
       onClose();
     } catch {
+      if (saveRequest.current !== request) return;
       setError('Не удалось сохранить видео. Попробуй ещё раз.');
-      setSaving(false);
+    } finally {
+      if (saveRequest.current === request) {
+        saveRequest.current = null;
+        setSaving(false);
+      }
     }
   };
 
   const instruction = exercise.instructionText?.trim();
   return (
-    <ModalFrame title={exercise.name} className="exercise-instruction-sheet" ariaLabel={'Как выполнять — ' + exercise.name} closeLabel="Закрыть описание" onClose={onClose}>
+    <ModalFrame title={exercise.name} className="exercise-instruction-sheet" ariaLabel={'Как выполнять — ' + exercise.name} closeLabel="Закрыть описание" onClose={close}>
       <Box className="exercise-instruction-body">
         <Box className={`exercise-instruction-media ${videoUrl ? 'has-video' : ''}`}>
           {videoUrl
@@ -114,16 +127,16 @@ export default function ExerciseInstructionModal({
           <Label className="wide-secondary">
             <Icon name={instructionVideo || pendingFile ? 'change' : 'plus'} />
             <Inline>{instructionVideo || pendingFile ? 'Заменить видео' : 'Записать или выбрать видео'}</Inline>
-            <Input type="file" accept="video/*" onChange={(event) => chooseVideo(event.target.files?.[0])} />
+            <Input type="file" accept="video/*" disabled={saving} onChange={(event) => chooseVideo(event.target.files?.[0])} />
           </Label>
-          {(instructionVideo || pendingFile) && <Button type="button" className="instruction-video-remove" onClick={() => { setInstructionVideo(undefined); setPendingFile(null); setError(''); }}><Icon name="trash" /> Удалить</Button>}
+          {(instructionVideo || pendingFile) && <Button type="button" className="instruction-video-remove" disabled={saving} onClick={() => { setInstructionVideo(undefined); setPendingFile(null); setError(''); }}><Icon name="trash" /> Удалить</Button>}
         </Box>}
         {(instructionVideo || pendingFile) && <Paragraph className="instruction-video-meta">{pendingFile?.name ?? instructionVideo?.name} · {formatFileSize(pendingFile?.size ?? instructionVideo?.size ?? 0)}</Paragraph>}
         {editable && <Paragraph className="instruction-video-helper">Короткий ролик: 2–3 повтора, до 100 МБ.</Paragraph>}
         {equipment && <Box className="exercise-equipment"><Small>ОБОРУДОВАНИЕ</Small><Strong>{equipment}</Strong></Box>}
         <Subheading>Как выполнять</Subheading>
         {editable
-          ? <Textarea className="instruction-textarea" aria-label="Подробное описание упражнения" maxLength={1500} value={instructionText} onChange={(event) => setInstructionText(event.target.value)} placeholder="Опиши исходное положение, движение, дыхание и требования к технике" />
+          ? <Textarea className="instruction-textarea" aria-label="Подробное описание упражнения" disabled={saving} maxLength={1500} value={instructionText} onChange={(event) => setInstructionText(event.target.value)} placeholder="Опиши исходное положение, движение, дыхание и требования к технике" />
           : instruction
             ? <Paragraph className="instruction-copy">{instruction}</Paragraph>
             : <Paragraph className="instruction-empty">Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли.</Paragraph>}

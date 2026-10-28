@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createInitialState, type DemoState, type Student } from '../../app/reppy-data';
 import type { ReppyRepository } from '../../app/reppy-repository';
 import { useReppyData } from '../../app/use-reppy-data';
+import { applyReppyCommand } from '../../app/reppy-commands';
 
 type Account = 'a' | 'b';
 type Invitation = { student: Student; token: string; expiresAt: string };
@@ -29,6 +30,10 @@ export type ControllerFixture = {
   refresh: () => void;
   holdNextLoad: () => void;
   releaseLoad: () => void;
+  writes: { account: Account; studentId: string; phone?: string }[];
+  captureDispatch: () => void;
+  sendCapturedUpdate: () => void;
+  updateCurrentProfile: () => void;
 };
 
 declare global { interface Window { reppyQa: ControllerFixture } }
@@ -39,6 +44,7 @@ let currentAccount: Account = 'a';
 let pendingInvitation: { account: Account; request: ReturnType<typeof deferred<Invitation>> } | undefined;
 let holdLoad = false;
 let pendingLoad: { request: ReturnType<typeof deferred<DemoState>>; snapshot: DemoState } | undefined;
+let capturedDispatch: ReturnType<typeof useReppyData>['dispatch'] | undefined;
 
 function repositoryFor(account: Account): ReppyRepository {
   return {
@@ -53,7 +59,12 @@ function repositoryFor(account: Account): ReppyRepository {
     fixture.acceptedHeldLoad = options?.accept?.() ?? true;
     return result;
   },
-  async execute() {},
+  async execute(command) {
+    if (command.type !== 'student.update') throw new Error('Unexpected fixture command');
+    fixture.writes.push({ account, studentId: command.student.id, phone: command.student.phone });
+    if (command.student.id !== `${account}-existing`) throw new Error('Isolated RLS rejected another account student');
+    states[account] = applyReppyCommand(states[account], command);
+  },
   async save() { throw new Error('Remote state must not be saved as demo'); },
   async clear() {},
   subscribe(callback) { subscribers.set(account, callback); return () => { subscribers.delete(account); }; },
@@ -75,6 +86,12 @@ function Harness({ account }: { account: Account }) {
 const root = createRoot(document.getElementById('root')!);
 const fixture: ControllerFixture = {
   controller: null, outcome: 'idle', heldLoads: 0, acceptedHeldLoad: null,
+  writes: [],
+  captureDispatch() { capturedDispatch = fixture.controller!.dispatch; },
+  sendCapturedUpdate() { capturedDispatch!({ type: 'student.update', student: { ...states.a.students[0], phone: 'stale-upload-result' } }); },
+  updateCurrentProfile() {
+    fixture.controller!.dispatch({ type: 'student.update', student: { ...fixture.controller!.data.students[0], phone: 'current-account-update' } });
+  },
   selectAccount(account) { currentAccount = account; root.render(<Harness account={account} />); },
   startInvitation() {
     const create = fixture.controller?.createStudentInvitation;

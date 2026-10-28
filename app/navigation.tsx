@@ -240,7 +240,9 @@ export function useUnsavedNavigationGuard(isDirty: boolean, onDiscard?: () => vo
     onDiscardRef.current = onDiscard;
   }, [onDiscard]);
 
-  useEffect(() => {
+  // A restored draft is already dirty on its first paint. Browser Back/Forward
+  // can arrive before passive effects, so install the guard during commit.
+  useLayoutEffect(() => {
     if (!isDirty) return;
     const blocker: NavigationBlocker = (proceed) => setPendingNavigation(() => proceed);
     blockerRef.current = blocker;
