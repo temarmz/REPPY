@@ -65,4 +65,14 @@ xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY \
 
 Генератор Xcode-проекта использует только Python standard library; XcodeGen и сторонние Swift-пакеты не нужны. Workflow `REPPY iOS` отдельно проверяет контракт, домен, сборку и smoke-тесты обеих ролей/тем на iOS 18. Веб-публикация продолжает использовать свой существующий workflow.
 
+Успешный облачный прогон сохраняет `ios-simulator-demo` с `REPPY.app` и `ios-test-results` с результатами XCTest и экспортированными снимками. Демо-сборка без локальных параметров Supabase открывает обе роли с тестовыми данными. После распаковки на Mac с совместимым Xcode и запущенным iPhone Simulator:
+
+```sh
+xcrun simctl install booted /path/to/REPPY.app
+xcrun simctl launch booted app.reppy.ios --demo-trainer
+# Для ученика завершить приложение и запустить с --demo-student.
+```
+
+Артефакт предназначен для симулятора. Для физического iPhone требуются сборка под устройство и подпись; ZIP из CI её не заменяет.
+
 Ссылки: [требования Xcode](https://developer.apple.com/xcode/system-requirements/), [Telegram OIDC](https://core.telegram.org/bots/telegram-login), [macOS runners GitHub](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [состав образа macOS 15](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md).
