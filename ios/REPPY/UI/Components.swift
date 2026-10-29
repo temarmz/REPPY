@@ -176,7 +176,14 @@ struct ReppyPicker<T: Hashable, Content: View>: View {
     var title: String
     @Binding var selection: T
     @ViewBuilder var content: () -> Content
-    var body: some View { Picker(title, selection: $selection, content: content).pickerStyle(.menu).reppyField().tint(ReppyTheme.text).accessibilityLabel(title).accessibilityIdentifier(title) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
+            Picker(title, selection: $selection, content: content).pickerStyle(.menu).labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading).reppyField().tint(ReppyTheme.text)
+                .accessibilityLabel(title).accessibilityIdentifier(title)
+        }
+    }
 }
 struct ReppyToggle: View {
     var title: String

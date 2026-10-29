@@ -8,7 +8,7 @@ final class SmokeTests: XCTestCase {
                 let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
                 XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15))
                 app.buttons["Профиль"].tap()
-                XCTAssertTrue(app.staticTexts["Оформление"].exists || app.buttons["Оформление"].exists)
+                XCTAssertTrue(app.staticTexts["Оформление"].exists)
                 let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "\(role)-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
                 app.buttons["Календарь"].tap()
                 XCTAssertTrue(app.buttons["Следующий месяц"].exists)

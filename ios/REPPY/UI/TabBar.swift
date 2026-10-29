@@ -20,11 +20,12 @@ struct ReppyTabBar: View {
                     VStack(spacing: 4) {
                         Image(systemName: tab.icon).font(.system(size: 20, weight: .medium))
                         if !typeSize.isAccessibilitySize { Text(tab.title).font(.caption2.weight(.medium)).lineLimit(1) }
-                    }.frame(maxWidth: .infinity).frame(minHeight: 56)
+                    }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.control)
                         .foregroundStyle(selected == tab ? ReppyTheme.selectedText : ReppyTheme.secondary)
                         .background(selected == tab ? ReppyTheme.lime : .clear, in: Capsule())
                 }.buttonStyle(.plain).accessibilityLabel(tab.title).accessibilityAddTraits(selected == tab ? .isSelected : [])
             }
         }.padding(6).background(ReppyTheme.surface, in: Capsule()).padding(.horizontal, 16).padding(.bottom, 8).padding(.top, 8)
+            .background(ReppyTheme.background.ignoresSafeArea(edges: .bottom))
     }
 }
