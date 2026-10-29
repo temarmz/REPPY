@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ExecutionSnapshot: Codable, Equatable {
+public struct ExecutionSnapshot: Codable, Equatable, ReppySendable {
     public var workout: Workout
     public var results: [SetResult]
 }

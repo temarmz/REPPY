@@ -1,13 +1,13 @@
 import Foundation
 
-public enum Role: String, Codable { case trainer, student }
-public enum TrainingFormat: String, Codable, CaseIterable {
+public enum Role: String, Codable, ReppySendable { case trainer, student }
+public enum TrainingFormat: String, Codable, CaseIterable, ReppySendable {
     case inPerson = "in-person", online
     public var title: String { self == .online ? "Онлайн" : "Очно" }
 }
-public enum LoadMode: String, Codable, CaseIterable { case external, bodyweight }
-public enum MeasureType: String, Codable, CaseIterable { case reps, duration }
-public enum Mood: String, Codable, CaseIterable {
+public enum LoadMode: String, Codable, CaseIterable, ReppySendable { case external, bodyweight }
+public enum MeasureType: String, Codable, CaseIterable, ReppySendable { case reps, duration }
+public enum Mood: String, Codable, CaseIterable, ReppySendable {
     case great, good, tired, hard
     public var title: String {
         switch self {
@@ -18,12 +18,12 @@ public enum Mood: String, Codable, CaseIterable {
         }
     }
 }
-public struct Profile: Codable, Identifiable {
+public struct Profile: Codable, Identifiable, ReppySendable {
     public var id: String
     public var role: Role
     public var display_name: String
 }
-public struct Student: Codable, Identifiable, Equatable {
+public struct Student: Codable, Identifiable, Equatable, ReppySendable {
     public var id: String
     public var account_id: String?
     public var name: String
@@ -34,7 +34,7 @@ public struct Student: Codable, Identifiable, Equatable {
     public var contraindications: String?
     public var updated_at: String
 }
-public struct Relationship: Codable, Identifiable {
+public struct Relationship: Codable, Identifiable, ReppySendable {
     public var id: String
     public var trainer_id: String
     public var student_id: String
@@ -42,14 +42,14 @@ public struct Relationship: Codable, Identifiable {
     public var color: String
     public var updated_at: String
 }
-public struct InstructionVideo: Codable, Equatable {
+public struct InstructionVideo: Codable, Equatable, ReppySendable {
     public var id: String
     public var name: String
     public var mimeType: String
     public var size: Int
     public var createdAt: String
 }
-public struct SetPlan: Codable, Equatable, Identifiable {
+public struct SetPlan: Codable, Equatable, Identifiable, ReppySendable {
     public var id = UUID().uuidString.lowercased()
     public var targetReps: Int
     public var targetWeight: Double
@@ -59,7 +59,7 @@ public struct SetPlan: Codable, Equatable, Identifiable {
         self.targetReps = targetReps; self.targetWeight = targetWeight
     }
 }
-public struct WorkoutExercise: Codable, Identifiable, Equatable {
+public struct WorkoutExercise: Codable, Identifiable, Equatable, ReppySendable {
     public var id: String
     public var exerciseId: String
     public var name: String
@@ -81,7 +81,7 @@ public struct WorkoutExercise: Codable, Identifiable, Equatable {
         plannedSets = []
     }
 }
-public struct Workout: Codable, Identifiable, Equatable {
+public struct Workout: Codable, Identifiable, Equatable, ReppySendable {
     public var id: String
     public var name: String
     public var exercises: [WorkoutExercise]
@@ -100,7 +100,7 @@ public struct Workout: Codable, Identifiable, Equatable {
         return copy
     }
 }
-public struct Assignment: Codable, Identifiable {
+public struct Assignment: Codable, Identifiable, ReppySendable {
     public var id: String
     public var relationship_id: String
     public var assigned_at: String
@@ -121,7 +121,7 @@ public struct Assignment: Codable, Identifiable {
         status == "assigned" && (role == .trainer || format == .online || scheduled_for == today || sessions.contains { $0.assignment_id == id && $0.completed_at == nil })
     }
 }
-public struct SetResult: Codable, Identifiable, Equatable {
+public struct SetResult: Codable, Identifiable, Equatable, ReppySendable {
     public var session_id: String
     public var exercise_instance_id: String
     public var set_number: Int
@@ -133,7 +133,7 @@ public struct SetResult: Codable, Identifiable, Equatable {
         completed && actual_reps > 0 && actual_weight.isFinite && (exercise.loadMode == .bodyweight || actual_weight >= 0)
     }
 }
-public struct WorkoutSession: Codable, Identifiable {
+public struct WorkoutSession: Codable, Identifiable, ReppySendable {
     public var id: String
     public var assignment_id: String
     public var workout_snapshot: Workout
@@ -145,7 +145,7 @@ public struct WorkoutSession: Codable, Identifiable {
     public var charge_status: String?
     public var revision: Int
 }
-public struct SubscriptionEntry: Codable, Identifiable {
+public struct SubscriptionEntry: Codable, Identifiable, ReppySendable {
     public var id: String
     public var relationship_id: String
     public var kind: String
@@ -160,7 +160,7 @@ public struct SubscriptionEntry: Codable, Identifiable {
     public var workout_name: String?
     public var revision: Int
 }
-public struct ExerciseDefinition: Codable, Identifiable {
+public struct ExerciseDefinition: Codable, Identifiable, ReppySendable {
     public var id: String
     public var slug: String?
     public var owner_id: String?
@@ -172,7 +172,7 @@ public struct ExerciseDefinition: Codable, Identifiable {
     public var load_mode: LoadMode
     public var archived_at: String?
 }
-public struct AppData: Codable {
+public struct AppData: Codable, ReppySendable {
     public var demoDay: String?
     public var students: [Student] = []
     public var relationships: [Relationship] = []

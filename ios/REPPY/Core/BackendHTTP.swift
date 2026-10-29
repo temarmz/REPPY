@@ -12,7 +12,7 @@ public enum APIError: LocalizedError, Equatable {
     }
 }
 
-public struct PublicBackendConfiguration {
+public struct PublicBackendConfiguration: ReppySendable {
     public let url: URL
     public let key: String
 
@@ -73,8 +73,8 @@ public enum BackendHTTP {
     }
 }
 
-public struct AuthSession: Codable {
-    public struct User: Codable { public let id: String }
+public struct AuthSession: Codable, ReppySendable {
+    public struct User: Codable, ReppySendable { public let id: String }
     public var access_token: String
     public var refresh_token: String
     public var expires_at: Double?

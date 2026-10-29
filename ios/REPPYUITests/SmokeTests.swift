@@ -2,7 +2,7 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
-    func testBothRolesAndBothThemes() {
+    @MainActor func testBothRolesAndBothThemes() {
         for role in ["trainer", "student"] {
             for theme in ["light", "dark"] {
                 let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
@@ -16,7 +16,7 @@ final class SmokeTests: XCTestCase {
             }
         }
     }
-    func testTrainerCanOpenEditorAndStudentCanOpenHistory() {
+    @MainActor func testTrainerCanOpenEditorAndStudentCanOpenHistory() {
         let app = XCUIApplication(); app.launchArguments = ["--demo-trainer"]; app.launch()
         let assign = app.buttons["Назначить тренировку"]
         XCTAssertTrue(assign.waitForExistence(timeout: 15)); assign.tap()

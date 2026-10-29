@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ProgressPoint: Identifiable {
+public struct ProgressPoint: Identifiable, ReppySendable {
     public var id: String { session.id }
     public var session: WorkoutSession
     public var exercise: WorkoutExercise
@@ -11,7 +11,7 @@ public struct ProgressPoint: Identifiable {
     }
     public var total: Double { results.reduce(0) { $0 + Double($1.actual_reps) } }
 }
-public struct ProgressGroup: Identifiable {
+public struct ProgressGroup: Identifiable, ReppySendable {
     public var id: String { exercise.progressKey }
     public var exercise: WorkoutExercise
     public var points: [ProgressPoint]

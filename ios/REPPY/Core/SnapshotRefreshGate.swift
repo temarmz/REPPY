@@ -2,7 +2,7 @@ import Foundation
 
 /// Tracks pending server events independently of an editor's error state.
 /// A write invalidates older reads; an event received while busy stays pending.
-public struct SnapshotRefreshGate {
+public struct SnapshotRefreshGate: ReppySendable {
     public private(set) var revision: UInt64 = 0
     public private(set) var pending = false
     private var active: UInt64?

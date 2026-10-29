@@ -44,11 +44,19 @@ jobs:
               output.write('REPPY_SIMULATOR=' + phones[0][1]['udid'] + '\n')
           PY
       - name: Build and run iPhone tests
-        run: xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult CODE_SIGNING_ALLOWED=NO
+        run: xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult CODE_SIGNING_ALLOWED=NO SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+      - name: Export test screenshots
+        if: always()
+        run: |
+          if [ -d ios/TestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path ios/TestResults.xcresult --output-path ios/TestAttachments
+          fi
       - name: Preserve simulator diagnostics
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: ios-test-results
-          path: ios/TestResults.xcresult
+          path: |
+            ios/TestResults.xcresult
+            ios/TestAttachments
           if-no-files-found: ignore

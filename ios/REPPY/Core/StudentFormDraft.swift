@@ -1,6 +1,6 @@
 import Foundation
 
-public struct StudentFormDraft: Codable, Equatable {
+public struct StudentFormDraft: Codable, Equatable, ReppySendable {
     public var student: Student
     public var height: String
     public var weight: String
