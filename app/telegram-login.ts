@@ -252,34 +252,65 @@ export async function acceptInvitationWithTelegram(client: SupabaseClient, invit
   await applySession(client, result.tokenHash);
 }
 
-let redirectCompletion: Promise<PendingTelegramRegistration | null> | null = null;
+let redirectCompletion: { key: string; promise: Promise<PendingTelegramRegistration | null> } | null = null;
+let redirectAuthorization: { key: string; idToken: string } | null = null;
+
+function redirectCallback() {
+  const pending = loadPendingRedirect();
+  const query = new URLSearchParams(window.location.search);
+  const code = query.get('code') ?? '';
+  const state = query.get('state') ?? '';
+  return { pending, code, state, key: JSON.stringify([code, state, pending]) };
+}
+
+export function resetTelegramRedirect() {
+  redirectCompletion = null;
+  redirectAuthorization = null;
+  try { window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY); } catch { /* Best effort; a fresh flow owns a new state. */ }
+  const query = new URLSearchParams(window.location.search);
+  if (query.has('code') || query.has('state')) {
+    replaceHistoryEntry({}, `${window.location.pathname}${window.location.hash}`);
+  }
+}
 
 export function completeTelegramRedirect(client: SupabaseClient) {
-  if (redirectCompletion) return redirectCompletion;
-  redirectCompletion = (async () => {
-    const pending = loadPendingRedirect();
-    const query = new URLSearchParams(window.location.search);
-    const code = query.get('code') ?? '';
-    const state = query.get('state') ?? '';
+  const { pending, code, state, key } = redirectCallback();
+  if (redirectCompletion?.key === key) return redirectCompletion.promise;
+  const completion = (async () => {
     if (!pending || !code || state !== pending.state || Date.now() - pending.startedAt > 10 * 60_000) {
       throw new Error('Ответ Telegram устарел или повреждён. Попробуй войти ещё раз.');
     }
-    const exchange = await callTelegramAuth(client, {
-      action: 'exchange-code', code, verifier: pending.verifier, nonce: pending.nonce, redirectUri: REDIRECT_URI,
-    });
-    if (!exchange.idToken) throw new Error('Telegram не вернул подтверждение входа.');
-    const cleanUrl = `${window.location.pathname}${pending.returnHash}`;
-    replaceHistoryEntry({}, cleanUrl);
-    window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
-    const authorization = { idToken: exchange.idToken, nonce: pending.nonce };
+    // OAuth codes are single-use. Keep a successful exchange only in memory
+    // so a later network failure can retry without consuming that code again.
+    let idToken = redirectAuthorization?.key === key ? redirectAuthorization.idToken : undefined;
+    if (!idToken) {
+      const exchange = await callTelegramAuth(client, {
+        action: 'exchange-code', code, verifier: pending.verifier, nonce: pending.nonce, redirectUri: REDIRECT_URI,
+      });
+      if (!exchange.idToken) throw new Error('Telegram не вернул подтверждение входа.');
+      if (redirectCallback().key !== key) throw new DOMException('Попытка входа изменилась.', 'AbortError');
+      idToken = exchange.idToken;
+      redirectAuthorization = { key, idToken };
+    }
+    const authorization = { idToken, nonce: pending.nonce };
     const result = await callTelegramAuth(client, pending.action === 'login'
       ? { action: 'login', ...authorization }
       : { action: 'accept-student-invitation', invitationToken: pending.invitationToken, ...authorization });
-    if (result.status === 'registration-required') {
-      return { ...authorization, displayName: result.telegram?.displayName || '', username: result.telegram?.username ?? null };
+    if (redirectCallback().key !== key) throw new DOMException('Попытка входа изменилась.', 'AbortError');
+    const registration = result.status === 'registration-required'
+      ? { ...authorization, displayName: result.telegram?.displayName || '', username: result.telegram?.username ?? null }
+      : null;
+    if (!registration) await applySession(client, result.tokenHash);
+    if (redirectCallback().key === key) {
+      replaceHistoryEntry({}, `${window.location.pathname}${pending.returnHash}`);
+      try { window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY); } catch { /* The URL no longer contains a resumable callback. */ }
     }
-    await applySession(client, result.tokenHash);
-    return null;
+    if (redirectAuthorization?.key === key) redirectAuthorization = null;
+    return registration;
   })();
-  return redirectCompletion;
+  redirectCompletion = { key, promise: completion };
+  void completion.catch(() => {
+    if (redirectCompletion?.promise === completion) redirectCompletion = null;
+  });
+  return completion;
 }
