@@ -2224,7 +2224,7 @@ textarea::placeholder { color: var(--palette-747b72); opacity: 1; }
   width: min(100%, 560px);
   min-height: 100svh;
   margin: 0 auto;
-  place-content: center;
+  place-content: safe center;
   justify-items: center;
   gap: var(--space-14);
   padding: var(--space-28);

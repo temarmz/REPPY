@@ -10,8 +10,9 @@ type Invitation = { student: Student; token: string; expiresAt: string };
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((complete) => { resolve = complete; });
-  return { promise, resolve };
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((complete, fail) => { resolve = complete; reject = fail; });
+  return { promise, resolve, reject };
 }
 
 function initial(account: Account): DemoState {
@@ -30,6 +31,7 @@ export type ControllerFixture = {
   refresh: () => void;
   holdNextLoad: () => void;
   releaseLoad: () => void;
+  failLoad: () => void;
   writes: { account: Account; studentId: string; phone?: string }[];
   captureDispatch: () => void;
   sendCapturedUpdate: () => void;
@@ -113,6 +115,11 @@ const fixture: ControllerFixture = {
   releaseLoad() {
     if (!pendingLoad) throw new Error('No pending load');
     pendingLoad.request.resolve(pendingLoad.snapshot);
+    pendingLoad = undefined;
+  },
+  failLoad() {
+    if (!pendingLoad) throw new Error('No pending load');
+    pendingLoad.request.reject(new Error('Isolated initial load failed'));
     pendingLoad = undefined;
   },
 };

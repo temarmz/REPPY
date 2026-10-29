@@ -222,11 +222,27 @@ export function SupabaseInvitationScreen({
 }
 
 export function MissingProfileScreen({ onSignOut }: { onSignOut: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const signOut = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await onSignOut();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось выйти из аккаунта. Попробуй ещё раз.');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <Page className="auth-screen">
       <Section className="auth-card">
         <AuthBrand />
-        <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть приглашение тренера. Тренер завершает регистрацию по одноразовой ссылке от REPPY." action="Выйти" onAction={() => void onSignOut()} />
+        <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть приглашение тренера. Тренер завершает регистрацию по одноразовой ссылке от REPPY." />
+        {error && <FormError>{error}</FormError>}
+        <ActionButton variant="secondary" disabled={busy} onClick={() => void signOut()}>{busy ? 'Выходим…' : 'Выйти'}</ActionButton>
       </Section>
     </Page>
   );

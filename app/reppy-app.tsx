@@ -573,6 +573,8 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
 
 function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
+  const [signOutBusy, setSignOutBusy] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
   const [telegramConnection, setTelegramConnection] = useState<TelegramConnection | null>(null);
@@ -609,6 +611,19 @@ function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchR
     }
   };
 
+  const signOut = async () => {
+    if (!onSignOut || signOutBusy) return;
+    setSignOutBusy(true);
+    setSignOutError('');
+    try {
+      await onSignOut();
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : 'Не удалось выйти из аккаунта. Попробуй ещё раз.');
+    } finally {
+      setSignOutBusy(false);
+    }
+  };
+
   return (
     <Section className="profile-settings section-block" aria-label="Настройки профиля">
       <Section className="account-details" aria-label="Данные аккаунта"><InitialsAvatar className="account-avatar" name={account.displayName} length={1} /><Box><Strong>{account.displayName}</Strong><Small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</Small>{account.email && <Inline>{account.email}</Inline>}</Box></Section>
@@ -620,7 +635,8 @@ function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchR
         {telegramError && <FormError>{telegramError}</FormError>}
         {onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}
         {accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
-        {accountMode && onSignOut ? <ActionButton variant="danger" onClick={() => void onSignOut()}>Выйти из аккаунта</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}
+        {signOutError && <FormError>{signOutError}</FormError>}
+        {accountMode && onSignOut ? <ActionButton variant="danger" disabled={signOutBusy} onClick={() => void signOut()}>{signOutBusy ? 'Выходим…' : 'Выйти из аккаунта'}</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}
       </Box>
       {resetConfirmationOpen && <ModalFrame title="Сбросить локальные данные?" className="settings-modal" surface="center" ariaLabel="Сбросить локальные данные?" onClose={() => setResetConfirmationOpen(false)}><Paragraph>Все локальные изменения в учениках, тренировках и расписании будут удалены.</Paragraph><Box className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></Box></ModalFrame>}
     </Section>
