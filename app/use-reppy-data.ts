@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { createInitialState, type DemoState, type Student } from './reppy-data';
 import { applyReppyCommand, type ReppyCommand } from './reppy-commands';
 import { isReppyConflictError, type ReppyRepository } from './reppy-repository';
@@ -32,14 +32,14 @@ export function useReppyData(
   const [browserRepository] = useState(createBrowserRepository);
   const repository = requestedRepository ?? browserRepository;
   const [data, setData] = useState<DemoState>(() => createInitialState());
-  const [hydrated, setHydrated] = useState(false);
   const [persistencePhase, setPersistencePhase] = useState<PersistencePhase>('loading');
   const [persistenceError, setPersistenceError] = useState<Error | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveAttempt, setSaveAttempt] = useState(0);
   const [reloadAttempt, setReloadAttempt] = useState(0);
-  const [loadedRepository, setLoadedRepository] = useState<ReppyRepository | null>(null);
+  const lifetime = useMemo(() => ({ repository, loadAttempt }), [repository, loadAttempt]);
   const [loadedLifetime, setLoadedLifetime] = useState<RepositoryLifetime | null>(null);
+  const hydrated = loadedLifetime === lifetime;
   const dataRef = useRef(data);
   const loadedSnapshotRef = useRef<DemoState | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -71,7 +71,6 @@ export function useReppyData(
 
   useEffect(() => {
     let cancelled = false;
-    const lifetime = { repository };
     repositoryLifetimeRef.current = lifetime;
     const queue = repository.execute ? createPersistenceQueue(repository, (phase, error) => {
       if (cancelled) return;
@@ -86,16 +85,13 @@ export function useReppyData(
         dataRef.current = nextData;
         loadedSnapshotRef.current = nextData;
         setData(nextData);
-        setLoadedRepository(repository);
         setLoadedLifetime(lifetime);
-        setHydrated(true);
         setPersistenceError(null);
         setPersistencePhase('idle');
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
         setPersistenceError(toError(reason));
-        setHydrated(false);
         setPersistencePhase('error');
       });
 
@@ -105,10 +101,10 @@ export function useReppyData(
       queue?.dispose();
       if (remoteQueueRef.current === queue) remoteQueueRef.current = null;
     };
-  }, [loadAttempt, repository]);
+  }, [lifetime, repository]);
 
   useEffect(() => {
-    if (!hydrated || loadedRepository !== repository || !repository.subscribe) return;
+    if (!hydrated || !repository.subscribe) return;
     let cancelled = false;
     let refreshTimer: number | undefined;
 
@@ -145,10 +141,10 @@ export function useReppyData(
       if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
       unsubscribe();
     };
-  }, [hydrated, loadedRepository, repository]);
+  }, [hydrated, repository]);
 
   useEffect(() => {
-    if (!hydrated || loadedRepository !== repository) return;
+    if (!hydrated) return;
     if (repository.execute) return;
     let cancelled = false;
     const snapshot = data;
@@ -181,7 +177,7 @@ export function useReppyData(
     return () => {
       cancelled = true;
     };
-  }, [data, hydrated, loadedRepository, repository, saveAttempt]);
+  }, [data, hydrated, repository, saveAttempt]);
 
   useEffect(() => {
     if (!hydrated || persistencePhase !== 'error' || isReppyConflictError(persistenceError)) return;
@@ -204,7 +200,7 @@ export function useReppyData(
   }, [hydrated, persistenceError, persistencePhase, repository]);
 
   useEffect(() => {
-    if (!hydrated || loadedRepository !== repository || reloadAttempt === 0) return;
+    if (!hydrated || reloadAttempt === 0) return;
     let cancelled = false;
     const version = saveVersionRef.current;
     const queue = remoteQueueRef.current;
@@ -233,7 +229,7 @@ export function useReppyData(
     return () => {
       cancelled = true;
     };
-  }, [hydrated, loadedRepository, reloadAttempt, repository]);
+  }, [hydrated, reloadAttempt, repository]);
 
   const retryPersistence = useCallback(() => {
     if (hydrated) {
@@ -293,7 +289,7 @@ export function useReppyData(
 
   return {
     data,
-    hydrated: hydrated && loadedRepository === repository,
+    hydrated,
     persistencePhase,
     persistenceError,
     persistenceConflict: isReppyConflictError(persistenceError),
