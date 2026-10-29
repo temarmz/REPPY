@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.1.0'
+import { isAllowedTelegramRedirect } from './redirects.ts'
 
 const appOrigin = 'https://temarmz.github.io'
 const corsHeaders = {
@@ -126,7 +127,7 @@ Deno.serve(async (request) => {
     console.error('Telegram auth rate limiter failed', error)
     return failure('rate_limit_unavailable', 'Вход временно недоступен. Повторите через минуту.', 503)
   }
-  if (action === 'config') return json({ clientId, redirectFlowConfigured: Boolean(clientSecret) })
+  if (action === 'config') return json({ clientId, redirectFlowConfigured: Boolean(clientSecret), nativeRedirectConfigured: true })
   if (action === 'exchange-code') {
     const code = typeof body.code === 'string' ? body.code : ''
     const verifier = typeof body.verifier === 'string' ? body.verifier : ''
@@ -134,7 +135,7 @@ Deno.serve(async (request) => {
     const redirectUri = typeof body.redirectUri === 'string' ? body.redirectUri : ''
     if (!clientSecret) return failure('not_configured', 'Мобильный вход Telegram пока не настроен.', 503)
     if (!code || !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier) || nonce.length < 32 || nonce.length > 128
-      || redirectUri !== 'https://temarmz.github.io/REPPY/') {
+      || !isAllowedTelegramRedirect(redirectUri)) {
       return failure('invalid_request', 'Invalid Telegram authorization response', 400)
     }
     try {

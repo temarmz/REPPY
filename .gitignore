@@ -43,3 +43,13 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# native iOS local state and signing
+/ios/.build/
+/ios/DerivedData/
+/ios/Config/Local.xcconfig
+*.xcuserstate
+xcuserdata/
+*.xcarchive
+*.ipa
+*.xcresult/

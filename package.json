@@ -6,6 +6,10 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "ios:sync": "node --experimental-strip-types ios/scripts/sync-web-contract.mjs",
+    "ios:check": "node --experimental-strip-types ios/scripts/sync-web-contract.mjs --check && python3 ios/scripts/generate-project.py --check",
+    "ios:project": "python3 ios/scripts/generate-project.py",
+    "ios:test": "python3 ios/scripts/test-core.py",
     "dev": "vite --config vite.pages.config.ts",
     "build:pages": "vite build --config vite.pages.config.ts",
     "preview": "vite preview --config vite.pages.config.ts",

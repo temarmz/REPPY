@@ -1,0 +1,3592 @@
+{
+  "demoDay": "2026-10-29",
+  "students": [
+    {
+      "id": "artem",
+      "account_id": "student-demo",
+      "name": "Артем А.",
+      "phone": "+7 916 482-17-35",
+      "height_cm": 182,
+      "weight_kg": 86,
+      "gender": "male",
+      "contraindications": "Иногда болит левое запястье при жимовых упражнениях.",
+      "updated_at": "2026-10-29T09:00:00.000Z"
+    },
+    {
+      "id": "maria",
+      "account_id": null,
+      "name": "Мария А.",
+      "phone": "+7 903 754-26-81",
+      "height_cm": 168,
+      "weight_kg": 61,
+      "gender": "female",
+      "contraindications": "",
+      "updated_at": "2026-10-29T09:00:00.000Z"
+    },
+    {
+      "id": "anton",
+      "account_id": null,
+      "name": "Антон К.",
+      "phone": "+7 925 318-64-09",
+      "height_cm": 176,
+      "weight_kg": 74,
+      "gender": "male",
+      "contraindications": "Протрузия поясничного отдела. Избегать резкой осевой нагрузки.",
+      "updated_at": "2026-10-29T09:00:00.000Z"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "trainer_id": "trainer-demo",
+      "student_id": "artem",
+      "status": "active",
+      "color": "lime",
+      "updated_at": "2026-10-29T09:00:00.000Z"
+    },
+    {
+      "id": "a0f19f8a-e071-49bd-8f73-4d8c7e6c2bf5",
+      "trainer_id": "trainer-demo",
+      "student_id": "maria",
+      "status": "active",
+      "color": "violet",
+      "updated_at": "2026-10-29T09:00:00.000Z"
+    },
+    {
+      "id": "f9b490b0-ddb3-45cb-83a0-8de1c5f520f6",
+      "trainer_id": "trainer-demo",
+      "student_id": "anton",
+      "status": "active",
+      "color": "pink",
+      "updated_at": "2026-10-29T09:00:00.000Z"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "assignment-maria-legs",
+      "relationship_id": "a0f19f8a-e071-49bd-8f73-4d8c7e6c2bf5",
+      "assigned_at": "2026-10-29T09:00:00.000Z",
+      "scheduled_for": "2026-10-29",
+      "scheduled_time": "18:00",
+      "format": "in-person",
+      "status": "assigned",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-artem-push-today",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "assigned_at": "2026-10-29T09:00:00.000Z",
+      "scheduled_for": "2026-10-29",
+      "scheduled_time": "19:30",
+      "format": "in-person",
+      "status": "assigned",
+      "workout_snapshot": {
+        "id": "push-day",
+        "name": "Грудь и плечи",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "push-bench",
+            "exerciseId": "06859864-3201-4087-88b8-92cfdd7c4c8b",
+            "name": "Жим лёжа",
+            "primaryMuscle": "Грудь",
+            "muscleGroups": [
+              "Грудь"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          },
+          {
+            "id": "push-incline",
+            "exerciseId": "b7343cfa-b269-4af2-8336-c193cea81174",
+            "name": "Жим гантелей на наклонной скамье",
+            "primaryMuscle": "Грудь",
+            "muscleGroups": [
+              "Грудь"
+            ],
+            "equipment": "Гантели",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              },
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              },
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              }
+            ]
+          },
+          {
+            "id": "push-raise",
+            "exerciseId": "64e58bfa-696c-4cc3-8e32-406218d5b9d6",
+            "name": "Разведение гантелей в стороны",
+            "primaryMuscle": "Плечи",
+            "muscleGroups": [
+              "Плечи"
+            ],
+            "equipment": "Гантели",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              },
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              },
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-anton-push-1",
+      "relationship_id": "f9b490b0-ddb3-45cb-83a0-8de1c5f520f6",
+      "assigned_at": "2026-10-29T09:00:00.000Z",
+      "scheduled_for": "2026-10-31",
+      "scheduled_time": "17:30",
+      "format": "in-person",
+      "status": "assigned",
+      "workout_snapshot": {
+        "id": "push-day",
+        "name": "Грудь и плечи",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "push-bench",
+            "exerciseId": "06859864-3201-4087-88b8-92cfdd7c4c8b",
+            "name": "Жим лёжа",
+            "primaryMuscle": "Грудь",
+            "muscleGroups": [
+              "Грудь"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          },
+          {
+            "id": "push-incline",
+            "exerciseId": "b7343cfa-b269-4af2-8336-c193cea81174",
+            "name": "Жим гантелей на наклонной скамье",
+            "primaryMuscle": "Грудь",
+            "muscleGroups": [
+              "Грудь"
+            ],
+            "equipment": "Гантели",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              },
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              },
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              }
+            ]
+          },
+          {
+            "id": "push-raise",
+            "exerciseId": "64e58bfa-696c-4cc3-8e32-406218d5b9d6",
+            "name": "Разведение гантелей в стороны",
+            "primaryMuscle": "Плечи",
+            "muscleGroups": [
+              "Плечи"
+            ],
+            "equipment": "Гантели",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              },
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              },
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-maria-push-1",
+      "relationship_id": "a0f19f8a-e071-49bd-8f73-4d8c7e6c2bf5",
+      "assigned_at": "2026-10-29T09:00:00.000Z",
+      "scheduled_for": "2026-11-01",
+      "scheduled_time": "10:00",
+      "format": "in-person",
+      "status": "assigned",
+      "workout_snapshot": {
+        "id": "push-day",
+        "name": "Грудь и плечи",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "push-bench",
+            "exerciseId": "06859864-3201-4087-88b8-92cfdd7c4c8b",
+            "name": "Жим лёжа",
+            "primaryMuscle": "Грудь",
+            "muscleGroups": [
+              "Грудь"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          },
+          {
+            "id": "push-incline",
+            "exerciseId": "b7343cfa-b269-4af2-8336-c193cea81174",
+            "name": "Жим гантелей на наклонной скамье",
+            "primaryMuscle": "Грудь",
+            "muscleGroups": [
+              "Грудь"
+            ],
+            "equipment": "Гантели",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              },
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              },
+              {
+                "targetReps": 10,
+                "targetWeight": 24
+              }
+            ]
+          },
+          {
+            "id": "push-raise",
+            "exerciseId": "64e58bfa-696c-4cc3-8e32-406218d5b9d6",
+            "name": "Разведение гантелей в стороны",
+            "primaryMuscle": "Плечи",
+            "muscleGroups": [
+              "Плечи"
+            ],
+            "equipment": "Гантели",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              },
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              },
+              {
+                "targetReps": 15,
+                "targetWeight": 10
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-anton-legs-1",
+      "relationship_id": "f9b490b0-ddb3-45cb-83a0-8de1c5f520f6",
+      "assigned_at": "2026-10-29T09:00:00.000Z",
+      "scheduled_for": "2026-11-06",
+      "scheduled_time": "17:30",
+      "format": "in-person",
+      "status": "assigned",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-maria-legs-2",
+      "relationship_id": "a0f19f8a-e071-49bd-8f73-4d8c7e6c2bf5",
+      "assigned_at": "2026-10-29T09:00:00.000Z",
+      "scheduled_for": "2026-11-10",
+      "scheduled_time": "18:00",
+      "format": "in-person",
+      "status": "assigned",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-artem-legs-history-1",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "assigned_at": "2026-09-29T16:00:00.000Z",
+      "scheduled_for": "2026-09-30",
+      "scheduled_time": "19:00",
+      "format": "in-person",
+      "status": "completed",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-artem-legs-history-2",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "assigned_at": "2026-10-06T16:00:00.000Z",
+      "scheduled_for": "2026-10-07",
+      "scheduled_time": "19:00",
+      "format": "in-person",
+      "status": "completed",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-artem-legs-history-3",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "assigned_at": "2026-10-13T16:00:00.000Z",
+      "scheduled_for": "2026-10-14",
+      "scheduled_time": "19:00",
+      "format": "in-person",
+      "status": "completed",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-artem-legs-history-4",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "assigned_at": "2026-10-20T16:00:00.000Z",
+      "scheduled_for": "2026-10-21",
+      "scheduled_time": "19:00",
+      "format": "in-person",
+      "status": "completed",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    },
+    {
+      "id": "assignment-artem-legs-history-5",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "assigned_at": "2026-10-27T16:00:00.000Z",
+      "scheduled_for": "2026-10-28",
+      "scheduled_time": "19:00",
+      "format": "in-person",
+      "status": "completed",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "repeated_from_assignment_id": null,
+      "reschedule_scheduled_for": null,
+      "reschedule_scheduled_time": null,
+      "reschedule_requested_at": null,
+      "revision": 1
+    }
+  ],
+  "sessions": [
+    {
+      "id": "session-artem-legs-history-1",
+      "assignment_id": "assignment-artem-legs-history-1",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "recorded_by_role": "student",
+      "started_at": "2026-09-30T16:00:00.000Z",
+      "completed_at": "2026-09-30T17:00:00.000Z",
+      "mood": "good",
+      "comment": null,
+      "charge_status": null,
+      "revision": 1
+    },
+    {
+      "id": "session-artem-legs-history-2",
+      "assignment_id": "assignment-artem-legs-history-2",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "recorded_by_role": "student",
+      "started_at": "2026-10-07T16:00:00.000Z",
+      "completed_at": "2026-10-07T17:00:00.000Z",
+      "mood": "good",
+      "comment": null,
+      "charge_status": null,
+      "revision": 1
+    },
+    {
+      "id": "session-artem-legs-history-3",
+      "assignment_id": "assignment-artem-legs-history-3",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "recorded_by_role": "student",
+      "started_at": "2026-10-14T16:00:00.000Z",
+      "completed_at": "2026-10-14T17:00:00.000Z",
+      "mood": "great",
+      "comment": null,
+      "charge_status": null,
+      "revision": 1
+    },
+    {
+      "id": "session-artem-legs-history-4",
+      "assignment_id": "assignment-artem-legs-history-4",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "recorded_by_role": "student",
+      "started_at": "2026-10-21T16:00:00.000Z",
+      "completed_at": "2026-10-21T17:00:00.000Z",
+      "mood": "great",
+      "comment": null,
+      "charge_status": null,
+      "revision": 1
+    },
+    {
+      "id": "session-artem-legs-history-5",
+      "assignment_id": "assignment-artem-legs-history-5",
+      "workout_snapshot": {
+        "id": "legs",
+        "name": "Ноги",
+        "createdAt": "2026-10-29T09:00:00.000Z",
+        "exercises": [
+          {
+            "id": "legs-squat",
+            "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+            "name": "Приседания",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 70
+              }
+            ]
+          },
+          {
+            "id": "legs-press",
+            "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+            "name": "Жим ногами",
+            "primaryMuscle": "Квадрицепс",
+            "muscleGroups": [
+              "Квадрицепс"
+            ],
+            "equipment": "Тренажёр",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              },
+              {
+                "targetReps": 12,
+                "targetWeight": 120
+              }
+            ]
+          },
+          {
+            "id": "legs-deadlift",
+            "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+            "name": "Становая тяга",
+            "primaryMuscle": "Спина",
+            "muscleGroups": [
+              "Спина"
+            ],
+            "equipment": "Штанга",
+            "loadMode": "external",
+            "measureType": "reps",
+            "plannedSets": [
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              },
+              {
+                "targetReps": 8,
+                "targetWeight": 80
+              }
+            ]
+          }
+        ]
+      },
+      "recorded_by_role": "student",
+      "started_at": "2026-10-28T16:00:00.000Z",
+      "completed_at": "2026-10-28T17:00:00.000Z",
+      "mood": "great",
+      "comment": null,
+      "charge_status": null,
+      "revision": 1
+    }
+  ],
+  "results": [
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 1,
+      "actual_reps": 8,
+      "actual_weight": 60,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 2,
+      "actual_reps": 8,
+      "actual_weight": 60,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 3,
+      "actual_reps": 8,
+      "actual_weight": 60,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 4,
+      "actual_reps": 7,
+      "actual_weight": 60,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-press",
+      "set_number": 1,
+      "actual_reps": 10,
+      "actual_weight": 100,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-press",
+      "set_number": 2,
+      "actual_reps": 10,
+      "actual_weight": 100,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-press",
+      "set_number": 3,
+      "actual_reps": 10,
+      "actual_weight": 100,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-press",
+      "set_number": 4,
+      "actual_reps": 9,
+      "actual_weight": 100,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 1,
+      "actual_reps": 6,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 2,
+      "actual_reps": 6,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-1",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 3,
+      "actual_reps": 5,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 1,
+      "actual_reps": 8,
+      "actual_weight": 62.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 2,
+      "actual_reps": 8,
+      "actual_weight": 62.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 3,
+      "actual_reps": 8,
+      "actual_weight": 62.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 4,
+      "actual_reps": 7,
+      "actual_weight": 62.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-press",
+      "set_number": 1,
+      "actual_reps": 10,
+      "actual_weight": 105,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-press",
+      "set_number": 2,
+      "actual_reps": 10,
+      "actual_weight": 105,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-press",
+      "set_number": 3,
+      "actual_reps": 10,
+      "actual_weight": 105,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-press",
+      "set_number": 4,
+      "actual_reps": 9,
+      "actual_weight": 105,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 1,
+      "actual_reps": 6,
+      "actual_weight": 72.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 2,
+      "actual_reps": 6,
+      "actual_weight": 72.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-2",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 3,
+      "actual_reps": 5,
+      "actual_weight": 72.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 1,
+      "actual_reps": 9,
+      "actual_weight": 65,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 2,
+      "actual_reps": 9,
+      "actual_weight": 65,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 3,
+      "actual_reps": 9,
+      "actual_weight": 65,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 4,
+      "actual_reps": 8,
+      "actual_weight": 65,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-press",
+      "set_number": 1,
+      "actual_reps": 11,
+      "actual_weight": 110,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-press",
+      "set_number": 2,
+      "actual_reps": 11,
+      "actual_weight": 110,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-press",
+      "set_number": 3,
+      "actual_reps": 11,
+      "actual_weight": 110,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-press",
+      "set_number": 4,
+      "actual_reps": 10,
+      "actual_weight": 110,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 1,
+      "actual_reps": 7,
+      "actual_weight": 75,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 2,
+      "actual_reps": 7,
+      "actual_weight": 75,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-3",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 3,
+      "actual_reps": 6,
+      "actual_weight": 75,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 1,
+      "actual_reps": 9,
+      "actual_weight": 67.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 2,
+      "actual_reps": 9,
+      "actual_weight": 67.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 3,
+      "actual_reps": 9,
+      "actual_weight": 67.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 4,
+      "actual_reps": 8,
+      "actual_weight": 67.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-press",
+      "set_number": 1,
+      "actual_reps": 11,
+      "actual_weight": 115,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-press",
+      "set_number": 2,
+      "actual_reps": 11,
+      "actual_weight": 115,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-press",
+      "set_number": 3,
+      "actual_reps": 11,
+      "actual_weight": 115,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-press",
+      "set_number": 4,
+      "actual_reps": 10,
+      "actual_weight": 115,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 1,
+      "actual_reps": 7,
+      "actual_weight": 77.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 2,
+      "actual_reps": 7,
+      "actual_weight": 77.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-4",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 3,
+      "actual_reps": 6,
+      "actual_weight": 77.5,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 1,
+      "actual_reps": 10,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 2,
+      "actual_reps": 10,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 3,
+      "actual_reps": 10,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-squat",
+      "set_number": 4,
+      "actual_reps": 9,
+      "actual_weight": 70,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-press",
+      "set_number": 1,
+      "actual_reps": 12,
+      "actual_weight": 120,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-press",
+      "set_number": 2,
+      "actual_reps": 12,
+      "actual_weight": 120,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-press",
+      "set_number": 3,
+      "actual_reps": 12,
+      "actual_weight": 120,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-press",
+      "set_number": 4,
+      "actual_reps": 11,
+      "actual_weight": 120,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 1,
+      "actual_reps": 8,
+      "actual_weight": 80,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 2,
+      "actual_reps": 8,
+      "actual_weight": 80,
+      "completed": true
+    },
+    {
+      "session_id": "session-artem-legs-history-5",
+      "exercise_instance_id": "legs-deadlift",
+      "set_number": 3,
+      "actual_reps": 7,
+      "actual_weight": 80,
+      "completed": true
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "subscription-payment-artem-1",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "payment",
+      "lesson_delta": 8,
+      "occurred_at": "2026-09-24",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": 11400,
+      "payment_method": "cash",
+      "comment": null,
+      "session_id": null,
+      "workout_name": null,
+      "revision": 1
+    },
+    {
+      "id": "subscription-payment-artem-2",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "payment",
+      "lesson_delta": 8,
+      "occurred_at": "2026-10-13",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": 11400,
+      "payment_method": "cash",
+      "comment": null,
+      "session_id": null,
+      "workout_name": null,
+      "revision": 1
+    },
+    {
+      "id": "subscription-charge-session-artem-legs-history-1",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "session-charge",
+      "lesson_delta": -1,
+      "occurred_at": "2026-09-30T17:00:00.000Z",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": null,
+      "payment_method": null,
+      "comment": null,
+      "session_id": "session-artem-legs-history-1",
+      "workout_name": "Ноги",
+      "revision": 1
+    },
+    {
+      "id": "subscription-charge-session-artem-legs-history-2",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "session-charge",
+      "lesson_delta": -1,
+      "occurred_at": "2026-10-07T17:00:00.000Z",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": null,
+      "payment_method": null,
+      "comment": null,
+      "session_id": "session-artem-legs-history-2",
+      "workout_name": "Ноги",
+      "revision": 1
+    },
+    {
+      "id": "subscription-charge-session-artem-legs-history-3",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "session-charge",
+      "lesson_delta": -1,
+      "occurred_at": "2026-10-14T17:00:00.000Z",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": null,
+      "payment_method": null,
+      "comment": null,
+      "session_id": "session-artem-legs-history-3",
+      "workout_name": "Ноги",
+      "revision": 1
+    },
+    {
+      "id": "subscription-charge-session-artem-legs-history-4",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "session-charge",
+      "lesson_delta": -1,
+      "occurred_at": "2026-10-21T17:00:00.000Z",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": null,
+      "payment_method": null,
+      "comment": null,
+      "session_id": "session-artem-legs-history-4",
+      "workout_name": "Ноги",
+      "revision": 1
+    },
+    {
+      "id": "subscription-charge-session-artem-legs-history-5",
+      "relationship_id": "f7cdf3ae-c891-4bb5-80c2-3b3010ff9f1f",
+      "kind": "session-charge",
+      "lesson_delta": -1,
+      "occurred_at": "2026-10-28T17:00:00.000Z",
+      "created_at": "2026-10-29T09:00:00.000Z",
+      "updated_at": null,
+      "amount_rub": null,
+      "payment_method": null,
+      "comment": null,
+      "session_id": "session-artem-legs-history-5",
+      "workout_name": "Ноги",
+      "revision": 1
+    }
+  ],
+  "definitions": [
+    {
+      "id": "06859864-3201-4087-88b8-92cfdd7c4c8b",
+      "slug": "bench-press",
+      "owner_id": null,
+      "name": "Жим лёжа",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "b7343cfa-b269-4af2-8336-c193cea81174",
+      "slug": "incline-dumbbell",
+      "owner_id": null,
+      "name": "Жим гантелей на наклонной скамье",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "c9a471a1-423c-4b34-88c9-d6f586a1b197",
+      "slug": "push-ups",
+      "owner_id": null,
+      "name": "Отжимания",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "107996be-d9f3-4a12-8526-3e07cf11060c",
+      "slug": "cable-fly",
+      "owner_id": null,
+      "name": "Сведение рук в кроссовере",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "5ff3badb-6e30-4ce5-8523-1054d53968bb",
+      "slug": "dumbbell-bench-press",
+      "owner_id": null,
+      "name": "Жим гантелей лёжа",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "0fd44ffd-9ab8-4647-8273-9f641859ee66",
+      "slug": "incline-barbell-press",
+      "owner_id": null,
+      "name": "Жим штанги на наклонной скамье",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "8d542715-f4b9-40da-8ee1-1e14d2446524",
+      "slug": "pec-deck",
+      "owner_id": null,
+      "name": "Сведение рук в тренажёре",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "46b9738e-131e-4f87-89ca-515ea6dd9fc2",
+      "slug": "chest-press-machine",
+      "owner_id": null,
+      "name": "Жим от груди в тренажёре",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "a989dfce-30ce-4046-87d5-bc22bc548514",
+      "slug": "pull-ups",
+      "owner_id": null,
+      "name": "Подтягивания",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "1c7bbe83-a1ec-4fd1-86ab-2d3b6e6938ce",
+      "slug": "lat-pulldown",
+      "owner_id": null,
+      "name": "Тяга верхнего блока",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "50c02f57-ccfa-4ff4-8172-3b945adc9812",
+      "slug": "barbell-row",
+      "owner_id": null,
+      "name": "Тяга штанги в наклоне",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "3dcef978-e9f8-48cb-8da9-d567fb37cf7e",
+      "slug": "seated-row",
+      "owner_id": null,
+      "name": "Тяга горизонтального блока",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+      "slug": "deadlift",
+      "owner_id": null,
+      "name": "Становая тяга",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "45f9cef8-8533-49b7-87ff-144ba52a6b29",
+      "slug": "one-arm-dumbbell-row",
+      "owner_id": null,
+      "name": "Тяга гантели одной рукой",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "0c43bcc7-ba1d-47e4-8059-bea3ef8f402f",
+      "slug": "chest-supported-row",
+      "owner_id": null,
+      "name": "Тяга гантелей с упором грудью",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "34eb974c-5135-4ffe-8ec4-30b9e7a4d022",
+      "slug": "t-bar-row",
+      "owner_id": null,
+      "name": "Тяга Т-грифа",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "0fd0e335-bc21-46c4-88f4-3ce50782c6c9",
+      "slug": "straight-arm-pulldown",
+      "owner_id": null,
+      "name": "Тяга верхнего блока прямыми руками",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "71136d73-4132-4642-8b48-f1ec2340f280",
+      "slug": "hyperextension",
+      "owner_id": null,
+      "name": "Гиперэкстензия",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "a7e43c96-5caa-4171-8ddd-116fd162f364",
+      "slug": "overhead-press",
+      "owner_id": null,
+      "name": "Жим над головой",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "64e58bfa-696c-4cc3-8e32-406218d5b9d6",
+      "slug": "lateral-raise",
+      "owner_id": null,
+      "name": "Разведение гантелей в стороны",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "3c1c8536-f687-4297-84ef-726b07bcfceb",
+      "slug": "rear-delt-fly",
+      "owner_id": null,
+      "name": "Разведение на заднюю дельту",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "b225c6db-0d07-436b-85c3-5d7dbfdd3cc8",
+      "slug": "dumbbell-shoulder-press",
+      "owner_id": null,
+      "name": "Жим гантелей сидя",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "ef4eef27-52e1-44c7-8745-c72e11656b0c",
+      "slug": "arnold-press",
+      "owner_id": null,
+      "name": "Жим Арнольда",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "637dfc83-ac66-46ac-8a7c-7eee1e11e4b9",
+      "slug": "face-pull",
+      "owner_id": null,
+      "name": "Тяга каната к лицу",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "5942febe-cc9d-4a87-8de5-509c2492f9bc",
+      "slug": "cable-lateral-raise",
+      "owner_id": null,
+      "name": "Отведение руки в сторону на блоке",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "360456bd-857b-4e47-8f46-0d6e89c28305",
+      "slug": "reverse-pec-deck",
+      "owner_id": null,
+      "name": "Обратное сведение рук в тренажёре",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "5341ad93-4236-4771-8c38-c4e01796456d",
+      "slug": "dumbbell-curl",
+      "owner_id": null,
+      "name": "Сгибание рук с гантелями",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "d3fa5382-826c-4d68-87b8-05e4df679225",
+      "slug": "hammer-curl",
+      "owner_id": null,
+      "name": "Молотковые сгибания",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "36dbedb0-e876-45a5-8cd7-39909eebac90",
+      "slug": "barbell-curl",
+      "owner_id": null,
+      "name": "Сгибание рук со штангой",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "9c5a2cb5-2a7b-4692-8f1a-41262d7a6153",
+      "slug": "preacher-curl",
+      "owner_id": null,
+      "name": "Сгибание рук на скамье Скотта",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "EZ-гриф",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "329abfde-9f85-4472-85f8-77613328ac56",
+      "slug": "cable-curl",
+      "owner_id": null,
+      "name": "Сгибание рук на нижнем блоке",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "100bf990-a85e-447a-86fb-3e0e3c0700b6",
+      "slug": "triceps-pushdown",
+      "owner_id": null,
+      "name": "Разгибание рук на блоке",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "2bfe968e-2851-4110-86ca-9897e4a0b93b",
+      "slug": "overhead-triceps",
+      "owner_id": null,
+      "name": "Разгибание рук из-за головы",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "dc896d83-6595-4958-88bb-e589015f79e4",
+      "slug": "dips",
+      "owner_id": null,
+      "name": "Отжимания на брусьях",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "2c7906fe-f669-4aef-830a-b569f78e643b",
+      "slug": "skull-crusher",
+      "owner_id": null,
+      "name": "Французский жим лёжа",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "EZ-гриф",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "6e819d8d-2941-4faa-80a8-53b956bc075c",
+      "slug": "close-grip-bench",
+      "owner_id": null,
+      "name": "Жим лёжа узким хватом",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "a4dabf71-8610-432a-873e-cfab34f356de",
+      "slug": "rope-overhead-extension",
+      "owner_id": null,
+      "name": "Разгибание рук с канатом из-за головы",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+      "slug": "squat",
+      "owner_id": null,
+      "name": "Приседания",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "07bfee69-98e1-4b96-8c3d-7278696be501",
+      "slug": "leg-press",
+      "owner_id": null,
+      "name": "Жим ногами",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "b14b5f96-df05-4e4e-8f7c-3b9a2ae5f127",
+      "slug": "leg-extension",
+      "owner_id": null,
+      "name": "Разгибание ног",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "de79108c-76e3-4f2a-8c5f-f80163a4d548",
+      "slug": "front-squat",
+      "owner_id": null,
+      "name": "Фронтальные приседания",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "e38cf9ff-456b-441a-816a-92a17984eddc",
+      "slug": "goblet-squat",
+      "owner_id": null,
+      "name": "Гоблет-приседания",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "25f1120d-000b-4782-8d0f-b397ec483497",
+      "slug": "walking-lunge",
+      "owner_id": null,
+      "name": "Выпады в движении",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "1162cf12-45d9-4498-8f97-d51d7645e2db",
+      "slug": "reverse-lunge",
+      "owner_id": null,
+      "name": "Обратные выпады",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "edaac113-b8be-4366-8097-1efcbccdaedb",
+      "slug": "hack-squat",
+      "owner_id": null,
+      "name": "Гакк-приседания",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "3c94b89e-16d2-4a53-885e-dd9c904d1df0",
+      "slug": "hip-thrust",
+      "owner_id": null,
+      "name": "Ягодичный мост",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "fa9706cd-d1f0-438b-80d2-e8892417e95f",
+      "slug": "bulgarian-squat",
+      "owner_id": null,
+      "name": "Болгарские выпады",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "b142536b-46b5-4d31-8503-9d41651c617c",
+      "slug": "cable-kickback",
+      "owner_id": null,
+      "name": "Отведение ноги назад на блоке",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "4a4cda94-b4b8-416d-8b8d-94b56435cc95",
+      "slug": "hip-abduction",
+      "owner_id": null,
+      "name": "Разведение ног в тренажёре",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "51f79484-1195-403e-82fb-80abea51c1c0",
+      "slug": "step-up",
+      "owner_id": null,
+      "name": "Зашагивания на платформу",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "9c072a5a-6953-4710-856b-7022261a3b4a",
+      "slug": "romanian-deadlift",
+      "owner_id": null,
+      "name": "Румынская тяга",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "1bd77529-02ff-43ca-833a-78a4a9662bb5",
+      "slug": "leg-curl",
+      "owner_id": null,
+      "name": "Сгибание ног",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "9ad43da7-2479-471c-8ca4-826ac9b2c43c",
+      "slug": "dumbbell-romanian-deadlift",
+      "owner_id": null,
+      "name": "Румынская тяга с гантелями",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "da1e980e-ea8b-4292-807b-14860f139f30",
+      "slug": "single-leg-romanian-deadlift",
+      "owner_id": null,
+      "name": "Румынская тяга на одной ноге",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "5dbc5866-5bd4-4f20-829e-ec347e98017d",
+      "slug": "nordic-curl",
+      "owner_id": null,
+      "name": "Нордические сгибания",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "f2774c1a-ede6-4e23-80de-63689168b28b",
+      "slug": "calf-raise",
+      "owner_id": null,
+      "name": "Подъёмы на носки",
+      "primary_muscle": "Икры",
+      "muscle_groups": [
+        "Икры"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "da4d1be0-3ed2-4c8d-8400-5926ebf7c86f",
+      "slug": "standing-calf-raise",
+      "owner_id": null,
+      "name": "Подъёмы на носки стоя",
+      "primary_muscle": "Икры",
+      "muscle_groups": [
+        "Икры"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "7604849d-f789-4e08-890e-c6d03f392826",
+      "slug": "seated-calf-raise",
+      "owner_id": null,
+      "name": "Подъёмы на носки сидя",
+      "primary_muscle": "Икры",
+      "muscle_groups": [
+        "Икры"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "477fcfeb-3a67-4ced-862f-42f357fed036",
+      "slug": "plank",
+      "owner_id": null,
+      "name": "Планка",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "duration",
+      "archived_at": null
+    },
+    {
+      "id": "0da5af6c-2c27-492d-8165-5de90e7567c2",
+      "slug": "crunch",
+      "owner_id": null,
+      "name": "Скручивания",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "9316fb4b-0d40-4d02-8a7a-0cf731f34118",
+      "slug": "dead-bug",
+      "owner_id": null,
+      "name": "Мёртвый жук",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "81831202-d591-484c-84e7-48b3a2cf9294",
+      "slug": "side-plank",
+      "owner_id": null,
+      "name": "Боковая планка",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "duration",
+      "archived_at": null
+    },
+    {
+      "id": "c5303376-b17c-4cc8-8975-1784ba90b29a",
+      "slug": "hanging-leg-raise",
+      "owner_id": null,
+      "name": "Подъём ног в висе",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "edbf4f58-a3c6-4b9a-8e03-664fc70dd294",
+      "slug": "reverse-crunch",
+      "owner_id": null,
+      "name": "Обратные скручивания",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "8fdeb46d-515a-4488-8e9b-183b4b2c227d",
+      "slug": "russian-twist",
+      "owner_id": null,
+      "name": "Русские скручивания",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Медбол",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "ebc2f767-dbac-44be-8804-6a49b17234cc",
+      "slug": "pallof-press",
+      "owner_id": null,
+      "name": "Жим Паллофа",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "1547d7ac-c9a8-4680-8894-c7c5ff13055c",
+      "slug": "decline-dumbbell-press",
+      "owner_id": null,
+      "name": "Жим гантелей на скамье с отрицательным наклоном",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "57d7787e-d8f3-4d59-8a20-7605b7c4415a",
+      "slug": "dumbbell-fly",
+      "owner_id": null,
+      "name": "Разведение гантелей лёжа",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "ca8f0c9e-a08f-4fd5-81b2-f52e0b5b411a",
+      "slug": "neutral-grip-pulldown",
+      "owner_id": null,
+      "name": "Тяга верхнего блока нейтральным хватом",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "83d05925-f459-458a-8d2c-e3ba99434956",
+      "slug": "machine-row",
+      "owner_id": null,
+      "name": "Тяга в рычажном тренажёре",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "cbbc3b93-3a8a-4f70-86e0-7add950cc252",
+      "slug": "front-raise",
+      "owner_id": null,
+      "name": "Подъём гантелей перед собой",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "97ea65c3-139b-489d-8c6b-48c4d51bbb35",
+      "slug": "upright-row",
+      "owner_id": null,
+      "name": "Тяга штанги к подбородку",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "1548c9ec-cb34-4858-8dab-95bcddf59021",
+      "slug": "incline-dumbbell-curl",
+      "owner_id": null,
+      "name": "Сгибание рук с гантелями на наклонной скамье",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "e0ba5a4c-1066-48df-8f64-ae027ab90a97",
+      "slug": "concentration-curl",
+      "owner_id": null,
+      "name": "Концентрированное сгибание руки",
+      "primary_muscle": "Бицепс",
+      "muscle_groups": [
+        "Бицепс"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "2807c953-4aa9-434d-897f-32ff862e3954",
+      "slug": "triceps-kickback",
+      "owner_id": null,
+      "name": "Разгибание руки с гантелью в наклоне",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "78ed0802-8a2e-4970-87f4-b5fe0cdafb06",
+      "slug": "bench-dip",
+      "owner_id": null,
+      "name": "Обратные отжимания от скамьи",
+      "primary_muscle": "Трицепс",
+      "muscle_groups": [
+        "Трицепс"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "ad1fdb8e-8f51-40e9-85ea-17b350ead410",
+      "slug": "smith-squat",
+      "owner_id": null,
+      "name": "Приседания в машине Смита",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "e738e73e-59a8-4112-829f-75d479450274",
+      "slug": "split-squat",
+      "owner_id": null,
+      "name": "Сплит-приседания",
+      "primary_muscle": "Квадрицепс",
+      "muscle_groups": [
+        "Квадрицепс"
+      ],
+      "equipment": "Гантели",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "0c98fbdf-c376-4570-8a86-bf20f72bce1f",
+      "slug": "glute-bridge",
+      "owner_id": null,
+      "name": "Ягодичный мост без опоры",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "6be69079-57fb-4d9c-817c-137de34caadf",
+      "slug": "cable-pull-through",
+      "owner_id": null,
+      "name": "Тяга блока между ног",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "b912737e-2bca-4528-8a5a-2e5015914cb7",
+      "slug": "seated-leg-curl",
+      "owner_id": null,
+      "name": "Сгибание ног сидя",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "fc4a8d18-be7b-4454-800b-315509fbab54",
+      "slug": "good-morning",
+      "owner_id": null,
+      "name": "Наклоны со штангой",
+      "primary_muscle": "Задняя поверхность бедра",
+      "muscle_groups": [
+        "Задняя поверхность бедра"
+      ],
+      "equipment": "Штанга",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "c6764cca-f8c3-4404-8351-631ab93f6599",
+      "slug": "single-leg-calf-raise",
+      "owner_id": null,
+      "name": "Подъём на носок одной ногой",
+      "primary_muscle": "Икры",
+      "muscle_groups": [
+        "Икры"
+      ],
+      "equipment": "Свой вес",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "5699697a-2b54-4b47-8a1b-2eaf5e0855e5",
+      "slug": "calf-press",
+      "owner_id": null,
+      "name": "Жим носками в тренажёре",
+      "primary_muscle": "Икры",
+      "muscle_groups": [
+        "Икры"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "820a9367-900c-4bad-880a-809073723bfa",
+      "slug": "ab-wheel",
+      "owner_id": null,
+      "name": "Раскатывание ролика",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Ролик",
+      "load_mode": "bodyweight",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "e08f0a06-d161-4ad1-8a41-af796951ce0b",
+      "slug": "cable-crunch",
+      "owner_id": null,
+      "name": "Скручивания на верхнем блоке",
+      "primary_muscle": "Кор",
+      "muscle_groups": [
+        "Кор"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "d30c6568-1be4-404a-85fc-5e7bd42ab761",
+      "slug": "hip-adduction",
+      "owner_id": null,
+      "name": "Приведение ног в тренажёре",
+      "primary_muscle": "Ягодицы",
+      "muscle_groups": [
+        "Ягодицы"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "4125dcc7-ddd3-46fa-856f-82de023a6288",
+      "slug": "one-arm-dumbbell-lateral-raise",
+      "owner_id": null,
+      "name": "Отведение руки с гантелью в сторону",
+      "primary_muscle": "Плечи",
+      "muscle_groups": [
+        "Плечи"
+      ],
+      "equipment": "Гантель",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "87f80543-a91f-4cde-828d-77ba0bdfccb5",
+      "slug": "wide-grip-lat-pulldown",
+      "owner_id": null,
+      "name": "Тяга верхнего блока широким хватом",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "24900e66-af61-426c-88c9-40bf97042b5c",
+      "slug": "reverse-grip-lat-pulldown",
+      "owner_id": null,
+      "name": "Тяга верхнего блока обратным хватом",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "778057d0-8b72-496f-8d03-eddbe505f3b8",
+      "slug": "incline-smith-press",
+      "owner_id": null,
+      "name": "Жим в машине Смита на наклонной скамье 35°",
+      "primary_muscle": "Грудь",
+      "muscle_groups": [
+        "Грудь"
+      ],
+      "equipment": "Тренажёр",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    },
+    {
+      "id": "213ef1b8-bf16-4c78-8747-487f8ea666ac",
+      "slug": "single-arm-seated-cable-row",
+      "owner_id": null,
+      "name": "Тяга горизонтального блока одной рукой",
+      "primary_muscle": "Спина",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "equipment": "Блок",
+      "load_mode": "external",
+      "measure_type": "reps",
+      "archived_at": null
+    }
+  ]
+}

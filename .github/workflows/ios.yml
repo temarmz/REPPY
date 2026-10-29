@@ -1,0 +1,54 @@
+name: REPPY iOS
+
+on:
+  pull_request:
+    paths: ['ios/**', 'app/reppy-data.ts', 'app/ui/tokens.css', '.github/workflows/ios.yml', 'package.json', 'package-lock.json']
+  push:
+    branches: ['main']
+    paths: ['ios/**', 'app/reppy-data.ts', 'app/ui/tokens.css', '.github/workflows/ios.yml', 'package.json', 'package-lock.json']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-checks:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check shared web contract and generated project
+        run: npm run ios:check
+      - name: Select iOS 18 SDK
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+      - name: Test native domain
+        run: npm run ios:test
+      - name: Select available iPhone simulator
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
+          phones = [(runtime, device) for runtime, entries in devices.items() for device in entries if 'iOS-18' in runtime and device['name'].startswith('iPhone')]
+          if not phones:
+              raise SystemExit('No iOS 18 iPhone simulator installed')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('REPPY_SIMULATOR=' + phones[0][1]['udid'] + '\n')
+          PY
+      - name: Build and run iPhone tests
+        run: xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult CODE_SIGNING_ALLOWED=NO
+      - name: Preserve simulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-test-results
+          path: ios/TestResults.xcresult
+          if-no-files-found: ignore

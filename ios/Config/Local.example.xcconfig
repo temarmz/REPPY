@@ -1,0 +1,7 @@
+// Copy to Local.xcconfig or run python3 ios/scripts/configure.py.
+// Only the URL and public publishable/anon key belong in the iPhone app.
+SUPABASE_URL = https:/$()/YOUR_PROJECT.supabase.co
+SUPABASE_PUBLISHABLE_KEY = YOUR_PUBLIC_PUBLISHABLE_KEY
+// Optional for a physical iPhone. Simulator builds need no team.
+// DEVELOPMENT_TEAM = ABCDE12345
+// PRODUCT_BUNDLE_IDENTIFIER = app.reppy.ios

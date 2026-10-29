@@ -1,0 +1,4136 @@
+[
+  {
+    "name": "remove completed exercise",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 75.25,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        },
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 75.25,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 75.25
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "remove completed last set",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": []
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 10,
+              "targetWeight": 0
+            },
+            {
+              "targetReps": 10,
+              "targetWeight": 0
+            },
+            {
+              "targetReps": 10,
+              "targetWeight": 0
+            },
+            {
+              "targetReps": 10,
+              "targetWeight": 0
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 10,
+        "actual_weight": 0,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 10,
+        "actual_weight": 0,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 10,
+        "actual_weight": 0,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "remove unfinished exercise",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "follow changed untouched defaults",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "retain edited facts after plan change",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 15,
+        "actual_weight": 85,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 15,
+        "actual_weight": 85,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "repeat completed facts and keep skipped plan",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 6,
+        "actual_weight": 75.25,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 99,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 6,
+        "actual_weight": 75.25,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 99,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 6,
+              "targetWeight": 75.25
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "add a set",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 10,
+              "targetWeight": 77.5
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 10,
+              "targetWeight": 77.5
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 5,
+        "actual_reps": 10,
+        "actual_weight": 77.5,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty active plan retains completed work",
+    "sessionID": "contract-session",
+    "previous": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    },
+    "proposed": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": []
+    },
+    "results": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 1,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 2,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 3,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-press",
+        "set_number": 4,
+        "actual_reps": 12,
+        "actual_weight": 120,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-deadlift",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 80,
+        "completed": false
+      }
+    ],
+    "expectedWorkout": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-10-29T09:00:00.000Z"
+    },
+    "expectedResults": [
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 1,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": true
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 2,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 3,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      },
+      {
+        "session_id": "contract-session",
+        "exercise_instance_id": "legs-squat",
+        "set_number": 4,
+        "actual_reps": 8,
+        "actual_weight": 70,
+        "completed": false
+      }
+    ],
+    "expectedRepeatPlan": {
+      "id": "legs",
+      "name": "Ноги",
+      "createdAt": "2026-10-29T09:00:00.000Z",
+      "exercises": [
+        {
+          "id": "legs-squat",
+          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
+          "name": "Приседания",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 70
+            }
+          ]
+        },
+        {
+          "id": "legs-press",
+          "exerciseId": "07bfee69-98e1-4b96-8c3d-7278696be501",
+          "name": "Жим ногами",
+          "primaryMuscle": "Квадрицепс",
+          "muscleGroups": [
+            "Квадрицепс"
+          ],
+          "equipment": "Тренажёр",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            },
+            {
+              "targetReps": 12,
+              "targetWeight": 120
+            }
+          ]
+        },
+        {
+          "id": "legs-deadlift",
+          "exerciseId": "1c79d7ca-e23a-48e1-89b6-8ffc2c992447",
+          "name": "Становая тяга",
+          "primaryMuscle": "Спина",
+          "muscleGroups": [
+            "Спина"
+          ],
+          "equipment": "Штанга",
+          "loadMode": "external",
+          "measureType": "reps",
+          "plannedSets": [
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            },
+            {
+              "targetReps": 8,
+              "targetWeight": 80
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

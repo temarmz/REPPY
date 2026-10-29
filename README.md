@@ -57,6 +57,10 @@ npm run backup:verify
 
 Рабочее название всех экранов прототипа — **REPPY**.
 
+## Нативный iPhone-клиент
+
+Swift/SwiftUI-проект для iPhone с iOS 18+ находится в [`ios/REPPY.xcodeproj`](ios/REPPY.xcodeproj). Он использует тот же Supabase и вход через Telegram. [Локальный запуск и архитектура](ios/README.md), [матрица проверки паритета](docs/ios-parity.md). Для сборки нужен Xcode 16 или новее; наличие исходников не заменяет проверку на iOS 18.
+
 ## Документация
 
 - [Библиотека компонентов и правила изменения дизайна](docs/component-library.md)
