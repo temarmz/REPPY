@@ -13,6 +13,12 @@ test.beforeAll(async () => {
       if (source === './reppy-auth' && importer?.endsWith('/app/reppy-app.tsx')) {
         return fileURLToPath(new URL('../fixtures/sign-out-auth.ts', import.meta.url));
       }
+      if (source === './supabase-client') return '\0isolated-supabase-client';
+    }, load(id) {
+      if (id === '\0isolated-supabase-client') {
+        return `export const supabaseConfig = { enabled: false, url: '', anonKey: '' };
+          export function getSupabaseClient() { return null; }`;
+      }
     } }],
     build: { write: false, minify: false, lib: { entry: fileURLToPath(new URL('../fixtures/sign-out.tsx', import.meta.url)), formats: ['iife'], name: 'SignOutQa' } } });
   const outputs = Array.isArray(result) ? result : [result];
