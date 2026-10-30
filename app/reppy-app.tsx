@@ -461,6 +461,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
       </Section>}
 
       {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
+      {!trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} area="student" />}
       {settings}
       {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
     </Page>

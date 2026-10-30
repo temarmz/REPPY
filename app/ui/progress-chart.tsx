@@ -22,7 +22,7 @@ function ResultSets({ entry }: { entry: ProgressEntry }) {
     {entry.completed < entry.total && <Small className="progress-muted">Выполнено {entry.completed} из {entry.total}</Small>}
   </Box>;
 }
-export default function ProgressChart({ entries, exercise, go }: { entries: ProgressEntry[]; exercise: WorkoutExercise; go: (path: string) => void }) {
+export default function ProgressChart({ entries, exercise, go, sessionHref = (sessionId) => `/trainer/sessions/${sessionId}` }: { entries: ProgressEntry[]; exercise: WorkoutExercise; go: (path: string) => void; sessionHref?: (sessionId: string) => string }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [chartWidth, setChartWidth] = useState(600);
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function ProgressChart({ entries, exercise, go }: { entries: Prog
         <Button type="button" className="wide-secondary" aria-label="Следующее занятие" disabled={selectedIndex === 0} onClick={() => setSelectedId(entries[selectedIndex - 1].session.id)}><Icon name="chevron-right" /></Button>
       </Box>
       <ResultSets entry={selected} />
-      <ActionButton variant="secondary" onClick={() => go(`/trainer/sessions/${selected.session.id}`)}>Открыть тренировку <Icon name="arrow-right" /></ActionButton>
+      <ActionButton variant="secondary" onClick={() => go(sessionHref(selected.session.id))}>Открыть тренировку <Icon name="arrow-right" /></ActionButton>
     </Box>
 
   </Section>;

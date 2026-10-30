@@ -55,8 +55,8 @@ export function progressSetLabel(exercise: WorkoutExercise, result: Pick<SetResu
   const amount = `${progressNumber(result.actualReps)} ${exercise.measureType === 'duration' ? 'сек.' : 'повт.'}`;
   return exercise.loadMode === 'external' ? `${progressNumber(result.actualWeight)} кг × ${amount}` : amount;
 }
-export function progressHref(studentId: string, exercise?: WorkoutExercise): string {
-  const base = `/trainer/clients/${encodeURIComponent(studentId)}`;
+export function progressHref(studentId: string, exercise?: WorkoutExercise, area: 'trainer' | 'student' = 'trainer'): string {
+  const base = area === 'student' ? '/student' : `/trainer/clients/${encodeURIComponent(studentId)}`;
   if (!exercise) return base;
   const params = new URLSearchParams({ loadMode: exercise.loadMode, measureType: exercise.measureType });
   return `${base}/progress/${encodeURIComponent(exercise.exerciseId)}?${params}`;

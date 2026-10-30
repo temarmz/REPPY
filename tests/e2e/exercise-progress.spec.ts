@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { createInitialState, createWorkoutSession } from '../../app/reppy-data';
 
-async function seedProgress(page: Page, count = 3) {
+async function seedProgress(page: Page, count = 3, route = '/trainer/clients/artem') {
   const state = createInitialState();
   state.loggedIn = true;
   const assignment = state.assignments.find((item) => item.id === 'assignment-artem-push-today')!;
@@ -20,10 +20,27 @@ async function seedProgress(page: Page, count = 3) {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Попробовать REPPY' })).toBeVisible();
   await page.evaluate((value) => localStorage.setItem('reppy-demo-v0', JSON.stringify(value)), state);
-  await page.goto('/#/trainer/clients/artem');
+  await page.goto('/#' + route);
   await page.reload();
   await expect(page.getByRole('region', { name: 'Прогресс по упражнениям' })).toBeVisible();
 }
+
+test('ученик открывает свой прогресс из профиля и результата тренировки', async ({ page }) => {
+  await seedProgress(page, 3, '/student/profile');
+  const section = progressSection(page);
+  await expect(section).toContainText('Было: 77,5 кг × 8 повт.');
+  await section.getByRole('button', { name: /Жим лёжа/ }).click();
+  await expect(page).toHaveURL(/#\/student\/progress\/bench-press/);
+  await expect(page.getByText('Мой прогресс')).toBeVisible();
+  await expect(page.locator('.progress-chart')).toBeVisible();
+  await page.getByRole('button', { name: 'Открыть тренировку' }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/sessions\/progress-0$/);
+  const progressButton = page.locator('.result-exercises article').first().getByRole('button', { name: 'Прогресс упражнения' });
+  await expect(progressButton).toBeVisible();
+  await progressButton.click();
+  await expect(page).toHaveURL(/#\/student\/progress\/bench-press/);
+  await expect(page.locator('.progress-chart')).toBeVisible();
+});
 
 const progressSection = (page: Page) => page.getByRole('region', { name: 'Прогресс по упражнениям' });
 

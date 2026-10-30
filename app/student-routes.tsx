@@ -36,6 +36,8 @@ import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledg
 import { subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import { clearUiDraft, isDraftDateString, isDraftTimeString, loadUiDraft, saveUiDraft } from './ui-persistence';
 import ActiveWorkout from './active-workout';
+import ExerciseProgressView from './exercise-progress-view';
+import { goBack } from './navigation';
 
 const STUDENT_COPY = {
   emptyAssignments: 'На ближайшие две недели тренер пока ничего не назначил.',
@@ -193,12 +195,26 @@ function WorkoutSuccess({ data, session, backPath }: { data: DemoState; session:
 }
 
 export default function StudentRoutes({ path, data, dispatch }: { path: string; data: DemoState; dispatch: (command: ReppyCommand) => void }) {
+  const [progressPath, progressSearch = ''] = path.split('?');
   const menuRoot = path.startsWith('/student/calendar/') ? '/student/calendar' : '/student';
   const assignmentDetailsMatch = path.match(/^\/student\/(?:calendar\/)?assignments\/([^/]+)$/);
   const activeMatch = path.match(/^\/student\/(?:calendar\/)?workout\/([^/]+)$/);
   const resultMatch = path.match(/^\/student\/(?:history|calendar\/sessions)\/([^/]+)$/);
   const successMatch = path.match(/^\/student\/(?:calendar\/)?success\/([^/]+)$/);
   const finishMatch = path.match(/^\/student\/(?:calendar\/)?finish\/([^/]+)$/);
+  const progressMatch = progressPath.match(/^\/student\/progress\/([^/]+)$/);
+
+  if (progressMatch) {
+    return <ExerciseProgressView
+      data={data}
+      studentId={data.activeStudentId}
+      exerciseId={progressMatch[1]}
+      search={progressSearch}
+      go={go}
+      back={goBack}
+      area="student"
+    />;
+  }
 
   if (assignmentDetailsMatch) {
     const assignment = data.assignments.find((item) => item.id === assignmentDetailsMatch[1] && item.studentId === data.activeStudentId);

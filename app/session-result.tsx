@@ -55,7 +55,7 @@ export default function SessionResult({
             <Card key={exercise.id}>
               <Header><Inline>{String(index + 1).padStart(2, '0')}</Inline><Box><Heading>{exercise.name}</Heading><Small className="result-exercise-meta">{exerciseMetadata(exercise)}</Small>{exercise.coachNote && <Small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</Small>}</Box></Header>
               <Box>{results.map((result) => <Paragraph className={result.completed ? '' : 'not-completed'} key={result.setNumber}><Inline>Подход {result.setNumber}</Inline><Strong>{actualSetLabel(exercise, result)}</Strong><Italic><Icon name={result.completed ? 'check' : 'minus'} /></Italic></Paragraph>)}</Box>
-              {trainerView && progressKeys.has(progressKey(exercise)) && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise))}>Прогресс упражнения</ActionButton>}
+              {progressKeys.has(progressKey(exercise)) && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise, trainerView ? 'trainer' : 'student'))}>Прогресс упражнения</ActionButton>}
             </Card>
           );
         })}
