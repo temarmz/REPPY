@@ -69,6 +69,7 @@ Swift/SwiftUI-проект для iPhone с iOS 18+ находится в [`ios/
 - [ТЗ: прогрессия ученика по упражнениям](docs/student-exercise-progress.md)
 - [ТЗ: абонементы учеников](docs/subscriptions.md)
 - [ТЗ: асинхронные онлайн-тренировки](docs/online-workouts.md)
+- [Личные заметки тренера в веб-версии](docs/trainer-notes.md)
 - [Актуальный backlog](docs/backlog.md)
 - [Backend: стек, схема и локальный запуск](docs/backend.md)
 - [Архив завершённого ТЗ по модели тренировок](docs/archive/training-assignment-model.md)

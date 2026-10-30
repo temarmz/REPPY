@@ -1028,6 +1028,9 @@ body.modal-open .bottom-nav { display: none; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
   .bottom-nav button small { font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
+  .bottom-nav[data-navigation-count="5"] button { flex: 1 1 0; min-width: var(--control-height-small); }
+  .bottom-nav[data-navigation-count="5"] button.active { flex-grow: 1.7; }
+  .bottom-nav[data-navigation-count="5"] button:not(.active) small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .bottom-nav button.active { background: var(--lime); color: var(--ink); }
   .app-shell:not(.focus-mode) .content-page { min-height: 100%; padding: var(--space-35) var(--space-18) max(var(--space-32), env(safe-area-inset-bottom, var(--space-0))); }
   .page-header { margin-bottom: var(--space-29); }
@@ -2344,6 +2347,41 @@ textarea::placeholder { color: var(--palette-747b72); opacity: 1; }
   .app-status-banner.saving > .ui-icon { animation: none; }
 }
 
+
+/* Trainer diary: four independent editors share a single surface each. */
+.content-page.notes-page { padding-top: var(--space-24); padding-bottom: var(--space-24); }
+.notes-page .page-header { align-items: center; margin-bottom: var(--space-12); }
+.notes-description { margin: 0 0 var(--space-12); color: var(--muted); font-size: var(--font-size-14); line-height: 1.5; }
+.notes-navigation { display: grid; grid-template-columns: var(--control-height-medium) minmax(0, 1fr) var(--control-height-medium); align-items: stretch; gap: var(--space-8); margin-bottom: var(--space-16); }
+.notes-navigation button, .notes-today { display: flex; min-height: var(--control-height-medium); align-items: center; justify-content: center; gap: var(--space-8); border: 0; padding: var(--space-8) var(--space-12); background: var(--button-bg); color: var(--text-primary); font-size: var(--button-font-size); cursor: pointer; }
+.notes-navigation .ui-icon { width: var(--size-20); height: var(--size-20); }
+.notes-navigation .notes-arrow { padding: 0; }
+.notes-date-button { min-width: 0; overflow-wrap: anywhere; }
+.notes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--card-list-gap); }
+.note-day-card { display: flex; min-width: 0; height: var(--notes-day-height); flex-direction: column; gap: var(--space-4); border-radius: var(--card-radius); padding: var(--notes-card-padding); background: var(--surface); }
+.note-day-heading time { display: grid; gap: var(--space-2); }
+.note-day-heading strong { font-size: var(--font-size-16); font-weight: var(--font-weight-800); }
+.note-day-heading small { color: var(--muted); font-size: var(--font-size-12); }
+.note-day-today .note-day-heading small { color: var(--lime-strong); font-weight: var(--font-weight-800); }
+.note-editor-tools { display: flex; flex: 0 0 auto; gap: var(--space-4); }
+.note-editor-tools button, .note-day-status button { display: grid; width: var(--control-height-small); min-height: var(--control-height-small); flex: 0 0 auto; place-items: center; border: 0; padding: 0; background: var(--button-bg); color: var(--text-secondary); cursor: pointer; }
+.note-editor-tools .ui-icon, .note-day-status .ui-icon { width: var(--size-20); height: var(--size-20); }
+.note-editor-tools button[aria-pressed="true"] { background: var(--lime); color: var(--ink); }
+.note-editor { display: block; width: 100%; min-height: 0; flex: 1 1 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; resize: none; border: 0; border-radius: var(--radius-8); padding: var(--space-4); background: transparent; color: var(--text-primary); font-size: var(--notes-editor-font-size); line-height: 1.5; overflow-wrap: anywhere; }
+.note-editor::placeholder { color: var(--muted); opacity: 1; }
+.note-editor:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+.note-editor:read-only { color: var(--muted); }
+.note-day-status { display: flex; min-height: var(--size-20); flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.note-day-status small { color: var(--muted); font-size: var(--font-size-12); overflow-wrap: anywhere; }
+.note-day-attention small { color: var(--error-color); }
+.notes-calendar-modal > p, .notes-conflict-modal > p { color: var(--muted); font-size: var(--font-size-16); line-height: 1.5; }
+.notes-calendar-modal .calendar-card { padding: 0; background: transparent; }
+.notes-conflict-text { display: block; width: 100%; min-height: var(--size-140); resize: vertical; border: 1px solid var(--field-outline); border-radius: var(--control-radius); padding: var(--space-12); background: var(--field-bg); color: var(--text-primary); font-size: var(--notes-editor-font-size); }
+.notes-conflict-actions { display: grid; gap: var(--space-8); margin-top: var(--space-16); }
+@media (max-width: 800px) {
+  .app-shell:not(.focus-mode) .content-page.notes-page { padding-top: var(--space-16); padding-bottom: var(--space-16); }
+  .notes-date-button > .ui-icon { display: none; }
+}
 
 /* ===== 13-light-theme.css ===== */
 /* Light application theme. Landing stays dark until the user enters the app. */

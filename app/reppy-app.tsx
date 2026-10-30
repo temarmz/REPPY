@@ -37,6 +37,9 @@ import { useReppyAuth, type TelegramConnection } from './reppy-auth';
 import { AccountScreen, MissingProfileScreen, SupabaseInvitationScreen } from './auth-screens';
 import { getSupabaseClient } from './supabase-client';
 import { createSupabaseRepository } from './supabase-repository';
+import { createLocalTrainerNotes, createSupabaseTrainerNotes } from './trainer-notes';
+import { createTrainerNotesController } from './trainer-notes-controller';
+import TrainerNotesScreen from './trainer-notes-screen';
 import {
   go,
   goToMenuTab,
@@ -85,6 +88,11 @@ const APP_ASSETS = [
 ];
 
 const ASSET_PRELOAD_TIMEOUT = 5500;
+const notesStorage = {
+  getItem: (key: string) => window.localStorage.getItem(key),
+  setItem: (key: string, value: string) => window.localStorage.setItem(key, value),
+  removeItem: (key: string) => window.localStorage.removeItem(key),
+};
 
 function formatRubles(amount = 0) {
   return new Intl.NumberFormat('ru-RU').format(amount) + ' ₽';
@@ -123,6 +131,14 @@ export default function ReppyApp() {
     const client = getSupabaseClient();
     return client && profileId && profileRole ? createSupabaseRepository(client, { id: profileId, role: profileRole }) : null;
   }, [profileId, profileRole]);
+  const notesController = useMemo(() => {
+    const client = getSupabaseClient();
+    const repository = client && profileId
+      ? createSupabaseTrainerNotes(client, profileId)
+      : createLocalTrainerNotes(notesStorage);
+    return createTrainerNotesController(repository, notesStorage, profileId ?? 'demo');
+  }, [profileId]);
+  useEffect(() => profileRole === 'trainer' || !auth.enabled ? notesController.start() : undefined, [auth.enabled, notesController, profileRole]);
   const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, dispatch, setData } = useReppyData(remoteRepository);
   const online = useOnlineStatus();
   const path = useHashNavigation();
@@ -251,6 +267,7 @@ export default function ReppyApp() {
   const resetDemo = () => {
     void clearInstructionVideos().catch(() => undefined);
     resetData();
+    notesController.resetDemo();
     go('/');
   };
 
@@ -377,6 +394,7 @@ export default function ReppyApp() {
       onLoadTelegramConnection={auth.enabled ? auth.getTelegramConnection : undefined}
     />;
     if (area === 'trainer') {
+      if (route === '/trainer/notes') return <TrainerNotesScreen controller={notesController} identity={profileId ?? 'demo'} />;
       if (route === '/trainer/profile') return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />{accountSettings}</Page>;
       return <TrainerRoutes
         path={route}

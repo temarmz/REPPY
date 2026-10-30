@@ -16,6 +16,7 @@ import ReadOnlyExerciseList from './ui/read-only-exercise-list';
 import { ActiveExerciseCard, PlanExerciseCard } from './ui/workout-exercise-card';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { exerciseMetadata } from './workout-display';
+import NoteDayCard from './ui/note-day-card';
 
 const exampleWorkout: Workout = {
   id: 'kit-workout', name: 'Пример тренировки', createdAt: '2026-01-01T00:00:00Z',
@@ -34,6 +35,7 @@ export default function DesignKitScreen() {
   const [toggleActive, setToggleActive] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [instructionOpen, setInstructionOpen] = useState(false);
+  const [note, setNote] = useState('Анна: обсудить самочувствие\n• Проверить технику приседа\n• Уточнить удобное время');
   const [exercise, setExercise] = useState(exampleWorkout.exercises[0]);
   const [results, setResults] = useState<SetResult[]>(() => exampleWorkout.exercises[0].plannedSets.map((set, index) => ({ exerciseId: 'kit-bench', setNumber: index + 1, actualWeight: set.targetWeight, actualReps: set.targetReps, completed: index === 0 })));
   const exerciseProps = {
@@ -110,6 +112,16 @@ export default function DesignKitScreen() {
           <Field label={<>Недоступное поле</>} ><Input disabled value="Недоступно" readOnly /></Field>
           <Field label={<>Ошибка заполнения</>} ><Input aria-invalid="true" aria-describedby="kit-error" defaultValue="" placeholder="Обязательное значение" /></Field>
           <Box id="kit-error"><FormError>Заполни обязательное поле</FormError></Box>
+        </Box>
+      </Section>
+
+      <Section className="design-kit-section" aria-label="Дневник тренера">
+        <SectionHeading title="Дневник тренера" />
+        <Box className="notes-grid">
+          <NoteDayCard date={dateKey()} today value={note} phase="idle" onChange={setNote} />
+          <NoteDayCard date="2026-10-30" value="" phase="idle" onChange={() => undefined} />
+          <NoteDayCard date="2026-10-29" value="Несохранённый текст остаётся на устройстве" phase="error" onChange={() => undefined} onRetry={() => undefined} />
+          <NoteDayCard date="2026-10-28" value="Запись изменилась на другом устройстве" phase="conflict" onChange={() => undefined} onConflict={() => undefined} />
         </Box>
       </Section>
 

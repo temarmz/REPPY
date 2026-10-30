@@ -23,6 +23,7 @@ const NAVIGATION: Record<AppArea, NavigationItem[]> = {
     { label: 'Главная', icon: 'home', route: '/trainer' },
     { label: 'Календарь', icon: 'calendar', route: '/trainer/calendar' },
     { label: 'Ученики', icon: 'users', route: '/trainer/clients' },
+    { label: 'Заметки', icon: 'notes', route: '/trainer/notes' },
     { label: 'Профиль', icon: 'user', route: '/trainer/profile' },
   ],
   student: [
@@ -37,6 +38,7 @@ export function canonicalNavigationRoute(area: AppArea, path: string) {
     if (/^\/trainer\/(calendar|schedule|assignments|sessions)(?:\/|$)/.test(path)) return '/trainer/calendar';
     if (/^\/trainer\/clients(?:\/|$)/.test(path)) return '/trainer/clients';
     if (/^\/trainer\/profile(?:\/|$)/.test(path)) return '/trainer/profile';
+    if (/^\/trainer\/notes(?:\/|$)/.test(path)) return '/trainer/notes';
     return path === '/trainer' ? '/trainer' : null;
   }
 
@@ -122,9 +124,9 @@ export default function AppShell({
 
       <Box className="page-wrap page-transition">{children}</Box>
 
-      {!focusMode && !hideBottomNav && <Nav className="bottom-nav" aria-label="Основная навигация">
+      {!focusMode && !hideBottomNav && <Nav className="bottom-nav" data-navigation-count={nav.length} aria-label="Основная навигация">
         {nav.map((item) => (
-          <NavigationButton key={item.route} active={activeRoute === item.route} onClick={() => navigateTab(item.route)}>
+          <NavigationButton key={item.route} active={activeRoute === item.route} aria-label={item.label} title={item.label} onClick={() => navigateTab(item.route)}>
             <Inline><Icon name={item.icon} /></Inline><Small>{item.label}</Small>
           </NavigationButton>
         ))}

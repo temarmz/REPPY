@@ -6,6 +6,9 @@ export type IconName =
   | 'workout'
   | 'calendar'
   | 'history'
+  | 'notes'
+  | 'list-bullet'
+  | 'list-number'
   | 'arrow-right'
   | 'arrow-up-right'
   | 'chevron-right'
@@ -34,6 +37,9 @@ const iconFiles: Record<IconName, string> = {
   workout: 'icon-dumbbell-reppy.svg',
   calendar: 'icon-calendar-reppy.svg',
   history: 'icon-history.svg',
+  notes: 'icon-notes.svg',
+  'list-bullet': 'icon-list-bullet.svg',
+  'list-number': 'icon-list-number.svg',
   'arrow-right': 'icon-arrow-right.svg',
   'arrow-up-right': 'icon-arrow-up-right.svg',
   'chevron-right': 'icon-chevron-right-reppy.svg',

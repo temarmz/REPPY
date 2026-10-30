@@ -18,3 +18,4 @@ export { default as ReadOnlyExerciseList } from './read-only-exercise-list';
 export { PlanExerciseCard, ActiveExerciseCard } from './workout-exercise-card';
 export { default as ExerciseInstructionModal } from './exercise-instruction-modal';
 export { default as ProgressChart } from './progress-chart';
+export { default as NoteDayCard } from './note-day-card';
