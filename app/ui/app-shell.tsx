@@ -42,7 +42,7 @@ export function canonicalNavigationRoute(area: AppArea, path: string) {
 
   if (/^\/student\/calendar(?:\/|$)/.test(path)) return '/student/calendar';
   if (/^\/student\/history(?:\/|$)/.test(path)) return '/student/calendar';
-  if (/^\/student\/profile(?:\/|$)/.test(path)) return '/student/profile';
+  if (/^\/student\/(profile|progress)(?:\/|$)/.test(path)) return '/student/profile';
   if (path === '/student' || /^\/student\/(assignments|workout)(?:\/|$)/.test(path)) return '/student';
   return null;
 }
