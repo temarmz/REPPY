@@ -58,7 +58,7 @@ jobs:
       - name: Build and run end-to-end tests
         run: npm run test:e2e
       - name: Upload browser diagnostics
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}

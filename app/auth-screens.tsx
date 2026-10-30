@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import EmptyState from './ui/empty-state';
 import type { AuthProfile, InvitationPreview } from './reppy-auth';
 import type { PendingTelegramRegistration } from './telegram-login';
-import { hasTelegramRedirectCallback } from './telegram-login';
+import { hasTelegramRedirectCallback, resetTelegramRedirect } from './telegram-login';
 import { ActionButton, FormError, TextField, Button } from './ui/controls';
 import { LoadingScreen } from './onboarding-screens';
 
@@ -39,6 +39,7 @@ export function AccountScreen({
   const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(() => hasTelegramRedirectCallback('login'));
   const [error, setError] = useState(initialError ?? '');
+  const resumable = hasTelegramRedirectCallback('login');
 
   useEffect(() => {
     if (!hasTelegramRedirectCallback('login')) return;
@@ -54,11 +55,13 @@ export function AccountScreen({
     return () => { active = false; };
   }, [onResumeTelegram]);
 
-  const signIn = async () => {
+  const signIn = async (resumeExisting = false) => {
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
-      const registration = await onTelegramSignIn();
+      if (!resumeExisting) resetTelegramRedirect();
+      const registration = await (resumeExisting ? onResumeTelegram() : onTelegramSignIn());
       if (registration) {
         setPending(registration);
         setDisplayName(registration.displayName);
@@ -92,7 +95,8 @@ export function AccountScreen({
         <PageTitle>ВОЙТИ ИЛИ СОЗДАТЬ</PageTitle>
         {!pending ? <Box className="auth-form">
           {error && <FormError>{error}</FormError>}
-          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn()}>{busy ? 'Открываем Telegram…' : 'Продолжить через Telegram'}</ActionButton>
+          <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn(resumable)}>{busy ? 'Открываем Telegram…' : resumable ? 'Повторить вход' : 'Продолжить через Telegram'}</ActionButton>
+          {resumable && <ActionButton variant="secondary" icon="history" disabled={busy} onClick={() => void signIn()}>Войти заново</ActionButton>}
           <Paragraph className="auth-description">Ученику нужна ссылка-приглашение от тренера.</Paragraph>
         </Box> : <Form className="auth-form" onSubmit={create}>
           <Paragraph className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</Paragraph>
@@ -222,11 +226,27 @@ export function SupabaseInvitationScreen({
 }
 
 export function MissingProfileScreen({ onSignOut }: { onSignOut: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const signOut = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await onSignOut();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось выйти из аккаунта. Попробуй ещё раз.');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <Page className="auth-screen">
       <Section className="auth-card">
         <AuthBrand />
-        <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть приглашение тренера. Тренер завершает регистрацию по одноразовой ссылке от REPPY." action="Выйти" onAction={() => void onSignOut()} />
+        <EmptyState icon="users" title="Профиль ещё не подключён" text="Ученику нужно открыть приглашение тренера. Тренер завершает регистрацию по одноразовой ссылке от REPPY." />
+        {error && <FormError>{error}</FormError>}
+        <ActionButton variant="secondary" disabled={busy} onClick={() => void signOut()}>{busy ? 'Выходим…' : 'Выйти'}</ActionButton>
       </Section>
     </Page>
   );

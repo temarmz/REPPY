@@ -92,5 +92,34 @@ test('an explicit reload superseded by an invitation finishes with fresh data in
     .toEqual(['a-existing', 'a-invited']);
 });
 
+test('returning before the next account loads must wait for a fresh repository snapshot', async ({ page }) => {
+  await page.evaluate(() => { window.reppyQa.holdNextLoad(); window.reppyQa.selectAccount('b'); });
+  await expect.poll(() => page.evaluate(() => window.reppyQa.heldLoads)).toBe(1);
+  await page.evaluate(() => { window.reppyQa.holdNextLoad(); window.reppyQa.selectAccount('a'); });
+  await expect.poll(() => page.evaluate(() => window.reppyQa.heldLoads)).toBe(2);
+  expect(await page.evaluate(() => window.reppyQa.controller?.hydrated)).toBe(false);
+  await page.evaluate(() => window.reppyQa.releaseLoad());
+  await ready(page, 'a');
+  await page.evaluate(() => window.reppyQa.updateCurrentProfile());
+  await expect.poll(() => page.evaluate(() => window.reppyQa.writes))
+    .toEqual([{ account: 'a', studentId: 'a-existing', phone: 'current-account-update' }]);
+});
+
+test('a failed account load remains unready through retry and accepts only the new snapshot', async ({ page }) => {
+  await page.evaluate(() => { window.reppyQa.holdNextLoad(); window.reppyQa.selectAccount('b'); });
+  await expect.poll(() => page.evaluate(() => window.reppyQa.heldLoads)).toBe(1);
+  await page.evaluate(() => window.reppyQa.failLoad());
+  await expect.poll(() => page.evaluate(() => window.reppyQa.controller?.persistencePhase)).toBe('error');
+  expect(await page.evaluate(() => window.reppyQa.controller?.hydrated)).toBe(false);
+  await page.evaluate(() => { window.reppyQa.holdNextLoad(); window.reppyQa.controller!.retryPersistence(); });
+  await expect.poll(() => page.evaluate(() => window.reppyQa.heldLoads)).toBe(2);
+  expect(await page.evaluate(() => window.reppyQa.controller?.hydrated)).toBe(false);
+  await page.evaluate(() => window.reppyQa.releaseLoad());
+  await ready(page, 'b');
+  await page.evaluate(() => window.reppyQa.updateCurrentProfile());
+  await expect.poll(() => page.evaluate(() => window.reppyQa.writes))
+    .toEqual([{ account: 'b', studentId: 'b-existing', phone: 'current-account-update' }]);
+});
+
 // Keep the fixture contract in the type-check graph without exporting runtime test controls.
 export type { ControllerFixture };
