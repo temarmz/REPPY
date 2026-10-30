@@ -25,7 +25,7 @@ test('просмотр тренировки всегда возвращает в
 
   await page.locator('.agenda-list > button').first().tap();
   await page.evaluate(() => document.addEventListener('click', (event) => {
-    if ((event.target as Element).closest('.back-button')) event.stopImmediatePropagation();
+    if (event.isTrusted && (event.target as Element).closest('.back-button')) event.stopImmediatePropagation();
   }, true));
   await page.getByRole('button', { name: 'Назад' }).tap();
   await expect(page).toHaveURL(/#\/student\/calendar$/);
