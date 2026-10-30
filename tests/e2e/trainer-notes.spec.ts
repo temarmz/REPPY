@@ -68,3 +68,42 @@ test('у ученика нет вкладки заметок; клавиатур
   await page.goto('/#/student');
   await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Заметки' })).toHaveCount(0);
 });
+
+test('ошибка сохранения сохраняет черновик после перезагрузки', async ({ page }) => {
+  await openNotes(page);
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'reppy-trainer-notes-demo-v1') throw new DOMException('Storage denied', 'QuotaExceededError');
+      return original.call(this, key, value);
+    };
+  });
+  const card = page.locator('.note-day-card').first();
+  await card.getByRole('textbox').fill('Текст переживёт сбой');
+  await expect(card.getByRole('button', { name: /^Повторить сохранение/ })).toBeVisible();
+  page.on('dialog', (dialog) => void dialog.accept());
+  await page.reload();
+  await expect(page.locator('.note-editor').first()).toHaveValue('Текст переживёт сбой');
+  await expect(page.locator('.note-day-card').first().getByRole('status')).toHaveText('Сохранено');
+});
+
+test('конфликт показывает оба текста и сохраняет явно выбранную версию', async ({ page }) => {
+  await openNotes(page);
+  const card = page.locator('.note-day-card').first();
+  const date = await card.getAttribute('data-note-date');
+  await page.evaluate((day) => {
+    localStorage.setItem('reppy-trainer-notes-demo-v1', JSON.stringify({ [day!]: {
+      date: day, content: 'Текст с другого устройства', revision: 1, mutationId: crypto.randomUUID(), updatedAt: new Date().toISOString(),
+    } }));
+  }, date);
+  await card.getByRole('textbox').fill('Мой новый текст');
+  await card.getByRole('button', { name: /^Выбрать версию/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Выбрать версию заметки' });
+  await expect(dialog.getByRole('textbox').nth(0)).toHaveValue('Мой новый текст');
+  await expect(dialog.getByRole('textbox').nth(1)).toHaveValue('Текст с другого устройства');
+  await dialog.getByRole('button', { name: 'Оставить мой текст' }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(card.getByRole('status')).toHaveText('Сохранено');
+  await page.reload();
+  await expect(page.locator('.note-editor').first()).toHaveValue('Мой новый текст');
+});

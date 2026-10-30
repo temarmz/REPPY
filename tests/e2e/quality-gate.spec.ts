@@ -60,8 +60,8 @@ async function auditTouchTargets(page: Page) {
       && center instanceof Element
       && Boolean(center.closest('.bottom-nav'))
       && !element.closest('.bottom-nav')
-      && page instanceof HTMLElement
-      && page.scrollTop + page.clientHeight < page.scrollHeight - 1;
+      && ((page instanceof HTMLElement && page.scrollTop + page.clientHeight < page.scrollHeight - 1)
+        || window.scrollY + innerHeight < (document.scrollingElement?.scrollHeight ?? 0) - 1);
     if (canScrollPastFloatingNav) return [];
     if (!covered && !tooSmall) return [];
     return [{
@@ -89,7 +89,7 @@ test('critical navigation stays responsive for trainer and student', async ({ pa
   await openFreshDemo(page);
   await selectThemeForProject(page, testInfo);
 
-  for (const label of ['Календарь', 'Ученики', 'Профиль', 'Главная']) {
+  for (const label of ['Календарь', 'Ученики', 'Заметки', 'Профиль', 'Главная']) {
     const navigation = page.locator('.bottom-nav:visible, .desktop-nav:visible');
     await navigation.getByRole('button', { name: label, exact: true }).click();
     await expect(navigation.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
