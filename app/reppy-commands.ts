@@ -70,7 +70,9 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
         students: state.students.map((student) => student.id === command.student.id ? command.student : student),
       };
     case 'assignment.create':
-      return { ...state, assignments: [...state.assignments, command.assignment] };
+      return state.assignments.some((assignment) => assignment.id === command.assignment.id)
+        ? state
+        : { ...state, assignments: [...state.assignments, command.assignment] };
     case 'assignment.update':
       return {
         ...state,

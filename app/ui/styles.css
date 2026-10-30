@@ -15,7 +15,7 @@ body {
 }
 
 button, input, select, textarea { font: inherit; }
-button { color: inherit; font-size: var(--button-font-size); background: var(--button-bg); border-radius: var(--control-radius); }
+button { color: inherit; font-size: var(--button-font-size); background: var(--button-bg); border-radius: var(--control-radius); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 :where(button):enabled:hover { background-color: var(--button-hover-bg); }
 button:disabled { cursor: not-allowed; opacity: .45; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }

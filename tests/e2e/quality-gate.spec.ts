@@ -116,6 +116,14 @@ test('critical navigation stays responsive for trainer and student', async ({ pa
   await page.goForward();
   await expect(page).toHaveURL(/#\/student\/assignments\//);
   await expectResponsiveScreen(page);
+  if (testInfo.project.name !== 'desktop-chromium') {
+    await page.evaluate(() => document.addEventListener('click', (event) => {
+      if ((event.target as Element).closest('.back-button')) event.stopImmediatePropagation();
+    }, true));
+    await page.getByRole('button', { name: 'Назад', exact: true }).tap();
+    await expect(page).toHaveURL(/#\/student$/);
+    await expectResponsiveScreen(page);
+  }
   expect(browserProblems).toEqual([]);
 });
 
@@ -192,5 +200,51 @@ test('slow startup and offline mode always expose progress or recovery', async (
   await context.setOffline(false);
   await expect(page.getByRole('status').filter({ hasText: 'Нет сети' })).toHaveCount(0);
   await expectResponsiveScreen(page);
+  expect(browserProblems).toEqual([]);
+});
+
+test('long iPhone session keeps one active route and recovers an orphaned modal lock', async ({ page }, testInfo) => {
+  const browserProblems = watchBrowserProblems(page);
+  await openFreshDemo(page);
+
+  for (let index = 0; index < 24; index += 1) {
+    const route = index % 2 ? `/trainer/clients/soak-${index}` : '/trainer/calendar';
+    await page.evaluate((next) => { location.hash = next; }, route);
+    await expect(page.locator('[data-route-active="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-route-active="true"]')).toHaveAttribute('data-route-view', route);
+  }
+
+  await page.evaluate(() => {
+    const shell = document.querySelector<HTMLElement>('.app-shell');
+    if (!shell) throw new Error('App shell is missing');
+    document.body.classList.add('modal-open');
+    shell.inert = true;
+    shell.setAttribute('aria-hidden', 'true');
+    window.dispatchEvent(new CustomEvent('reppy:modal-layer', { detail: true }));
+  });
+  await expect(page.locator('.app-shell')).toHaveAttribute('inert', '');
+  await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+  const navigation = testInfo.project.name === 'desktop-chromium' ? page.locator('.desktop-nav') : page.locator('.bottom-nav');
+  await expect(navigation).toBeVisible();
+  await expect(page.locator('.app-shell')).not.toHaveAttribute('inert', '');
+  await expect(page.locator('.app-shell')).not.toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('body')).not.toHaveClass(/modal-open/);
+  expect(browserProblems).toEqual([]);
+});
+
+test('a repeated assignment activation creates only one calendar item', async ({ page }) => {
+  const browserProblems = watchBrowserProblems(page);
+  await openFreshDemo(page);
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0')!).assignments.length as number);
+  await page.goto('/#/trainer/clients/maria/assign');
+  await page.locator('.workout-history-row').first().click();
+  const submit = page.getByRole('button', { name: /Назначить/ });
+  await expect(submit).toBeEnabled();
+  await submit.evaluate((button: HTMLButtonElement) => {
+    button.click();
+    button.click();
+  });
+  await expect(page).toHaveURL(/#\/trainer\/clients\/maria$/);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0')!).assignments.length as number)).toBe(before + 1);
   expect(browserProblems).toEqual([]);
 });

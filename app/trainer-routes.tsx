@@ -4,7 +4,6 @@ import {
   dateKey,
   findAssignmentWorkout,
   findSessionWorkout,
-  makeId,
   repeatAssignment,
   workoutFromSession,
   type Assignment,
@@ -97,8 +96,8 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
           submitLabel="Назначить тренировку"
           submitIcon="plus"
-          onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
-            const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
+          onAssign={(nextDate, scheduledTime, format, workoutSnapshot, assignmentId) => {
+            const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime, new Date().toISOString(), assignmentId), format };
             dispatch({ type: 'assignment.create', assignment });
             go('/trainer', true);
           }}
@@ -115,9 +114,9 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           onUpdateCustomExercise={updateCustomExercise}
           initialScheduledFor={scheduledFor}
           backPath={`/trainer/schedule/${scheduledFor}/${student.id}`}
-          onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
+          onAssign={(nextDate, scheduledTime, format, workoutSnapshot, assignmentId) => {
             const assignment: Assignment = {
-              id: makeId('assignment'),
+              id: assignmentId,
               studentId: student.id,
               assignedAt: new Date().toISOString(),
               scheduledFor: nextDate,
@@ -211,8 +210,8 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           title="ПОВТОРИТЬ ТРЕНИРОВКУ"
           submitLabel="Назначить тренировку"
           submitIcon="plus"
-          onAssign={(nextDate, scheduledTime, format, workoutSnapshot) => {
-            const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime), format };
+          onAssign={(nextDate, scheduledTime, format, workoutSnapshot, assignmentId) => {
+            const assignment = { ...repeatAssignment(sourceAssignment, workoutSnapshot, nextDate, scheduledTime, new Date().toISOString(), assignmentId), format };
             dispatch({ type: 'assignment.create', assignment });
             go(`/trainer/clients/${student.id}`);
           }}
@@ -227,9 +226,9 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           onCreateCustomExercise={createCustomExercise}
           onUpdateCustomExercise={updateCustomExercise}
           backPath={`/trainer/clients/${student.id}/assign`}
-          onAssign={(scheduledFor, scheduledTime, format, workoutSnapshot) => {
+          onAssign={(scheduledFor, scheduledTime, format, workoutSnapshot, assignmentId) => {
             const assignment: Assignment = {
-              id: makeId('assignment'),
+              id: assignmentId,
               studentId: student.id,
               assignedAt: new Date().toISOString(),
               scheduledFor,
@@ -282,8 +281,8 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           sourceWorkout={sourceWorkout}
           onCreateCustomExercise={createCustomExercise}
           onUpdateCustomExercise={updateCustomExercise}
-          onSave={(scheduledFor, scheduledTime, format, workout) => {
-            const next = { ...repeatAssignment(assignment, workout, scheduledFor, scheduledTime), format };
+          onSave={(scheduledFor, scheduledTime, format, workout, assignmentId) => {
+            const next = { ...repeatAssignment(assignment, workout, scheduledFor, scheduledTime, new Date().toISOString(), assignmentId), format };
             dispatch({ type: 'assignment.create', assignment: next });
             go(`/trainer/assignments/${next.id}`);
           }}

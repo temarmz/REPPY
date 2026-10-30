@@ -22,7 +22,7 @@ import StudentRoutes from './student-routes';
 import TrainerRoutes from './trainer-routes';
 import { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './ui/app-status';
 import { downloadPersistenceDiagnostics } from './persistence-diagnostics';
-import ModalFrame, { MODAL_LAYER_EVENT } from './ui/modal-frame';
+import ModalFrame, { MODAL_LAYER_EVENT, reconcileModalLayerState } from './ui/modal-frame';
 import { ActionButton, FormError, Button, Input, Select, Textarea } from './ui/controls';
 import {
   recentSubscriptionPayments,
@@ -173,8 +173,18 @@ export default function ReppyApp() {
 
   useEffect(() => {
     const handleModalLayer = (event: Event) => setModalLayerOpen((event as CustomEvent<boolean>).detail);
+    const reconcileModalLayer = () => { setModalLayerOpen(reconcileModalLayerState()); };
     window.addEventListener(MODAL_LAYER_EVENT, handleModalLayer);
-    return () => window.removeEventListener(MODAL_LAYER_EVENT, handleModalLayer);
+    window.addEventListener('pageshow', reconcileModalLayer);
+    window.addEventListener('hashchange', reconcileModalLayer);
+    document.addEventListener('visibilitychange', reconcileModalLayer);
+    reconcileModalLayer();
+    return () => {
+      window.removeEventListener(MODAL_LAYER_EVENT, handleModalLayer);
+      window.removeEventListener('pageshow', reconcileModalLayer);
+      window.removeEventListener('hashchange', reconcileModalLayer);
+      document.removeEventListener('visibilitychange', reconcileModalLayer);
+    };
   }, []);
 
   useEffect(() => {

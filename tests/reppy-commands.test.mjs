@@ -69,6 +69,20 @@ test('предметная команда изменяет только выбр
   assert.strictEqual(next.sessions, state.sessions);
 });
 
+test('повтор одной команды назначения не создаёт вторую тренировку', () => {
+  const state = createInitialState();
+  const assignment = {
+    ...structuredClone(state.assignments[0]),
+    id: 'assignment-idempotent-create',
+  };
+
+  const created = applyReppyCommand(state, { type: 'assignment.create', assignment });
+  const repeated = applyReppyCommand(created, { type: 'assignment.create', assignment });
+
+  assert.equal(created.assignments.filter((item) => item.id === assignment.id).length, 1);
+  assert.strictEqual(repeated, created);
+});
+
 test('завершение сессии атомарно отмечает назначение и списывает занятие один раз', () => {
   const state = createInitialState();
   const assignment = state.assignments.find((item) => item.status === 'assigned');

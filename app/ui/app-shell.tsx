@@ -3,12 +3,11 @@ import { UI_ASSETS } from './assets';
 import { NavigationButton } from './patterns';
 import { Inline, Box, Header, Image, Aside, Strong, Small, Nav } from './elements';
 import { Button } from './controls';
-import { useLayoutEffect, useRef, type ReactNode, type TouchEvent } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import Icon, { type IconName } from './icon';
 import { observeMobileViewport } from '../mobile-viewport';
 import { observeWorkoutFieldFocus } from '../workout-field-focus';
 import { observeProfileFieldFocus } from '../profile-field-focus';
-import { suppressEmulatedClickAt } from './touch-activation';
 
 export type AppArea = 'trainer' | 'student';
 export type AppTheme = 'dark' | 'light';
@@ -70,36 +69,10 @@ export default function AppShell({
   const nav = NAVIGATION[area];
   const activeRoute = canonicalNavigationRoute(area, path);
   const tabPaths = useRef(new Map<string, string>());
-  const bottomNavTouch = useRef<{ route: string; identifier: number; x: number; y: number } | null>(null);
   useLayoutEffect(() => {
     if (activeRoute) tabPaths.current.set(activeRoute, path);
   }, [activeRoute, path]);
   const navigateTab = (route: string) => onNavigateTab(tabPaths.current.get(route) ?? route);
-  const startBottomNavTouch = (route: string, event: TouchEvent<HTMLButtonElement>) => {
-    const touch = event.touches.length === 1 ? event.touches[0] : null;
-    bottomNavTouch.current = touch
-      ? { route, identifier: touch.identifier, x: touch.clientX, y: touch.clientY }
-      : null;
-  };
-  const moveBottomNavTouch = (event: TouchEvent<HTMLButtonElement>) => {
-    const start = bottomNavTouch.current;
-    if (!start) return;
-    const touch = event.touches.length === 1 ? event.touches[0] : null;
-    if (!touch || touch.identifier !== start.identifier || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10) {
-      bottomNavTouch.current = null;
-    }
-  };
-  const endBottomNavTouch = (route: string, event: TouchEvent<HTMLButtonElement>) => {
-    const start = bottomNavTouch.current;
-    bottomNavTouch.current = null;
-    if (event.touches.length) return;
-    const touch = start && Array.from(event.changedTouches).find((item) => item.identifier === start.identifier);
-    if (!touch || start.route !== route || Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10) return;
-    // iOS can swallow the synthesized click while momentum scrolling continues.
-    // A stationary completed tap should still select its tab immediately.
-    suppressEmulatedClickAt(touch.clientX, touch.clientY);
-    navigateTab(route);
-  };
   const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
   const profileScrollMode = path === '/student/profile' || path === '/trainer/profile';
 
@@ -151,11 +124,7 @@ export default function AppShell({
 
       {!focusMode && !hideBottomNav && <Nav className="bottom-nav" aria-label="Основная навигация">
         {nav.map((item) => (
-          <NavigationButton key={item.route} active={activeRoute === item.route} onClick={() => navigateTab(item.route)}
-            onTouchStart={(event) => startBottomNavTouch(item.route, event)}
-            onTouchMove={moveBottomNavTouch}
-            onTouchEnd={(event) => endBottomNavTouch(item.route, event)}
-            onTouchCancel={() => { bottomNavTouch.current = null; }}>
+          <NavigationButton key={item.route} active={activeRoute === item.route} onClick={() => navigateTab(item.route)}>
             <Inline><Icon name={item.icon} /></Inline><Small>{item.label}</Small>
           </NavigationButton>
         ))}

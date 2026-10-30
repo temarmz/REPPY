@@ -10,6 +10,26 @@ export const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 let openModalLayers = 0;
 let closingModalLayers = 0;
 
+function applyModalLayerState(modalLayerOpen: boolean) {
+  document.body.classList.toggle('modal-open', modalLayerOpen);
+  document.querySelectorAll<HTMLElement>('.app-shell').forEach((appShell) => {
+    appShell.inert = modalLayerOpen;
+    if (modalLayerOpen) appShell.setAttribute('aria-hidden', 'true');
+    else appShell.removeAttribute('aria-hidden');
+  });
+  window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: modalLayerOpen }));
+}
+
+export function reconcileModalLayerState() {
+  const modalLayerOpen = Boolean(document.querySelector('.modal-layer-root'));
+  if (!modalLayerOpen) {
+    openModalLayers = 0;
+    closingModalLayers = 0;
+  }
+  applyModalLayerState(modalLayerOpen);
+  return modalLayerOpen;
+}
+
 export function hasOpenModalLayers() {
   return openModalLayers > 0 || closingModalLayers > 0;
 }
@@ -27,14 +47,8 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
 
   useEffect(() => {
     openModalLayers += 1;
-    document.body.classList.add('modal-open');
-    window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: true }));
+    applyModalLayerState(true);
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const appShell = document.querySelector<HTMLElement>('.app-shell');
-    if (appShell) {
-      appShell.inert = true;
-      appShell.setAttribute('aria-hidden', 'true');
-    }
     const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
     if (trackHistory && currentState.reppyModal !== modalId) {
       pushHistoryEntry({ ...currentState, reppyModal: modalId });
@@ -93,18 +107,16 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
       window.removeEventListener('popstate', handleHistoryBack, { capture: true });
       openModalLayers = Math.max(0, openModalLayers - 1);
       const finishClose = () => {
-        const modalLayerOpen = hasOpenModalLayers();
-        document.body.classList.toggle('modal-open', modalLayerOpen);
-        window.dispatchEvent(new CustomEvent(MODAL_LAYER_EVENT, { detail: modalLayerOpen }));
-        if (appShell && !modalLayerOpen) {
-          appShell.inert = false;
-          appShell.removeAttribute('aria-hidden');
-          returnFocus?.focus({ preventScroll: true });
-        }
+        const modalLayerOpen = openModalLayers > 0;
+        applyModalLayerState(modalLayerOpen);
+        if (!modalLayerOpen) returnFocus?.focus({ preventScroll: true });
       };
 
+      // Unlock the application as soon as the visible layer is gone. Browser
+      // history may settle later or not emit popstate after an iOS suspension.
+      finishClose();
+
       if (!trackHistory || window.history.state?.reppyModal !== modalId) {
-        finishClose();
         return;
       }
 
@@ -116,7 +128,7 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
         window.clearTimeout(historyFallbackTimer);
         window.removeEventListener('popstate', settleHistory);
         closingModalLayers = Math.max(0, closingModalLayers - 1);
-        finishClose();
+        if (!document.querySelector('.modal-layer-root')) applyModalLayerState(false);
       };
       const historyFallbackTimer = window.setTimeout(settleHistory, 1500);
       window.addEventListener('popstate', settleHistory, { once: true });

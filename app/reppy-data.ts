@@ -821,9 +821,10 @@ export function repeatAssignment(
   scheduledFor: string,
   scheduledTime: string | undefined,
   now = new Date().toISOString(),
+  id = makeId('assignment'),
 ): Assignment {
   return {
-    id: makeId('assignment'),
+    id,
     studentId: source.studentId,
     assignedAt: now,
     scheduledFor,

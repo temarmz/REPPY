@@ -34,8 +34,8 @@ export default function RetainedRouteViews({ path, renderRoute }: {
 
   // A failed screen must not dispose the account controller or pending writes.
   return <Fragment>{routes.map((route) => (
-    <Activity key={route.path} mode={route.path === path ? 'visible' : 'hidden'}>
-      <Box data-route-view={route.path} data-route-active={route.path === path ? 'true' : 'false'}>
+    <Box key={route.path} data-route-view={route.path} data-route-active={route.path === path ? 'true' : 'false'} hidden={route.path !== path}>
+      <Activity mode={route.path === path ? 'visible' : 'hidden'}>
         <RoutePathContext value={route.path}>
           <AppErrorBoundary key={route.recovery} hideFallback onFailure={() => setCache((current) => ({ ...current,
             visited: current.visited.map((view) => view.path === route.path ? { ...view, failed: true } : view),
@@ -45,8 +45,8 @@ export default function RetainedRouteViews({ path, renderRoute }: {
             </Suspense>
           </AppErrorBoundary>
         </RoutePathContext>
-      </Box>
-    </Activity>
+      </Activity>
+    </Box>
   ))}{routes.some((route) => route.path === path && route.failed) && <AppErrorScreen onRecover={() => {
     const home = path.startsWith('/student') ? '/student' : '/trainer';
     if (path !== home) window.dispatchEvent(new CustomEvent(RELEASE_ROUTE_STATE_EVENT, { detail: path }));

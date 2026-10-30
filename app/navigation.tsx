@@ -24,6 +24,14 @@ export const TOP_SCROLL_POSITION: ReppyScrollPosition = { pageTop: 0, pageLeft: 
 
 let activeNavigationBlocker: NavigationBlocker | null = null;
 let navigationScope = 'demo';
+let historyTraversalPending = false;
+let historyTraversalFallback = 0;
+
+function finishHistoryTraversal() {
+  historyTraversalPending = false;
+  window.clearTimeout(historyTraversalFallback);
+  historyTraversalFallback = 0;
+}
 
 export function hashPath() {
   if (typeof window === 'undefined') return '/';
@@ -84,6 +92,7 @@ function performNavigation(path: string, replace = false) {
   if (hashPath() === path) {
     return;
   }
+  finishHistoryTraversal();
   saveCurrentScrollPosition();
   const previousState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
   const { reppyModal: _modalEntry, ...navigationState } = previousState;
@@ -118,8 +127,11 @@ export function goToMenuTab(path: string) {
 
 export function goBack(fallback: string) {
   const proceed = () => {
+    if (historyTraversalPending) return;
     saveCurrentScrollPosition();
     if (window.history.state?.reppyEntry) {
+      historyTraversalPending = true;
+      historyTraversalFallback = window.setTimeout(finishHistoryTraversal, 1200);
       window.history.go(window.history.state?.reppyModal ? -2 : -1);
       return;
     }
@@ -143,6 +155,7 @@ export function useHashNavigation() {
     let restoring: { delta: number; blocker: NavigationBlocker | null } | null = null;
     replaceHistoryEntry(window.history.state ?? {}, window.location.href, currentIndex);
     const commitPath = () => {
+      finishHistoryTraversal();
       const nextPath = hashPath();
       // New hash entries have null state. Legacy app entries without a position
       // retain the previous one-step Back fallback on older browsers.

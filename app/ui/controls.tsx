@@ -1,14 +1,48 @@
 import { Inline, Strong, Italic, Label, Paragraph } from './elements';
-import type { ComponentProps, ReactNode } from 'react';
+import { useRef, type ComponentProps, type ReactNode, type TouchEvent } from 'react';
 
 import Icon, { type IconName } from './icon';
+import { suppressEmulatedClickAt } from './touch-activation';
 
 type ButtonProps = ComponentProps<'button'>;
 type InputProps = ComponentProps<'input'>;
 
 /** Native attributes, event types and React 19 refs are preserved by every primitive. */
-export function Button({ type = 'button', ...props }: ButtonProps) {
-  return <button type={type} data-ui-control="button" {...props} />;
+export function Button({ type = 'button', onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, ...props }: ButtonProps) {
+  const touch = useRef<{ identifier: number; x: number; y: number } | null>(null);
+  const startTouch = (event: TouchEvent<HTMLButtonElement>) => {
+    onTouchStart?.(event);
+    if (event.defaultPrevented || props.disabled) return;
+    const item = event.touches.length === 1 ? event.touches[0] : null;
+    touch.current = item ? { identifier: item.identifier, x: item.clientX, y: item.clientY } : null;
+  };
+  const moveTouch = (event: TouchEvent<HTMLButtonElement>) => {
+    onTouchMove?.(event);
+    const start = touch.current;
+    if (!start) return;
+    const item = event.touches.length === 1 ? event.touches[0] : null;
+    if (!item || item.identifier !== start.identifier || Math.hypot(item.clientX - start.x, item.clientY - start.y) > 10) {
+      touch.current = null;
+    }
+  };
+  const endTouch = (event: TouchEvent<HTMLButtonElement>) => {
+    onTouchEnd?.(event);
+    const start = touch.current;
+    touch.current = null;
+    if (!start || event.defaultPrevented || props.disabled || event.touches.length) return;
+    const item = Array.from(event.changedTouches).find((candidate) => candidate.identifier === start.identifier);
+    if (!item || Math.hypot(item.clientX - start.x, item.clientY - start.y) > 10) return;
+    // WebKit can omit the compatibility click during momentum scrolling. Run
+    // the React activation directly, then consume only its delayed ghost.
+    props.onClick?.(event as unknown as Parameters<NonNullable<ButtonProps['onClick']>>[0]);
+    suppressEmulatedClickAt(item.clientX, item.clientY);
+  };
+  const cancelTouch = (event: TouchEvent<HTMLButtonElement>) => {
+    touch.current = null;
+    onTouchCancel?.(event);
+  };
+  return <button type={type} data-ui-control="button" {...props}
+    onTouchStart={startTouch} onTouchMove={moveTouch} onTouchEnd={endTouch} onTouchCancel={cancelTouch} />;
 }
 
 export function Input(props: InputProps) {

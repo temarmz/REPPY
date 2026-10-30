@@ -49,6 +49,7 @@ function findStudent(data: DemoState, id: string) {
 }
 
 type WorkoutComposerValue = {
+  submissionId: string;
   name: string;
   scheduledFor?: string;
   scheduledTime?: string;
@@ -143,6 +144,9 @@ function WorkoutComposer({
   const [exercises, setExercises] = useState<WorkoutExercise[]>(() => (restoredDraft?.exercises ?? initialExercises).map((exercise) => ({ ...exercise })));
   const [error, setError] = useState('');
   const [dangerOpen, setDangerOpen] = useState(false);
+  const submittingRef = useRef(false);
+  const submissionIdRef = useRef(makeId('assignment'));
+  const [submitting, setSubmitting] = useState(false);
   const [initialFormState] = useState(baseline);
   const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, format, exercises });
   const isDirty = currentFormState !== initialFormState;
@@ -159,19 +163,29 @@ function WorkoutComposer({
 
   const clearError = () => setError('');
   const submit = () => {
+    if (submittingRef.current) return;
     if (!name.trim()) return setError('Добавь название тренировки.');
     if (hasSchedule && !scheduledFor) return setError('Укажи рекомендованную дату тренировки.');
     if (hasSchedule && format === 'in-person' && !scheduledTime) return setError('Укажи дату и время тренировки.');
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
+    submittingRef.current = true;
+    setSubmitting(true);
     clearWorkoutComposerDraft(draftKey);
     allowNextNavigation();
-    onSubmit({
-      name: name.trim(),
-      scheduledFor,
-      scheduledTime: format === 'online' ? undefined : scheduledTime,
-      format,
-      exercises: exercises.map((exercise) => ({ ...exercise })),
-    });
+    try {
+      onSubmit({
+        submissionId: submissionIdRef.current,
+        name: name.trim(),
+        scheduledFor,
+        scheduledTime: format === 'online' ? undefined : scheduledTime,
+        format,
+        exercises: exercises.map((exercise) => ({ ...exercise })),
+      });
+    } catch (submitError) {
+      submittingRef.current = false;
+      setSubmitting(false);
+      setError(submitError instanceof Error ? submitError.message : 'Не удалось выполнить действие. Попробуй ещё раз.');
+    }
   };
 
   const nameField = nameEditable ? <TextField id={nameInputId} label="Название тренировки" value={name} onChange={(event) => { setName(event.target.value); clearError(); }} placeholder="Например, Грудь + плечи" autoFocus={nameAutoFocus} /> : null;
@@ -188,7 +202,7 @@ function WorkoutComposer({
       <WorkoutExerciseEditor persistenceKey={draftKey} studentId={student.id} exercises={exercises} customExercises={customExercises} onCreateCustomExercise={onCreateCustomExercise} onUpdateCustomExercise={onUpdateCustomExercise} onChange={(next) => { setExercises(next); clearError(); }} />
       {error && <FormError>{error}</FormError>}
       {dangerAction && <ActionButton variant="danger" icon="trash" className="plan-delete-button" onClick={() => setDangerOpen(true)}>{dangerAction.label}</ActionButton>}
-      <Box className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={disableSubmitUntilReady && !ready} onClick={submit}>{submitLabel}</ActionButton></Box>
+      <Box className="plan-submit-actions"><ActionButton icon={submitIcon} className={submitClassName} disabled={submitting || (disableSubmitUntilReady && !ready)} aria-busy={submitting} onClick={submit}>{submitting ? 'Выполняем…' : submitLabel}</ActionButton></Box>
       {dangerOpen && dangerAction && <ConfirmationModal
         title={dangerAction.title}
         text={dangerAction.text}
@@ -234,7 +248,7 @@ export function AssignWorkoutToStudent({
   customExercises: ExerciseDefinition[];
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
   onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
-  onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout) => void;
+  onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout, assignmentId: string) => void;
 }) {
   return (
     <WorkoutComposer
@@ -253,11 +267,11 @@ export function AssignWorkoutToStudent({
       customExercises={customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
       onUpdateCustomExercise={onUpdateCustomExercise}
-      onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
+      onSubmit={({ submissionId, scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
         ...cloneWorkout(workout),
         exercises,
         updatedAt: new Date().toISOString(),
-      })}
+      }, submissionId)}
     />
   );
 }
@@ -281,7 +295,7 @@ export function NewAssignmentForStudent({
   customExercises: ExerciseDefinition[];
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
   onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
-  onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout) => void;
+  onAssign: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workoutSnapshot: Workout, assignmentId: string) => void;
 }) {
   return (
     <WorkoutComposer
@@ -303,12 +317,12 @@ export function NewAssignmentForStudent({
       customExercises={customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
       onUpdateCustomExercise={onUpdateCustomExercise}
-      onSubmit={({ name, scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
+      onSubmit={({ submissionId, name, scheduledFor, scheduledTime, format, exercises }) => onAssign(scheduledFor!, scheduledTime, format, {
         id: makeId('workout'),
         name,
         exercises,
         createdAt: new Date().toISOString(),
-      })}
+      }, submissionId)}
     />
   );
 }
@@ -524,7 +538,7 @@ export function RepeatAssignment({
   sourceWorkout: Workout;
   onCreateCustomExercise: (definition: ExerciseDefinition) => void;
   onUpdateCustomExercise: (definition: ExerciseDefinition) => void;
-  onSave: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workout: Workout) => void;
+  onSave: (scheduledFor: string, scheduledTime: string | undefined, format: TrainingFormat, workout: Workout, assignmentId: string) => void;
 }) {
   const student = findStudent(data, assignment.studentId);
   if (!student) return <NotFound />;
@@ -549,7 +563,7 @@ export function RepeatAssignment({
       customExercises={data.customExercises}
       onCreateCustomExercise={onCreateCustomExercise}
       onUpdateCustomExercise={onUpdateCustomExercise}
-      onSubmit={({ scheduledFor, scheduledTime, format, exercises }) => onSave(scheduledFor!, scheduledTime, format, { ...cloneWorkout(sourceWorkout), exercises })}
+      onSubmit={({ submissionId, scheduledFor, scheduledTime, format, exercises }) => onSave(scheduledFor!, scheduledTime, format, { ...cloneWorkout(sourceWorkout), exercises }, submissionId)}
     />
   );
 }
