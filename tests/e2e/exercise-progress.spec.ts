@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { createInitialState, createWorkoutSession } from '../../app/reppy-data';
+import { profileAction } from './profile-action';
 
 async function seedProgress(page: Page, count = 3, route = '/trainer/clients/artem') {
   const state = createInitialState();
@@ -43,6 +44,35 @@ test('ученик открывает свой прогресс из профи�
 });
 
 const progressSection = (page: Page) => page.getByRole('region', { name: 'Прогресс по упражнениям' });
+
+for (const theme of ['dark', 'light']) {
+  for (const [width, height] of [[320, 568], [390, 844], [440, 844], [844, 320], [1280, 800]]) {
+    test(`student progress keeps its profile tab: ${theme}, ${width}x${height}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height });
+      await seedProgress(page, 3, '/student/profile');
+      if (theme === 'light') await profileAction(page, 'Включить светлую тему');
+      await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
+      await expect(page).toHaveURL(/#\/student\/progress\/bench-press/);
+      const progressUrl = page.url();
+      const nav = page.locator('.bottom-nav:visible, .desktop-nav:visible');
+      await page.screenshot({ path: testInfo.outputPath('student-progress-navigation.png'), animations: 'disabled' });
+      await expect(nav.getByRole('button', { name: 'Профиль', exact: true })).toHaveAttribute('aria-current', 'page');
+      await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+      await page.goBack();
+      await expect(page).toHaveURL(/#\/student\/profile$/);
+      await page.goForward();
+      await expect(page).toHaveURL(progressUrl);
+      await nav.getByRole('button', { name: 'Календарь', exact: true }).click();
+      await expect(page).toHaveURL(/#\/student\/calendar$/);
+      await nav.getByRole('button', { name: 'Профиль', exact: true }).click();
+      await expect(page).toHaveURL(progressUrl);
+      await page.reload();
+      await expect(page.locator('.progress-chart')).toBeVisible();
+      await expect(nav.getByRole('button', { name: 'Профиль', exact: true })).toHaveAttribute('aria-current', 'page');
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+  }
+}
 
 test('прогресс встроен внизу профиля, упражнение открывается одним нажатием', async ({ page }) => {
   await seedProgress(page, 25);

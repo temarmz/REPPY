@@ -36,7 +36,7 @@ export default defineConfig({
     },
     {
       name: 'iphone-webkit',
-      testMatch: qualityGate,
+      testMatch: [qualityGate, '**/control-activation.spec.ts'],
       use: {
         ...devices['iPhone 13'],
         ...mobile,

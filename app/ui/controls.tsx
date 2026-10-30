@@ -32,9 +32,9 @@ export function Button({ type = 'button', onTouchStart, onTouchMove, onTouchEnd,
     if (!start || event.defaultPrevented || props.disabled || event.touches.length) return;
     const item = Array.from(event.changedTouches).find((candidate) => candidate.identifier === start.identifier);
     if (!item || Math.hypot(item.clientX - start.x, item.clientY - start.y) > 10) return;
-    // WebKit can omit the compatibility click during momentum scrolling. Run
-    // the React activation directly, then consume only its delayed ghost.
-    props.onClick?.(event as unknown as Parameters<NonNullable<ButtonProps['onClick']>>[0]);
+    // Preserve native form actions, event propagation and cancellation while
+    // replacing a compatibility click that WebKit can omit during scrolling.
+    event.currentTarget.click();
     suppressEmulatedClickAt(item.clientX, item.clientY);
   };
   const cancelTouch = (event: TouchEvent<HTMLButtonElement>) => {

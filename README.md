@@ -63,6 +63,7 @@ Swift/SwiftUI-проект для iPhone с iOS 18+ находится в [`ios/
 
 ## Документация
 
+- [Переезд на другой компьютер и точка продолжения QA](docs/development-handoff.md)
 - [Библиотека компонентов и правила изменения дизайна](docs/component-library.md)
 - [Постоянные принципы дизайна: поверхности, цвета и размеры](docs/design-principles.md)
 

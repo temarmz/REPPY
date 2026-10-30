@@ -40,8 +40,8 @@ async function expectResponsiveScreen(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-async function auditTouchTargets(page: Page) {
-  const problems = await page.locator('[data-route-view] main button:visible, .bottom-nav button:visible, .desktop-nav button:visible').evaluateAll((buttons) => buttons.flatMap((button) => {
+async function touchTargetProblems(page: Page) {
+  return page.locator('[data-route-view] main button:visible, .bottom-nav button:visible, .desktop-nav button:visible').evaluateAll((buttons) => buttons.flatMap((button) => {
     const element = button as HTMLButtonElement;
     if (element.disabled || element.getAttribute('aria-disabled') === 'true') return [];
     const route = element.closest<HTMLElement>('[data-route-view]');
@@ -56,12 +56,21 @@ async function auditTouchTargets(page: Page) {
     const center = document.elementFromPoint(centerX, centerY);
     const covered = !center || center.closest('button') !== element;
     const tooSmall = bounds.width < 44 || bounds.height < 44;
-    const canScrollPastFloatingNav = covered
-      && center instanceof Element
-      && Boolean(center.closest('.bottom-nav'))
-      && !element.closest('.bottom-nav')
-      && page instanceof HTMLElement
-      && page.scrollTop + page.clientHeight < page.scrollHeight - 1;
+    const floatingNav = center instanceof Element ? center.closest('.bottom-nav') : null;
+    let canScrollPastFloatingNav = false;
+    if (covered && !tooSmall && floatingNav && !element.closest('.bottom-nav')) {
+      // Profile routes scroll the document; other routes use the page wrapper.
+      const scroller = page instanceof HTMLElement && page.scrollHeight > page.clientHeight + 1
+        ? page : document.scrollingElement;
+      if (scroller instanceof HTMLElement) {
+        const previous = scroller.scrollTop;
+        scroller.scrollTo({ top: previous + Math.max(1, centerY - floatingNav.getBoundingClientRect().top + 1), behavior: 'instant' });
+        const revealed = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(revealed.left + revealed.width / 2, revealed.top + revealed.height / 2);
+        canScrollPastFloatingNav = revealed.top < bounds.top && hit?.closest('button') === element;
+        scroller.scrollTo({ top: previous, behavior: 'instant' });
+      }
+    }
     if (canScrollPastFloatingNav) return [];
     if (!covered && !tooSmall) return [];
     return [{
@@ -75,7 +84,10 @@ async function auditTouchTargets(page: Page) {
         : '<none>',
     }];
   }));
-  expect(problems, 'Enabled controls must have an unobstructed 44×44 px touch target').toEqual([]);
+}
+
+async function auditTouchTargets(page: Page) {
+  expect(await touchTargetProblems(page), 'Enabled controls must have an unobstructed 44×44 px touch target').toEqual([]);
 }
 
 async function selectThemeForProject(page: Page, testInfo: TestInfo) {
@@ -83,6 +95,33 @@ async function selectThemeForProject(page: Page, testInfo: TestInfo) {
   await profileAction(page, 'Включить светлую тему');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 }
+
+test('touch audit rejects real obstructions and undersized controls', async ({ page }) => {
+  await openFreshDemo(page);
+  await auditTouchTargets(page);
+  const target = page.locator('[data-route-active="true"] main button:visible').first();
+  await target.scrollIntoViewIfNeeded();
+  await target.evaluate(element => {
+    element.setAttribute('aria-label', 'QA audit target');
+    const bounds = element.getBoundingClientRect();
+    const mask = document.createElement('div');
+    mask.id = 'qa-audit-obstruction';
+    Object.assign(mask.style, { position: 'fixed', zIndex: '999999', width: '44px', height: '44px',
+      left: `${bounds.left + bounds.width / 2 - 22}px`, top: `${bounds.top + bounds.height / 2 - 22}px` });
+    document.body.append(mask);
+  });
+  expect(await touchTargetProblems(page)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ label: 'QA audit target', covered: true }),
+  ]));
+  await page.locator('#qa-audit-obstruction').evaluate(element => element.remove());
+  await auditTouchTargets(page);
+  await target.evaluate(element => Object.assign((element as HTMLElement).style, {
+    width: '20px', minWidth: '0', height: '20px', minHeight: '0', padding: '0',
+  }));
+  expect(await touchTargetProblems(page)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ label: 'QA audit target', width: 20, height: 20 }),
+  ]));
+});
 
 test('critical navigation stays responsive for trainer and student', async ({ page }, testInfo) => {
   const browserProblems = watchBrowserProblems(page);
@@ -118,7 +157,8 @@ test('critical navigation stays responsive for trainer and student', async ({ pa
   await expectResponsiveScreen(page);
   if (testInfo.project.name !== 'desktop-chromium') {
     await page.evaluate(() => document.addEventListener('click', (event) => {
-      if ((event.target as Element).closest('.back-button')) event.stopImmediatePropagation();
+      // Omit the browser compatibility click, not the control's DOM fallback.
+      if (event.isTrusted && (event.target as Element).closest('.back-button')) event.stopImmediatePropagation();
     }, true));
     await page.getByRole('button', { name: 'Назад', exact: true }).tap();
     await expect(page).toHaveURL(/#\/student$/);

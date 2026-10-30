@@ -108,7 +108,7 @@ for (const role of ['student', 'trainer'] as const) {
 
     // Reproduce iOS swallowing the synthesized click while the page is moving.
     await page.evaluate(() => document.addEventListener('click', (event) => {
-      if ((event.target as Element).closest('.bottom-nav')) event.stopImmediatePropagation();
+      if (event.isTrusted && (event.target as Element).closest('.bottom-nav')) event.stopImmediatePropagation();
     }, true));
     await page.locator('.page-wrap').evaluate((element) => element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' }));
     await nav.getByRole('button', { name: target }).tap();
