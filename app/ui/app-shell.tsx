@@ -7,7 +7,6 @@ import { useLayoutEffect, type ReactNode } from 'react';
 import Icon, { type IconName } from './icon';
 import { observeMobileViewport } from '../mobile-viewport';
 import { observeWorkoutFieldFocus } from '../workout-field-focus';
-import { observeProfileFieldFocus } from '../profile-field-focus';
 
 export type AppArea = 'trainer' | 'student';
 export type AppTheme = 'dark' | 'light';
@@ -71,16 +70,15 @@ export default function AppShell({
 }) {
   const nav = NAVIGATION[area];
   const activeRoute = canonicalNavigationRoute(area, path);
-  const navigateTab = (route: string) => onNavigateTab(route);
+  const stopPageMomentum = () => { const page = document.querySelector<HTMLElement>('.page-wrap'); if (page) page.scrollTo({ top: page.scrollTop, behavior: 'instant' }); };
+  const navigateTab = (route: string) => { stopPageMomentum(); onNavigateTab(route); };
   const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
-  const profileScrollMode = path === '/student/profile' || path === '/trainer/profile';
 
   useLayoutEffect(() => observeWorkoutFieldFocus(window, document), []);
-  useLayoutEffect(() => profileScrollMode ? observeProfileFieldFocus(window, document) : undefined, [profileScrollMode]);
 
   useLayoutEffect(() => {
-    document.documentElement.classList.toggle('app-viewport-locked', !focusMode && !profileScrollMode);
-    document.body.classList.toggle('app-viewport-locked', !focusMode && !profileScrollMode);
+    document.documentElement.classList.toggle('app-viewport-locked', !focusMode);
+    document.body.classList.toggle('app-viewport-locked', !focusMode);
     // Portalled dialogs also need these bounds while the workout itself uses
     // document scrolling in focus mode.
     const stopViewport = observeMobileViewport(window, document.documentElement);
@@ -89,7 +87,7 @@ export default function AppShell({
       document.documentElement.classList.remove('app-viewport-locked');
       document.body.classList.remove('app-viewport-locked');
     };
-  }, [focusMode, profileScrollMode]);
+  }, [focusMode]);
 
   const navigation = (
     <>
@@ -102,7 +100,7 @@ export default function AppShell({
   );
 
   return (
-    <Box className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''} ${profileScrollMode ? 'profile-scroll-mode' : ''}`}>
+    <Box className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''}`}>
       {!focusMode && <Header className="topbar">
         <Button className="brand-mark brand-button" type="button" onClick={() => onNavigateTab(`/${area}`)} aria-label="REPPY — на стартовый экран">
           <Image className="brand-logo" src={UI_ASSETS.wordmark} alt="" />
@@ -121,7 +119,7 @@ export default function AppShell({
 
       <Box className="page-wrap page-transition">{children}</Box>
 
-      {!focusMode && !hideBottomNav && <Nav className="bottom-nav" data-navigation-count={nav.length} aria-label="Основная навигация">
+      {!focusMode && !hideBottomNav && <Nav className="bottom-nav" data-navigation-count={nav.length} onPointerDownCapture={stopPageMomentum} aria-label="Основная навигация">
         {nav.map((item) => (
           <NavigationButton key={item.route} active={activeRoute === item.route} aria-label={item.label} title={item.label} onClick={() => navigateTab(item.route)}>
             <Inline><Icon name={item.icon} /></Inline><Small>{item.label}</Small>

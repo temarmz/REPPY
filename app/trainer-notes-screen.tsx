@@ -37,7 +37,6 @@ export default function TrainerNotesScreen({ controller, identity }: { controlle
   };
   return <Page className="content-page notes-page">
     <PageHeader title="ЗАМЕТКИ" action={<Button className="notes-today" onClick={() => selectDate(dateKey())}>Сегодня</Button>} />
-    <Paragraph className="notes-description">Только для тебя · Автосохранение</Paragraph>
     <Section className="notes-navigation" aria-label="Дни дневника">
       <Button className="notes-arrow" aria-label="Предыдущие четыре дня" onClick={() => selectDate(notesDay(firstDay, -4))}><Icon name="chevron-left" /></Button>
       <Button className="notes-date-button" aria-label={`Выбрать дату, ${range}`} aria-haspopup="dialog" onClick={() => setCalendarOpen(true)}><Icon name="calendar" />{range}</Button>

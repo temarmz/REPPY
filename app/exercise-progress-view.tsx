@@ -24,7 +24,7 @@ export function StudentExerciseProgress({ data, studentId, go, area = 'trainer' 
   const groups = progressGroups(data, studentId);
   return <Section className="section-block student-exercise-progress" aria-label="Прогресс по упражнениям">
     <SectionHeading title="Прогресс по упражнениям" />
-    {groups.length ? <Box className="connected-list">
+    {groups.length ? <Box className="progress-card-list">
       {groups.map((group) => {
         const comparison = compareProgress(group.entries)!;
         return <ListRow className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise, area))}>

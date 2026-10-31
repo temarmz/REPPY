@@ -379,7 +379,10 @@ export default function ReppyApp() {
     : path.startsWith('/student') ? 'student' : 'trainer';
 
   const renderRoute = (route: string) => {
+    const profileStudent = area === 'student' ? findStudent(data, data.activeStudentId) : undefined;
     const accountSettings = <ProfileSettings
+      details={profileStudent ? <AthleteDetails student={profileStudent} onSave={(student) => dispatch({ type: 'student.update', student })} alwaysExpanded /> : undefined}
+      summary={profileStudent ? <SubscriptionCard data={data} student={profileStudent} trainerView={false} /> : undefined}
       accountMode={auth.enabled}
       account={auth.profile ? {
         displayName: auth.profile.displayName,
@@ -468,7 +471,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
       {trainerView && <Box className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></Box>}
       <SegmentedControl label="Раздел профиля" value={profileTab} onChange={setProfileTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
       <Box hidden={profileTab !== 'data'}>
-      <SubscriptionCard data={data} student={student} trainerView={trainerView} />
+      {trainerView || !settings ? <SubscriptionCard data={data} student={student} trainerView={trainerView} /> : null}
       {trainerView && <Section className="profile-schedule">
         <SectionHeading title="Предстоящие тренировки" />
         {trainerView && <Button className="list-primary-action" type="button" onClick={() => go(`/trainer/clients/${student.id}/assign`)}><Icon name="plus" /> Назначить тренировку</Button>}
@@ -493,7 +496,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
         ))}</Box> : <EmptyState icon="circle" title="Ещё нет результатов" text="Завершённые тренировки ученика появятся в этом блоке." />}
       </Section>}
 
-      {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
+      {!trainerView && !settings && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
       {settings}
       </Box>
       {profileTab === 'progress' && <StudentExerciseProgress data={data} studentId={studentId} go={go} area={trainerView ? 'trainer' : 'student'} />}
@@ -601,7 +604,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
         </Box>
         <Field label={<>Пол</>} ><Select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><SelectOption value="not-specified">Не указан</SelectOption><SelectOption value="male">Мужской</SelectOption><SelectOption value="female">Женский</SelectOption></Select></Field>
         <Field label={<>Мобильный телефон</>} ><Input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></Field>
-        <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /><Small>Опиши всё, что тренеру важно учитывать при составлении плана.</Small></Field>
+        <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /></Field>
         {validationAttempted && metricError && <FormError>{metricError}</FormError>}
         <ActionButton icon="check" onPointerDown={keepFieldFocus} onClick={save}>Сохранить данные</ActionButton>
         <ActionButton variant="secondary" onPointerDown={keepFieldFocus} onClick={cancelEdit}>Отмена</ActionButton>
@@ -616,7 +619,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   );
 }
 
-function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
+function ProfileSettings({ details, summary, accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { details?: ReactNode; summary?: ReactNode; accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   const [signOutConfirmation, setSignOutConfirmation] = useState(false);
   const [signOutBusy, setSignOutBusy] = useState(false);
@@ -671,14 +674,19 @@ function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchR
   };
 
   return (
-    <Section className="profile-settings section-block" aria-label="Настройки профиля">
+    <>
+    <Section className="profile-identity-card" aria-label="Личные данные">
       <Section className="account-details" aria-label="Данные аккаунта"><InitialsAvatar className="account-avatar" name={account.displayName} length={1} /><Box><Strong>{account.displayName}</Strong><Small>{account.role === 'trainer' ? 'Тренер' : 'Ученик'}</Small>{account.email && <Inline>{account.email}</Inline>}</Box></Section>
+        {accountMode && onConnectTelegram && (telegramConnection?.connected ? <Box className="telegram-connection-status"><Icon name="check" /><Inline><Strong>Telegram подключён</Strong>{telegramConnection.username && <Small>@{telegramConnection.username}</Small>}</Inline></Box> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}
+        {telegramError && <FormError>{telegramError}</FormError>}
+      {details}
+    </Section>
+    {summary}
+    <Section className="profile-settings section-block" aria-label="Настройки профиля">
       <SectionHeading title="Настройки" />
       <Box className="settings-actions">
         <ActionButton variant="secondary" icon={theme === 'dark' ? 'sun' : 'moon'} onClick={onToggleTheme}>{theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}</ActionButton>
         {onSwitchRole && <ActionButton variant="secondary" icon="change" onClick={onSwitchRole}>Переключиться в роль {account.role === 'trainer' ? 'ученика' : 'тренера'}</ActionButton>}
-        {accountMode && onConnectTelegram && (telegramConnection?.connected ? <Box className="telegram-connection-status"><Icon name="check" /><Inline><Strong>Telegram подключён</Strong><Small>{telegramConnection.username ? `@${telegramConnection.username}` : telegramConnection.firstName}</Small></Inline></Box> : <ActionButton variant="secondary" icon="arrow-up-right" disabled={telegramBusy || telegramStatusLoading} onClick={() => void connectTelegram()}>{telegramStatusLoading ? 'Проверяем Telegram…' : telegramBusy ? 'Создаём ссылку…' : 'Подключить Telegram'}</ActionButton>)}
-        {telegramError && <FormError>{telegramError}</FormError>}
         {onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}
         {accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
         {signOutError && <FormError>{signOutError}</FormError>}
@@ -687,5 +695,6 @@ function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchR
       {signOutConfirmation && <ConfirmationModal title="Выйти из аккаунта?" text="Чтобы вернуться, потребуется снова войти." confirmLabel="Выйти" danger onClose={() => setSignOutConfirmation(false)} onConfirm={() => { setSignOutConfirmation(false); void signOut(); }} />}
       {resetConfirmationOpen && <ModalFrame title="Сбросить локальные данные?" className="settings-modal" surface="center" ariaLabel="Сбросить локальные данные?" onClose={() => setResetConfirmationOpen(false)}><Paragraph>Все локальные изменения в учениках, тренировках и расписании будут удалены.</Paragraph><Box className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></Box></ModalFrame>}
     </Section>
+    </>
   );
 }

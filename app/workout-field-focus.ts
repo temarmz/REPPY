@@ -22,7 +22,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     if (!target.matchMedia('(max-width: 800px)').matches) return;
     const field = document.activeElement;
     if (!(field instanceof HTMLElement) || !field.matches('input:not([type="checkbox"]):not([type="file"]), textarea')
-      || !field.closest('[data-workout-composer], .active-workout-page') || !field.getClientRects().length) {
+      || !field.closest('[data-workout-composer], .active-workout-page, .athlete-form, .notes-page') || !field.getClientRects().length) {
       document.documentElement.style.removeProperty('--workout-keyboard-space');
       return;
     }

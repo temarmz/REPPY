@@ -21,7 +21,7 @@
   --card-list-gap: var(--space-24);
   --notes-day-min-height: 208px;
   --notes-day-height: clamp(var(--notes-day-min-height), calc((100dvh - 360px) / 2), 360px);
-  --notes-editor-font-size: var(--font-size-15);
+  --notes-editor-font-size: var(--font-size-16);
   --notes-grid-gap: var(--space-16);
   --notes-card-padding: var(--space-12);
   --exercise-title-font-size: var(--font-size-18);
@@ -911,6 +911,7 @@
   --topbar-safe-top: env(safe-area-inset-top, 0px);
   --topbar-height: calc(var(--topbar-content-height) + var(--topbar-safe-top));
   --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-reserved: calc(var(--control-height-medium) + var(--space-18) + var(--app-safe-bottom));
 }
 
 /* Semantic light theme. */

@@ -13,16 +13,16 @@ test('редактирование личного профиля использ�
     const phone = page.getByLabel('Мобильный телефон');
     await phone.focus();
     await expect(phone).toBeFocused();
-    await expect(page.locator('.app-shell')).toHaveCSS('position', 'relative');
-    await expect(page.locator('.page-wrap')).toHaveCSS('overflow-y', 'visible');
-    await expect(page.locator('.bottom-nav')).toBeHidden();
+    await expect(page.locator('.app-shell')).toHaveCSS('position', 'fixed');
+    await expect(page.locator('.page-wrap')).toHaveCSS('overflow-y', 'auto');
+    await expect(page.locator('.bottom-nav')).toBeVisible();
     await page.evaluate(() => {
       Object.defineProperty(window.visualViewport!, 'height', { configurable: true, get: () => 420 });
       Object.defineProperty(window.visualViewport!, 'offsetTop', { configurable: true, get: () => 80 });
       window.visualViewport!.dispatchEvent(new Event('resize'));
       window.visualViewport!.dispatchEvent(new Event('scroll'));
     });
-    await expect.poll(() => page.evaluate(() => document.querySelector('.page-wrap')!.scrollTop)).toBe(0);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     await expect.poll(async () => {
       const box = await phone.boundingBox();
       return (box?.y ?? 999) + (box?.height ?? 0);
@@ -35,7 +35,7 @@ test('редактирование личного профиля использ�
       const box = await notes.boundingBox();
       return (box?.y ?? 999) + (box?.height ?? 0);
     }).toBeLessThanOrEqual(500);
-    expect(await page.evaluate(() => document.querySelector('.page-wrap')!.scrollTop)).toBe(0);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
     await page.getByRole('button', { name: 'Отмена' }).click();
     await expect(page.locator('.bottom-nav')).toBeVisible();
 });

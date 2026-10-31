@@ -132,7 +132,7 @@ export function ExercisePicker({
   };
 
   return (
-    <ModalFrame title="Добавить упражнения" subtitle="Добавляй упражнения по кругу кнопкой +, убирай кнопкой −" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
+    <ModalFrame title="Добавить упражнения" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
       <Input className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
       <Box className="muscle-filter" aria-label="Фильтр по группе мышц">
         <Button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</Button>

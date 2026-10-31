@@ -424,7 +424,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 
 /* Animate the page content without turning the shell into a containing block
    for fixed mobile controls. */
-.page-transition > main { animation: page-fade-in .32s cubic-bezier(.25, .46, .45, .94); }
+.page-transition > [data-route-active="true"] main { animation: page-fade-in .32s cubic-bezier(.25, .46, .45, .94); }
 
 @keyframes page-fade-in {
   from {
@@ -438,7 +438,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-transition > main { animation: none; }
+  .page-transition > [data-route-active="true"] main { animation: none; }
 }
 .bottom-nav { display: none; }
 
@@ -960,9 +960,13 @@ body.modal-open .bottom-nav { display: none; }
 .demo-stats span { display: grid; min-height: var(--size-80); place-content: center; justify-items: center; border-radius: var(--control-radius); background: var(--palette-0b0d0b); color: var(--muted); font-size: var(--font-size-9); }
 .demo-stats b { color: var(--palette-white); font-size: var(--font-size-22); }
 .settings-modal > p { margin: var(--space-20) var(--space-2); color: var(--muted); font-size: var(--font-size-12); line-height: 1.5; }
-.account-details { display: flex; align-items: center; gap: var(--space-14); margin: var(--space-20) 0; border: 0; border-radius: var(--control-radius); padding: var(--space-14); background: var(--surface); }
+.account-details { display: flex; align-items: center; gap: var(--space-14); margin: 0; border: 0; padding: 0; background: transparent; }
 .profile-settings { max-width: 640px; }
-.profile-settings .account-details { margin-top: 0; }
+.profile-identity-card { display: grid; gap: var(--space-20); padding: var(--space-18); border-radius: var(--card-radius); background: var(--surface); }
+.profile-identity-card .athlete-details { margin: 0; padding: 0; border: 0; }
+.profile-identity-card .telegram-connection-status { min-height: 0; padding: 0; background: transparent; }
+.profile-identity-card .telegram-connection-status small { font-size: var(--font-size-14); }
+.profile-identity-card .telegram-connection-status strong { color: var(--text-secondary); font-weight: var(--font-weight-650); }
 .profile-settings .settings-actions { margin-top: var(--space-18); }
 .account-avatar { display: grid; width: var(--size-48); height: var(--size-48); flex: 0 0 auto; place-items: center; border-radius: var(--control-radius); background: var(--lime); color: var(--palette-11150e); font-size: var(--font-size-19); font-weight:var(--font-weight-950); }
 .account-details > div { display: grid; min-width: 0; gap: var(--space-2); }
@@ -1013,17 +1017,13 @@ body.modal-open .bottom-nav { display: none; }
   .page-wrap { min-height: calc(100svh - var(--topbar-height)); margin-left: 0; }
   .app-shell:not(.focus-mode) .page-wrap {
     min-height: 0;
+    padding-bottom: var(--bottom-nav-reserved);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
   }
-  .app-shell.profile-scroll-mode:not(.focus-mode) { position: relative; top: auto; display: block; height: auto; min-height: 100svh; overflow: visible; }
-  .app-shell.profile-scroll-mode:not(.focus-mode) .page-wrap { min-height: 0; margin: 0; overflow: visible; }
-  .app-shell.profile-scroll-mode:not(.focus-mode) .content-page { padding-bottom: calc(var(--size-88) + var(--app-safe-bottom)); }
-  .app-shell.profile-scroll-mode .bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; }
-  .app-shell.profile-scroll-mode:has(.athlete-form :is(input, textarea, select):focus) .bottom-nav { display: none; }
-  .bottom-nav { position: relative; z-index: 60; display: flex; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; margin: 0 var(--space-12) max(var(--space-12), calc(var(--app-safe-bottom) + var(--space-8))); border: 1px solid var(--tint-ffffff-100); border-radius: var(--radius-999); padding: var(--space-5); background: var(--surface); box-shadow: 0 8px 28px var(--tint-000000-340); }
+  .bottom-nav { position: fixed; right: 0; bottom: max(0px, calc(100dvh - var(--app-visible-height, 100dvh) - var(--app-visible-top, 0px))); left: 0; z-index: 60; touch-action: none; display: flex; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; margin: 0 var(--space-12) max(var(--space-4), var(--app-safe-bottom)); border: 1px solid var(--tint-ffffff-100); border-radius: var(--radius-999); padding: var(--space-5); background: var(--surface); box-shadow: 0 8px 28px var(--tint-000000-340); }
   .bottom-nav button { display: grid; min-width: calc(var(--size-74) * var(--ui-control-width-scale)); min-height: var(--control-height-medium); place-content: center; justify-items: center; gap: var(--space-4); border: 0; border-radius: var(--radius-999); background: transparent; color: var(--palette-7e847c); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
@@ -1963,7 +1963,9 @@ body.modal-open .bottom-nav { display: none; }
 }
 
 /* Exercise progress uses the shared header, list rows and secondary buttons. */
-.student-exercise-progress .workout-row { grid-template-columns: minmax(0, 1fr) auto; }
+.progress-card-list { display: grid; gap: var(--card-list-gap); }
+.student-exercise-progress .workout-row { grid-template-columns: minmax(0, 1fr) auto; border: 0; border-radius: var(--card-radius); background: var(--surface); padding: var(--space-18); }
+.student-exercise-progress .workout-row:enabled:hover { background: var(--surface-2); }
 .student-exercise-progress .workout-row strong { white-space: normal; }
 .progress-muted, .progress-period, .progress-chart-unit { color: var(--muted); }
 .progress-period { margin: var(--space-negative-12) 0 var(--space-20); font-size: var(--font-size-13); }

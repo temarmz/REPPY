@@ -17,20 +17,20 @@ for (const width of [360, 390, 1280]) for (const theme of ['dark', 'light']) {
     const cards = page.locator('.note-day-card');
     const first = cards.first().getByRole('textbox');
     await first.fill('Длинная запись про ученика\n'.repeat(80));
-    await expect(first).toHaveCSS('font-size', '15px');
+    await expect(first).toHaveCSS('font-size', '16px');
     await expect.poll(() => first.evaluate((field) => field.scrollHeight > field.clientHeight)).toBe(true);
-    const position = await cards.nth(1).boundingBox();
+    const position = await cards.nth(1).evaluate((card) => (card as HTMLElement).offsetTop);
     await first.evaluate((field) => { field.scrollTop = 600; });
-    expect((await cards.nth(1).boundingBox())?.y).toBe(position?.y);
+    expect(await cards.nth(1).evaluate((card) => (card as HTMLElement).offsetTop)).toBe(position);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     for (const button of await page.locator('.note-editor-tools button').all()) {
       expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     }
-    await page.screenshot({ path: `test-results/notes-${width}-${theme}.png` });
+    await page.screenshot({ path: `test-results/notes-${width}-${theme}.png`, animations: 'disabled' });
   });
 }
 
-test('заметка сохраняется, списки продолжаются, смена даты сохраняет четыре дня', async ({ page }) => {
+test('заметка сохраняется обычным текстом, смена даты сохраняет четыре дня', async ({ page }) => {
   await openNotes(page);
   const first = page.locator('.note-day-card').first();
   const field = first.getByRole('textbox');
