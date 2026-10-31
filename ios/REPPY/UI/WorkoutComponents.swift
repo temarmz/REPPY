@@ -135,7 +135,7 @@ struct ReppyWorkoutSaveState: View {
         HStack(spacing: ReppyMetrics.space8) {
             if saving { ProgressView().controlSize(.small) }
             Text(status).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary).lineLimit(2)
-        }.accessibilityElement(children: .combine).accessibilityIdentifier("workout-save-state")
+        }.accessibilityElement(children: .combine).accessibilityLabel("Сохранение тренировки").accessibilityValue(status).accessibilityIdentifier("workout-save-state")
     }
 }
 
@@ -264,6 +264,7 @@ struct ActiveSetRow: View {
                     .foregroundStyle(result.completed ? ReppyTheme.selectedText : ReppyTheme.secondary)
                     .background(result.completed ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
             }.buttonStyle(.plain).accessibilityLabel("Подход \(result.set_number): \(result.completed ? "выполнен" : "не выполнен")")
+                .accessibilityHint("\(exercise.name). \(result.completed ? "Снять отметку выполнения." : "Отметить подход выполненным.")")
                 .accessibilityAddTraits(result.completed ? .isSelected : [])
         }
     }

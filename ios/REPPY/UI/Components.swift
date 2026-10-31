@@ -146,8 +146,8 @@ struct ReppyField: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title)
-            } else { TextField(title, text: $text).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title) }
+                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
+            } else { TextField(title, text: $text).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
             if let error { ReppyText(text: error, tone: .error) }
         }
     }
@@ -175,10 +175,20 @@ struct ReppyNumericField: View {
     var body: some View {
         TextField(title, text: $text).font(.system(size: size, weight: .medium)).monospacedDigit().multilineTextAlignment(.center)
             .keyboardType(integer ? .numberPad : .decimalPad).focused($focused).accessibilityLabel(title)
+            .accessibilityHint(value < 0 || !value.isFinite ? "Проверь число: значение не должно быть отрицательным." : integer ? "Введи целое число." : "Можно вводить дробное число с запятой.")
             .padding(.horizontal, ReppyMetrics.space6).frame(minWidth: ReppyMetrics.small, minHeight: ReppyMetrics.small)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
             .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(value < 0 || !value.isFinite ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
             .onAppear { if text.isEmpty { text = value.reppyNumber } }
+            .onChange(of: focused) { _, active in
+                if active {
+                    Task { @MainActor in
+                        await Task.yield()
+                        guard focused else { return }
+                        UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
+                    }
+                }
+            }
             .onChange(of: text) { _, text in
                 let parsed = ReppyValidation.number(text)
                 value = parsed.map { integer ? Double(ReppyValidation.integer($0)) : $0 } ?? -1

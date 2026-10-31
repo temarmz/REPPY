@@ -2,6 +2,60 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testActiveWorkoutKeyboardAndFinishOnSmallScreen() {
+        runActiveWorkoutScenario(accessibility: false)
+    }
+    @MainActor func testActiveWorkoutWithLargestText() {
+        runActiveWorkoutScenario(accessibility: true)
+    }
+    @MainActor private func runActiveWorkoutScenario(accessibility: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo-student", "-appearance", "dark"]
+        if accessibility { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        app.launch()
+        let open = app.buttons["Открыть тренировку"].firstMatch
+        XCTAssertTrue(open.waitForExistence(timeout: 15)); open.tap()
+        let start = app.buttons.matching(NSPredicate(format: "label IN %@", ["Начать тренировку", "Продолжить тренировку"])).firstMatch
+        XCTAssertTrue(start.waitForExistence(timeout: 5)); start.tap()
+        let weight = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Фактический вес подхода 1")).firstMatch
+        for _ in 0..<10 { if weight.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(weight.isHittable); weight.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        weight.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "75,5")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 5))
+        XCTAssertEqual(weight.value as? String, "75,5")
+        let done = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Подход 1:")).firstMatch
+        for _ in 0..<4 { if done.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(done.isHittable); done.tap()
+        let finish = app.buttons["Завершить тренировку"]
+        for _ in 0..<18 { if finish.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(finish.isHittable); finish.tap()
+        let confirm = app.buttons["Подтвердить завершение"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        for _ in 0..<10 { if confirm.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(confirm.isHittable)
+        let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = accessibility ? "active-finish-largest-text" : "active-finish-small"; screenshot.lifetime = .keepAlways; add(screenshot)
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 10))
+        app.terminate()
+    }
+    @MainActor func testProfileKeyboardCancelOnSmallScreen() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo-student", "-appearance", "light"]; app.launch()
+        XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15)); app.buttons["Профиль"].tap()
+        app.buttons["Изменить личные данные"].tap()
+        let name = app.textFields["Имя"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); let original = name.value as? String
+        name.tap(); name.typeText(" тест")
+        XCTAssertTrue(app.keyboards.firstMatch.exists)
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        let cancel = app.buttons["Отмена"]
+        for _ in 0..<12 { if cancel.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(cancel.isHittable); cancel.tap()
+        app.buttons["Изменить личные данные"].tap()
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); XCTAssertEqual(name.value as? String, original)
+        app.terminate()
+    }
     @MainActor func testSmallScreenDynamicType() {
         for role in ["trainer", "student"] {
             for size in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
