@@ -5,22 +5,26 @@ struct StudentsScreen: View {
     @State private var search = ""
     var body: some View {
         ReppyPage {
-            ReppyTitle(text: "Ученики")
-            ReppyLink(title: "Пригласить ученика", icon: "person.badge.plus") { InviteStudentScreen() }
-            ReppySearch(text: $search)
-            let students = store.data.students.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
-            if students.isEmpty { ReppyEmpty(title: "Пока никого нет", message: "Создай приглашение для первого ученика.", icon: "person.2") }
+            ReppyLink(title: "Пригласить ученика", icon: "plus", kind: .primary) { InviteStudentScreen() }
+            if store.data.students.count > 8 { ReppySearch(text: $search) }
+            let students = store.data.students.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }
+            if students.isEmpty { ReppyEmpty(title: search.isEmpty ? "Учеников пока нет" : "Ничего не найдено", message: search.isEmpty ? "Пригласи первого ученика, чтобы составить ему план тренировок." : "Попробуй другое имя или очисти поиск.", icon: "person.2") }
             ForEach(students) { student in
-                ReppyCard {
-                    ReppyHeading(text: student.name)
-                    if let relationship = store.data.relationship(for: student.id) {
-                        ReppyCaption(text: relationship.status == "invited" ? "Приглашён" : "Активный ученик")
-                        ReppyText(text: "Баланс: \(store.data.balance(relationship.id)) занятий", tone: .secondary)
-                    }
-                    ReppyLink(title: "Открыть профиль") { StudentScreen(studentID: student.id) }
+                if let relationship = store.data.relationship(for: student.id) {
+                    ReppyStudentLink(name: student.name, status: status(relationship), balance: store.data.balance(relationship.id), hasSubscription: store.data.subscriptions.contains { $0.relationship_id == relationship.id }) { StudentScreen(studentID: student.id) }
                 }
             }
         }.refreshable { await store.reload() }
+    }
+    private func status(_ relationship: Relationship) -> String {
+        if relationship.status == "invited" { return "Ожидает приглашения" }
+        let assignments = store.data.assignments.filter { $0.relationship_id == relationship.id }
+        if let next = assignments.filter({ $0.status == "assigned" }).sorted(by: { $0.scheduled_for + ($0.scheduled_time ?? "") < $1.scheduled_for + ($1.scheduled_time ?? "") }).first {
+            return "\(next.scheduleLabel) · \(next.workout_snapshot.name)"
+        }
+        let ids = Set(assignments.map(\.id))
+        if let recent = store.data.sessions.filter({ ids.contains($0.assignment_id) && $0.completed_at != nil }).sorted(by: { ($0.completed_at ?? "") > ($1.completed_at ?? "") }).first { return "Завершил · \(recent.workout_snapshot.name)" }
+        return "Нет назначений"
     }
 }
 struct StudentScreen: View {
@@ -35,20 +39,26 @@ struct StudentScreen: View {
                 if relationship.status == "active" { ReppyProfileSegments(selection: $section) }
                 if section == "progress" && relationship.status == "active" { ExerciseProgressSummary(relationshipID: relationship.id) }
                 else {
-                if store.isTrainer {
-                    ReppyLink(title: "Назначить тренировку", icon: "plus") { AssignmentEditorScreen(relationshipID: relationship.id) }
-                    if relationship.status == "invited" { ReppyLink(title: "Создать новую ссылку приглашения", icon: "person.badge.plus") { InviteStudentScreen(existing: relationship, initialName: student.name) } }
+                if relationship.status == "active" {
+                ReppyHeading(text: "Предстоящие тренировки")
+                ReppyLink(title: "Назначить тренировку", icon: "plus", kind: .primary) { StudentAssignmentPickerScreen(relationshipID: relationship.id) }
+                let planned = store.data.assignments.filter { $0.relationship_id == relationship.id && $0.status == "assigned" }.sorted { $0.scheduled_for + ($0.scheduled_time ?? "") < $1.scheduled_for + ($1.scheduled_time ?? "") }
+                if planned.isEmpty { ReppyEmpty(title: "Пока пусто", message: "Назначь тренировку прямо из профиля ученика и подстрой план под него.", icon: "calendar") }
+                ForEach(planned) { assignment in
+                    ReppyAgendaLink(title: assignment.workout_snapshot.name, subtitle: assignment.scheduleLabel) { AssignmentScreen(assignmentID: assignment.id) }
                 }
                 BalanceCard(relationshipID: relationship.id)
-                ReppyLink(title: "История тренировок", icon: "clock.arrow.circlepath") { HistoryScreen(relationshipID: relationship.id, back: true) }
-                ReppyHeading(text: "Предстоящие тренировки")
-                ForEach(store.data.assignments.filter { $0.relationship_id == relationship.id && $0.status == "assigned" }.sorted { $0.scheduled_for < $1.scheduled_for }) { AssignmentAgendaRow(assignment: $0) }
                 ReppyHeading(text: "Последняя активность")
                 let assignmentIDs = Set(store.data.assignments.filter { $0.relationship_id == relationship.id }.map(\.id))
                 let recent = store.data.sessions.filter { assignmentIDs.contains($0.assignment_id) && $0.completed_at != nil }.sorted { ($0.completed_at ?? "") > ($1.completed_at ?? "") }
                 if recent.isEmpty { ReppyEmpty(title: "Ещё нет результатов", message: "Завершённые тренировки ученика появятся в этом блоке.") }
                 ForEach(Array(recent.prefix(3))) { session in
                     ReppyAgendaLink(title: session.workout_snapshot.name, subtitle: ReppyDate.display(session.completed_at ?? ""), completed: true) { SessionResultScreen(sessionID: session.id) }
+                }
+                ReppyLink(title: "История тренировок", icon: "clock.arrow.circlepath") { HistoryScreen(relationshipID: relationship.id, back: true) }
+                } else {
+                    ReppyEmpty(title: "Ожидает подключения", message: "Ученик ещё не принял приглашение.", icon: "person.2")
+                    ReppyLink(title: "Создать новую ссылку приглашения", icon: "person.badge.plus") { InviteStudentScreen(existing: relationship, initialName: student.name) }
                 }
                 }
             } else { ReppyEmpty(title: "Ученик не найден", message: "Обнови данные и вернись к списку.") }

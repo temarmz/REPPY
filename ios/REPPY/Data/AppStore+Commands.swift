@@ -144,7 +144,8 @@ extension AppStore {
                 saved = typed
             }
         }
-        data.students.removeAll { $0.id == saved.id }; data.students.append(saved)
+        if let index = data.students.firstIndex(where: { $0.id == saved.id }) { data.students[index] = saved }
+        else { data.students.append(saved) }
     }
     func createInvitation(name: String, existing: Relationship? = nil) async throws -> String {
         try requireTrainer()

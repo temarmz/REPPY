@@ -4,22 +4,7 @@ struct BalanceCard: View {
     @EnvironmentObject private var store: AppStore
     var relationshipID: String
     var body: some View {
-        ReppyCard {
-            let balance = store.data.balance(relationshipID)
-            ReppyHeading(text: "Абонемент")
-            ReppyNumber(value: "\(balance) занятий")
-            ReppyCaption(text: "Без срока действия")
-            if balance <= 0 { ReppyText(text: balance < 0 ? "Есть занятия в долг" : "Абонемент закончился", tone: .warning) }
-            if store.isTrainer {
-                ReppyLink(title: "Продлить", icon: "plus") { PaymentFormScreen(relationshipID: relationshipID) }
-                ReppyLink(title: "История операций", icon: "clock.arrow.circlepath") { SubscriptionHistoryScreen(relationshipID: relationshipID) }
-            } else {
-                ForEach(store.data.subscriptions.filter { $0.relationship_id == relationshipID && $0.kind == "payment" }.sorted { $0.occurred_at > $1.occurred_at }.prefix(3)) { entry in
-                    ReppyText(text: "+\(entry.lesson_delta) занятий · \((entry.amount_rub ?? 0).reppyNumber) ₽")
-                    ReppyCaption(text: "\(ReppyDate.display(entry.occurred_at)) · \(entry.payment_method == "cash" ? "Наличные" : "Перевод")")
-                }
-            }
-        }
+        ReppySubscriptionSummary(balance: store.data.balance(relationshipID), entries: store.data.subscriptions.filter { $0.relationship_id == relationshipID }, trainer: store.isTrainer, relationshipID: relationshipID)
     }
 }
 private struct PaymentDraft: Codable {

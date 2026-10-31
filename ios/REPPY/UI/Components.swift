@@ -127,11 +127,17 @@ struct ReppyLink<Destination: View>: View {
     var body: some View {
         NavigationLink(destination: destination) {
             HStack(spacing: 12) {
+                if kind == .primary {
+                    Spacer(minLength: 0)
+                    Label(title, systemImage: icon).font(.body.weight(.semibold)).multilineTextAlignment(.center)
+                    Spacer(minLength: 0)
+                } else {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title).font(.body.weight(.semibold)).multilineTextAlignment(.leading)
                     if let subtitle { Text(subtitle).font(.subheadline).foregroundStyle(ReppyTheme.secondary).multilineTextAlignment(.leading) }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: icon).accessibilityHidden(true)
+                }
             }.padding(16).frame(minHeight: ReppyMetrics.control)
                 .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : ReppyTheme.text)
                 .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
@@ -203,9 +209,33 @@ struct ReppyDateField: View {
     @Binding var date: Date
     var time = false
     var compact = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var presented = false
+    @State private var pendingDate = Date()
     var body: some View {
+        if typeSize.isAccessibilitySize {
+            ReppyStack(compact: true) {
+                ReppyCaption(text: title)
+                Button {
+                    pendingDate = date; presented = true
+                } label: {
+                    Text(time ? date.formatted(.dateTime.hour().minute().locale(Locale(identifier: "ru_RU"))) : date.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))))
+                }.buttonStyle(ReppyButtonStyle(compact: compact)).accessibilityLabel(title).accessibilityValue(date.formatted(date: time ? .omitted : .long, time: time ? .shortened : .omitted))
+            }.sheet(isPresented: $presented) {
+                NavigationStack {
+                    DatePicker(title, selection: $pendingDate, displayedComponents: time ? [.hourAndMinute] : [.date])
+                        .datePickerStyle(.wheel).labelsHidden()
+                        .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) { Button("Отмена") { presented = false } }
+                            ToolbarItem(placement: .confirmationAction) { Button("Готово") { date = pendingDate; presented = false } }
+                        }
+                }.presentationDetents([.medium, .large]).presentationCornerRadius(ReppyMetrics.modalRadius)
+            }
+        } else {
         DatePicker(title, selection: $date, displayedComponents: time ? [.hourAndMinute] : [.date])
             .datePickerStyle(.compact).reppyField(compact: compact).tint(ReppyTheme.text)
+        }
     }
 }
 struct ReppyPicker<T: Hashable, Content: View>: View {

@@ -1,6 +1,61 @@
 import XCTest
 
 final class SmokeTests: XCTestCase {
+    @MainActor func testStudentManagementParity() {
+        for theme in ["light", "dark"] { runStudentManagement(theme: theme) }
+    }
+    @MainActor func testStudentManagementLargestText() { runStudentManagement(theme: "dark", largest: true) }
+    @MainActor private func runStudentManagement(theme: String, largest: Bool = false) {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]
+            if largest { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+            app.launch()
+            let theme = largest ? theme + "-largest" : theme
+            XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
+            let student = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch
+            XCTAssertTrue(student.waitForExistence(timeout: 5))
+            capture(app, "students-\(theme)")
+            revealAndTap(student, in: app)
+            let assign = app.buttons["Назначить тренировку"]
+            XCTAssertTrue(assign.waitForExistence(timeout: 5)); capture(app, "student-\(theme)")
+            revealAndTap(assign, in: app)
+            let create = app.buttons["Создать тренировку"]
+            XCTAssertTrue(create.waitForExistence(timeout: 5)); capture(app, "picker-\(theme)")
+            revealAndTap(create, in: app)
+            let name = app.textFields["Название тренировки"]
+            XCTAssertTrue(name.waitForExistence(timeout: 5))
+            XCTAssertGreaterThanOrEqual(name.frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(name.frame.maxX, app.frame.maxX)
+            capture(app, "editor-\(theme)")
+            revealAndTap(app.segmentedControls.buttons["Онлайн"], in: app)
+            XCTAssertTrue(app.staticTexts["Рекомендованная дата"].exists)
+            XCTAssertFalse(app.buttons["Время"].exists)
+            if largest {
+                revealAndTap(app.buttons["Рекомендованная дата"], in: app)
+                XCTAssertTrue(app.pickerWheels.firstMatch.waitForExistence(timeout: 5))
+                capture(app, "date-picker-\(theme)")
+                app.buttons["Готово"].tap()
+            }
+            revealAndTap(app.segmentedControls.buttons["Очно"], in: app)
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(create.waitForExistence(timeout: 5))
+            let repeated = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Завершена")).firstMatch
+            XCTAssertTrue(repeated.exists); revealAndTap(repeated, in: app)
+            XCTAssertTrue(app.staticTexts["Повторить тренировку"].waitForExistence(timeout: 5))
+            let addSet = app.buttons["Добавить подход"].firstMatch
+            for _ in 0..<8 { if addSet.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(addSet.isHittable); capture(app, "repeat-\(theme)")
+            app.terminate()
+    }
+    @MainActor private func revealAndTap(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<16 {
+            if element.isHittable { break }
+            if element.frame.midY < app.frame.midY { app.swipeDown(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
+        }
+        XCTAssertTrue(element.isHittable); element.tap()
+    }
+    @MainActor private func capture(_ app: XCUIApplication, _ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
     override func setUpWithError() throws { continueAfterFailure = false }
     @MainActor func testActiveWorkoutKeyboardAndFinishOnSmallScreen() {
         runActiveWorkoutScenario(accessibility: false)

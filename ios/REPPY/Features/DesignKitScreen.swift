@@ -23,6 +23,10 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyStudentLink(name: "Мария с длинным именем", status: "Сегодня · 18:00 · Длинное название тренировки", balance: 0, hasSubscription: false) { ReppyText(text: "Профиль ученика") }
+            ReppyStudentContext(name: "Мария А.")
+            ReppyFormatPicker(selection: .constant(.inPerson))
+            ReppySubscriptionSummary(balance: 3, entries: store.data.subscriptions, trainer: true, relationshipID: store.data.relationships.first?.id)
             ReppyProfileIdentity(name: "Александр с длинным именем", role: "Тренер")
             if let student = store.data.students.first { ReppyProfileIdentity(name: student.name, role: "Ученик", student: student) }
             ReppyWorkoutFocus(name: "Длинное название ближайшей тренировки", schedule: "Сегодня · 19:30", preview: "Жим лёжа · Приседания", progress: (1, 6)) { ReppyText(text: "Тренировка") }

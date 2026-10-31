@@ -1,9 +1,42 @@
 import SwiftUI
 
+struct StudentAssignmentPickerScreen: View {
+    @EnvironmentObject private var store: AppStore
+    var relationshipID: String
+    var initialDate = Date()
+    @State private var showAll = false
+    private func completed(_ assignment: Assignment) -> Bool { assignment.status == "completed" || store.data.session(for: assignment.id)?.completed_at != nil }
+    private var assignments: [Assignment] {
+        store.data.assignments.filter { $0.relationship_id == relationshipID }.sorted {
+            if completed($0) != completed($1) { return completed($0) }
+            return $0.scheduled_for + ($0.scheduled_time ?? "") > $1.scheduled_for + ($1.scheduled_time ?? "")
+        }
+    }
+    var body: some View {
+        ReppyPage(back: true) {
+            if let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), relationship.status == "active",
+               let student = store.data.students.first(where: { $0.id == relationship.student_id }) {
+                ReppyCaption(text: "\(student.name) · \(ReppyDate.display(ReppyDate.day(initialDate)))")
+                ReppyTitle(text: "Выбрать тренировку")
+                ReppyText(text: "Повтори одну из тренировок \(student.name) или собери новую с нуля.", tone: .secondary)
+                ReppyLink(title: "Создать тренировку", icon: "plus", kind: .primary) { AssignmentEditorScreen(relationshipID: relationshipID, initialDate: initialDate) }
+                if assignments.isEmpty { ReppyEmpty(title: "Предыдущих тренировок нет", message: "Создай первую тренировку для этого ученика — позже её можно будет повторять на новые даты.", icon: "clock.arrow.circlepath") }
+                ForEach(Array(assignments.prefix(showAll ? assignments.count : 8))) { assignment in
+                    let workout = completed(assignment) ? store.data.session(for: assignment.id)?.workout_snapshot ?? assignment.workout_snapshot : assignment.workout_snapshot
+                    let status = completed(assignment) ? "Завершена" : assignment.scheduled_for < ReppyDate.day() ? "Не завершена" : "Запланирована"
+                    ReppyAgendaLink(title: workout.name, subtitle: "\(status) · \(assignment.scheduleLabel)\n\(workout.exercises.prefix(3).map(\.name).joined(separator: " · "))", leadingIcon: "doc.on.doc") {
+                        AssignmentEditorScreen(relationshipID: relationshipID, initialDate: initialDate, repeatAssignment: assignment)
+                    }
+                }
+                if assignments.count > 8 { ReppyButton(title: showAll ? "Показать последние" : "Показать ещё \(assignments.count - 8)", compact: true) { showAll.toggle() } }
+            } else { ReppyEmpty(title: "Назначение недоступно", message: "Ученик должен принять приглашение перед назначением тренировки.", icon: "person.2") }
+        }
+    }
+}
 struct AssignmentDraft: Codable {
     var id = UUID().uuidString.lowercased()
     var relationshipID = ""
-    var workout = Workout()
+    var workout = Workout(name: "")
     var date = Date()
     var time = "18:00"
     var format = TrainingFormat.inPerson
@@ -25,16 +58,20 @@ struct AssignmentEditorScreen: View {
     private var draftKey: String { "assignment:\(original?.id ?? (repeatAssignment.map { "repeat:" + $0.id } ?? (relationshipID ?? "new")))" }
     var body: some View {
         ReppyPage(back: true) {
-            ReppyTitle(text: original != nil ? "Изменить тренировку" : repeatAssignment != nil ? "Повторить тренировку" : "Новая тренировка")
+            ReppyTitle(text: original != nil ? "Изменить тренировку" : repeatAssignment != nil ? "Повторить тренировку" : "Создать тренировку")
             ReppyCard {
+                if let relationshipID, let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) {
+                    ReppyStudentContext(name: student.name)
+                } else {
                 ReppyPicker(title: "Ученик", selection: $draft.relationshipID) {
                     Text("Выбери ученика").tag("")
-                    ForEach(store.data.relationships) { relationship in
+                    ForEach(store.data.relationships.filter { $0.status == "active" }) { relationship in
                         Text(store.data.students.first { $0.id == relationship.student_id }?.name ?? "Ученик").tag(relationship.id)
                     }
                 }
+                }
                 ReppyField(title: "Название тренировки", text: $draft.workout.name)
-                ReppyPicker(title: "Формат", selection: $draft.format, compact: true) { ForEach(TrainingFormat.allCases, id: \.self) { Text($0.title).tag($0) } }
+                ReppyFormatPicker(selection: $draft.format)
                 ReppyDateField(title: draft.format == .online ? "Рекомендованная дата" : "Дата", date: $draft.date, compact: true)
                 if draft.format == .inPerson { ReppyDateField(title: "Время", date: $timeDate, time: true, compact: true) }
             }
@@ -44,7 +81,7 @@ struct AssignmentEditorScreen: View {
                 ExerciseEditorCard(exercise: $exercise, relationshipID: draft.relationshipID,
                     onMove: { offset in move(exercise.id, by: offset) }, onDelete: { draft.workout.exercises.removeAll { $0.id == exercise.id } })
             }
-            ReppyButton(title: store.busy ? "Сохраняем…" : "Сохранить тренировку", kind: .primary, disabled: store.busy || draft.relationshipID.isEmpty) {
+            ReppyButton(title: store.busy ? "Сохраняем…" : original == nil ? "Назначить тренировку" : "Сохранить тренировку", kind: .primary, disabled: store.busy || draft.relationshipID.isEmpty || draft.workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
                 Task {
                     if await store.run({
                         try await store.saveAssignment(id: draft.id, relationshipID: draft.relationshipID, workout: draft.workout, date: draft.date,
@@ -79,6 +116,7 @@ struct AssignmentEditorScreen: View {
             draft.time = String((source.scheduled_time ?? "18:00").prefix(5)); draft.original = original
             if original != nil { draft.id = source.id }; draft.repeatedFrom = repeatAssignment?.id
         } else { draft.relationshipID = relationshipID ?? ""; draft.date = initialDate ?? Date() }
+        if let relationshipID { draft.relationshipID = relationshipID }
         let parts = draft.time.split(separator: ":").compactMap { Int($0) }
         if parts.count == 2 { timeDate = Calendar.current.date(bySettingHour: parts[0], minute: parts[1], second: 0, of: Date()) ?? Date() }
     }
