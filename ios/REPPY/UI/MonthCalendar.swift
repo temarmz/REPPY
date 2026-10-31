@@ -5,6 +5,10 @@ struct MonthCalendar: View {
     var counts: [String: Int]
     var selectFirstDayOnMonthChange = false
     @State private var month = Date()
+    private var monthTitle: String {
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "ru_RU"); formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: month).capitalized
+    }
     private var calendar: Calendar { var calendar = Calendar(identifier: .gregorian); calendar.locale = Locale(identifier: "ru_RU"); calendar.firstWeekday = 2; return calendar }
     private var start: Date { calendar.date(from: calendar.dateComponents([.year, .month], from: month))! }
     private var days: [Date?] {
@@ -16,7 +20,7 @@ struct MonthCalendar: View {
         VStack(spacing: 12) {
             HStack {
                 Button { month = calendar.date(byAdding: .month, value: -1, to: month)! } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Предыдущий месяц")
-                Spacer(); Text(month.formatted(.dateTime.month(.wide).year())).font(.headline); Spacer()
+                Spacer(); Text(monthTitle).font(.headline); Spacer()
                 Button { month = calendar.date(byAdding: .month, value: 1, to: month)! } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Следующий месяц")
             }.buttonStyle(.plain)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 44), spacing: 0), count: 7), spacing: 6) {
@@ -31,6 +35,7 @@ struct MonthCalendar: View {
                             }.frame(maxWidth: .infinity).frame(height: ReppyMetrics.small)
                                 .foregroundStyle(selected ? ReppyTheme.selectedText : ReppyTheme.text)
                                 .background(selected ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+                                .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(calendar.isDateInToday(day) && !selected ? ReppyTheme.lime : .clear, lineWidth: 1))
                         }.buttonStyle(.plain).padding(.horizontal, 2)
                             .accessibilityLabel("\(ReppyDate.display(ReppyDate.day(day))), тренировок: \(counts[ReppyDate.day(day), default: 0])")
                             .accessibilityAddTraits(selected ? .isSelected : [])

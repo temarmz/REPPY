@@ -17,6 +17,7 @@ struct ReppyPage<Content: View>: View {
             content()
         }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
             .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
+            .toolbar(.hidden, for: .tabBar)
             .toolbarBackground(ReppyTheme.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(nil, for: .navigationBar)

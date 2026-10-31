@@ -30,7 +30,7 @@ final class SmokeTests: XCTestCase {
             XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Жим")
             let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим")).firstMatch
             XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
-            let set = app.buttons["Добавить подход"]
+            let set = app.buttons["Добавить подход"].firstMatch
             for _ in 0..<8 { if set.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(set.isHittable); set.tap()
             XCTAssertTrue(app.buttons["Удалить подход 1"].exists)
@@ -67,7 +67,9 @@ final class SmokeTests: XCTestCase {
             for theme in ["light", "dark"] {
                 let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
                 XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15))
+                XCTAssertFalse(app.tabBars.firstMatch.exists)
                 XCTAssertEqual(app.buttons["Ученики"].exists, role == "trainer")
+                XCTAssertFalse(app.tabBars.firstMatch.exists)
                 app.buttons["Профиль"].tap()
                 XCTAssertTrue(app.staticTexts["Оформление"].waitForExistence(timeout: 5))
                 app.navigationBars.buttons.firstMatch.tap()

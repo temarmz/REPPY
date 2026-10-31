@@ -24,10 +24,12 @@ struct ReppyTabBar: View {
                     }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.compact)
                         .foregroundStyle(selected == tab ? ReppyTheme.selectedText : ReppyTheme.secondary)
                         .background(selected == tab ? ReppyTheme.lime : .clear, in: Capsule())
-                }.buttonStyle(.plain).accessibilityLabel(tab.title).accessibilityAddTraits(selected == tab ? .isSelected : [])
+                        .contentShape(Rectangle())
+                }.buttonStyle(.plain).frame(maxWidth: .infinity).accessibilityLabel(tab.title).accessibilityAddTraits(selected == tab ? .isSelected : [])
             }
         }.padding(ReppyMetrics.space6).background(ReppyTheme.surface, in: Capsule())
             .padding(.horizontal, ReppyMetrics.space12).padding(.vertical, ReppyMetrics.space8)
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("reppy-tab-bar")
     }
 }

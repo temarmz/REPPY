@@ -83,7 +83,10 @@ struct AssignmentCard: View {
                 ReppyProgressBar(completed: results.filter(\.completed).count, total: results.count)
                 ReppyCaption(text: "Тренировка начата")
             }
-            ReppyLink(title: assignment.status == "completed" ? "Посмотреть результат" : "Открыть тренировку") { AssignmentScreen(assignmentID: assignment.id) }
+            ReppyLink(title: assignment.status == "completed" ? "Посмотреть результат" : "Открыть тренировку") {
+                if let session = store.data.session(for: assignment.id), session.completed_at != nil { SessionResultScreen(sessionID: session.id) }
+                else { AssignmentScreen(assignmentID: assignment.id) }
+            }
         }
     }
 }
