@@ -131,15 +131,16 @@ export default function ReppyApp() {
     const client = getSupabaseClient();
     return client && profileId && profileRole ? createSupabaseRepository(client, { id: profileId, role: profileRole }) : null;
   }, [profileId, profileRole]);
+  const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, dispatch, setData } = useReppyData(remoteRepository);
+  const notesIdentity = profileId ?? (data.role === 'student' ? `demo:student:${data.activeStudentId}` : 'demo');
   const notesController = useMemo(() => {
     const client = getSupabaseClient();
     const repository = client && profileId
       ? createSupabaseTrainerNotes(client, profileId)
-      : createLocalTrainerNotes(notesStorage);
-    return createTrainerNotesController(repository, notesStorage, profileId ?? 'demo');
-  }, [profileId]);
-  useEffect(() => profileRole === 'trainer' || !auth.enabled ? notesController.start() : undefined, [auth.enabled, notesController, profileRole]);
-  const { data, hydrated, persistencePhase, persistenceError, persistenceConflict, retryPersistence, reloadCurrentData, reset: resetData, createStudentInvitation, dispatch, setData } = useReppyData(remoteRepository);
+      : createLocalTrainerNotes(notesStorage, notesIdentity === 'demo' ? 'reppy-trainer-notes-demo-v1' : `reppy-notes:${notesIdentity}`);
+    return createTrainerNotesController(repository, notesStorage, notesIdentity);
+  }, [profileId, notesIdentity]);
+  useEffect(() => notesController.start(), [auth.enabled, notesController, profileRole]);
   const online = useOnlineStatus();
   const path = useHashNavigation();
   const [assetsReady, setAssetsReady] = useState(false);
@@ -393,6 +394,7 @@ export default function ReppyApp() {
       onConnectTelegram={auth.enabled ? async () => { const link = await auth.createTelegramLink(); window.location.assign(link); } : undefined}
       onLoadTelegramConnection={auth.enabled ? auth.getTelegramConnection : undefined}
     />;
+    if (route === `/${area}/notes`) return <TrainerNotesScreen controller={notesController} identity={notesIdentity} />;
     if (area === 'trainer') {
       if (route === '/trainer/notes') return <TrainerNotesScreen controller={notesController} identity={profileId ?? 'demo'} />;
       if (route === '/trainer/profile') return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />{accountSettings}</Page>;

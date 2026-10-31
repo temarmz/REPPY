@@ -24,7 +24,7 @@ select is((select count(*)::integer from public.trainer_notes), 0, 'another trai
 select is((select revision from public.save_trainer_note('2026-10-31', 'Independent diary', 0, '47000000-0000-4000-8000-000000000004')), 1, 'another trainer has an independent diary');
 select set_config('request.jwt.claim.sub', '17000000-0000-4000-8000-000000000003', true);
 select is((select count(*)::integer from public.trainer_notes), 0, 'students cannot read either diary');
-select throws_ok($$select public.save_trainer_note('2026-10-31', 'Student write', 0, '47000000-0000-4000-8000-000000000005')$$, '42501', 'Only a trainer can write private notes', 'students cannot write a diary');
+select is((select revision from public.save_trainer_note('2026-10-31', 'Student write', 0, '47000000-0000-4000-8000-000000000005')), 1, 'students can write their own private diary');
 select set_config('request.jwt.claim.sub', '17000000-0000-4000-8000-000000000001', true);
 select throws_ok($$select public.save_trainer_note('2026-11-01', repeat('x', 50001), 0, '47000000-0000-4000-8000-000000000006')$$, '22023', 'Invalid note', 'server enforces the text limit');
 select throws_ok($$select public.save_trainer_note(null, 'Text', 0, '47000000-0000-4000-8000-000000000007')$$, '22023', 'Invalid note', 'date is required');

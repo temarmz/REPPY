@@ -29,6 +29,7 @@ const NAVIGATION: Record<AppArea, NavigationItem[]> = {
   student: [
     { label: 'Сегодня', icon: 'calendar', route: '/student' },
     { label: 'Календарь', icon: 'calendar', route: '/student/calendar' },
+    { label: 'Заметки', icon: 'notes', route: '/student/notes' },
     { label: 'Профиль', icon: 'user', route: '/student/profile' },
   ],
 };
@@ -42,6 +43,7 @@ export function canonicalNavigationRoute(area: AppArea, path: string) {
     return path === '/trainer' ? '/trainer' : null;
   }
 
+  if (path === '/student/notes') return '/student/notes';
   if (/^\/student\/calendar(?:\/|$)/.test(path)) return '/student/calendar';
   if (/^\/student\/history(?:\/|$)/.test(path)) return '/student/calendar';
   if (/^\/student\/profile(?:\/|$)/.test(path)) return '/student/profile';

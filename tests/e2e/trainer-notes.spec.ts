@@ -59,14 +59,14 @@ test('заметка сохраняется, списки продолжаютс
   await expect(page.locator('.note-day-card').first()).toHaveAttribute('data-note-date', /-15$/);
 });
 
-test('у ученика нет вкладки заметок; клавиатура доступна тренеру', async ({ page }) => {
+test('заметки доступны обеим ролям; клавиатура доступна тренеру', async ({ page }) => {
   await openNotes(page);
   const field = page.locator('.note-editor').first();
   await field.focus(); await field.pressSequentially('Текст с клавиатуры');
   await field.press('Tab');
   await expect(field).not.toBeFocused();
   await page.goto('/#/student');
-  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Заметки' })).toHaveCount(0);
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Заметки' })).toHaveCount(1);
 });
 
 test('ошибка сохранения сохраняет черновик после перезагрузки', async ({ page }) => {
