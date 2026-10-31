@@ -20,6 +20,7 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyRow { ReppyHeaderBrand(); ReppyToolbarIcon(icon: "person.crop.circle") }
             ReppyCard {
                 ReppyHeading(text: "Типографика и данные")
                 ReppyText(text: text); ReppyCaption(text: "Вторичный текст"); ReppyNumber(value: "75,25")

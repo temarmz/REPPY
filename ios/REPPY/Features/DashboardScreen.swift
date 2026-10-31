@@ -12,7 +12,6 @@ struct DashboardScreen: View {
     }
     var body: some View {
         ReppyPage {
-            ReppyBrand()
             ReppyTitle(text: store.isTrainer ? "Рабочий день" : "Твои тренировки", subtitle: store.profile?.display_name)
             if store.isDemo { ReppyCaption(text: "Демо · изменения действуют до выхода") }
             if store.isTrainer {

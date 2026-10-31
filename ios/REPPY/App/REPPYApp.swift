@@ -37,6 +37,7 @@ struct MainScreen: View {
     @EnvironmentObject private var store: AppStore
     @State private var tab: AppTab = .home
     @StateObject private var notes = NotesStore()
+    @State private var keyboardVisible = false
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         TabView(selection: $tab) {
@@ -47,9 +48,13 @@ struct MainScreen: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .notes] : [.home, .calendar, .notes], selected: $tab)
+            if !keyboardVisible {
+                ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .notes] : [.home, .calendar, .notes], selected: $tab)
+            }
         }.background(ReppyTheme.background)
             .environmentObject(notes)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardVisible = true }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardVisible = false }
             .task { await notes.start(store: store) }
             .onChange(of: scenePhase) { _, phase in
                 Task { if phase == .active { await notes.refresh() } else { await notes.flush() } }

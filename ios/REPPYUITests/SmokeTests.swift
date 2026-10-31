@@ -2,6 +2,32 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testShellNavigationAndKeyboard() {
+        for role in ["trainer", "student"] {
+            for theme in ["light", "dark"] {
+                let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
+                XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15))
+                XCTAssertEqual(app.buttons["Ученики"].exists, role == "trainer")
+                app.buttons["Профиль"].tap()
+                XCTAssertTrue(app.staticTexts["Оформление"].waitForExistence(timeout: 5))
+                app.navigationBars.buttons.firstMatch.tap()
+                XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 5))
+                app.buttons["Заметки"].tap()
+                let editor = app.textViews.firstMatch
+                for _ in 0..<4 { if editor.isHittable { break }; app.swipeUp() }
+                XCTAssertTrue(editor.isHittable); editor.tap()
+                XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+                let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.buttons["Календарь"])
+                XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 5), .completed)
+                app.buttons["dismiss-keyboard"].firstMatch.tap()
+                XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 5))
+                app.buttons["Календарь"].tap()
+                XCTAssertTrue(app.buttons["Следующий месяц"].waitForExistence(timeout: 5))
+                let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "shell-\(role)-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
+                app.terminate()
+            }
+        }
+    }
     @MainActor func testDesignSystemFoundation() {
         for theme in ["light", "dark"] {
             let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()

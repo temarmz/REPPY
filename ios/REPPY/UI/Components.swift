@@ -3,7 +3,6 @@ import SwiftUI
 struct ReppyPage<Content: View>: View {
     var back = false
     @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
     @State private var discardDraft = false
     @ViewBuilder var content: () -> Content
     var body: some View {
@@ -18,20 +17,22 @@ struct ReppyPage<Content: View>: View {
             content()
         }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
             .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
-            .navigationBarBackButtonHidden(back)
+            .toolbarBackground(ReppyTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(nil, for: .navigationBar)
             .toolbar {
                 if !back && store.profile != nil {
+                    ToolbarItem(placement: .topBarLeading) { ReppyHeaderBrand() }
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink { ProfileScreen() } label: {
-                            Image(systemName: "person.crop.circle").frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
-                                .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+                            ReppyToolbarIcon(icon: "person.crop.circle")
                         }.accessibilityLabel("Профиль")
                     }
                 }
-                if back {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { dismiss() } label: { Image(systemName: "chevron.left").frame(width: ReppyMetrics.small, height: ReppyMetrics.small).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Назад")
-                    }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Готово") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+                        .buttonStyle(.bordered).accessibilityIdentifier("dismiss-keyboard")
                 }
             }
             .confirmationDialog("Удалить нечитабельный локальный черновик? Сохранённые на сервере данные останутся доступны.", isPresented: $discardDraft, titleVisibility: .visible) {
@@ -232,6 +233,19 @@ struct ReppyLoading: View {
 }
 struct ReppyBrand: View {
     var body: some View { Image("Wordmark").resizable().scaledToFit().frame(width: 150, height: 44).accessibilityLabel("REPPY") }
+}
+struct ReppyHeaderBrand: View {
+    var body: some View {
+        Image("Wordmark").resizable().scaledToFit().frame(width: 100, height: ReppyMetrics.small).accessibilityLabel("REPPY")
+    }
+}
+struct ReppyToolbarIcon: View {
+    var icon: String
+    var body: some View {
+        Image(systemName: icon).font(.body.weight(.medium))
+            .frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
+            .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+    }
 }
 
 // Native scroll/keyboard behavior; the auth screen has no marketing sections.
