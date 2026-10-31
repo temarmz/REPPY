@@ -7,9 +7,9 @@ final class SmokeTests: XCTestCase {
             let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()
             let assign = app.buttons["Назначить тренировку"]
             XCTAssertTrue(assign.waitForExistence(timeout: 15)); assign.tap()
-            let add = app.buttons["Добавить упражнение"]
-            for _ in 0..<6 { if add.isHittable { break }; app.swipeUp() }
-            XCTAssertTrue(add.isHittable); add.tap()
+            let addExercise = app.buttons["Добавить упражнение"]
+            for _ in 0..<6 { if addExercise.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(addExercise.isHittable); addExercise.tap()
             let search = app.textFields["Поиск"]
             XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Жим")
             let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим")).firstMatch
