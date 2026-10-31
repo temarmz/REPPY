@@ -15,7 +15,10 @@ struct ReppyPage<Content: View>: View {
                 }
             }
             content()
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset)
+            // Nested NavigationStack content can outlive the system tab bar's
+            // safe-area contribution. Keep the final row clear of our capsule.
+            .padding(.bottom, store.profile == nil ? 0 : ReppyMetrics.compact + ReppyMetrics.space12 + ReppyMetrics.space16) }
             .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
             .toolbar(.hidden, for: .tabBar)
             .toolbarBackground(ReppyTheme.background, for: .navigationBar)
