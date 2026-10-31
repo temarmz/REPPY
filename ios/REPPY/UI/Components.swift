@@ -58,8 +58,12 @@ struct ReppyStack<Content: View>: View {
     var body: some View { VStack(alignment: .leading, spacing: compact ? ReppyMetrics.space8 : ReppyMetrics.space16, content: content).frame(maxWidth: .infinity, alignment: .leading) }
 }
 struct ReppyRow<Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ViewBuilder var content: () -> Content
-    var body: some View { HStack(alignment: .center, spacing: ReppyMetrics.space12, content: content) }
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space12)) : AnyLayout(HStackLayout(alignment: .center, spacing: ReppyMetrics.space12))
+        layout { content() }
+    }
 }
 struct ReppyTitle: View {
     var text: String
@@ -249,7 +253,7 @@ struct ReppyHeaderBrand: View {
 struct ReppyToolbarIcon: View {
     var icon: String
     var body: some View {
-        Image(systemName: icon).font(.body.weight(.medium))
+        Image(systemName: icon).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
             .frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
             .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
     }

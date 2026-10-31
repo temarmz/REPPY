@@ -2,6 +2,38 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testSmallScreenDynamicType() {
+        for role in ["trainer", "student"] {
+            for size in ["UICTContentSizeCategoryL", "UICTContentSizeCategoryAccessibilityXXXL"] {
+                let app = XCUIApplication()
+                app.launchArguments = ["--demo-" + role, "-appearance", role == "trainer" ? "light" : "dark", "-UIPreferredContentSizeCategoryName", size]
+                app.launch()
+                let calendar = app.buttons["Календарь"]
+                XCTAssertTrue(calendar.waitForExistence(timeout: 15))
+                XCTAssertTrue(calendar.isHittable)
+                XCTAssertGreaterThanOrEqual(calendar.frame.height, 44)
+                XCTAssertLessThanOrEqual(calendar.frame.maxX, app.frame.maxX)
+                calendar.tap()
+                let next = app.buttons["Следующий месяц"]
+                XCTAssertTrue(next.waitForExistence(timeout: 5)); XCTAssertTrue(next.isHittable)
+                XCTAssertLessThanOrEqual(next.frame.maxX, app.frame.maxX)
+                let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "small-calendar-\(role)-\(size)"; screenshot.lifetime = .keepAlways; add(screenshot)
+                let firstDay = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "тренировок:")).firstMatch
+                for _ in 0..<4 { if firstDay.isHittable { break }; app.swipeUp() }
+                XCTAssertTrue(firstDay.isHittable)
+                XCTAssertGreaterThanOrEqual(firstDay.frame.height, 44)
+                XCTAssertGreaterThanOrEqual(firstDay.frame.width, 44)
+                XCTAssertLessThanOrEqual(firstDay.frame.maxX, app.frame.maxX)
+                let days = XCTAttachment(screenshot: app.screenshot()); days.name = "small-days-\(role)-\(size)"; days.lifetime = .keepAlways; add(days)
+                app.buttons["Профиль"].tap()
+                let signOut = app.buttons["Выйти из демо"]
+                for _ in 0..<18 { if signOut.isHittable { break }; app.swipeUp() }
+                XCTAssertTrue(signOut.isHittable)
+                XCTAssertLessThanOrEqual(signOut.frame.maxX, app.frame.maxX)
+                app.terminate()
+            }
+        }
+    }
     @MainActor func testResultSummaryBothThemes() {
         for theme in ["light", "dark"] {
             let app = XCUIApplication(); app.launchArguments = ["--demo-student", "-appearance", theme]; app.launch()

@@ -19,8 +19,8 @@ struct ReppyTabBar: View {
             ForEach(tabs, id: \.self) { tab in
                 Button { selected = tab } label: {
                     VStack(spacing: ReppyMetrics.space4) {
-                        Image(systemName: tab.icon).font(.system(size: 20, weight: .medium))
-                        if !typeSize.isAccessibilitySize { Text(tab.title).font(.system(size: labelSize, weight: .medium)).lineLimit(1).fixedSize(horizontal: true, vertical: false) }
+                        Image(systemName: tab.icon).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
+                        if typeSize < .xxLarge { Text(tab.title).font(.system(size: labelSize, weight: .medium)).lineLimit(1).fixedSize(horizontal: true, vertical: false) }
                     }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.compact)
                         .foregroundStyle(selected == tab ? ReppyTheme.selectedText : ReppyTheme.secondary)
                         .background(selected == tab ? ReppyTheme.lime : .clear, in: Capsule())

@@ -32,6 +32,7 @@ enum ReppyMetrics {
     static let cardGap: CGFloat = 24
     static let exerciseTitle: CGFloat = 18
     static let pageInset: CGFloat = 20
+    static let iconSize: CGFloat = 20
     static let space4: CGFloat = 4
     static let space6: CGFloat = 6
     static let space8: CGFloat = 8

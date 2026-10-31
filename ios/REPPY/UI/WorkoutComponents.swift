@@ -221,30 +221,40 @@ struct ExerciseProgressSummary: View {
 import AVKit
 
 struct PlanSetRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     var number: Int
     var loadMode: LoadMode
     var unit: String
     @Binding var set: SetPlan
     var onDelete: () -> Void
     var body: some View {
-        HStack(spacing: 8) {
-            Text(String(number)).font(.body).frame(width: 24)
-            if loadMode == .external { ReppyNumericField(title: "Вес подхода \(number), кг", value: $set.targetWeight) }
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
+        layout {
+            Text(typeSize.isAccessibilitySize ? "Подход \(number)" : String(number)).font(.body).frame(width: typeSize.isAccessibilitySize ? nil : 24)
+            if loadMode == .external {
+                if typeSize.isAccessibilitySize { ReppyCaption(text: "Вес, кг") }
+                ReppyNumericField(title: "Вес подхода \(number), кг", value: $set.targetWeight)
+            }
+            if typeSize.isAccessibilitySize { ReppyCaption(text: unit) }
             ReppyNumericField(title: "Подход \(number), \(unit)", value: Binding(get: { Double(set.targetReps) }, set: { set.targetReps = ReppyValidation.integer($0) }), integer: true)
-            Button(action: onDelete) { Image(systemName: "minus").frame(width: ReppyMetrics.small, height: ReppyMetrics.small).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.buttonStyle(.plain).accessibilityLabel("Удалить подход \(number)")
+            Button(action: onDelete) { ReppyToolbarIcon(icon: "minus") }.buttonStyle(.plain).accessibilityLabel("Удалить подход \(number)")
         }
     }
 }
 struct ActiveSetRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     var exercise: WorkoutExercise
     @Binding var result: SetResult
     var onChange: () -> Void
     var body: some View {
-        HStack(spacing: 8) {
-            Text(String(result.set_number)).font(.body).frame(width: 24)
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
+        layout {
+            Text(typeSize.isAccessibilitySize ? "Подход \(result.set_number)" : String(result.set_number)).font(.body).frame(width: typeSize.isAccessibilitySize ? nil : 24)
             if exercise.loadMode == .external {
+                if typeSize.isAccessibilitySize { ReppyCaption(text: "Фактический вес, кг") }
                 ReppyNumericField(title: "Фактический вес подхода \(result.set_number), кг", value: $result.actual_weight)
             }
+            if typeSize.isAccessibilitySize { ReppyCaption(text: exercise.unit) }
             ReppyNumericField(title: "Фактически, \(exercise.unit), подход \(result.set_number)", value: Binding(get: { Double(result.actual_reps) }, set: { result.actual_reps = ReppyValidation.integer($0) }), integer: true)
             Button {
                 result.completed.toggle(); UISelectionFeedbackGenerator().selectionChanged(); onChange()
@@ -259,15 +269,16 @@ struct ActiveSetRow: View {
     }
 }
 struct SetColumnLabels: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     var loadMode: LoadMode
     var unit: String
     var body: some View {
-        HStack(spacing: 8) {
+        if !typeSize.isAccessibilitySize { HStack(spacing: 8) {
             Text("№").frame(width: 24)
             if loadMode == .external { Text("кг").frame(maxWidth: .infinity) }
             Text(unit).frame(maxWidth: .infinity)
             Color.clear.frame(width: ReppyMetrics.small, height: 1)
-        }.font(.subheadline).foregroundStyle(ReppyTheme.secondary).accessibilityHidden(true)
+        }.font(.subheadline).foregroundStyle(ReppyTheme.secondary).accessibilityHidden(true) }
     }
 }
 struct ReadOnlyExerciseCard: View {

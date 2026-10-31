@@ -5,6 +5,8 @@ struct MonthCalendar: View {
     var counts: [String: Int]
     var selectFirstDayOnMonthChange = false
     @State private var month = Date()
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var dayHeight = ReppyMetrics.small
     private var monthTitle: String {
         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "ru_RU"); formatter.dateFormat = "LLLL yyyy"
         return formatter.string(from: month).capitalized
@@ -20,26 +22,29 @@ struct MonthCalendar: View {
         VStack(spacing: 12) {
             HStack {
                 Button { month = calendar.date(byAdding: .month, value: -1, to: month)! } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Предыдущий месяц")
-                Spacer(); Text(monthTitle).font(.headline); Spacer()
+                Spacer(); Text(monthTitle).font(.headline).fixedSize(horizontal: false, vertical: true).multilineTextAlignment(.center); Spacer()
                 Button { month = calendar.date(byAdding: .month, value: 1, to: month)! } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Следующий месяц")
-            }.buttonStyle(.plain)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 44), spacing: 0), count: 7), spacing: 6) {
-                ForEach(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], id: \.self) { Text($0).font(.subheadline).foregroundStyle(ReppyTheme.secondary) }
+            }.buttonStyle(.plain).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: ReppyMetrics.small), spacing: 0), count: typeSize.isAccessibilitySize ? 3 : 7), spacing: ReppyMetrics.space6) {
+                if !typeSize.isAccessibilitySize {
+                    ForEach(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], id: \.self) { Text($0).font(.subheadline).foregroundStyle(ReppyTheme.secondary) }
+                }
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                     if let day {
                         let selected = calendar.isDate(day, inSameDayAs: date)
                         Button { date = day } label: {
                             VStack(spacing: 2) {
+                                if typeSize.isAccessibilitySize { Text(day.formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "ru_RU")))).font(.caption) }
                                 Text(String(calendar.component(.day, from: day))).font(.body)
                                 Circle().fill(counts[ReppyDate.day(day), default: 0] > 0 ? (selected ? ReppyTheme.selectedText : ReppyTheme.lime) : .clear).frame(width: 4, height: 4)
-                            }.frame(maxWidth: .infinity).frame(height: ReppyMetrics.small)
+                            }.frame(maxWidth: .infinity).frame(minHeight: dayHeight)
                                 .foregroundStyle(selected ? ReppyTheme.selectedText : ReppyTheme.text)
                                 .background(selected ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
                                 .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(calendar.isDateInToday(day) && !selected ? ReppyTheme.lime : .clear, lineWidth: 1))
                         }.buttonStyle(.plain).padding(.horizontal, 2)
                             .accessibilityLabel("\(ReppyDate.display(ReppyDate.day(day))), тренировок: \(counts[ReppyDate.day(day), default: 0])")
                             .accessibilityAddTraits(selected ? .isSelected : [])
-                    } else { Color.clear.frame(height: ReppyMetrics.small) }
+                    } else if !typeSize.isAccessibilitySize { Color.clear.frame(height: dayHeight) }
                 }
             }
         }.onAppear { month = date }
