@@ -112,7 +112,7 @@ function ExerciseCardFrame({
           {orderControls}
           <Box className="exercise-info-controls">
           <Button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></Button>
-          <Button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></Button>
+          <Button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={(mode === 'plan' ? 'Удалить упражнение — ' : 'Действия — ') + exercise.name}><Icon name={mode === 'plan' ? 'trash' : 'more'} /></Button>
           </Box>
         </Box>
       </Header>

@@ -120,6 +120,8 @@ export function go(path: string, replace = false) {
 }
 
 export function goToMenuTab(path: string) {
+  try { window.sessionStorage.removeItem(`reppy-ui:calendar-day:${path.startsWith('/student') ? 'student' : 'trainer'}`); } catch { /* best effort */ }
+  window.dispatchEvent(new CustomEvent('reppy:tab-reset', { detail: path }));
   // The current screen and its draft stay mounted in Activity. Leaving it for
   // another menu tab is not a discard, so an unsaved-form prompt is unnecessary.
   performNavigation(path, true);

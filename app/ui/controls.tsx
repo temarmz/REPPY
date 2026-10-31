@@ -7,6 +7,10 @@ import { suppressEmulatedClickAt } from './touch-activation';
 type ButtonProps = ComponentProps<'button'>;
 type InputProps = ComponentProps<'input'>;
 
+export function SegmentedControl({ value, onChange, options, label }: { value: string; onChange: (value: string) => void; options: { value: string; label: string }[]; label: string }) {
+  return <Paragraph className="segmented-control" role="group" aria-label={label}>{options.map((option) => <Button key={option.value} aria-pressed={value === option.value} onClick={() => onChange(option.value)}>{option.label}</Button>)}</Paragraph>;
+}
+
 /** Native attributes, event types and React 19 refs are preserved by every primitive. */
 export function Button({ type = 'button', onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, ...props }: ButtonProps) {
   const touch = useRef<{ identifier: number; x: number; y: number } | null>(null);

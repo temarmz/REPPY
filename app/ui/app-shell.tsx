@@ -3,7 +3,7 @@ import { UI_ASSETS } from './assets';
 import { NavigationButton } from './patterns';
 import { Inline, Box, Header, Image, Aside, Strong, Small, Nav } from './elements';
 import { Button } from './controls';
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 import Icon, { type IconName } from './icon';
 import { observeMobileViewport } from '../mobile-viewport';
 import { observeWorkoutFieldFocus } from '../workout-field-focus';
@@ -56,7 +56,6 @@ export default function AppShell({
   path,
   displayName,
   hideBottomNav,
-  onNavigate,
   onNavigateTab,
   systemStatus,
   children,
@@ -65,18 +64,14 @@ export default function AppShell({
   path: string;
   displayName: string;
   hideBottomNav: boolean;
-  onNavigate: (path: string, replace?: boolean) => void;
+  onNavigate?: (path: string, replace?: boolean) => void;
   onNavigateTab: (path: string) => void;
   systemStatus?: ReactNode;
   children: ReactNode;
 }) {
   const nav = NAVIGATION[area];
   const activeRoute = canonicalNavigationRoute(area, path);
-  const tabPaths = useRef(new Map<string, string>());
-  useLayoutEffect(() => {
-    if (activeRoute) tabPaths.current.set(activeRoute, path);
-  }, [activeRoute, path]);
-  const navigateTab = (route: string) => onNavigateTab(tabPaths.current.get(route) ?? route);
+  const navigateTab = (route: string) => onNavigateTab(route);
   const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
   const profileScrollMode = path === '/student/profile' || path === '/trainer/profile';
 
@@ -109,7 +104,7 @@ export default function AppShell({
   return (
     <Box className={`app-shell ${area} ${focusMode ? 'focus-mode' : ''} ${profileScrollMode ? 'profile-scroll-mode' : ''}`}>
       {!focusMode && <Header className="topbar">
-        <Button className="brand-mark brand-button" type="button" onClick={() => onNavigate('/')} aria-label="REPPY — на стартовый экран">
+        <Button className="brand-mark brand-button" type="button" onClick={() => onNavigateTab(`/${area}`)} aria-label="REPPY — на стартовый экран">
           <Image className="brand-logo" src={UI_ASSETS.wordmark} alt="" />
         </Button>
       </Header>}

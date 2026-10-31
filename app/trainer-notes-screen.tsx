@@ -10,21 +10,20 @@ import MonthDatePicker from './ui/month-date-picker';
 import ModalFrame from './ui/modal-frame';
 import NoteDayCard from './ui/note-day-card';
 import PageHeader from './route-page-header';
-import { loadUiDraft, saveUiDraft } from './ui-persistence';
-import { isScheduleDate } from './schedule-display';
+import { saveUiDraft } from './ui-persistence';
+
 
 export default function TrainerNotesScreen({ controller, identity }: { controller: TrainerNotesController; identity: string }) {
   const { entries, draftError } = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
-  const [firstDay, setFirstDay] = useState(() => {
-    const saved = loadUiDraft(`notes-date:${identity}`)?.date;
-    return typeof saved === 'string' && isScheduleDate(saved) ? saved : dateKey();
-  });
+  const [firstDay, setFirstDay] = useState(dateKey);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [conflictDate, setConflictDate] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
   const days = Array.from({ length: 4 }, (_, index) => notesDay(firstDay, index));
   useEffect(() => { void controller.ensure(Array.from({ length: 4 }, (_, index) => notesDay(firstDay, index))); }, [controller, firstDay]);
   useEffect(() => { saveUiDraft(`notes-date:${identity}`, { date: firstDay }); }, [firstDay, identity]);
+  const loadMonth = (month: Date) => { const start = dateKey(new Date(month.getFullYear(), month.getMonth(), -6)); void controller.ensure(Array.from({ length: 49 }, (_, index) => notesDay(start, index))); };
+  useEffect(() => { if (calendarOpen) { const month = new Date(`${firstDay}T12:00:00`); const start = dateKey(new Date(month.getFullYear(), month.getMonth(), -6)); void controller.ensure(Array.from({ length: 49 }, (_, index) => notesDay(start, index))); } }, [calendarOpen, controller, firstDay]);
   const selectDate = (date: string) => { controller.flush(); setFirstDay(date); setCalendarOpen(false); };
   const shortDate = (date: string) => new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(new Date(`${date}T12:00:00`));
   const range = `${shortDate(firstDay)} — ${shortDate(days[3])}, ${days[3].slice(0, 4)}`;
@@ -53,7 +52,7 @@ export default function TrainerNotesScreen({ controller, identity }: { controlle
     </Box>
     {calendarOpen && <ModalFrame title="Выбрать день" ariaLabel="Выбрать день" className="notes-calendar-modal" onClose={() => setCalendarOpen(false)}>
       <Paragraph>Выбранный день и три следующих останутся рядом.</Paragraph>
-      <MonthDatePicker value={firstDay} onChange={selectDate} />
+      <MonthDatePicker value={firstDay} onChange={selectDate} markedDates={new Map(Object.values(entries).filter((entry) => entry.content.trim()).map((entry) => [entry.date, 1]))} onMonthChange={loadMonth} />
       <ActionButton variant="secondary" onClick={() => selectDate(dateKey())}>Перейти к сегодня</ActionButton>
     </ModalFrame>}
     {conflictDate && conflict && <ModalFrame title="Выбрать версию заметки" ariaLabel="Выбрать версию заметки" className="notes-conflict-modal" onClose={() => { if (!resolving) setConflictDate(null); }}>

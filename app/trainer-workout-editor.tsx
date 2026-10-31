@@ -30,7 +30,7 @@ import PageHeader from './route-page-header';
 import ReadOnlyExerciseList from './ui/read-only-exercise-list';
 import Avatar from './ui/avatar';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
-import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
+import { ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
 import { assignmentScheduleLabel, formatScheduleDay } from './schedule-display';
 import { exerciseMetadata, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import {
@@ -471,15 +471,15 @@ function WorkoutExerciseEditor({
         onClose={() => setInstructionExercise(null)}
         onSave={(patch) => updateExercise(instructionExercise.id, (current) => ({ ...current, ...patch }))}
       />}
-      {actionExercise && <ExerciseActionsModal
-        exercise={actionExercise}
-        deleteDisabledReason={actionDeleteDisabledReason}
+      {actionExercise && <ConfirmationModal
+        title="Удалить упражнение?"
+        text={actionDeleteDisabledReason || `«${actionExercise.name}» будет удалено из этой тренировки.`}
+        confirmLabel={actionDeleteDisabledReason ? 'Понятно' : 'Удалить упражнение'}
+        danger={!actionDeleteDisabledReason}
         onClose={() => setActionExerciseId(null)}
-        onDeleteExercise={() => {
-          setActionExerciseId(null);
-          onChange(exercises.filter((item) => item.id !== actionExercise.id));
-        }}
+        onConfirm={() => { if (!actionDeleteDisabledReason) onChange(exercises.filter((item) => item.id !== actionExercise.id)); setActionExerciseId(null); }}
       />}
+
     </Section>
   );
 }

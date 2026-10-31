@@ -16,6 +16,7 @@ import Icon, { iconAssetPaths } from './ui/icon';
 import { useReppyData } from './use-reppy-data';
 import { StudentExerciseProgress } from './exercise-progress-view';
 import EmptyState from './ui/empty-state';
+import ConfirmationModal from './ui/confirmation-modal';
 import AppShell, { type AppTheme } from './ui/app-shell';
 import RetainedRouteViews from './retained-route-views';
 import StudentRoutes from './student-routes';
@@ -23,7 +24,7 @@ import TrainerRoutes from './trainer-routes';
 import { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './ui/app-status';
 import { downloadPersistenceDiagnostics } from './persistence-diagnostics';
 import ModalFrame, { MODAL_LAYER_EVENT, reconcileModalLayerState } from './ui/modal-frame';
-import { ActionButton, FormError, Button, Input, Select, Textarea } from './ui/controls';
+import { ActionButton, FormError, Button, Input, Select, Textarea, SegmentedControl } from './ui/controls';
 import {
   recentSubscriptionPayments,
   subscriptionBalance,
@@ -397,7 +398,7 @@ export default function ReppyApp() {
     if (route === `/${area}/notes`) return <TrainerNotesScreen controller={notesController} identity={notesIdentity} />;
     if (area === 'trainer') {
       if (route === '/trainer/notes') return <TrainerNotesScreen controller={notesController} identity={profileId ?? 'demo'} />;
-      if (route === '/trainer/profile') return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />{accountSettings}</Page>;
+      if (route === '/trainer/profile') return <TrainerProfileTabs data={data} settings={accountSettings} />;
       return <TrainerRoutes
         path={route}
         data={data}
@@ -445,7 +446,17 @@ export default function ReppyApp() {
 }
 
 
+function TrainerProfileTabs({ data, settings }: { data: DemoState; settings: ReactNode }) {
+  const [tab, setTab] = useState('data');
+  return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />
+    <SegmentedControl label="Раздел профиля" value={tab} onChange={setTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
+    <Box hidden={tab !== 'data'}>{settings}</Box>
+    {tab === 'progress' && (data.students.length ? data.students.map((student) => <Section key={student.id} className="section-block"><SectionHeading title={student.name} /><StudentExerciseProgress data={data} studentId={student.id} go={go} area="trainer" /></Section>) : <EmptyState icon="users" title="Пока нет учеников" text="Прогресс появится после завершённых тренировок учеников." />)}
+  </Page>;
+}
+
 function StudentProfile({ data, studentId, onUpdate, trainerView = false, settings }: { data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean; settings?: ReactNode }) {
+  const [profileTab, setProfileTab] = useState('data');
   const student = findStudent(data, studentId);
   if (!student) return <NotFound />;
   const assignments = data.assignments
@@ -455,6 +466,8 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
   return (
     <Page className="content-page">
       {trainerView && <Box className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></Box>}
+      <SegmentedControl label="Раздел профиля" value={profileTab} onChange={setProfileTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
+      <Box hidden={profileTab !== 'data'}>
       <SubscriptionCard data={data} student={student} trainerView={trainerView} />
       {trainerView && <Section className="profile-schedule">
         <SectionHeading title="Предстоящие тренировки" />
@@ -481,9 +494,10 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
       </Section>}
 
       {!trainerView && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
-      {!trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} area="student" />}
       {settings}
-      {trainerView && <StudentExerciseProgress data={data} studentId={studentId} go={go} />}
+      </Box>
+      {profileTab === 'progress' && <StudentExerciseProgress data={data} studentId={studentId} go={go} area={trainerView ? 'trainer' : 'student'} />}
+
     </Page>
   );
 }
@@ -604,6 +618,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
 
 function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
+  const [signOutConfirmation, setSignOutConfirmation] = useState(false);
   const [signOutBusy, setSignOutBusy] = useState(false);
   const [signOutError, setSignOutError] = useState('');
   const [telegramBusy, setTelegramBusy] = useState(false);
@@ -667,8 +682,9 @@ function ProfileSettings({ accountMode, account, theme, onToggleTheme, onSwitchR
         {onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}
         {accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
         {signOutError && <FormError>{signOutError}</FormError>}
-        {accountMode && onSignOut ? <ActionButton variant="danger" disabled={signOutBusy} onClick={() => void signOut()}>{signOutBusy ? 'Выходим…' : 'Выйти из аккаунта'}</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}
+        {accountMode && onSignOut ? <ActionButton variant="danger" disabled={signOutBusy} onClick={() => setSignOutConfirmation(true)}>{signOutBusy ? 'Выходим…' : 'Выйти из аккаунта'}</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}
       </Box>
+      {signOutConfirmation && <ConfirmationModal title="Выйти из аккаунта?" text="Чтобы вернуться, потребуется снова войти." confirmLabel="Выйти" danger onClose={() => setSignOutConfirmation(false)} onConfirm={() => { setSignOutConfirmation(false); void signOut(); }} />}
       {resetConfirmationOpen && <ModalFrame title="Сбросить локальные данные?" className="settings-modal" surface="center" ariaLabel="Сбросить локальные данные?" onClose={() => setResetConfirmationOpen(false)}><Paragraph>Все локальные изменения в учениках, тренировках и расписании будут удалены.</Paragraph><Box className="confirmation-actions"><ActionButton variant="secondary" autoFocus onClick={() => setResetConfirmationOpen(false)}>Остаться</ActionButton><ActionButton variant="danger" onClick={onReset}>Сбросить данные</ActionButton></Box></ModalFrame>}
     </Section>
   );

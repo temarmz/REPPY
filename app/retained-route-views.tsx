@@ -24,12 +24,17 @@ export default function RetainedRouteViews({ path, renderRoute }: {
     setCache({ visited: routes, released: cache.released.filter((route) => route === path) });
   }
   useEffect(() => {
+    const resetTab = (event: Event) => {
+      const target = (event as CustomEvent<string>).detail;
+      setCache((current) => ({ ...current, visited: current.visited.map((route) => route.path === target ? { ...route, recovery: route.recovery + 1 } : route) }));
+    };
+    window.addEventListener('reppy:tab-reset', resetTab);
     const release = (event: Event) => {
       const route = (event as CustomEvent<string>).detail;
       setCache((current) => ({ ...current, released: [...new Set([...current.released, route])] }));
     };
     window.addEventListener(RELEASE_ROUTE_STATE_EVENT, release);
-    return () => window.removeEventListener(RELEASE_ROUTE_STATE_EVENT, release);
+    return () => { window.removeEventListener(RELEASE_ROUTE_STATE_EVENT, release); window.removeEventListener('reppy:tab-reset', resetTab); };
   }, []);
 
   // A failed screen must not dispose the account controller or pending writes.

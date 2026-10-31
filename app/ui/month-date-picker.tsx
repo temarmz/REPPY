@@ -9,6 +9,7 @@ export default function MonthDatePicker({
   onChange,
   min,
   markedDates,
+  onMonthChange,
   selectFirstDayOnMonthChange = false,
   dateAriaLabel,
   className = '',
@@ -17,6 +18,7 @@ export default function MonthDatePicker({
   onChange: (value: string) => void;
   min?: string;
   markedDates?: ReadonlyMap<string, number>;
+  onMonthChange?: (month: Date) => void;
   selectFirstDayOnMonthChange?: boolean;
   dateAriaLabel?: (day: Date, markerCount: number) => string;
   className?: string;
@@ -52,6 +54,7 @@ export default function MonthDatePicker({
   const moveMonth = (step: number) => {
     const next = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + step, 1);
     setVisibleMonth(next);
+    onMonthChange?.(next);
     if (selectFirstDayOnMonthChange) {
       const firstAvailableKey = min && min > dateKey(next) ? min : dateKey(next);
       const firstAvailable = new Date(`${firstAvailableKey}T12:00:00`);

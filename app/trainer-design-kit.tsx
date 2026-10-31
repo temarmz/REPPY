@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { dateKey, type Workout, type SetResult } from './reppy-data';
 import { AppErrorScreen, AppStatusBanner } from './ui/app-status';
 import WorkoutScheduleFields from './ui/workout-schedule-fields';
-import { ActionButton, TextField, Input, Select, Textarea, Switch, IconButton, FormError } from './ui/controls';
+import { SegmentedControl, ActionButton, TextField, Input, Select, Textarea, Switch, IconButton, FormError } from './ui/controls';
 import ConfirmationModal from './ui/confirmation-modal';
 import PageHeader from './route-page-header';
 import ReadOnlyExerciseList from './ui/read-only-exercise-list';
@@ -101,6 +101,7 @@ export default function DesignKitScreen() {
       </Section>
 
       <Section className="design-kit-section" aria-labelledby="kit-fields-title">
+        <SegmentedControl label="Пример разделов" value={toggleActive ? 'data' : 'progress'} onChange={(value) => setToggleActive(value === 'data')} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
         <SectionHeading title={<>Поля</>}  titleId="kit-fields-title"><Inline>Общие размеры</Inline></SectionHeading>
         <TextField id="kit-name" label="Название тренировки" defaultValue="Грудь и плечи" />
         <WorkoutScheduleFields scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
