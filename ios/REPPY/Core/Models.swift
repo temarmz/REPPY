@@ -199,7 +199,11 @@ public struct AppData: Codable, ReppySendable {
         func timestamp(_ value: String) -> String { ReppyDate.timestamp(calendar.date(byAdding: .day, value: days, to: ReppyDate.parse(value) ?? today)!) }
         copy.assignments = assignments.map { item in var item = item; item.scheduled_for = shifted(item.scheduled_for); item.assigned_at = timestamp(item.assigned_at); return item }
         copy.sessions = sessions.map { item in var item = item; item.started_at = timestamp(item.started_at); item.completed_at = item.completed_at.map(timestamp); return item }
-        copy.subscriptions = subscriptions.map { item in var item = item; item.occurred_at = timestamp(item.occurred_at); return item }
+        copy.subscriptions = subscriptions.map { item in
+            var item = item
+            item.occurred_at = item.occurred_at.count == 10 ? shifted(item.occurred_at) : timestamp(item.occurred_at)
+            return item
+        }
         copy.demoDay = ReppyDate.day(today); return copy
     }
 }

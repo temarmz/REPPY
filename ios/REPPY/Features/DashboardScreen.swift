@@ -46,7 +46,7 @@ struct DashboardScreen: View {
                 if let relationship = store.ownRelationship, store.data.subscriptions.contains(where: { $0.relationship_id == relationship.id }) {
                     ReppyBalanceSummary(balance: store.data.balance(relationship.id))
                 }
-                if let first = upcoming.first { AssignmentCard(assignment: first) }
+                if let first = upcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }
                 if let relationship = store.ownRelationship { ExerciseProgressSummary(relationshipID: relationship.id, hideEmpty: true) }
                 if upcoming.count > 1 {
@@ -88,20 +88,33 @@ struct AssignmentAgendaRow: View {
 struct AssignmentCard: View {
     @EnvironmentObject private var store: AppStore
     var assignment: Assignment
+    var focus = false
+    private var progress: (completed: Int, total: Int)? {
+        guard let session = store.data.session(for: assignment.id), session.completed_at == nil else { return nil }
+        let results = store.data.sessionResults(session.id)
+        return (results.filter(\.completed).count, results.count)
+    }
     var body: some View {
-        ReppyCard {
-            if store.isTrainer { ReppyCaption(text: store.data.student(for: assignment)?.name ?? "Ученик") }
-            ReppyCaption(text: assignment.scheduleLabel)
-            ReppyTitle(text: assignment.workout_snapshot.name)
-            ReppyText(text: assignment.workout_snapshot.exercises.prefix(3).map(\.name).joined(separator: " · "), tone: .secondary)
-            if let session = store.data.session(for: assignment.id), session.completed_at == nil {
-                let results = store.data.sessionResults(session.id)
-                ReppyProgressBar(completed: results.filter(\.completed).count, total: results.count)
-                ReppyCaption(text: "Тренировка начата")
-            }
-            ReppyLink(title: assignment.status == "completed" ? "Посмотреть результат" : "Посмотреть тренировку", icon: "calendar", kind: .primary) {
-                if let session = store.data.session(for: assignment.id), session.completed_at != nil { SessionResultScreen(sessionID: session.id) }
-                else { AssignmentScreen(assignmentID: assignment.id) }
+        if focus {
+        ReppyWorkoutFocus(name: assignment.workout_snapshot.name, schedule: assignment.scheduleLabel,
+            preview: assignment.workout_snapshot.exercises.prefix(3).map(\.name).joined(separator: " · "), completed: assignment.status == "completed", progress: progress) {
+            if let session = store.data.session(for: assignment.id), session.completed_at != nil { SessionResultScreen(sessionID: session.id) }
+            else { AssignmentScreen(assignmentID: assignment.id) }
+        }
+        } else {
+            ReppyCard {
+                if store.isTrainer { ReppyCaption(text: store.data.student(for: assignment)?.name ?? "Ученик") }
+                ReppyCaption(text: assignment.scheduleLabel)
+                ReppyTitle(text: assignment.workout_snapshot.name)
+                ReppyText(text: assignment.workout_snapshot.exercises.prefix(3).map(\.name).joined(separator: " · "), tone: .secondary)
+                if let progress {
+                    ReppyProgressBar(completed: progress.completed, total: progress.total)
+                    ReppyCaption(text: "Тренировка начата")
+                }
+                ReppyLink(title: assignment.status == "completed" ? "Посмотреть результат" : "Посмотреть тренировку", icon: "calendar", kind: .primary) {
+                    if let session = store.data.session(for: assignment.id), session.completed_at != nil { SessionResultScreen(sessionID: session.id) }
+                    else { AssignmentScreen(assignmentID: assignment.id) }
+                }
             }
         }
     }

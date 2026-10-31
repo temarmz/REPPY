@@ -147,7 +147,22 @@ struct ReppyProfileSegments: View {
 }
 struct ReppyStudentDetails: View {
     var student: Student
+    var expanded = false
     var body: some View {
+        if expanded {
+            ReppyStack {
+                ReppyRow {
+                    ReppyHeading(text: "Данные и ограничения")
+                    Spacer(minLength: 0)
+                    NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+                }
+                ReppyStudentFacts(student: student)
+                ReppyStack(compact: true) {
+                    ReppyCaption(text: "Противопоказания и особенности")
+                    ReppyText(text: student.contraindications?.isEmpty == false ? student.contraindications! : "Не указаны")
+                }
+            }
+        } else {
         HStack(alignment: .top, spacing: ReppyMetrics.space12) {
             VStack(alignment: .leading, spacing: ReppyMetrics.space6) {
                 if let phone = student.phone, !phone.isEmpty { ReppyCaption(text: phone) }
@@ -157,6 +172,22 @@ struct ReppyStudentDetails: View {
             }.frame(maxWidth: .infinity, alignment: .leading)
             NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
         }
+        }
+    }
+}
+private struct ReppyStudentFacts: View {
+    var student: Student
+    @Environment(\.dynamicTypeSize) private var size
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: size.isAccessibilitySize ? 1 : 2), alignment: .leading, spacing: ReppyMetrics.space16) {
+            fact("Рост", student.height_cm.map { "\($0.reppyNumber) см" } ?? "Не указан")
+            fact("Вес", student.weight_kg.map { "\($0.reppyNumber) кг" } ?? "Не указан")
+            fact("Пол", student.gender == "male" ? "Мужской" : student.gender == "female" ? "Женский" : "Не указан")
+            fact("Телефон", student.phone?.isEmpty == false ? student.phone! : "Не указан")
+        }
+    }
+    private func fact(_ label: String, _ value: String) -> some View {
+        ReppyStack(compact: true) { ReppyCaption(text: label); ReppyText(text: value) }.accessibilityElement(children: .combine)
     }
 }
 struct ReppyAvatar: View {
@@ -173,12 +204,14 @@ struct ReppyAvatar: View {
 struct ReppyProfileIdentity: View {
     var name: String
     var role: String
+    var student: Student? = nil
     var body: some View {
         ReppyCard {
             ReppyRow {
                 ReppyAvatar(name: name, highlighted: true)
                 ReppyStack(compact: true) { ReppyHeading(text: name); ReppyCaption(text: role) }
             }
+            if let student { ReppyStudentDetails(student: student, expanded: true) }
         }
     }
 }
@@ -251,9 +284,68 @@ struct ReppyBalanceSummary: View {
     var balance: Int
     var body: some View {
         ReppyCard {
-            ReppyCaption(text: "Абонемент")
-            ReppyText(text: balance < 0 ? "Долг: \(-balance) занятий" : "Осталось \(balance) занятий", tone: balance <= 0 ? .warning : .normal)
+            ReppyRow {
+                Image(systemName: balance <= 0 ? "exclamationmark.circle" : "checkmark").foregroundStyle(balance <= 2 ? ReppyTheme.warning : ReppyTheme.trendUp).accessibilityHidden(true)
+                ReppyStack(compact: true) { ReppyCaption(text: "АБОНЕМЕНТ"); ReppyText(text: ReppySubscriptionSummary.balanceLabel(balance), tone: balance <= 0 ? .warning : .normal) }
+            }
         }
+    }
+}
+struct ReppySubscriptionSummary: View {
+    var balance: Int
+    var entries: [SubscriptionEntry]
+    var body: some View {
+        ReppyCard {
+            ReppyRow { ReppyCaption(text: "АБОНЕМЕНТ"); Spacer(minLength: 0); ReppyCaption(text: "Без срока действия") }
+            ReppyTitle(text: Self.balanceLabel(balance, hasEntries: !entries.isEmpty))
+            if entries.isEmpty { ReppyCaption(text: "Тренер ещё не добавил пополнение.") }
+            else if balance <= 0 { ReppyCaption(text: balance < 0 ? "Новые занятия будут добавляться к долгу." : "Следующую тренировку можно провести в долг.") }
+            let payments = entries.filter { $0.kind == "payment" }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
+            if !payments.isEmpty {
+                ReppyCaption(text: "ПОСЛЕДНИЕ ПОПОЛНЕНИЯ")
+                ForEach(Array(payments.prefix(3))) { entry in
+                    ReppyStack(compact: true) {
+                        ReppyHeading(text: "+\(entry.lesson_delta) \(Self.lessonWord(entry.lesson_delta))")
+                        ReppyCaption(text: "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "cash" ? "наличные" : "перевод") · \(ReppyDate.fromDay(String(entry.occurred_at.prefix(10))).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))))")
+                    }
+                }
+            }
+        }
+    }
+    static func lessonWord(_ value: Int) -> String {
+        let count = abs(value), last = count % 10
+        if (11...14).contains(count % 100) { return "занятий" }
+        return last == 1 ? "занятие" : (2...4).contains(last) ? "занятия" : "занятий"
+    }
+    static func balanceLabel(_ balance: Int, hasEntries: Bool = true) -> String {
+        guard hasEntries else { return "Абонемент не добавлен" }
+        if balance == 0 { return "Абонемент закончился" }
+        return balance > 0 ? "Осталось \(balance) \(lessonWord(balance))" : "\(abs(balance)) \(lessonWord(balance)) в долг"
+    }
+}
+struct ReppyWorkoutFocus<Destination: View>: View {
+    var name: String
+    var schedule: String
+    var preview: String
+    var completed = false
+    var progress: (completed: Int, total: Int)? = nil
+    @ViewBuilder var destination: () -> Destination
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = ReppyMetrics.focusTitleFont
+    var body: some View {
+        VStack(alignment: .leading, spacing: ReppyMetrics.space16) {
+            Text(schedule).reppyTypography(.caption).foregroundStyle(ReppyTheme.focusMeta)
+            Spacer(minLength: ReppyMetrics.cardGap)
+            Text(name).font(.system(size: titleSize, weight: .bold)).foregroundStyle(ReppyTheme.focusText).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+            Text(preview).reppyTypography(.body).foregroundStyle(ReppyTheme.focusSecondary).fixedSize(horizontal: false, vertical: true)
+            if let progress {
+                ProgressView(value: Double(progress.completed), total: Double(max(1, progress.total))).tint(ReppyTheme.focusAccent)
+                    .accessibilityLabel("Выполнено \(progress.completed) из \(progress.total) подходов")
+                Text("Тренировка начата").reppyTypography(.caption).foregroundStyle(ReppyTheme.focusSecondary)
+            }
+            NavigationLink(destination: destination) { Label(completed ? "Посмотреть результат" : "Посмотреть тренировку", systemImage: "calendar") }
+                .buttonStyle(ReppyButtonStyle(kind: .primary))
+        }.padding(ReppyMetrics.focusInset).frame(maxWidth: .infinity, minHeight: ReppyMetrics.focusMinHeight, alignment: .leading)
+            .background(ReppyTheme.focusSurface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
     }
 }
 struct ExerciseProgressSummary: View {
@@ -266,24 +358,41 @@ struct ExerciseProgressSummary: View {
             ReppyHeading(text: "Прогресс по упражнениям")
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
             ForEach(groups) { group in
-                ReppyAgendaLink(title: group.exercise.name, subtitle: summary(group)) { ProgressScreen(relationshipID: relationshipID, exerciseKey: group.id) }
+                ReppyProgressComparisonLink(group: group) { ProgressScreen(relationshipID: relationshipID, exerciseKey: group.id) }
             }
         }
     }
-    private func summary(_ group: ProgressGroup) -> String {
-        let values = group.points.prefix(2).compactMap { point -> String? in
-            let exercise = group.exercise
-            let best = point.results.sorted { a, b in
-                if exercise.loadMode == .external && exercise.measureType == .reps && a.actual_weight != b.actual_weight { return a.actual_weight > b.actual_weight }
-                if a.actual_reps != b.actual_reps { return a.actual_reps > b.actual_reps }
-                if exercise.loadMode == .external && a.actual_weight != b.actual_weight { return a.actual_weight > b.actual_weight }
-                return a.set_number < b.set_number
-            }.first
-            guard let best else { return nil }
-            return (exercise.loadMode == .external ? "\(best.actual_weight.reppyNumber) кг × " : "") + "\(best.actual_reps) \(exercise.unit)"
-        }
-        guard let latest = values.first else { return "Нет результатов" }
-        return values.count > 1 ? "Было: \(values[1])\nСтало: \(latest)" : latest
+}
+struct ReppyProgressComparisonLink<Destination: View>: View {
+    var group: ProgressGroup
+    @ViewBuilder var destination: () -> Destination
+    var body: some View {
+        NavigationLink(destination: destination) {
+            ReppyRow {
+                ReppyStack(compact: true) {
+                    ReppyHeading(text: group.exercise.name)
+                    if let comparison = ProgressComparison(group) {
+                        if let previous = comparison.previous { ReppyCaption(text: "Было: \(setLabel(previous))") }
+                        ReppyCaption(text: "\(comparison.previous == nil ? "" : "Стало: ")\(setLabel(comparison.latest))")
+                        if comparison.previous != nil {
+                            Text(changeLabel(comparison)).reppyTypography(.button).foregroundStyle(comparison.trend == .up ? ReppyTheme.trendUp : comparison.trend == .down ? ReppyTheme.trendDown : ReppyTheme.muted)
+                        }
+                    }
+                }
+                Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
+            }.padding(ReppyMetrics.space16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+        }.buttonStyle(.plain)
+    }
+    private var unit: String { group.exercise.measureType == .duration ? "сек." : "повт." }
+    private func setLabel(_ set: SetResult) -> String {
+        (group.exercise.loadMode == .external ? "\(set.actual_weight.reppyNumber) кг × " : "") + "\(set.actual_reps) \(unit)"
+    }
+    private func signed(_ value: Double) -> String { "\(value > 0 ? "+" : "−")\(abs(value).reppyNumber)" }
+    private func changeLabel(_ comparison: ProgressComparison) -> String {
+        let weight = comparison.weightChange, amount = comparison.amountChange
+        if weight == 0 && amount == 0 { return "Без изменений" }
+        if weight != 0 && amount == 0 { return "\(signed(weight)) кг при \(group.exercise.measureType == .duration ? "том же времени" : "тех же повторах")" }
+        return [weight != 0 ? "\(signed(weight)) кг" : nil, amount != 0 ? "\(signed(Double(amount))) \(unit)" : nil].compactMap { $0 }.joined(separator: ", ")
     }
 }
 import AVKit

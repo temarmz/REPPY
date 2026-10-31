@@ -14,7 +14,10 @@ final class SmokeTests: XCTestCase {
         if accessibility { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
         app.launch()
         let open = app.buttons["Посмотреть тренировку"].firstMatch
-        XCTAssertTrue(open.waitForExistence(timeout: 15)); open.tap()
+        XCTAssertTrue(open.waitForExistence(timeout: 15))
+        let home = XCTAttachment(screenshot: app.screenshot()); home.name = accessibility ? "student-home-largest-text" : "student-home-small"; home.lifetime = .keepAlways; add(home)
+        for _ in 0..<8 { if open.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(open.isHittable); open.tap()
         let start = app.buttons.matching(NSPredicate(format: "label IN %@", ["Начать тренировку", "Продолжить тренировку"])).firstMatch
         XCTAssertTrue(start.waitForExistence(timeout: 5)); start.tap()
         let weight = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Фактический вес подхода 1")).firstMatch
@@ -147,6 +150,27 @@ final class SmokeTests: XCTestCase {
                 let calendar = XCTAttachment(screenshot: app.screenshot()); calendar.name = "calendar-\(role)-\(theme)"; calendar.lifetime = .keepAlways; add(calendar)
                 app.terminate()
             }
+        }
+    }
+    @MainActor func testStudentProfileSubscriptionBothThemes() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-student", "-appearance", theme]; app.launch()
+            XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15)); app.buttons["Профиль"].tap()
+            XCTAssertTrue(app.staticTexts["Мужской"].waitForExistence(timeout: 5))
+            let payments = app.staticTexts.matching(NSPredicate(format: "label == %@", "ПОСЛЕДНИЕ ПОПОЛНЕНИЯ")).firstMatch
+            for _ in 0..<12 {
+                if payments.isHittable { break }
+                app.swipeUp(velocity: .slow)
+            }
+            XCTAssertTrue(payments.isHittable)
+            XCTAssertTrue(app.staticTexts["Осталось 11 занятий"].exists)
+            XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "+8 занятий")).count, 2)
+            let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "profile-subscription-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
+            let edit = app.buttons["Изменить личные данные"]
+            for _ in 0..<6 { if edit.isHittable { break }; app.swipeDown() }
+            XCTAssertTrue(edit.isHittable); edit.tap()
+            XCTAssertTrue(app.textFields["Имя"].waitForExistence(timeout: 5))
+            app.terminate()
         }
     }
     @MainActor func testShellNavigationAndKeyboard() {

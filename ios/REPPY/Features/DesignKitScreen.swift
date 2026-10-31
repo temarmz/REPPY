@@ -24,6 +24,13 @@ struct DesignKitScreen: View {
             }
             ReppyAuthIntro()
             ReppyProfileIdentity(name: "Александр с длинным именем", role: "Тренер")
+            if let student = store.data.students.first { ReppyProfileIdentity(name: student.name, role: "Ученик", student: student) }
+            ReppyWorkoutFocus(name: "Длинное название ближайшей тренировки", schedule: "Сегодня · 19:30", preview: "Жим лёжа · Приседания", progress: (1, 6)) { ReppyText(text: "Тренировка") }
+            ReppySubscriptionSummary(balance: -2, entries: store.data.subscriptions)
+            ReppySubscriptionSummary(balance: 0, entries: [])
+            if let relationship = store.data.relationships.first, let group = ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).first {
+                ReppyProgressComparisonLink(group: group) { ReppyText(text: "Прогресс") }
+            }
             ReppyScheduleHeader(date: Date(), today: true) { ReppyText(text: "Назначение") }
             ReppyScheduleHeader(date: Date()) { ReppyText(text: "Назначение") }
             ReppyScheduleLink(name: "Мария А.", workout: "Длинное название тренировки", time: "18:00", completed: true) { ReppyText(text: "Результат") }

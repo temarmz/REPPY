@@ -831,19 +831,19 @@ body.modal-open .bottom-nav { display: none; }
 
 /* ===== 04-student-session.css ===== */
 .student-page { width: min(100%, 760px); }
-.student-focus-card { min-height: var(--size-330); border: 0; border-radius: var(--card-radius); padding: clamp(var(--space-22), 5vw, var(--space-30)); background: var(--palette-ecefe9); color: var(--ink); }
+.student-focus-card { min-height: var(--size-330); border: 0; border-radius: var(--card-radius); padding: clamp(var(--space-22), 5vw, var(--space-30)); background: var(--focus-surface); color: var(--focus-text); }
 .student-card-top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-16); }
-.student-card-top time { display: flex; min-width: 0; align-items: baseline; gap: var(--space-7); color: var(--palette-5f7f18); }
+.student-card-top time { display: flex; min-width: 0; align-items: baseline; gap: var(--space-7); color: var(--focus-meta); }
 .student-card-top time strong { overflow: hidden; font-size: var(--font-size-12); text-overflow: ellipsis; white-space: nowrap; }
 .student-card-top time small { font-size: var(--font-size-12); font-weight:var(--font-weight-900); }
 .student-card-top b { border-radius: var(--radius-999); padding: var(--space-8) var(--space-10); background: var(--tint-070908-70); color: var(--palette-596058); font-size: var(--font-size-9); letter-spacing: .08em; }
 .student-focus-card > div:nth-child(2) { margin: var(--space-72) 0 var(--space-28); }
 .student-focus-card h2 { margin: 0; font-size: clamp(var(--font-size-44), 9vw, var(--font-size-68)); line-height: .9; letter-spacing: normal; }
-.student-focus-card p { margin: var(--space-14) 0 0; color: var(--palette-626961); font-size: var(--font-size-14); }
+.student-focus-card p { margin: var(--space-14) 0 0; color: var(--focus-secondary); font-size: var(--font-size-14); }
 .workout-progress { height: var(--size-5); overflow: hidden; border-radius: var(--radius-999); background: var(--tint-ffffff-150); }
 .workout-progress span { display: block; height: 100%; border-radius: inherit; background: var(--lime); transition: width .2s ease; }
 .student-focus-card .workout-progress { background: var(--tint-070908-100); }
-.student-focus-card .workout-progress span { background: var(--palette-6f9518); }
+.student-focus-card .workout-progress span { background: var(--focus-accent); }
 .student-focus-card > button { display: flex; width: 100%; min-height: var(--control-height-large); align-items: center; justify-content: center; gap: var(--space-9); margin-top: var(--space-25); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-20); background: var(--lime); color: var(--ink); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-900); text-align: center; }
 .student-focus-card > button .ui-icon { width: calc(var(--size-22) * var(--ui-icon-scale)); height: calc(var(--size-22) * var(--ui-icon-scale)); }
 .student-upcoming { margin-top: var(--space-38); }
@@ -1132,7 +1132,7 @@ body.modal-open .bottom-nav { display: none; }
 
 .desktop-nav nav button.active,
 .bottom-nav button.active {
-  background: var(--palette-ecefe9);
+  background: var(--nav-selected-bg);
   color: var(--ink);
   box-shadow: 0 5px 18px var(--tint-ffffff-70);
 }
@@ -2010,8 +2010,8 @@ body.modal-open .bottom-nav { display: none; }
 .progress-comparison-values > span { white-space: nowrap; }
 .progress-comparison-change { font-size: var(--font-size-14); font-weight:var(--font-weight-650); color: var(--paper); }
 
-.trend-up { color: var(--lime); }
-.trend-down { color: var(--orange); }
+.trend-up { color: var(--trend-up); }
+.trend-down { color: var(--trend-down); }
 .trend-flat, .trend-mixed { color: var(--muted); }
 
 @media (max-width: 800px) {
@@ -2420,7 +2420,7 @@ html[data-theme="light"] .person-avatar.pink { border-color: var(--tint-8a3b76-1
 html[data-theme="light"] .person-avatar.orange { border-color: var(--tint-8a4b2c-180); background: var(--surface-2); color: var(--muted); border: 0; }
 html[data-theme="light"] .desktop-nav nav button { color: var(--palette-667064); }
 html[data-theme="light"] .desktop-nav nav button.active,
-html[data-theme="light"] .bottom-nav button.active { background: var(--lime); color: var(--ink); box-shadow: none; }
+html[data-theme="light"] .bottom-nav button.active { background: var(--nav-selected-bg); color: var(--ink); box-shadow: none; }
 html[data-theme="light"] .side-demo { border-color: var(--tint-4f7111-200); background: var(--button-bg); color: var(--palette-566052); }
 
 html[data-theme="light"] .bottom-nav {
@@ -2448,8 +2448,8 @@ html[data-theme="light"] .reset-button { border-color: var(--tint-b14234-220); b
 
 html[data-theme="light"] .student-focus-card {
   border: 0;
-  background: var(--palette-white);
-  color: var(--ink);
+  background: var(--focus-surface);
+  color: var(--focus-text);
   box-shadow: none;
 }
 html[data-theme="light"] .today-session-list { border-color: var(--tint-192317-90); background: transparent; }
@@ -2556,7 +2556,7 @@ html[data-theme="light"] .success-screen section b { color: var(--text-primary);
 html[data-theme="light"] .demo-stats span { background: var(--control-bg); }
 html[data-theme="light"] .demo-stats b { color: var(--text-primary); }
 html[data-theme="light"] .form-error { background: var(--tint-a84438-80); color: var(--palette-a84438); }
-html[data-theme="light"] .trend-down { color: var(--palette-a8442b); }
+html[data-theme="light"] .trend-down { color: var(--trend-down); }
 html[data-theme="light"] :is(.plan-day-date > strong, .plan-day-date > span, .plan-session-row > time, .schedule-workout-picker-page .page-lead strong, .active-edit-toggle, .exercise-comment-button, .active-exercise-footer-actions button, .exercise-action-list > button, .history-date) { color: var(--palette-30382e); }
 html[data-theme="light"] .plan-day-card .plan-session-row > time,
 html[data-theme="light"] .connected-list .workout-row small,

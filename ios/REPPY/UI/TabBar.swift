@@ -23,7 +23,7 @@ struct ReppyTabBar: View {
                         if typeSize < .xxLarge { Text(tab.title).font(.system(size: labelSize, weight: .medium)).lineLimit(1).fixedSize(horizontal: true, vertical: false) }
                     }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.compact)
                         .foregroundStyle(selected == tab ? ReppyTheme.selectedText : ReppyTheme.secondary)
-                        .background(selected == tab ? ReppyTheme.lime : .clear, in: Capsule())
+                        .background(selected == tab ? ReppyTheme.navSelected : .clear, in: Capsule())
                         .contentShape(Rectangle())
                 }.buttonStyle(.plain).frame(maxWidth: .infinity).accessibilityLabel(tab.title).accessibilityAddTraits(selected == tab ? .isSelected : [])
             }
