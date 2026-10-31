@@ -3,6 +3,9 @@ import SwiftUI
 // Actual type references keep the native design kit tied to the library.
 enum NativeComponentCatalog {
     static let components: [(String, Any.Type)] = [
+        ("ExerciseHeader", ReppyExerciseHeader<EmptyView>.self), ("ExerciseModes", ReppyExerciseModes.self),
+        ("ExerciseSectionHeader", ReppyExerciseSectionHeader.self), ("Disclosure", ReppyDisclosure<EmptyView>.self),
+        ("ActiveExerciseCard", ReppyActiveExerciseCard.self), ("WorkoutSaveState", ReppyWorkoutSaveState.self),
         ("AgendaLink", ReppyAgendaLink<EmptyView>.self), ("BalanceSummary", ReppyBalanceSummary.self),
         ("StudentDetails", ReppyStudentDetails.self), ("ProfileSegments", ReppyProfileSegments.self), ("ExerciseProgressSummary", ExerciseProgressSummary.self),
         ("HeaderBrand", ReppyHeaderBrand.self), ("ToolbarIcon", ReppyToolbarIcon.self),

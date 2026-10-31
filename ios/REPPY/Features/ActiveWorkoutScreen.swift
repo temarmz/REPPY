@@ -26,7 +26,6 @@ struct ActiveWorkoutScreen: View {
         ReppyPage(back: true) {
             if let value = draft {
                 ReppyTitle(text: value.workout.name)
-                ReppyCaption(text: status)
                 if store.conflict {
                     ReppyButton(title: "Загрузить актуальную тренировку", icon: "arrow.clockwise", disabled: saving || store.busy) { confirmReload = true }
                 }
@@ -39,30 +38,12 @@ struct ActiveWorkoutScreen: View {
                 ReppyButton(title: "Сохранить сейчас", icon: "arrow.clockwise", compact: true, disabled: saving || store.busy) { Task { await flush() } }
                 ReppyButton(title: "Изменить упражнения и подходы", icon: "pencil", compact: true, disabled: saving || store.busy) { structure = true }
                 ForEach(value.workout.exercises) { exercise in
-                    ReppyCard {
-                        ReppyHeading(text: exercise.name)
-                        if let note = exercise.coachNote, !note.isEmpty { ReppyText(text: note, tone: .secondary) }
-                        ReppyStack(compact: true) {
-                            SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit)
-                            ForEach(value.results.filter { $0.exercise_instance_id == exercise.id }) { result in
-                                ActiveSetRow(exercise: exercise, result: resultBinding(result), onChange: {})
-                            }
-                        }
-                        ReppyButton(title: "Инструкция", icon: "questionmark.circle", compact: true) { instruction = exercise }
-                    }
+                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 })) { instruction = exercise }
                 }
                 ReppyButton(title: "Завершить тренировку", icon: "checkmark", kind: .primary, disabled: saving || store.busy) { finish = true }
-                if finish {
-                    ReppyCard {
-                        ReppyHeading(text: "Завершить тренировку?")
-                        ReppyText(text: "Выполнено \(count) из \(value.results.count) подходов. Остальные останутся невыполненными.", tone: .secondary)
-                        if store.isTrainer { ReppyToggle(title: "Списать одно занятие", value: $charge) }
-                        ReppyButton(title: "Подтвердить завершение", kind: .primary, disabled: saving || store.busy) { Task { await complete() } }
-                        ReppyButton(title: "Продолжить тренировку") { finish = false }
-                    }
-                }
             } else { ReppyEmpty(title: "Не удалось открыть тренировку", message: "Вернись к плану и обнови данные.") }
-        }.onAppear { initialize() }
+        }.toolbar { ToolbarItem(placement: .principal) { ReppyWorkoutSaveState(status: status, saving: saving) } }
+            .onAppear { initialize() }
             .onChange(of: draft?.results) { _, _ in changed() }
             .onChange(of: draft?.workout) { old, _ in reconcileResults(previous: old); changed() }
             .onChange(of: store.busy) { _, busy in
@@ -72,6 +53,19 @@ struct ActiveWorkoutScreen: View {
             .onDisappear {
                 debounce?.cancel()
                 if !completed, revision != savedRevision, !draftAccount.isEmpty, let draft { do { try DraftStorage.save(draft, account: draftAccount, key: draftKey) } catch { store.present(error) } }
+            }
+            .sheet(isPresented: $finish) {
+                NavigationStack {
+                    ReppyPage(back: true) {
+                        ReppyTitle(text: "Завершить тренировку?")
+                        if let draft {
+                            ReppyText(text: "Выполнено \(draft.results.filter(\.completed).count) из \(draft.results.count) подходов. Остальные останутся невыполненными.", tone: .secondary)
+                        }
+                        if store.isTrainer { ReppyToggle(title: "Списать одно занятие", value: $charge) }
+                        ReppyButton(title: "Подтвердить завершение", kind: .primary, disabled: saving || store.busy) { Task { await complete(); if completed { finish = false } } }
+                        ReppyButton(title: "Продолжить тренировку", disabled: saving || store.busy) { finish = false }
+                    }
+                }.presentationCornerRadius(ReppyMetrics.modalRadius).interactiveDismissDisabled(saving || store.busy)
             }
             .sheet(item: $instruction) { exercise in NavigationStack { InstructionScreen(exercise: exercise) } }
             .sheet(isPresented: $structure) {
@@ -155,18 +149,20 @@ struct ActiveWorkoutScreen: View {
 }
 struct ActiveStructureScreen: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
     @Binding var workout: Workout
     var relationshipID: String
     @State private var picker = false
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "План выполнения")
-            ReppyButton(title: "Добавить упражнение", icon: "plus") { picker = true }
+            ReppyExerciseSectionHeader { picker = true }
             ForEach($workout.exercises) { $exercise in
                 ExerciseEditorCard(exercise: $exercise, relationshipID: relationshipID, onMove: { offset in
                     if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }), workout.exercises.indices.contains(index + offset) { workout.exercises.swapAt(index, index + offset) }
                 }, onDelete: { workout.exercises.removeAll { $0.id == exercise.id } })
             }
+            ReppyButton(title: "Готово", kind: .primary) { dismiss() }
         }.sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen { workout.exercises.append(WorkoutExercise(definition: $0)); picker = false } } }
     }
 }

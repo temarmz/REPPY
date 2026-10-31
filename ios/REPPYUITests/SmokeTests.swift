@@ -2,6 +2,28 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testWorkoutEditorSetRows() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()
+            let assign = app.buttons["Назначить тренировку"]
+            XCTAssertTrue(assign.waitForExistence(timeout: 15)); assign.tap()
+            let add = app.buttons["Добавить упражнение"]
+            for _ in 0..<6 { if add.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(add.isHittable); add.tap()
+            let search = app.textFields["Поиск"]
+            XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Жим")
+            let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим")).firstMatch
+            XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+            let set = app.buttons["Добавить подход"]
+            for _ in 0..<8 { if set.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(set.isHittable); set.tap()
+            XCTAssertTrue(app.buttons["Удалить подход 1"].exists)
+            let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "editor-sets-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
+            app.buttons["Удалить подход 1"].tap()
+            XCTAssertFalse(app.buttons["Удалить подход 1"].exists)
+            app.terminate()
+        }
+    }
     @MainActor func testHomeProfileCalendarComposition() {
         for role in ["trainer", "student"] {
             for theme in ["light", "dark"] {

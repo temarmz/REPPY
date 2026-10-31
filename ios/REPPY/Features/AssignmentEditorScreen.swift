@@ -34,12 +34,11 @@ struct AssignmentEditorScreen: View {
                     }
                 }
                 ReppyField(title: "Название тренировки", text: $draft.workout.name)
-                ReppyPicker(title: "Формат", selection: $draft.format) { ForEach(TrainingFormat.allCases, id: \.self) { Text($0.title).tag($0) } }
-                ReppyDateField(title: draft.format == .online ? "Рекомендованная дата" : "Дата", date: $draft.date)
-                if draft.format == .inPerson { ReppyDateField(title: "Время", date: $timeDate, time: true) }
+                ReppyPicker(title: "Формат", selection: $draft.format, compact: true) { ForEach(TrainingFormat.allCases, id: \.self) { Text($0.title).tag($0) } }
+                ReppyDateField(title: draft.format == .online ? "Рекомендованная дата" : "Дата", date: $draft.date, compact: true)
+                if draft.format == .inPerson { ReppyDateField(title: "Время", date: $timeDate, time: true, compact: true) }
             }
-            ReppyHeading(text: "Упражнения")
-            ReppyButton(title: "Добавить упражнение", icon: "plus", disabled: store.busy) { picker = true }
+            ReppyExerciseSectionHeader(disabled: store.busy) { picker = true }
             if draft.workout.exercises.isEmpty { ReppyEmpty(title: "Упражнения не добавлены", message: "Можно сохранить пустой план и заполнить его позже.") }
             ForEach($draft.workout.exercises) { $exercise in
                 ExerciseEditorCard(exercise: $exercise, relationshipID: draft.relationshipID,

@@ -8,6 +8,8 @@ struct DesignKitScreen: View {
     @State private var tab = AppTab.home
     @State private var modal = false
     @State private var profileSection = "data"
+    @State private var sampleExercise: WorkoutExercise?
+    @State private var sampleResults: [SetResult] = []
     @EnvironmentObject private var store: AppStore
     var body: some View {
         ReppyPage(back: true) {
@@ -21,6 +23,20 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyWorkoutSaveState(status: "Все изменения сохранены", saving: false)
+            ReppyWorkoutSaveState(status: "Сохраняем…", saving: true)
+            ReppyExerciseSectionHeader {}.onAppear {
+                guard sampleExercise == nil, var exercise = store.data.assignments.first?.workout_snapshot.exercises.first else { return }
+                exercise.plannedSets = [SetPlan(targetReps: 8, targetWeight: 75.25), SetPlan(targetReps: 10, targetWeight: 70)]
+                sampleExercise = exercise
+                sampleResults = exercise.plannedSets.enumerated().map { index, plan in
+                    SetResult(session_id: "design-kit", exercise_instance_id: exercise.id, set_number: index + 1, actual_reps: plan.targetReps, actual_weight: plan.targetWeight, completed: index == 0)
+                }
+            }
+            if let exercise = sampleExercise {
+                ExerciseEditorCard(exercise: Binding(get: { sampleExercise ?? exercise }, set: { sampleExercise = $0 }), relationshipID: "", onMove: { _ in }, onDelete: { sampleExercise = nil })
+                ReppyActiveExerciseCard(exercise: exercise, results: $sampleResults) { modal = true }
+            }
             ReppyBalanceSummary(balance: 3)
             ReppyProfileSegments(selection: $profileSection)
             ReppyAgendaLink(title: "Длинное название тренировки для проверки переноса", subtitle: "Сегодня · 18:00", completed: true) { ReppyText(text: "Пример перехода") }

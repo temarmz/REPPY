@@ -146,16 +146,17 @@ struct ReppyField: View {
 }
 private struct FieldModifier: ViewModifier {
     var invalid = false
+    var compact = false
     @FocusState private var focused: Bool
     @Environment(\.isEnabled) private var enabled
     func body(content: Content) -> some View {
-        content.reppyTypography(.body).focused($focused).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12).frame(minHeight: ReppyMetrics.control)
+        content.reppyTypography(.body).focused($focused).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12).frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.control)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
             .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(invalid ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
             .opacity(enabled ? 1 : 0.4)
     }
 }
-private extension View { func reppyField(invalid: Bool = false) -> some View { modifier(FieldModifier(invalid: invalid)) } }
+private extension View { func reppyField(invalid: Bool = false, compact: Bool = false) -> some View { modifier(FieldModifier(invalid: invalid, compact: compact)) } }
 struct ReppyNumericField: View {
     var title: String
     @Binding var value: Double
@@ -181,20 +182,22 @@ struct ReppyDateField: View {
     var title: String
     @Binding var date: Date
     var time = false
+    var compact = false
     var body: some View {
         DatePicker(title, selection: $date, displayedComponents: time ? [.hourAndMinute] : [.date])
-            .datePickerStyle(.compact).reppyField().tint(ReppyTheme.text)
+            .datePickerStyle(.compact).reppyField(compact: compact).tint(ReppyTheme.text)
     }
 }
 struct ReppyPicker<T: Hashable, Content: View>: View {
     var title: String
     @Binding var selection: T
+    var compact = false
     @ViewBuilder var content: () -> Content
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             Picker(title, selection: $selection, content: content).pickerStyle(.menu).labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading).reppyField().tint(ReppyTheme.text)
+                .frame(maxWidth: .infinity, alignment: .leading).reppyField(compact: compact).tint(ReppyTheme.text)
                 .accessibilityLabel(title).accessibilityIdentifier(title)
         }
     }
