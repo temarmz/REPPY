@@ -55,8 +55,9 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     const timer = setTimeout(() => { timers.delete(timer); schedule(); }, delay);
     timers.add(timer);
   };
-  const focus = () => { clear(); schedule(); later(100); later(350); later(650); };
-  const resize = () => { schedule(); later(150); };
+  const ordinaryField = () => document.activeElement instanceof HTMLElement && Boolean(document.activeElement.closest('.notes-page, .athlete-form'));
+  const focus = () => { clear(); if (ordinaryField()) { later(180); return; } schedule(); later(100); later(350); later(650); };
+  const resize = () => { if (ordinaryField()) { clear(); later(180); return; } schedule(); later(150); };
   document.addEventListener('focusin', focus);
   const blur = () => { clear(); later(350); later(650); };
   document.addEventListener('focusout', blur);

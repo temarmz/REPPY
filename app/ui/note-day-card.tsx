@@ -13,7 +13,7 @@ export default function NoteDayCard({ date, today, value, phase, loaded = true, 
   const day = new Date(`${date}T12:00:00`);
   const label = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(day);
   const status = phase === 'loading' ? 'Загрузка…' : phase === 'saving' ? 'Сохраняем…' : phase === 'pending' ? 'Не сохранено'
-    : phase === 'conflict' ? 'Две версии' : phase === 'error' ? loaded ? 'Не сохранено' : 'Ошибка загрузки' : value ? 'Сохранено' : 'Нет записей';
+    : phase === 'conflict' ? 'Две версии' : phase === 'error' ? loaded ? 'Не сохранено' : 'Ошибка загрузки' : '';
   return <Card className={`note-day-card ${today ? 'note-day-today' : ''}`} aria-label={`Заметка за ${label}`} data-note-date={date}>
     <Header className="note-day-heading">
       <Time dateTime={date}><Strong>{new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(day)}</Strong><Small>{today ? 'Сегодня' : new Intl.DateTimeFormat('ru-RU', { weekday: 'long' }).format(day)}</Small></Time>

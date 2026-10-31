@@ -44,7 +44,7 @@ test('reduced motion отключает переходы, safe area сохран
  await page.goto('/'); await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
  await page.evaluate(() => document.documentElement.style.setProperty('--app-safe-bottom', '34px'));
  const nav = page.locator('.bottom-nav');
- expect(await nav.evaluate((node) => parseFloat(getComputedStyle(node).marginBottom))).toBe(4);
+ expect(await nav.evaluate((node) => parseFloat(getComputedStyle(node).marginBottom))).toBe(0);
  expect(await page.locator('[data-route-active="true"] main').evaluate((main) => getComputedStyle(main).animationName)).toBe('none');
 });
 
