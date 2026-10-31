@@ -1028,7 +1028,7 @@ body.modal-open .bottom-nav { display: none; }
   }
   html[data-keyboard-open] .bottom-nav { visibility: hidden; }
   .bottom-nav { position: fixed; right: 0; bottom: max(0px, calc(100dvh - var(--app-visible-height, 100dvh) - var(--app-visible-top, 0px))); left: 0; z-index: 60; touch-action: none; display: flex; min-height: 0; flex-shrink: 0; align-items: flex-start; justify-content: space-around; margin: 0 var(--space-12) 0; border: 1px solid var(--tint-ffffff-100); border-radius: var(--radius-999); padding: var(--space-5); background: var(--surface); box-shadow: 0 8px 28px var(--tint-000000-340); }
-  .bottom-nav button { display: grid; min-width: calc(var(--size-74) * var(--ui-control-width-scale)); min-height: var(--control-height-medium); place-content: center; justify-items: center; gap: var(--space-4); border: 0; border-radius: var(--radius-999); background: transparent; color: var(--palette-7e847c); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  .bottom-nav button { display: grid; min-width: 0; flex: 1 0 auto; min-height: var(--control-height-medium); place-content: center; justify-items: center; gap: var(--space-4); border: 0; border-radius: var(--radius-999); background: transparent; color: var(--palette-7e847c); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
   .bottom-nav button > span { display: grid; place-items: center; }
   .bottom-nav button .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
   .bottom-nav button small { font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
@@ -1703,7 +1703,7 @@ body.modal-open .bottom-nav { display: none; }
   .role-switch::after,
   .bottom-nav button small { font-size: var(--button-font-size); }
   .compact-primary { font-size: var(--button-font-size); }
-  .bottom-nav button { min-width: 0; flex: 1; }
+  .bottom-nav button { min-width: 0; flex: 1 0 auto; }
   .calendar-card { border-radius: var(--card-radius); padding: var(--space-15) var(--space-11); }
   .calendar-toolbar { margin-bottom: var(--space-15); }
   .calendar-grid, .calendar-weekdays { gap: var(--space-4); }
@@ -2016,7 +2016,7 @@ body.modal-open .bottom-nav { display: none; }
 
 @media (max-width: 800px) {
   .bottom-nav { gap: var(--space-2); }
-  .bottom-nav button { flex: 1 1 auto; padding-inline: 0; }
+  .bottom-nav button { flex: 1 0 auto; padding-inline: 0; }
 }
 
 
@@ -2307,7 +2307,7 @@ textarea::placeholder { color: var(--palette-747b72); opacity: 1; }
 }
 
 @media (max-width: 800px) {
-  .bottom-nav button { min-width: 0; flex: 1 1 0; padding-inline: 0; }
+  .bottom-nav button { min-width: 0; flex: 1 0 auto; padding-inline: 0; }
   .muscle-filter button { min-height: var(--control-height-small); }
   .app-status-banner:not(.preview) { right: 12px; bottom: calc(70px + max(8px, env(safe-area-inset-bottom, 0px))); left: 12px; width: auto; max-width: none; }
   .focus-mode .app-status-banner:not(.preview) { top: calc(env(safe-area-inset-top, 0px) + 92px); bottom: auto; }

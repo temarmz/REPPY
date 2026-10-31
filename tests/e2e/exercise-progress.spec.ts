@@ -31,6 +31,7 @@ test('ученик открывает свой прогресс с главно�
   await expect(section).toContainText('Было: 77,5 кг × 8 повт.');
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page).toHaveURL(/#\/student\/progress\/bench-press/);
+  await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Главная', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByText('Мой прогресс')).toBeVisible();
   await expect(page.locator('.progress-chart')).toBeVisible();
   await page.getByRole('button', { name: 'Открыть тренировку' }).click();

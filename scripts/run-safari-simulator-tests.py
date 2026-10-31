@@ -24,5 +24,5 @@ subprocess.run(['python3', str(workspace / 'scripts/generate-project.py')], chec
 project = workspace / 'REPPY.xcodeproj/project.pbxproj'
 project.write_text(project.read_text().replace('"GENERATE_INFOPLIST_FILE" = "NO";', '"GENERATE_INFOPLIST_FILE" = "YES";'))
 result = root / 'work' / f'safari-{int(time.time())}.xcresult'
-subprocess.run(['xcodebuild', 'test', '-project', str(workspace / 'REPPY.xcodeproj'), '-scheme', 'REPPY', '-destination', f'platform=iOS Simulator,id={args.device}', '-derivedDataPath', str(workspace / 'build'), '-resultBundlePath', str(result), '-only-testing:REPPYUITests', 'CODE_SIGNING_ALLOWED=NO', 'ONLY_ACTIVE_ARCH=YES'], check=True)
+subprocess.run(['xcodebuild', 'test', '-project', str(workspace / 'REPPY.xcodeproj'), '-scheme', 'REPPY', '-destination', f'platform=iOS Simulator,id={args.device}', '-derivedDataPath', str(workspace / 'build'), '-resultBundlePath', str(result), '-only-testing:REPPYUITests', 'CODE_SIGNING_ALLOWED=NO', 'ONLY_ACTIVE_ARCH=YES', 'DEBUG_INFORMATION_FORMAT=dwarf', 'COMPILER_INDEX_STORE_ENABLE=NO'], check=True)
 print(result)

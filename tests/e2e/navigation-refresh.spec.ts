@@ -14,6 +14,7 @@ for (const theme of ['dark', 'light']) for (const width of [360, 390, 1280]) {
   await expect(nav.getByRole('button')).toHaveCount(4);
   for (const label of ['Главная', 'Календарь', 'Ученики', 'Заметки']) await expect(nav.getByRole('button', { name: label, exact: true })).toBeVisible();
   await expect(nav.getByRole('button', { name: 'Профиль', exact: true })).toHaveCount(0);
+  if (width < 800) expect(await nav.locator('small').evaluateAll((labels) => labels.every((label) => label.scrollWidth <= label.clientWidth))).toBe(true);
   await page.screenshot({ animations: 'disabled', path: `work/nav-trainer-${theme}-${width}.png` });
   await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Прогресс', exact: true })).toHaveCount(0);
