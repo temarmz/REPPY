@@ -103,3 +103,27 @@ test('конфликт показывает оба текста и сохран�
   await page.reload();
   await expect(page.locator('.note-editor').first()).toHaveValue('Мой новый текст');
 });
+
+for (const theme of ['dark', 'light']) {
+  test(`повреждённый черновик сохраняется и предупреждение остаётся: ${theme}`, async ({ page }, testInfo) => {
+    await openNotes(page, 320, theme);
+    const raw = '{"recoverable-text":"Не удалять эту копию"';
+    const key = 'reppy-notes-drafts-v1:demo';
+    await page.evaluate(({ key, raw }) => localStorage.setItem(key, raw), { key, raw });
+    await page.reload();
+    const warning = page.getByText('Не удалось сохранить резервную копию текста на устройстве. Не закрывай страницу до сохранения.');
+    await expect(warning).toBeVisible();
+    const card = page.locator('.note-day-card').first();
+    await expect(card.getByRole('textbox')).not.toHaveAttribute('readonly');
+    await card.getByRole('textbox').fill('Новый подтверждённый текст');
+    await expect(card.getByRole('status')).toHaveText('Сохранено');
+    await expect(warning).toBeVisible();
+    expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe(raw);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`unreadable-draft-${theme}.png`), animations: 'disabled' });
+    await page.reload();
+    await expect(page.locator('.note-editor').first()).toHaveValue('Новый подтверждённый текст');
+    await expect(warning).toBeVisible();
+    expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe(raw);
+  });
+}

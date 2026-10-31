@@ -111,3 +111,68 @@ test('conflicts keep both texts until the trainer explicitly selects a version',
   assert.equal((await base.load(day, day))[0].revision, 2);
   await assert.rejects(() => base.save({ date: day, content: 'Устарело', revision: 1, mutationId: crypto.randomUUID() }), ReppyConflictError);
 });
+
+test('a delayed refresh cannot replace an acknowledged save or its next revision', async () => {
+  const storage = memory(); const base = createLocalTrainerNotes(storage);
+  let release;
+  let delayRead = false;
+  const repository = { save: base.save, async load(start, end) {
+    const notes = await base.load(start, end);
+    if (delayRead) { delayRead = false; await new Promise(resolve => { release = resolve; }); }
+    return notes;
+  } };
+  const controller = createTrainerNotesController(repository, storage, 'trainer', 1);
+  await controller.ensure([day]);
+  delayRead = true;
+  const refresh = controller.ensure([day]);
+  await until(() => release);
+  controller.change(day, 'Подтверждённый текст'); controller.flush(day);
+  await until(() => controller.getSnapshot().entries[day].phase === 'idle');
+  release(); await refresh;
+  assert.equal(controller.getSnapshot().entries[day].content, 'Подтверждённый текст');
+  assert.equal(controller.getSnapshot().entries[day].revision, 1);
+  controller.change(day, 'Следующая редакция'); controller.flush(day);
+  await until(() => controller.getSnapshot().entries[day].phase === 'idle');
+  assert.equal((await base.load(day, day))[0].content, 'Следующая редакция');
+  assert.equal((await base.load(day, day))[0].revision, 2);
+});
+
+test('overlapping range reads cannot roll a note back to an older remote revision', async () => {
+  const storage = memory(); const base = createLocalTrainerNotes(storage);
+  await base.save({ date: day, content: 'Первая версия', revision: 0, mutationId: crypto.randomUUID() });
+  let release;
+  let delayRead = true;
+  const repository = { save: base.save, async load(start, end) {
+    const notes = await base.load(start, end);
+    if (delayRead) { delayRead = false; await new Promise(resolve => { release = resolve; }); }
+    return notes;
+  } };
+  const controller = createTrainerNotesController(repository, storage, 'trainer', 1);
+  const older = controller.ensure([day]); await until(() => release);
+  await base.save({ date: day, content: 'Новая версия', revision: 1, mutationId: crypto.randomUUID() });
+  await controller.ensure([day, notesDay(day, 1)]);
+  release(); await older;
+  assert.equal(controller.getSnapshot().entries[day].content, 'Новая версия');
+  assert.equal(controller.getSnapshot().entries[day].revision, 2);
+});
+
+test('unreadable draft data survives loading and editing without a false recovery success', async () => {
+  const key = 'reppy-notes-drafts-v1:trainer';
+  for (const raw of ['{"unfinished":', 'null', '[]', JSON.stringify({ [day]: { content: 'Важный текст', revision: 'broken' } })]) {
+    const storage = memory(); storage.setItem(key, raw);
+    const base = createLocalTrainerNotes(storage);
+    const controller = createTrainerNotesController(base, storage, 'trainer', 1);
+    assert.equal(controller.getSnapshot().draftError, true, raw);
+    await controller.ensure([day]);
+    assert.equal(storage.getItem(key), raw);
+    assert.equal(controller.getSnapshot().draftError, true);
+    controller.change(day, 'Новая заметка');
+    await controller.ensure([day]);
+    assert.equal(controller.getSnapshot().entries[day].content, 'Новая заметка');
+    controller.flush(day);
+    await until(() => controller.getSnapshot().entries[day].phase === 'idle');
+    assert.equal((await base.load(day, day))[0].content, 'Новая заметка');
+    assert.equal(storage.getItem(key), raw);
+    assert.equal(controller.getSnapshot().draftError, true);
+  }
+});

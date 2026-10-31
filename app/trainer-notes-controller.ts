@@ -17,16 +17,19 @@ export function createTrainerNotesController(repository: TrainerNotesRepository,
   let draftError = false;
   try {
     const parsed = JSON.parse(storage.getItem(draftKey) ?? '{}');
-    if (parsed && typeof parsed === 'object') {
-      drafts = Object.fromEntries(Object.entries(parsed).filter(([date, value]) => {
-        const draft = value as Draft;
-        return /^\d{4}-\d{2}-\d{2}$/.test(date) && typeof draft?.content === 'string'
-          && draft.content.length <= NOTE_MAX_LENGTH && Number.isInteger(draft.revision) && draft.revision >= 0
-          && (!draft.job || (draft.job.date === date && typeof draft.job.content === 'string'
-            && Number.isInteger(draft.job.revision) && typeof draft.job.mutationId === 'string'));
-      })) as Record<string, Draft>;
-    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Invalid notes drafts');
+    const records = Object.entries(parsed);
+    const valid = records.filter(([date, value]) => {
+      const draft = value as Draft;
+      return /^\d{4}-\d{2}-\d{2}$/.test(date) && typeof draft?.content === 'string'
+        && draft.content.length <= NOTE_MAX_LENGTH && Number.isInteger(draft.revision) && draft.revision >= 0
+        && (!draft.job || (draft.job.date === date && typeof draft.job.content === 'string'
+          && Number.isInteger(draft.job.revision) && typeof draft.job.mutationId === 'string'));
+    });
+    drafts = Object.fromEntries(valid) as Record<string, Draft>;
+    draftError = valid.length !== records.length;
   } catch { draftError = true; }
+  let preserveUnreadableDrafts = draftError;
   let snapshot: Snapshot = { entries: {}, draftError };
   const listeners = new Set<() => void>();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -42,6 +45,8 @@ export function createTrainerNotesController(repository: TrainerNotesRepository,
       const entry = snapshot.entries[date];
       if (entry) drafts[date] = { content: entry.content, revision: entry.revision, job: jobs.get(date) };
     }
+    // Keep in-memory drafts current without destroying the unreadable disk copy.
+    if (preserveUnreadableDrafts) { snapshot.draftError = true; return; }
     try {
       if (Object.keys(drafts).length) storage.setItem(draftKey, JSON.stringify(drafts));
       else storage.removeItem(draftKey);
@@ -92,6 +97,8 @@ export function createTrainerNotesController(repository: TrainerNotesRepository,
         const draft = drafts[date];
         const revision = note?.revision ?? 0;
         const confirmedContent = note?.content ?? '';
+        // Range reads and Realtime refreshes can arrive after a newer read/save.
+        if (entry?.loaded && revision < Math.max(entry.revision, entry.remote?.revision ?? 0)) continue;
         if (dirty.has(date) && draft) {
           const content = entry?.content ?? draft.content;
           const baseRevision = entry?.revision ?? draft.revision;
@@ -185,7 +192,7 @@ export function createTrainerNotesController(repository: TrainerNotesRepository,
       if (!repository.clear) return;
       repository.clear(); dirty.clear(); jobs.clear();
       for (const timer of timers.values()) clearTimeout(timer);
-      timers.clear(); drafts = {}; snapshot.entries = {}; persistDrafts(); publish();
+      timers.clear(); drafts = {}; preserveUnreadableDrafts = false; snapshot.entries = {}; persistDrafts(); publish();
     },
   };
 }
