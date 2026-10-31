@@ -3,6 +3,8 @@
 export function observeMobileViewport(target: Window, root: HTMLElement) {
   const viewport = target.visualViewport;
   let frame = 0;
+  let restingHeight = target.innerHeight;
+  let restingWidth = target.innerWidth;
   const update = () => {
     frame = 0;
     // Do not reflow the app underneath a user's pinch zoom.
@@ -12,7 +14,14 @@ export function observeMobileViewport(target: Window, root: HTMLElement) {
     // resuming. Keep the last usable bounds instead of moving the whole shell
     // off screen or collapsing it to a few pixels.
     if (!Number.isFinite(height) || height < 160) return;
-    const rawTop = viewport?.offsetTop ?? 0;
+    const active = target.document.activeElement;
+    const editing = Boolean(active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+    if (restingWidth !== target.innerWidth) { restingWidth = target.innerWidth; restingHeight = target.innerHeight; }
+    restingHeight = Math.max(restingHeight, height);
+    const keyboardOpen = editing && restingHeight - height > 100;
+    root.toggleAttribute?.('data-keyboard-open', keyboardOpen);
+    if (keyboardOpen && root.classList.contains('app-viewport-locked') && target.scrollY) target.scrollTo({ top: 0, behavior: 'instant' });
+    const rawTop = keyboardOpen ? 0 : viewport?.offsetTop ?? 0;
     const top = Number.isFinite(rawTop)
       ? Math.max(0, Math.min(rawTop, target.innerHeight - height))
       : 0;
@@ -34,6 +43,7 @@ export function observeMobileViewport(target: Window, root: HTMLElement) {
     target.removeEventListener('resize', schedule);
     target.removeEventListener('pageshow', schedule);
     target.document.removeEventListener('visibilitychange', onVisible);
+    root.removeAttribute?.('data-keyboard-open');
     root.style.removeProperty('--app-visible-height');
     root.style.removeProperty('--app-visible-top');
   };

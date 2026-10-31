@@ -44,6 +44,29 @@ test('reduced motion отключает переходы, safe area сохран
  await page.goto('/'); await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
  await page.evaluate(() => document.documentElement.style.setProperty('--app-safe-bottom', '34px'));
  const nav = page.locator('.bottom-nav');
- expect(await nav.evaluate((node) => parseFloat(getComputedStyle(node).marginBottom))).toBe(34);
+ expect(await nav.evaluate((node) => parseFloat(getComputedStyle(node).marginBottom))).toBe(4);
  expect(await page.locator('[data-route-active="true"] main').evaluate((main) => getComputedStyle(main).animationName)).toBe('none');
+});
+
+test('клавиатура iOS уменьшает innerHeight и viewport: нижняя заметка остаётся видна', async ({ page }) => {
+ await page.goto('/'); await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
+ await page.locator('.bottom-nav').getByRole('button', { name: 'Заметки', exact: true }).tap();
+ await page.locator('.note-editor').nth(2).focus();
+ await page.evaluate(() => {
+  Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => 440 });
+  Object.defineProperty(visualViewport!, 'height', { configurable: true, get: () => 440 });
+  Object.defineProperty(visualViewport!, 'offsetTop', { configurable: true, get: () => 180 });
+  visualViewport!.dispatchEvent(new Event('resize'));
+ });
+ await expect(page.locator('html')).toHaveAttribute('data-keyboard-open');
+ await expect(page.locator('.bottom-nav')).toBeHidden();
+ await expect(page.locator('.app-shell')).toHaveCSS('top', '0px');
+ await expect.poll(() => page.locator('.note-editor').nth(2).evaluate((field) => field.getBoundingClientRect().top)).toBeLessThan(440);
+ await page.evaluate(() => {
+  Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => 844 });
+  Object.defineProperty(visualViewport!, 'height', { configurable: true, get: () => 844 });
+  Object.defineProperty(visualViewport!, 'offsetTop', { configurable: true, get: () => 0 });
+  visualViewport!.dispatchEvent(new Event('resize'));
+ });
+ await expect(page.locator('.bottom-nav')).toBeVisible();
 });
