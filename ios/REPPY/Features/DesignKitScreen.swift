@@ -23,6 +23,11 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyProfileIdentity(name: "Александр с длинным именем", role: "Тренер")
+            ReppyScheduleHeader(date: Date(), today: true) { ReppyText(text: "Назначение") }
+            ReppyScheduleHeader(date: Date()) { ReppyText(text: "Назначение") }
+            ReppyScheduleLink(name: "Мария А.", workout: "Длинное название тренировки", time: "18:00", completed: true) { ReppyText(text: "Результат") }
+            ReppyLink(title: "Посмотреть тренировку", icon: "calendar", kind: .primary) { ReppyText(text: "Тренировка") }
             if let session = store.data.sessions.first {
                 ReppySessionSummary(session: session, results: store.data.sessionResults(session.id))
                 if let exercise = session.workout_snapshot.exercises.first { ReppyResultExerciseCard(exercise: exercise, results: store.data.sessionResults(session.id)) }

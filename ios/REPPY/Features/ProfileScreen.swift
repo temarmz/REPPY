@@ -6,13 +6,12 @@ struct ProfileScreen: View {
     @State private var confirmSignOut = false
     var body: some View {
         ReppyPage(back: true) {
-            ReppyTitle(text: "Профиль", subtitle: store.profile?.display_name)
+            ReppyTitle(text: "Профиль")
+            ReppyProfileIdentity(name: store.profile?.display_name ?? "", role: store.isTrainer ? "Тренер" : "Ученик")
             if !store.isTrainer, let student = store.ownStudent { ReppyStudentDetails(student: student) }
-            ReppyCard {
-                ReppyCaption(text: store.isTrainer ? "Тренер" : "Ученик")
-                ReppyPicker(title: "Оформление", selection: $appearance) {
-                    Text("Как в системе").tag("system"); Text("Светлое").tag("light"); Text("Тёмное").tag("dark")
-                }
+            ReppyHeading(text: "Настройки")
+            ReppyPicker(title: "Оформление", selection: $appearance) {
+                Text("Как в системе").tag("system"); Text("Светлое").tag("light"); Text("Тёмное").tag("dark")
             }
             if store.isTrainer {
                 ReppyLink(title: "Библиотека упражнений", icon: "dumbbell") { ExerciseLibraryScreen() }

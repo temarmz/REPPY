@@ -13,7 +13,7 @@ final class SmokeTests: XCTestCase {
         app.launchArguments = ["--demo-student", "-appearance", "dark"]
         if accessibility { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
         app.launch()
-        let open = app.buttons["Открыть тренировку"].firstMatch
+        let open = app.buttons["Посмотреть тренировку"].firstMatch
         XCTAssertTrue(open.waitForExistence(timeout: 15)); open.tap()
         let start = app.buttons.matching(NSPredicate(format: "label IN %@", ["Начать тренировку", "Продолжить тренировку"])).firstMatch
         XCTAssertTrue(start.waitForExistence(timeout: 5)); start.tap()
@@ -135,6 +135,7 @@ final class SmokeTests: XCTestCase {
                 let home = XCTAttachment(screenshot: app.screenshot()); home.name = "home-\(role)-\(theme)"; home.lifetime = .keepAlways; add(home)
                 app.buttons["Профиль"].tap()
                 XCTAssertTrue(app.staticTexts["Оформление"].waitForExistence(timeout: 5))
+                let profile = XCTAttachment(screenshot: app.screenshot()); profile.name = "profile-\(role)-\(theme)"; profile.lifetime = .keepAlways; add(profile)
                 if role == "student" {
                     XCTAssertTrue(app.buttons["Изменить личные данные"].exists)
                     app.buttons["Изменить личные данные"].tap()

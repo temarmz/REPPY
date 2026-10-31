@@ -159,6 +159,74 @@ struct ReppyStudentDetails: View {
         }
     }
 }
+struct ReppyAvatar: View {
+    var name: String
+    var highlighted = false
+    var body: some View {
+        Text(name.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined().uppercased())
+            .reppyTypography(.button).frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
+            .foregroundStyle(highlighted ? ReppyTheme.selectedText : ReppyTheme.secondary)
+            .background(highlighted ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+            .accessibilityHidden(true)
+    }
+}
+struct ReppyProfileIdentity: View {
+    var name: String
+    var role: String
+    var body: some View {
+        ReppyCard {
+            ReppyRow {
+                ReppyAvatar(name: name, highlighted: true)
+                ReppyStack(compact: true) { ReppyHeading(text: name); ReppyCaption(text: role) }
+            }
+        }
+    }
+}
+struct ReppyScheduleHeader<Destination: View>: View {
+    var date: Date
+    var today = false
+    var compactDate = false
+    var actionLabel = "Назначить тренировку"
+    @ViewBuilder var destination: () -> Destination
+    var body: some View {
+        ReppyRow {
+            if today {
+                ReppyTitle(text: "СЕГОДНЯ", subtitle: date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "ru_RU"))))
+            } else if compactDate {
+                ReppyHeading(text: date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "ru_RU"))))
+            } else {
+                HStack(spacing: ReppyMetrics.space12) {
+                    ReppyNumber(value: date.formatted(.dateTime.day(.twoDigits)))
+                    ReppyStack(compact: true) {
+                        ReppyHeading(text: date.formatted(.dateTime.month(.wide).locale(Locale(identifier: "ru_RU"))))
+                        ReppyCaption(text: date.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "ru_RU"))))
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+            NavigationLink(destination: destination) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).accessibilityLabel(actionLabel)
+        }
+    }
+}
+struct ReppyScheduleLink<Destination: View>: View {
+    var name: String
+    var workout: String
+    var time: String
+    var completed = false
+    @ViewBuilder var destination: () -> Destination
+    var body: some View {
+        NavigationLink(destination: destination) {
+            ReppyRow {
+                Text(time).reppyTypography(.button).monospacedDigit()
+                ReppyAvatar(name: name)
+                ReppyStack(compact: true) { ReppyHeading(text: name); ReppyCaption(text: workout) }
+                if completed { Image(systemName: "checkmark.circle.fill").foregroundStyle(ReppyTheme.lime).accessibilityLabel("Завершена") }
+                Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
+            }.padding(ReppyMetrics.space16).frame(minHeight: ReppyMetrics.control)
+                .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+        }.buttonStyle(.plain)
+    }
+}
 struct ReppyAgendaLink<Destination: View>: View {
     var title: String
     var subtitle: String

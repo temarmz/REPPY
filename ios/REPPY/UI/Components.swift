@@ -122,6 +122,7 @@ struct ReppyLink<Destination: View>: View {
     var title: String
     var subtitle: String? = nil
     var icon: String = "chevron.right"
+    var kind: ActionKind = .secondary
     @ViewBuilder var destination: () -> Destination
     var body: some View {
         NavigationLink(destination: destination) {
@@ -132,7 +133,8 @@ struct ReppyLink<Destination: View>: View {
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: icon).accessibilityHidden(true)
             }.padding(16).frame(minHeight: ReppyMetrics.control)
-                .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+                .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : ReppyTheme.text)
+                .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
         }.buttonStyle(.plain)
     }
 }
