@@ -2,6 +2,23 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testDesignSystemFoundation() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()
+            XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15)); app.buttons["Профиль"].tap()
+            let kit = app.buttons["Открыть дизайн-кит"]
+            for _ in 0..<5 { if kit.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(kit.isHittable); kit.tap()
+            XCTAssertTrue(app.staticTexts["Основа дизайн-системы"].waitForExistence(timeout: 5))
+            let disabled = app.textFields["Недоступное поле"]
+            XCTAssertTrue(disabled.exists); XCTAssertFalse(disabled.isEnabled)
+            let field = app.textFields["Поле с ошибкой"]
+            field.tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+            let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "foundation-\(theme)-keyboard"; screenshot.lifetime = .keepAlways; add(screenshot)
+            app.terminate()
+        }
+    }
     @MainActor func testMinimalSignInAndDemoSheet() {
         for theme in ["light", "dark"] {
             let app = XCUIApplication(); app.launchArguments = ["-appearance", theme]; app.launch()

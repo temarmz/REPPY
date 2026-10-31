@@ -43,46 +43,45 @@ struct ReppyPage<Content: View>: View {
 struct ReppyCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 16, content: content).frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+        VStack(alignment: .leading, spacing: ReppyMetrics.space16, content: content).frame(maxWidth: .infinity, alignment: .leading)
+            .padding(ReppyMetrics.space16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
     }
 }
 struct ReppyStack<Content: View>: View {
     var compact = false
     @ViewBuilder var content: () -> Content
-    var body: some View { VStack(alignment: .leading, spacing: compact ? 8 : 16, content: content).frame(maxWidth: .infinity, alignment: .leading) }
+    var body: some View { VStack(alignment: .leading, spacing: compact ? ReppyMetrics.space8 : ReppyMetrics.space16, content: content).frame(maxWidth: .infinity, alignment: .leading) }
 }
 struct ReppyRow<Content: View>: View {
     @ViewBuilder var content: () -> Content
-    var body: some View { HStack(alignment: .center, spacing: 12, content: content) }
+    var body: some View { HStack(alignment: .center, spacing: ReppyMetrics.space12, content: content) }
 }
 struct ReppyTitle: View {
     var text: String
     var subtitle: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(text).font(.system(.largeTitle, design: .default, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+            Text(text).reppyTypography(.title).fixedSize(horizontal: false, vertical: true)
             if let subtitle { Text(subtitle).font(.body).foregroundStyle(ReppyTheme.secondary) }
         }.accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
     }
 }
 struct ReppyHeading: View {
     var text: String
-    @ScaledMetric(relativeTo: .headline) private var size = ReppyMetrics.exerciseTitle
-    var body: some View { Text(text).font(.system(size: size, weight: .semibold)).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader) }
+    var body: some View { Text(text).reppyTypography(.heading).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader) }
 }
 struct ReppyText: View {
     var text: String
     var tone: TextTone = .normal
-    var body: some View { Text(text).font(.body).foregroundStyle(tone.color).fixedSize(horizontal: false, vertical: true) }
+    var body: some View { Text(text).reppyTypography(.body).foregroundStyle(tone.color).fixedSize(horizontal: false, vertical: true) }
 }
 struct ReppyCaption: View {
     var text: String
-    var body: some View { Text(text).font(.subheadline).foregroundStyle(ReppyTheme.secondary).fixedSize(horizontal: false, vertical: true) }
+    var body: some View { Text(text).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary).fixedSize(horizontal: false, vertical: true) }
 }
 struct ReppyNumber: View {
     var value: String
-    var body: some View { Text(value).font(.system(.largeTitle, design: .default, weight: .semibold)).monospacedDigit() }
+    var body: some View { Text(value).reppyTypography(.number).monospacedDigit() }
 }
 enum ActionKind { case primary, secondary, danger }
 struct ReppyButtonStyle: ButtonStyle {
@@ -90,8 +89,8 @@ struct ReppyButtonStyle: ButtonStyle {
     var compact = false
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(.body, weight: .semibold)).multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity).padding(.horizontal, 16).padding(.vertical, 10)
+        configuration.label.reppyTypography(.button).multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12)
             .frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.control)
             .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : (kind == .danger ? ReppyTheme.error : ReppyTheme.text))
             .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
@@ -133,36 +132,42 @@ struct ReppyField: View {
     @Binding var text: String
     var multiline = false
     var keyboard: UIKeyboardType = .default
+    var error: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField().keyboardType(keyboard).accessibilityLabel(title)
-            } else { TextField(title, text: $text).reppyField().keyboardType(keyboard).accessibilityLabel(title) }
+                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title)
+            } else { TextField(title, text: $text).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title) }
+            if let error { ReppyText(text: error, tone: .error) }
         }
     }
 }
 private struct FieldModifier: ViewModifier {
+    var invalid = false
+    @FocusState private var focused: Bool
+    @Environment(\.isEnabled) private var enabled
     func body(content: Content) -> some View {
-        content.font(.body).padding(.horizontal, 14).padding(.vertical, 12).frame(minHeight: ReppyMetrics.control)
+        content.reppyTypography(.body).focused($focused).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12).frame(minHeight: ReppyMetrics.control)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
-            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(ReppyTheme.outline, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(invalid ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
+            .opacity(enabled ? 1 : 0.4)
     }
 }
-private extension View { func reppyField() -> some View { modifier(FieldModifier()) } }
+private extension View { func reppyField(invalid: Bool = false) -> some View { modifier(FieldModifier(invalid: invalid)) } }
 struct ReppyNumericField: View {
     var title: String
     @Binding var value: Double
     var integer = false
     @State private var text = ""
     @FocusState private var focused: Bool
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var size = ReppyMetrics.setNumberFont
     var body: some View {
         TextField(title, text: $text).font(.system(size: size, weight: .medium)).monospacedDigit().multilineTextAlignment(.center)
             .keyboardType(integer ? .numberPad : .decimalPad).focused($focused).accessibilityLabel(title)
-            .padding(.horizontal, 6).frame(minWidth: 44, minHeight: ReppyMetrics.small)
+            .padding(.horizontal, ReppyMetrics.space6).frame(minWidth: ReppyMetrics.small, minHeight: ReppyMetrics.small)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
-            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(value < 0 || !value.isFinite ? ReppyTheme.error : ReppyTheme.outline, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(value < 0 || !value.isFinite ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
             .onAppear { if text.isEmpty { text = value.reppyNumber } }
             .onChange(of: text) { _, text in
                 let parsed = ReppyValidation.number(text)

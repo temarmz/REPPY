@@ -3,6 +3,7 @@ import SwiftUI
 // Actual type references keep the native design kit tied to the library.
 enum NativeComponentCatalog {
     static let components: [(String, Any.Type)] = [
+        ("Typography", ReppyTypography.self),
         ("AuthPage", ReppyAuthPage<EmptyView>.self), ("AuthIntro", ReppyAuthIntro.self),
         ("NoteDayCard", NoteDayCard.self), ("NotesGrid", ReppyNotesGrid<EmptyView>.self),
         ("Page", ReppyPage<EmptyView>.self), ("Card", ReppyCard<EmptyView>.self),

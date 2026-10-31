@@ -11,6 +11,14 @@ struct DesignKitScreen: View {
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Дизайн-кит", subtitle: "Общие компоненты iPhone")
+            ReppyCard {
+                ReppyHeading(text: "Основа дизайн-системы")
+                ReppyCaption(text: "Контролы 44 / 48 / 56 · карточки 20 · интервал 24")
+                ReppyText(text: "Системный шрифт iOS поддерживает Dynamic Type. Цвета и геометрия синхронизируются с вебом.")
+                ReppyField(title: "Поле с ошибкой", text: $text, error: "Проверь введённое значение")
+                ReppyField(title: "Недоступное поле", text: $text).disabled(true)
+                ReppyButton(title: "Компактное действие", compact: true) {}
+            }
             ReppyAuthIntro()
             ReppyCard {
                 ReppyHeading(text: "Типографика и данные")
@@ -30,7 +38,7 @@ struct DesignKitScreen: View {
             ReppyEmpty(title: "Пустое состояние", message: "Описание следующего действия")
             NoteDayCard(day: ReppyDate.day(), text: $text)
             MonthCalendar(date: $date, counts: [ReppyDate.day(): 2])
-            ReppyTabBar(tabs: [.home, .calendar, .clients, .profile], selected: $tab)
+            ReppyTabBar(tabs: [.home, .calendar, .clients, .notes], selected: $tab)
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }
             ReppyCard {
                 ReppyHeading(text: "Каталог")
