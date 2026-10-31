@@ -962,6 +962,8 @@ body.modal-open .bottom-nav { display: none; }
 .settings-modal > p { margin: var(--space-20) var(--space-2); color: var(--muted); font-size: var(--font-size-12); line-height: 1.5; }
 .account-details { display: flex; align-items: center; gap: var(--space-14); margin: 0; border: 0; padding: 0; background: transparent; }
 .profile-settings { max-width: 640px; }
+.profile-data-stack:not([hidden]) { display: grid; gap: var(--card-list-gap); }
+.profile-data-stack > :is(.profile-settings, .subscription-card) { margin: 0; }
 .profile-identity-card { display: grid; gap: var(--space-20); padding: var(--space-18); border-radius: var(--card-radius); background: var(--surface); }
 .profile-identity-card .athlete-details { margin: 0; padding: 0; border: 0; }
 .profile-identity-card .telegram-connection-status { min-height: 0; padding: 0; background: transparent; }

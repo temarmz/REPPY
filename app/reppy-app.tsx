@@ -453,7 +453,7 @@ function TrainerProfileTabs({ data, settings }: { data: DemoState; settings: Rea
   const [tab, setTab] = useState('data');
   return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />
     <SegmentedControl label="Раздел профиля" value={tab} onChange={setTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
-    <Box hidden={tab !== 'data'}>{settings}</Box>
+    <Box className="profile-data-stack" hidden={tab !== 'data'}>{settings}</Box>
     {tab === 'progress' && (data.students.length ? data.students.map((student) => <Section key={student.id} className="section-block"><SectionHeading title={student.name} /><StudentExerciseProgress data={data} studentId={student.id} go={go} area="trainer" /></Section>) : <EmptyState icon="users" title="Пока нет учеников" text="Прогресс появится после завершённых тренировок учеников." />)}
   </Page>;
 }
@@ -470,7 +470,7 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
     <Page className="content-page">
       {trainerView && <Box className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></Box>}
       <SegmentedControl label="Раздел профиля" value={profileTab} onChange={setProfileTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
-      <Box hidden={profileTab !== 'data'}>
+      <Box className={trainerView ? undefined : 'profile-data-stack'} hidden={profileTab !== 'data'}>
       {trainerView || !settings ? <SubscriptionCard data={data} student={student} trainerView={trainerView} /> : null}
       {trainerView && <Section className="profile-schedule">
         <SectionHeading title="Предстоящие тренировки" />
