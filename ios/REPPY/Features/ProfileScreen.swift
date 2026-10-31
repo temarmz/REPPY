@@ -5,7 +5,7 @@ struct ProfileScreen: View {
     @AppStorage("appearance") private var appearance = "system"
     @State private var confirmSignOut = false
     var body: some View {
-        ReppyPage {
+        ReppyPage(back: true) {
             ReppyTitle(text: "Профиль", subtitle: store.profile?.display_name)
             ReppyCard {
                 ReppyCaption(text: store.isTrainer ? "Тренер" : "Ученик")

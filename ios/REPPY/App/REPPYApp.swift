@@ -36,17 +36,25 @@ struct RootScreen: View {
 struct MainScreen: View {
     @EnvironmentObject private var store: AppStore
     @State private var tab: AppTab = .home
+    @StateObject private var notes = NotesStore()
+    @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         TabView(selection: $tab) {
             NavigationStack { DashboardScreen() }.tag(AppTab.home)
             NavigationStack { CalendarScreen() }.tag(AppTab.calendar)
             if store.isTrainer { NavigationStack { StudentsScreen() }.tag(AppTab.clients) }
-            else { NavigationStack { HistoryScreen(relationshipID: store.ownRelationship?.id) }.tag(AppTab.history) }
-            NavigationStack { ProfileScreen() }.tag(AppTab.profile)
+            NavigationStack { NotesScreen() }.tag(AppTab.notes)
         }
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .profile] : [.home, .calendar, .history, .profile], selected: $tab)
+            ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .notes] : [.home, .calendar, .notes], selected: $tab)
         }.background(ReppyTheme.background)
+            .environmentObject(notes)
+            .task { await notes.start(store: store) }
+            .onChange(of: scenePhase) { _, phase in
+                Task { if phase == .active { await notes.refresh() } else { await notes.flush() } }
+            }
+            .onChange(of: store.networkAvailable) { _, available in if available { Task { await notes.refresh() } } }
+            .onDisappear { notes.stop() }
     }
 }

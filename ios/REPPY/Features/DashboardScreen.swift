@@ -33,6 +33,12 @@ struct DashboardScreen: View {
             ReppyHeading(text: store.isTrainer ? "Ближайшие тренировки" : "План на две недели")
             if upcoming.isEmpty { ReppyEmpty(title: "Пока нет тренировок", message: store.isTrainer ? "Назначь первую тренировку ученику." : "Здесь появятся тренировки, которые назначит твой тренер.", icon: "calendar") }
             ForEach(upcoming) { assignment in AssignmentCard(assignment: assignment) }
+            if !store.isTrainer, let relationship = store.ownRelationship {
+                ReppyLink(title: "История тренировок", icon: "clock.arrow.circlepath") { HistoryScreen(relationshipID: relationship.id, back: true) }
+                if !ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).isEmpty {
+                    ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationship.id) }
+                }
+            }
         }.refreshable { await store.reload() }
     }
 }

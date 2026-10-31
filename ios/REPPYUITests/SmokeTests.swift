@@ -2,6 +2,21 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testPersonalNotesForBothRoles() {
+        for role in ["trainer", "student"] {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-" + role]; app.launch()
+            XCTAssertTrue(app.buttons["Заметки"].waitForExistence(timeout: 15))
+            app.buttons["Заметки"].tap()
+            let editor = app.textViews.firstMatch
+            XCTAssertTrue(editor.waitForExistence(timeout: 5))
+            editor.tap(); editor.typeText("iOS note")
+            app.terminate(); app.launch()
+            app.buttons["Заметки"].tap()
+            XCTAssertTrue(app.textViews.firstMatch.waitForExistence(timeout: 5))
+            XCTAssertTrue((app.textViews.firstMatch.value as? String ?? "").contains("iOS note"))
+            app.terminate()
+        }
+    }
     @MainActor func testBothRolesAndBothThemes() {
         for role in ["trainer", "student"] {
             for theme in ["light", "dark"] {
@@ -22,7 +37,9 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(assign.waitForExistence(timeout: 15)); assign.tap()
         XCTAssertTrue(app.textFields["Название тренировки"].waitForExistence(timeout: 5))
         app.terminate(); app.launchArguments = ["--demo-student"]; app.launch()
-        XCTAssertTrue(app.buttons["История"].waitForExistence(timeout: 15)); app.buttons["История"].tap()
+        let history = app.buttons["История тренировок"]
+        for _ in 0..<6 { if history.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(history.waitForExistence(timeout: 15)); history.tap()
         XCTAssertTrue(app.staticTexts["История тренировок"].exists)
     }
 }

@@ -20,6 +20,14 @@ struct ReppyPage<Content: View>: View {
             .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
             .navigationBarBackButtonHidden(back)
             .toolbar {
+                if !back {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink { ProfileScreen() } label: {
+                            Image(systemName: "person.crop.circle").frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
+                                .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+                        }.accessibilityLabel("Профиль")
+                    }
+                }
                 if back {
                     ToolbarItem(placement: .topBarLeading) {
                         Button { dismiss() } label: { Image(systemName: "chevron.left").frame(width: ReppyMetrics.small, height: ReppyMetrics.small).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Назад")

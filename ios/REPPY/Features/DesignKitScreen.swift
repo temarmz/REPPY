@@ -27,6 +27,7 @@ struct DesignKitScreen: View {
             }
             ReppyStatus(message: "Ошибка сохранения. Повтори попытку.", error: true, actionTitle: "Повторить") {}
             ReppyEmpty(title: "Пустое состояние", message: "Описание следующего действия")
+            NoteDayCard(day: ReppyDate.day(), text: $text)
             MonthCalendar(date: $date, counts: [ReppyDate.day(): 2])
             ReppyTabBar(tabs: [.home, .calendar, .clients, .profile], selected: $tab)
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }
