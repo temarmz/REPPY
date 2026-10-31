@@ -11,6 +11,7 @@ struct DesignKitScreen: View {
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Дизайн-кит", subtitle: "Общие компоненты iPhone")
+            ReppyAuthIntro()
             ReppyCard {
                 ReppyHeading(text: "Типографика и данные")
                 ReppyText(text: text); ReppyCaption(text: "Вторичный текст"); ReppyNumber(value: "75,25")

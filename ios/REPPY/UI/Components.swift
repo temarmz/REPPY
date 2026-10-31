@@ -20,7 +20,7 @@ struct ReppyPage<Content: View>: View {
             .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
             .navigationBarBackButtonHidden(back)
             .toolbar {
-                if !back {
+                if !back && store.profile != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink { ProfileScreen() } label: {
                             Image(systemName: "person.crop.circle").frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
@@ -227,6 +227,31 @@ struct ReppyLoading: View {
 }
 struct ReppyBrand: View {
     var body: some View { Image("Wordmark").resizable().scaledToFit().frame(width: 150, height: 44).accessibilityLabel("REPPY") }
+}
+
+// Native scroll/keyboard behavior; the auth screen has no marketing sections.
+struct ReppyAuthPage<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: ReppyMetrics.cardGap, content: content)
+                    .frame(maxWidth: 440, alignment: .leading)
+                    .padding(ReppyMetrics.pageInset)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: geometry.size.height, alignment: .center)
+            }.scrollDismissesKeyboard(.interactively)
+        }.background(ReppyTheme.background.ignoresSafeArea())
+    }
+}
+
+struct ReppyAuthIntro: View {
+    var body: some View {
+        ReppyStack {
+            ReppyBrand()
+            ReppyTitle(text: "Войти в REPPY", subtitle: "Твои тренировки и прогресс.")
+        }
+    }
 }
 struct ReppySearch: View {
     @Binding var text: String

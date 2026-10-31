@@ -2,6 +2,23 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testMinimalSignInAndDemoSheet() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication(); app.launchArguments = ["-appearance", theme]; app.launch()
+            XCTAssertTrue(app.buttons["Войти через Telegram"].waitForExistence(timeout: 15))
+            XCTAssertFalse(app.buttons["Профиль"].exists)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "sign-in-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
+            app.buttons["Посмотреть демо"].tap()
+            XCTAssertTrue(app.buttons["Демо тренера"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["Демо ученика"].exists)
+            app.buttons["Закрыть"].tap()
+            app.buttons["У меня есть приглашение"].tap()
+            XCTAssertTrue(app.textFields["Приглашение"].waitForExistence(timeout: 5))
+            app.buttons["Готово"].tap()
+            app.terminate()
+        }
+    }
     @MainActor func testPersonalNotesForBothRoles() {
         for role in ["trainer", "student"] {
             let app = XCUIApplication(); app.launchArguments = ["--demo-" + role]; app.launch()
