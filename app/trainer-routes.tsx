@@ -45,7 +45,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
   draftIdentity: string;
   dispatch: (command: ReppyCommand) => void;
   createStudentInvitation: ((name: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
-  StudentProfileComponent: ComponentType<{ data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean }>;
+  StudentProfileComponent: ComponentType<{ data: DemoState; studentId: string; onUpdate: (student: Student) => void; onDeleteInvitation?: () => void; showProgress?: boolean; trainerView?: boolean }>;
 }) {
   let content: ReactNode;
   const createCustomExercise = (definition: DemoState['customExercises'][number]) => {
@@ -246,7 +246,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
       const student = findStudent(data, clientAssignMatch[1]);
       content = student ? <StudentWorkoutHistory data={data} student={student} scheduledFor={dateKey()} backPath={`/trainer/clients/${student.id}`} routeBase={`/trainer/clients/${student.id}/assign`} /> : <NotFound />;
     } else if (clientMatch || progressMatch) {
-      content = <StudentProfileComponent data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView onUpdate={(updated) => {
+      content = <StudentProfileComponent data={data} studentId={(clientMatch ?? progressMatch)![1]} trainerView showProgress={Boolean(progressMatch)} onDeleteInvitation={() => { dispatch({ type: 'student.invitation.delete', studentId: (clientMatch ?? progressMatch)![1] }); go('/trainer/clients', true); }} onUpdate={(updated) => {
         dispatch({ type: 'student.update', student: updated });
       }} />;
     } else if (assignmentEditMatch) {

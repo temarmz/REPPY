@@ -104,7 +104,7 @@ export function InviteStudent({
         </Section>
       ) : (
         <Section className="invite-ready">
-          <Box className="success-mark"><Icon name="arrow-up-right" /></Box>
+          <Box className="success-mark"><Icon name="users" /></Box>
           <Heading>{created.student.name} почти в команде</Heading>
           <Paragraph>Отправь эту одноразовую ссылку ученику{created.expiresAt ? ` — она действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</Paragraph>
           <Output>{inviteUrl}</Output>

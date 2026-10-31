@@ -10,9 +10,10 @@ for (const theme of ['dark', 'light']) for (const width of [360, 390, 440]) {
   await profileAction(page, 'Переключиться в роль ученика');
   const nav = page.locator('.bottom-nav');
   let bottom: number | undefined;
-  for (const label of ['Профиль', 'Заметки', 'Календарь', 'Сегодня', 'Профиль']) {
-   await nav.getByRole('button', { name: label, exact: true }).tap();
-   await expect(nav.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
+  for (const label of ['Профиль', 'Заметки', 'Календарь', 'Главная', 'Профиль']) {
+   const target = (label === 'Профиль' ? page.locator('.topbar') : nav).getByRole('button', { name: label, exact: true });
+   await target.tap();
+   await expect(target).toHaveAttribute('aria-current', 'page');
    await expect(page.locator('.app-shell')).toHaveCSS('position', 'fixed');
    await page.locator('.page-wrap').evaluate((element) => { element.scrollTop = element.scrollHeight; });
    expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -24,7 +25,7 @@ for (const theme of ['dark', 'light']) for (const width of [360, 390, 440]) {
   const identity = page.getByRole('region', { name: 'Личные данные', exact: true });
   await expect(identity.locator('.account-details')).toBeVisible();
   await expect(identity.locator('.athlete-details')).toBeVisible();
-  await page.getByRole('button', { name: 'Прогресс', exact: true }).click();
+  await nav.getByRole('button', { name: 'Главная', exact: true }).tap();
   await expect(page.locator('.progress-card-list')).toBeVisible();
   const style = await page.locator('.progress-card-list').evaluate((list) => ({ gap: getComputedStyle(list).gap, surface: getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() }));
   expect(style.gap).toBe('24px');

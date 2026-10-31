@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { createInitialState, createWorkoutSession } from '../../app/reppy-data';
 
-async function seedProgress(page: Page, count = 3, route = '/trainer/clients/artem') {
+async function seedProgress(page: Page, count = 3, route = '/trainer/clients/artem/progress') {
   const state = createInitialState();
   state.loggedIn = true;
   const assignment = state.assignments.find((item) => item.id === 'assignment-artem-push-today')!;
@@ -25,8 +25,8 @@ async function seedProgress(page: Page, count = 3, route = '/trainer/clients/art
   await expect(page.getByRole('region', { name: 'Прогресс по упражнениям' })).toBeVisible();
 }
 
-test('ученик открывает свой прогресс из профиля и результата тренировки', async ({ page }) => {
-  await seedProgress(page, 3, '/student/profile');
+test('ученик открывает свой прогресс с главной и результата тренировки', async ({ page }) => {
+  await seedProgress(page, 3, '/student');
   const section = progressSection(page);
   await expect(section).toContainText('Было: 77,5 кг × 8 повт.');
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
@@ -67,7 +67,7 @@ test('прогресс встроен внизу профиля, упражне�
     return [css.backgroundColor, css.color, css.borderRadius, css.minHeight];
   })).toEqual(backStyle);
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
-  await expect(page).toHaveURL(/#\/trainer\/clients\/artem$/);
+  await expect(page).toHaveURL(/#\/trainer\/clients\/artem\/progress$/);
   await expect(section).toBeVisible();
 });
 
@@ -118,7 +118,7 @@ test('старые ссылки показывают всю историю, чу
   await page.reload();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(25);
   await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
-  await page.goto('/#/trainer/clients/maria');
+  await page.goto('/#/trainer/clients/maria/progress');
   await expect(progressSection(page).locator('.workout-row')).toHaveCount(0);
   await expect(progressSection(page).locator('.empty-state')).toBeVisible();
   await expect(progressSection(page)).toContainText('Пока нет прогресса');
@@ -138,7 +138,7 @@ test('результат нового занятия появляется в п�
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
   await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить и списать занятие' }).click();
-  await page.goto('/#/trainer/clients/artem');
+  await page.goto('/#/trainer/clients/artem/progress');
   await expect(progressSection(page)).not.toContainText('Первый результат');
   await expect(progressSection(page).locator('.progress-trend')).toHaveCount(0);
   await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
@@ -252,7 +252,7 @@ test('размер подписей кнопок одинаков на осно�
   await seedProgress(page);
   for (const width of [320, 360, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/clients/maria/assign/new', '/trainer/assignments/assignment-artem-push-today/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student/profile']) {
+    for (const route of ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/clients/artem', '/trainer/clients/maria/assign/new', '/trainer/assignments/assignment-artem-push-today/edit', '/trainer/assignments/assignment-artem-push-today', '/student', '/student']) {
       await page.goto('/#' + route);
       await expect(page.locator(`[data-route-view="${route}"] main:not([aria-busy="true"])`)).toBeVisible();
       const inconsistent = await page.locator('.primary-button, .wide-secondary, .back-button, .compact-primary, .list-primary-action, .danger-button, .details-edit-button, .section-heading button, .bottom-nav button small, .desktop-nav nav button, .add-exercise').evaluateAll((elements) => elements.filter((element) => element.getBoundingClientRect().width > 0 && getComputedStyle(element).fontSize !== '14px').map((element) => ({ text: element.textContent, size: getComputedStyle(element).fontSize })));

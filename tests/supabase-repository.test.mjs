@@ -375,3 +375,18 @@ for (const kind of ['assignment', 'payment']) {
     assert.equal(stored.comment, 'Updated on another device');
   });
 }
+
+test('удаление приглашения отправляет атомарную серверную команду и сохраняет конфликт принятия', async () => {
+  const { client, tables } = assignedWorkoutClient();
+  const trainerId = tables.trainer_student_relationships[0].trainer_id;
+  const repository = createSupabaseRepository(client, { id: trainerId, role: 'trainer' });
+  client.rpc = async () => ({ data: [], error: null });
+  const data = await repository.load();
+  const studentId = tables.students[0].id;
+  let payload;
+  client.rpc = async (name, values) => { payload = { name, values }; return { data: null, error: null }; };
+  await repository.execute({ type: 'student.invitation.delete', studentId }, data);
+  assert.deepEqual(payload, { name: 'delete_pending_student', values: { p_student_id: studentId } });
+  client.rpc = async () => ({ error: { code: '40001', message: 'Student already accepted invitation' } });
+  await assert.rejects(repository.execute({ type: 'student.invitation.delete', studentId }, data), { code: 'REPPY_CONFLICT' });
+});

@@ -668,6 +668,12 @@ export function createSupabaseRepository(
       }));
       relationshipByStudent.set(student.id, relationshipId);
       trainerByStudent.set(student.id, profile.id);
+    } else if (command.type === 'student.invitation.delete') {
+      if (profile.role !== 'trainer') throw new Error('Только тренер может удалить приглашение.');
+      const studentId = getRemoteId(remoteStudentId, command.studentId);
+      const result = await client.rpc('delete_pending_student', { p_student_id: studentId });
+      if (result.error?.code === '40001') throw new ReppyConflictError('Ученик уже принял приглашение. Обнови список учеников.');
+      throwIfError(result);
     } else if (command.type === 'student.update') {
       const student = command.student;
       const values = {

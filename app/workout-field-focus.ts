@@ -19,7 +19,6 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
   };
   const adjust = () => {
     frame = 0;
-    if (!target.matchMedia('(max-width: 800px)').matches) return;
     const field = document.activeElement;
     if (!(field instanceof HTMLElement) || !field.matches('input:not([type="checkbox"]):not([type="file"]), textarea')
       || !field.closest('[data-workout-composer], .active-workout-page, .athlete-form, .notes-page') || !field.getClientRects().length) {
@@ -43,6 +42,8 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     document.documentElement.style.setProperty('--workout-keyboard-space', `${scrollsPage ? 0 : Math.max(0, target.innerHeight - (viewport?.height ?? target.innerHeight))}px`);
     const header = field.closest('main')?.querySelector('.active-sticky-header');
     if (header) top = Math.max(top, header.getBoundingClientRect().bottom);
+    const navigation = document.querySelector<HTMLElement>('.bottom-nav');
+    if (navigation && navigation.getClientRects().length && target.getComputedStyle(navigation).visibility !== 'hidden') bottom = Math.min(bottom, navigation.getBoundingClientRect().top);
     const label = field.closest('label');
     const rect = (label ?? field).getBoundingClientRect();
     const delta = fieldScrollDelta(rect, top + 16, bottom - 24);

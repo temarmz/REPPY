@@ -20,8 +20,9 @@ function progressGroups(data: DemoState, studentId: string) {
     .filter((group) => group.entries.length);
 }
 
-export function StudentExerciseProgress({ data, studentId, go, area = 'trainer' }: Pick<Props, 'data' | 'studentId' | 'go' | 'area'>) {
+export function StudentExerciseProgress({ data, studentId, go, area = 'trainer', hideEmpty = false }: Pick<Props, 'data' | 'studentId' | 'go' | 'area'> & { hideEmpty?: boolean }) {
   const groups = progressGroups(data, studentId);
+  if (hideEmpty && !groups.length) return null;
   return <Section className="section-block student-exercise-progress" aria-label="Прогресс по упражнениям">
     <SectionHeading title="Прогресс по упражнениям" />
     {groups.length ? <Box className="progress-card-list">
@@ -51,8 +52,8 @@ export default function ExerciseProgressView({ data, studentId, exerciseId, sear
     && (!params.has('loadMode') || item.exercise.loadMode === params.get('loadMode'))
     && (!params.has('measureType') || item.exercise.measureType === params.get('measureType')));
   return <Page className="content-page narrow-page progress-page">
-    <PageHeader eyebrow={area === 'student' ? 'Мой прогресс' : student?.name ?? 'Ученик не найден'} title={group?.exercise.name.toUpperCase() ?? 'НЕТ РЕЗУЛЬТАТОВ'} onBack={() => back(area === 'student' ? '/student/profile' : `/trainer/clients/${studentId}`)} />
-    {!student || !group ? <EmptyState icon="history" title="Результаты не найдены" text={student ? 'У этого упражнения пока нет завершённых подходов.' : 'Проверь ссылку или вернись к списку учеников.'} action={area === 'student' ? 'Вернуться в профиль' : `Вернуться к ${student ? 'ученику' : 'ученикам'}`} onAction={() => go(area === 'student' ? '/student/profile' : student ? `/trainer/clients/${studentId}` : '/trainer/clients')} /> : <>
+    <PageHeader eyebrow={area === 'student' ? 'Мой прогресс' : student?.name ?? 'Ученик не найден'} title={group?.exercise.name.toUpperCase() ?? 'НЕТ РЕЗУЛЬТАТОВ'} onBack={() => back(area === 'student' ? '/student' : `/trainer/clients/${studentId}`)} />
+    {!student || !group ? <EmptyState icon="history" title="Результаты не найдены" text={student ? 'У этого упражнения пока нет завершённых подходов.' : 'Проверь ссылку или вернись к списку учеников.'} action={area === 'student' ? 'Вернуться на главную' : `Вернуться к ${student ? 'ученику' : 'ученикам'}`} onAction={() => go(area === 'student' ? '/student' : student ? `/trainer/clients/${studentId}` : '/trainer/clients')} /> : <>
       <Paragraph className="progress-muted progress-period">Всё время · {sessionCount(group.entries.length)}</Paragraph>
       <ProgressChart key={group.key} entries={group.entries} exercise={group.exercise} go={go} sessionHref={(sessionId) => area === 'student' ? `/student/calendar/sessions/${sessionId}` : `/trainer/sessions/${sessionId}`} />
     </>}

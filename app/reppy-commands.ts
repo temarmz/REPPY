@@ -19,6 +19,7 @@ export type ReppyCommand =
   | { type: 'exercise-definition.update'; definition: ExerciseDefinition }
   | { type: 'student.create'; student: Student }
   | { type: 'student.update'; student: Student }
+  | { type: 'student.invitation.delete'; studentId: string }
   | { type: 'assignment.create'; assignment: Assignment }
   | { type: 'assignment.update'; assignment: Assignment }
   | { type: 'assignment.delete'; assignmentId: string; sessionId?: string }
@@ -64,6 +65,10 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
       return state.students.some((student) => student.id === command.student.id)
         ? state
         : { ...state, students: [...state.students, command.student] };
+    case 'student.invitation.delete':
+      return state.students.some((student) => student.id === command.studentId && student.status === 'invited')
+        ? { ...state, students: state.students.filter((student) => student.id !== command.studentId) }
+        : state;
     case 'student.update':
       return {
         ...state,

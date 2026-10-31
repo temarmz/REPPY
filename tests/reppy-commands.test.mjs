@@ -152,3 +152,15 @@ test('обратная связь не завершает незавершённ
   assert.equal(updated?.mood, 'good');
   assert.equal(updated?.comment, 'Всё получилось');
 });
+
+test('удаление приглашения убирает только неподключённого ученика и безопасно повторяется', () => {
+  const state = createInitialState();
+  state.students.push({ id: 'pending-delete', name: 'Ожидающий', status: 'invited', color: 'lime' });
+  const next = applyReppyCommand(state, { type: 'student.invitation.delete', studentId: 'pending-delete' });
+  assert.equal(next.students.length, state.students.length - 1);
+  assert.strictEqual(applyReppyCommand(next, { type: 'student.invitation.delete', studentId: 'pending-delete' }), next);
+  const active = state.students.find((student) => student.status === 'active');
+  assert.strictEqual(applyReppyCommand(state, { type: 'student.invitation.delete', studentId: active.id }), state);
+  assert.strictEqual(next.assignments, state.assignments);
+  assert.strictEqual(next.sessions, state.sessions);
+});

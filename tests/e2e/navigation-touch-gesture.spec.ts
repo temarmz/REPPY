@@ -34,7 +34,7 @@ for (const theme of ['dark', 'light'] as const) {
         await target.tap();
         await expect(nav.getByRole('button', { name: 'Календарь', exact: true })).toHaveAttribute('aria-current', 'page');
         const origin = role === 'student' ? 'Профиль' : 'Ученики';
-        await nav.getByRole('button', { name: origin, exact: true }).tap();
+        await (role === 'student' ? page.locator('.topbar').getByRole('button', { name: origin, exact: true }) : nav.getByRole('button', { name: origin, exact: true })).tap();
         await expect(field).toHaveValue('Keep this unfinished form');
         await cdp.detach();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

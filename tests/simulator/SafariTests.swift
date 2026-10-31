@@ -11,7 +11,7 @@ final class SafariTests: XCTestCase {
   XCTAssertTrue(notes.waitForExistence(timeout: 20), safari.debugDescription)
   var count = 0
   for round in 0..<8 {
-   for label in ["Главная", "Календарь", "Ученики", "Заметки", "Профиль"] {
+   for label in ["Главная", "Календарь", "Ученики", "Заметки"] {
     let button = safari.buttons[label].firstMatch
     XCTAssertTrue(button.exists, "Missing tab \(label)")
     safari.swipeUp(velocity: .fast)
@@ -23,21 +23,21 @@ final class SafariTests: XCTestCase {
       XCTAssertTrue(target.exists, "Missing action \(action)"); target.tap(); count += 1
      }
     }
-    if label == "Профиль" {
-     for action in ["Прогресс", "Данные"] { let target = safari.descendants(matching: .any).matching(NSPredicate(format: "label == %@", action)).firstMatch; XCTAssertTrue(target.waitForExistence(timeout: 3), safari.debugDescription); target.tap(); count += 1 }
-    }
+
    }
+   safari.buttons["Профиль"].tap(); count += 1
+   XCTAssertTrue(safari.buttons["Переключиться в роль ученика"].waitForExistence(timeout: 3))
   }
   print("SAFARI_E2E_ACTIVATIONS=\(count)")
  }
  func testStudentFieldsAndTabs() throws {
   continueAfterFailure = false
   let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari"); safari.activate()
-  let address = safari.textFields["Address"]; XCTAssertTrue(address.waitForExistence(timeout: 10)); address.tap(); address.typeText("http://127.0.0.1:4173/#/trainer/profile\n")
-  let switchRole = safari.buttons["Переключиться в роль ученика"]; XCTAssertTrue(switchRole.waitForExistence(timeout: 5)); switchRole.tap()
-  var count = 1
+  let address = safari.textFields["Address"]; XCTAssertTrue(address.waitForExistence(timeout: 10)); address.tap(); address.typeText("http://127.0.0.1:4173/#/student\n")
+  XCTAssertTrue(safari.buttons["Главная"].waitForExistence(timeout: 5))
+  var count = 0
   for round in 0..<5 {
-   for label in ["Сегодня", "Календарь", "Заметки", "Профиль"] {
+   for label in ["Главная", "Календарь", "Заметки"] {
     safari.swipeUp(velocity: .fast)
     let button = safari.buttons[label].firstMatch; XCTAssertTrue(button.exists); button.tap(); count += 1
     if label == "Календарь" {
@@ -51,10 +51,10 @@ final class SafariTests: XCTestCase {
       safari.buttons["Done"].firstMatch.tap(); count += 1
      }
     }
-    if label == "Профиль" {
-     for action in ["Прогресс", "Данные"] { let control = safari.descendants(matching: .any).matching(NSPredicate(format: "label == %@", action)).firstMatch; XCTAssertTrue(control.waitForExistence(timeout: 3)); control.tap(); count += 1 }
-    }
+
    }
+   safari.buttons["Профиль"].tap(); count += 1
+   XCTAssertTrue(safari.buttons["Редактировать"].waitForExistence(timeout: 3))
   }
   print("SAFARI_STUDENT_ACTIVATIONS=\(count)")
  }

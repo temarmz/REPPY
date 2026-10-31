@@ -48,7 +48,7 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(page.getByRole('button', { name: 'Перезагрузить', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Вернуться на главную' }).click();
       await expect(page).toHaveURL(/#\/student$/);
-      await nav.getByRole('button', { name: 'Профиль', exact: true }).click();
+      await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
       await expect(phone).toHaveValue('+7 222 222-22-22');
       await page.evaluate(() => window.routeRecoveryQa.release());
       await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.controller?.persistencePhase)).toBe('idle');

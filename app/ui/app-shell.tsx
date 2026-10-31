@@ -23,13 +23,11 @@ const NAVIGATION: Record<AppArea, NavigationItem[]> = {
     { label: 'Календарь', icon: 'calendar', route: '/trainer/calendar' },
     { label: 'Ученики', icon: 'users', route: '/trainer/clients' },
     { label: 'Заметки', icon: 'notes', route: '/trainer/notes' },
-    { label: 'Профиль', icon: 'user', route: '/trainer/profile' },
   ],
   student: [
-    { label: 'Сегодня', icon: 'calendar', route: '/student' },
+    { label: 'Главная', icon: 'home', route: '/student' },
     { label: 'Календарь', icon: 'calendar', route: '/student/calendar' },
     { label: 'Заметки', icon: 'notes', route: '/student/notes' },
-    { label: 'Профиль', icon: 'user', route: '/student/profile' },
   ],
 };
 
@@ -105,6 +103,7 @@ export default function AppShell({
         <Button className="brand-mark brand-button" type="button" onClick={() => onNavigateTab(`/${area}`)} aria-label="REPPY — на стартовый экран">
           <Image className="brand-logo" src={UI_ASSETS.wordmark} alt="" />
         </Button>
+        <Box className="topbar-actions"><NavigationButton className="schedule-add-button" active={path === `/${area}/profile`} type="button" aria-label="Профиль" onClick={() => navigateTab(`/${area}/profile`)}><Icon name="user" /></NavigationButton></Box>
       </Header>}
 
       {systemStatus}
