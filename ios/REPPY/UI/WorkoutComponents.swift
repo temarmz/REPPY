@@ -1,5 +1,70 @@
 import SwiftUI
 
+struct ReppyResultExerciseCard: View {
+    var exercise: WorkoutExercise
+    var results: [SetResult]
+    var body: some View {
+        ReppyCard {
+            ReppyExerciseHeader(exercise: exercise) { EmptyView() }
+            if let note = exercise.coachNote, !note.isEmpty { ReppyCaption(text: note) }
+            let recorded = results.filter { $0.exercise_instance_id == exercise.id }.sorted { $0.set_number < $1.set_number }
+            ForEach(recorded) { result in
+                ReppyRow {
+                    ReppyCaption(text: "Подход \(result.set_number)")
+                    Spacer()
+                    ReppyText(text: (exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(exercise.unit)")
+                    Image(systemName: result.completed ? "checkmark" : "minus").foregroundStyle(result.completed ? ReppyTheme.lime : ReppyTheme.muted)
+                        .accessibilityLabel(result.completed ? "Выполнено" : "Не выполнено")
+                }.frame(minHeight: ReppyMetrics.small)
+            }
+            if recorded.isEmpty { ReppyCaption(text: "Нет записанных подходов") }
+        }
+    }
+}
+
+struct ReppySessionSummary: View {
+    var session: WorkoutSession
+    var results: [SetResult]
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var elapsed: String {
+        guard let start = ReppyDate.parse(session.started_at), let end = ReppyDate.parse(session.completed_at ?? "") else { return "—" }
+        let seconds = max(0, Int(end.timeIntervalSince(start)))
+        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
+    }
+    var body: some View {
+        ReppyCard {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 3), alignment: .leading, spacing: ReppyMetrics.space16) {
+                item("Длительность", elapsed)
+                item("Подходы", "\(results.filter(\.completed).count) из \(results.count)")
+                item("Упражнения", String(session.workout_snapshot.exercises.count))
+            }
+            if let completed = session.completed_at { ReppyCaption(text: ReppyDate.display(completed)) }
+        }
+    }
+    private func item(_ title: String, _ value: String) -> some View {
+        ReppyStack(compact: true) { ReppyCaption(text: title); ReppyHeading(text: value) }
+    }
+}
+struct ReppySubscriptionEntry: View {
+    var entry: SubscriptionEntry
+    var balanceAfter: Int
+    var body: some View {
+        ReppyCard {
+            ReppyRow {
+                ReppyHeading(text: entry.kind == "payment" ? "Пополнение" : entry.kind == "session-refund" ? "Возврат занятия" : "Занятие списано")
+                Spacer()
+                ReppyText(text: "\(entry.lesson_delta > 0 ? "+" : "")\(entry.lesson_delta)")
+            }
+            ReppyCaption(text: ReppyDate.display(entry.occurred_at))
+            if entry.kind == "payment" { ReppyCaption(text: "\((entry.amount_rub ?? 0).reppyNumber) ₽ · \(entry.payment_method == "cash" ? "Наличные" : "Перевод")") }
+            else if let name = entry.workout_name { ReppyText(text: name, tone: .secondary) }
+            if let comment = entry.comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
+            ReppyCaption(text: "Баланс после операции: \(balanceAfter)")
+            if entry.kind == "payment" { Label("Изменить пополнение", systemImage: "pencil").reppyTypography(.caption) }
+        }.foregroundStyle(ReppyTheme.text)
+    }
+}
+
 struct ReppyExerciseSectionHeader: View {
     var disabled = false
     var add: () -> Void

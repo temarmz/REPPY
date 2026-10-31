@@ -2,6 +2,22 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testResultSummaryBothThemes() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-student", "-appearance", theme]; app.launch()
+            XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 15)); app.buttons["Календарь"].tap()
+            let history = app.buttons["История тренировок"]
+            for _ in 0..<8 { if history.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(history.isHittable); history.tap()
+            let result = app.buttons["Посмотреть результат"].firstMatch
+            XCTAssertTrue(result.waitForExistence(timeout: 5)); result.tap()
+            XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Подходы"].exists)
+            XCTAssertTrue(app.staticTexts["Упражнения"].exists)
+            let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "result-summary-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
+            app.terminate()
+        }
+    }
     @MainActor func testWorkoutEditorSetRows() {
         for theme in ["light", "dark"] {
             let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()

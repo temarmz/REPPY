@@ -23,6 +23,14 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            if let session = store.data.sessions.first {
+                ReppySessionSummary(session: session, results: store.data.sessionResults(session.id))
+                if let exercise = session.workout_snapshot.exercises.first { ReppyResultExerciseCard(exercise: exercise, results: store.data.sessionResults(session.id)) }
+            }
+            if let entry = store.data.subscriptions.first { ReppySubscriptionEntry(entry: entry, balanceAfter: 3) }
+            if let relationship = store.data.relationships.first, let group = ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).first {
+                ReppyCard { ReppyProgressChart(points: group.points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit) }
+            }
             ReppyWorkoutSaveState(status: "Все изменения сохранены", saving: false)
             ReppyWorkoutSaveState(status: "Сохраняем…", saving: true)
             ReppyExerciseSectionHeader {}.onAppear {

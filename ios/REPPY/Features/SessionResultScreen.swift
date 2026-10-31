@@ -13,11 +13,9 @@ struct SessionResultScreen: View {
             if let session = store.data.sessions.first(where: { $0.id == sessionID }) {
                 ReppyTitle(text: session.workout_snapshot.name, subtitle: "Тренировка завершена")
                 let results = store.data.sessionResults(sessionID)
-                ReppyCard {
-                    ReppyNumber(value: "\(results.filter(\.completed).count) / \(results.count)")
-                    ReppyCaption(text: "Выполнено подходов")
-                    ReppyText(text: session.charge_status == "charged" ? "Списано одно занятие" : "Без списания занятия", tone: .secondary)
-                    if let completed = session.completed_at { ReppyCaption(text: ReppyDate.display(completed)) }
+                ReppySessionSummary(session: session, results: results)
+                if store.isTrainer, session.charge_status == "charged" || session.charge_status == "waived" {
+                    ReppyText(text: session.charge_status == "charged" ? "Одно занятие списано" : "Занятие не списано", tone: .secondary)
                 }
                 if !store.isTrainer {
                     ReppyCard {
@@ -30,14 +28,22 @@ struct SessionResultScreen: View {
                         } } }
                     }
                 } else {
-                    if let mood = session.mood { ReppyCard { ReppyHeading(text: "Самочувствие: \(mood.title)"); ReppyText(text: session.comment ?? "", tone: .secondary) } }
+                    if session.mood != nil || !(session.comment ?? "").isEmpty {
+                        ReppyCard { ReppyHeading(text: "Обратная связь ученика"); if let mood = session.mood { ReppyText(text: mood.title) }; ReppyText(text: session.comment ?? "", tone: .secondary) }
+                    }
                     if let assignment = store.data.assignments.first(where: { $0.id == session.assignment_id }) {
                         ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) }
                         ReppyLink(title: "Открыть тренировку") { AssignmentScreen(assignmentID: assignment.id) }
                         ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: assignment.relationship_id) }
                     }
                 }
-                ForEach(session.workout_snapshot.exercises) { ReadOnlyExerciseCard(exercise: $0, results: results) }
+                ForEach(session.workout_snapshot.exercises) { exercise in
+                    ReppyResultExerciseCard(exercise: exercise, results: results)
+                    if let assignment = store.data.assignments.first(where: { $0.id == session.assignment_id }),
+                       ExerciseProgress.collect(data: store.data, relationshipID: assignment.relationship_id).contains(where: { $0.id == exercise.progressKey }) {
+                        ReppyLink(title: "Прогресс упражнения: \(exercise.name)", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: assignment.relationship_id, exerciseKey: exercise.progressKey) }
+                    }
+                }
             } else { ReppyEmpty(title: "Результат не найден", message: "Обнови данные и вернись к истории.") }
         }.onAppear {
             guard !initialized else { return }; initialized = true

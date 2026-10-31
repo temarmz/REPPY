@@ -17,26 +17,21 @@ struct ProgressScreen: View {
     @EnvironmentObject private var store: AppStore
     var relationshipID: String
     var exerciseKey: String? = nil
-    @State private var period = 90
-    @State private var metric = "max"
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Прогресс")
-            ReppyPicker(title: "Период", selection: $period) { Text("30 дней").tag(30); Text("90 дней").tag(90); Text("Всё время").tag(0) }
-            ReppyPicker(title: "Показатель", selection: $metric) { Text("Максимум").tag("max"); Text("Сумма повторов / времени").tag("sum") }
             let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID).filter { exerciseKey == nil || $0.id == exerciseKey }
             if groups.isEmpty { ReppyEmpty(title: "Пока мало данных", message: "Выполненные подходы появятся здесь после завершения тренировок.", icon: "chart.xyaxis.line") }
             ForEach(groups) { group in
                 ReppyCard {
                     ReppyHeading(text: group.exercise.name)
                     ReppyCaption(text: "\(group.exercise.equipment ?? "") · \(group.exercise.loadMode == .bodyweight ? "Свой вес" : "Внешний вес")")
-                    let points = group.points.filter { point in point.date <= Date() && (period == 0 || point.date >= Calendar.current.date(byAdding: .day, value: -(period - 1), to: Calendar.current.startOfDay(for: Date()))!) }
+                    let points = group.points.filter { $0.date > .distantPast && $0.date <= Date() }
+                    ReppyCaption(text: "Всё время · \(points.count) занятий")
                     if points.isEmpty { ReppyCaption(text: "Нет выполнений за выбранный период.") }
                     else {
-                        ReppyProgressChart(points: points, metric: metric, unit: metric == "max" && group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit)
-                        ForEach(points) { point in
-                            ReppyLink(title: "\(ReppyDate.display(ReppyDate.day(point.date))) · \((metric == "max" ? point.maximum : point.total).reppyNumber)") { SessionResultScreen(sessionID: point.session.id) }
-                        }
+                        ReppyCaption(text: group.exercise.measureType == .duration ? "Максимальная длительность" : group.exercise.loadMode == .external ? "Максимальный вес" : "Максимум повторений")
+                        ReppyProgressChart(points: points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit)
                     }
                 }
             }

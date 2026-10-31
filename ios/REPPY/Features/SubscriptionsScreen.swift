@@ -95,25 +95,25 @@ struct SubscriptionHistoryScreen: View {
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "История абонемента")
-            let entries = store.data.subscriptions.filter { $0.relationship_id == relationshipID }.sorted { $0.occurred_at > $1.occurred_at }
+            let entries = store.data.subscriptions.filter { $0.relationship_id == relationshipID }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
+            ReppyBalanceSummary(balance: store.data.balance(relationshipID))
+            ReppyLink(title: "Добавить пополнение", icon: "plus") { PaymentFormScreen(relationshipID: relationshipID) }
             if entries.isEmpty { ReppyEmpty(title: "Нет операций", message: "Пополнения и списания появятся здесь.", icon: "creditcard") }
             ForEach(entries) { entry in
-                ReppyCard {
-                    ReppyHeading(text: entry.kind == "payment" ? "Пополнение" : entry.kind == "session-refund" ? "Возврат занятия" : "Тренировка")
-                    ReppyText(text: "\(entry.lesson_delta > 0 ? "+" : "")\(entry.lesson_delta) занятий")
-                    ReppyCaption(text: ReppyDate.display(entry.occurred_at))
-                    if let name = entry.workout_name { ReppyText(text: name, tone: .secondary) }
-                    if let comment = entry.comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
-                    if entry.kind == "payment" {
-                        ReppyCaption(text: "\((entry.amount_rub ?? 0).reppyNumber) ₽ · \(entry.payment_method == "cash" ? "Наличные" : "Перевод")")
-                        ReppyLink(title: "Изменить", icon: "pencil") { PaymentFormScreen(relationshipID: relationshipID, original: entry) }
-                    }
-                }
+                if entry.kind == "payment" {
+                    NavigationLink { PaymentFormScreen(relationshipID: relationshipID, original: entry) } label: {
+                        ReppySubscriptionEntry(entry: entry, balanceAfter: balance(after: entry, entries: entries))
+                    }.buttonStyle(.plain)
+                } else { ReppySubscriptionEntry(entry: entry, balanceAfter: balance(after: entry, entries: entries)) }
             }
             if !entries.isEmpty { ReppyButton(title: "Удалить абонемент", kind: .danger, disabled: store.busy) { confirmClear = true } }
         }.confirmationDialog("Удалить все операции этого абонемента?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Удалить абонемент", role: .destructive) { Task { if await store.run({ try await store.deleteSubscription(relationshipID) }) { dismiss() } } }
             Button("Отмена", role: .cancel) {}
         }
+    }
+    private func balance(after entry: SubscriptionEntry, entries: [SubscriptionEntry]) -> Int {
+        guard let index = entries.firstIndex(where: { $0.id == entry.id }) else { return 0 }
+        return entries[index...].reduce(0) { $0 + $1.lesson_delta }
     }
 }
