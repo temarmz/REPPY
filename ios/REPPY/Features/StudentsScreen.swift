@@ -26,20 +26,31 @@ struct StudentsScreen: View {
 struct StudentScreen: View {
     @EnvironmentObject private var store: AppStore
     var studentID: String
+    @State private var section = "data"
     var body: some View {
         ReppyPage(back: true) {
             if let student = store.data.students.first(where: { $0.id == studentID }), let relationship = store.data.relationship(for: studentID) {
                 ReppyTitle(text: student.name)
-                StudentDetailsCard(student: student)
-                ReppyLink(title: "Изменить данные", icon: "pencil") { StudentFormScreen(student: student) }
+                ReppyStudentDetails(student: student)
+                if relationship.status == "active" { ReppyProfileSegments(selection: $section) }
+                if section == "progress" && relationship.status == "active" { ExerciseProgressSummary(relationshipID: relationship.id) }
+                else {
                 if store.isTrainer {
                     ReppyLink(title: "Назначить тренировку", icon: "plus") { AssignmentEditorScreen(relationshipID: relationship.id) }
                     if relationship.status == "invited" { ReppyLink(title: "Создать новую ссылку приглашения", icon: "person.badge.plus") { InviteStudentScreen(existing: relationship, initialName: student.name) } }
                 }
                 BalanceCard(relationshipID: relationship.id)
                 ReppyLink(title: "История тренировок", icon: "clock.arrow.circlepath") { HistoryScreen(relationshipID: relationship.id, back: true) }
-                ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationship.id) }
-                ForEach(store.data.assignments.filter { $0.relationship_id == relationship.id && $0.status == "assigned" }.sorted { $0.scheduled_for < $1.scheduled_for }) { AssignmentCard(assignment: $0) }
+                ReppyHeading(text: "Предстоящие тренировки")
+                ForEach(store.data.assignments.filter { $0.relationship_id == relationship.id && $0.status == "assigned" }.sorted { $0.scheduled_for < $1.scheduled_for }) { AssignmentAgendaRow(assignment: $0) }
+                ReppyHeading(text: "Последняя активность")
+                let assignmentIDs = Set(store.data.assignments.filter { $0.relationship_id == relationship.id }.map(\.id))
+                let recent = store.data.sessions.filter { assignmentIDs.contains($0.assignment_id) && $0.completed_at != nil }.sorted { ($0.completed_at ?? "") > ($1.completed_at ?? "") }
+                if recent.isEmpty { ReppyEmpty(title: "Ещё нет результатов", message: "Завершённые тренировки ученика появятся в этом блоке.") }
+                ForEach(Array(recent.prefix(3))) { session in
+                    ReppyAgendaLink(title: session.workout_snapshot.name, subtitle: ReppyDate.display(session.completed_at ?? ""), completed: true) { SessionResultScreen(sessionID: session.id) }
+                }
+                }
             } else { ReppyEmpty(title: "Ученик не найден", message: "Обнови данные и вернись к списку.") }
         }
     }

@@ -7,18 +7,11 @@ struct ProfileScreen: View {
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Профиль", subtitle: store.profile?.display_name)
+            if !store.isTrainer, let student = store.ownStudent { ReppyStudentDetails(student: student) }
             ReppyCard {
                 ReppyCaption(text: store.isTrainer ? "Тренер" : "Ученик")
                 ReppyPicker(title: "Оформление", selection: $appearance) {
                     Text("Как в системе").tag("system"); Text("Светлое").tag("light"); Text("Тёмное").tag("dark")
-                }
-            }
-            if !store.isTrainer, let student = store.ownStudent {
-                StudentDetailsCard(student: student)
-                ReppyLink(title: "Изменить личные данные", icon: "pencil") { StudentFormScreen(student: student) }
-                if let relationship = store.ownRelationship {
-                    BalanceCard(relationshipID: relationship.id)
-                    ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationship.id) }
                 }
             }
             if store.isTrainer {

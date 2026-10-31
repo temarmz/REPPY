@@ -16,6 +16,7 @@ struct HistoryScreen: View {
 struct ProgressScreen: View {
     @EnvironmentObject private var store: AppStore
     var relationshipID: String
+    var exerciseKey: String? = nil
     @State private var period = 90
     @State private var metric = "max"
     var body: some View {
@@ -23,7 +24,7 @@ struct ProgressScreen: View {
             ReppyTitle(text: "Прогресс")
             ReppyPicker(title: "Период", selection: $period) { Text("30 дней").tag(30); Text("90 дней").tag(90); Text("Всё время").tag(0) }
             ReppyPicker(title: "Показатель", selection: $metric) { Text("Максимум").tag("max"); Text("Сумма повторов / времени").tag("sum") }
-            let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID)
+            let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID).filter { exerciseKey == nil || $0.id == exerciseKey }
             if groups.isEmpty { ReppyEmpty(title: "Пока мало данных", message: "Выполненные подходы появятся здесь после завершения тренировок.", icon: "chart.xyaxis.line") }
             ForEach(groups) { group in
                 ReppyCard {

@@ -7,6 +7,7 @@ struct DesignKitScreen: View {
     @State private var date = Date()
     @State private var tab = AppTab.home
     @State private var modal = false
+    @State private var profileSection = "data"
     @EnvironmentObject private var store: AppStore
     var body: some View {
         ReppyPage(back: true) {
@@ -20,6 +21,11 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyBalanceSummary(balance: 3)
+            ReppyProfileSegments(selection: $profileSection)
+            ReppyAgendaLink(title: "Длинное название тренировки для проверки переноса", subtitle: "Сегодня · 18:00", completed: true) { ReppyText(text: "Пример перехода") }
+            if let student = store.data.students.first { ReppyStudentDetails(student: student) }
+            if let relationship = store.data.relationships.first { ExerciseProgressSummary(relationshipID: relationship.id) }
             ReppyRow { ReppyHeaderBrand(); ReppyToolbarIcon(icon: "person.crop.circle") }
             ReppyCard {
                 ReppyHeading(text: "Типографика и данные")

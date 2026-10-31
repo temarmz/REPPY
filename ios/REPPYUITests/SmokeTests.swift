@@ -2,6 +2,28 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testHomeProfileCalendarComposition() {
+        for role in ["trainer", "student"] {
+            for theme in ["light", "dark"] {
+                let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
+                XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 15))
+                if role == "trainer" { XCTAssertTrue(app.switches["Все дни"].exists) }
+                let home = XCTAttachment(screenshot: app.screenshot()); home.name = "home-\(role)-\(theme)"; home.lifetime = .keepAlways; add(home)
+                app.buttons["Профиль"].tap()
+                XCTAssertTrue(app.staticTexts["Оформление"].waitForExistence(timeout: 5))
+                if role == "student" {
+                    XCTAssertTrue(app.buttons["Изменить личные данные"].exists)
+                    app.buttons["Изменить личные данные"].tap()
+                    XCTAssertTrue(app.textFields["Имя"].waitForExistence(timeout: 5))
+                }
+                app.buttons["Календарь"].tap()
+                XCTAssertTrue(app.buttons["Сегодня"].waitForExistence(timeout: 5))
+                app.buttons["Следующий месяц"].tap(); app.buttons["Сегодня"].tap()
+                let calendar = XCTAttachment(screenshot: app.screenshot()); calendar.name = "calendar-\(role)-\(theme)"; calendar.lifetime = .keepAlways; add(calendar)
+                app.terminate()
+            }
+        }
+    }
     @MainActor func testShellNavigationAndKeyboard() {
         for role in ["trainer", "student"] {
             for theme in ["light", "dark"] {
@@ -97,6 +119,7 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(assign.waitForExistence(timeout: 15)); assign.tap()
         XCTAssertTrue(app.textFields["Название тренировки"].waitForExistence(timeout: 5))
         app.terminate(); app.launchArguments = ["--demo-student"]; app.launch()
+        XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 15)); app.buttons["Календарь"].tap()
         let history = app.buttons["История тренировок"]
         for _ in 0..<6 { if history.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(history.waitForExistence(timeout: 15)); history.tap()

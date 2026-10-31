@@ -3,6 +3,7 @@ import SwiftUI
 struct MonthCalendar: View {
     @Binding var date: Date
     var counts: [String: Int]
+    var selectFirstDayOnMonthChange = false
     @State private var month = Date()
     private var calendar: Calendar { var calendar = Calendar(identifier: .gregorian); calendar.locale = Locale(identifier: "ru_RU"); calendar.firstWeekday = 2; return calendar }
     private var start: Date { calendar.date(from: calendar.dateComponents([.year, .month], from: month))! }
@@ -37,5 +38,7 @@ struct MonthCalendar: View {
                 }
             }
         }.onAppear { month = date }
+            .onChange(of: month) { _, value in if selectFirstDayOnMonthChange && !calendar.isDate(date, equalTo: value, toGranularity: .month) { date = calendar.date(from: calendar.dateComponents([.year, .month], from: value))! } }
+            .onChange(of: date) { _, value in if !calendar.isDate(value, equalTo: month, toGranularity: .month) { month = value } }
     }
 }

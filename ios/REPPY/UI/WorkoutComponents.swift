@@ -1,4 +1,84 @@
 import SwiftUI
+
+struct ReppyProfileSegments: View {
+    @Binding var selection: String
+    var body: some View {
+        Picker("Раздел профиля", selection: $selection) { Text("Данные").tag("data"); Text("Прогресс").tag("progress") }.pickerStyle(.segmented).frame(minHeight: ReppyMetrics.small)
+    }
+}
+struct ReppyStudentDetails: View {
+    var student: Student
+    var body: some View {
+        HStack(alignment: .top, spacing: ReppyMetrics.space12) {
+            VStack(alignment: .leading, spacing: ReppyMetrics.space6) {
+                if let phone = student.phone, !phone.isEmpty { ReppyCaption(text: phone) }
+                if let height = student.height_cm { ReppyCaption(text: "Рост: \(height.reppyNumber) см") }
+                if let weight = student.weight_kg { ReppyCaption(text: "Вес: \(weight.reppyNumber) кг") }
+                if let text = student.contraindications, !text.isEmpty { ReppyCaption(text: "Ограничения: \(text)") }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+        }
+    }
+}
+struct ReppyAgendaLink<Destination: View>: View {
+    var title: String
+    var subtitle: String
+    var completed = false
+    var card = true
+    @ViewBuilder var destination: () -> Destination
+    var body: some View {
+        NavigationLink(destination: destination) {
+            HStack(spacing: ReppyMetrics.space12) {
+                if completed { Image(systemName: "checkmark.circle.fill").foregroundStyle(ReppyTheme.lime).accessibilityLabel("Завершена") }
+                VStack(alignment: .leading, spacing: ReppyMetrics.space6) {
+                    Text(title).reppyTypography(.heading)
+                    Text(subtitle).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").accessibilityHidden(true)
+            }.foregroundStyle(ReppyTheme.text).padding(ReppyMetrics.space16).frame(minHeight: ReppyMetrics.control)
+                .background(card ? ReppyTheme.surface : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+        }.buttonStyle(.plain)
+    }
+}
+struct ReppyBalanceSummary: View {
+    var balance: Int
+    var body: some View {
+        ReppyCard {
+            ReppyCaption(text: "Абонемент")
+            ReppyText(text: balance < 0 ? "Долг: \(-balance) занятий" : "Осталось \(balance) занятий", tone: balance <= 0 ? .warning : .normal)
+        }
+    }
+}
+struct ExerciseProgressSummary: View {
+    @EnvironmentObject private var store: AppStore
+    var relationshipID: String
+    var hideEmpty = false
+    var body: some View {
+        let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID)
+        if !hideEmpty || !groups.isEmpty {
+            ReppyHeading(text: "Прогресс по упражнениям")
+            if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
+            ForEach(groups) { group in
+                ReppyAgendaLink(title: group.exercise.name, subtitle: summary(group)) { ProgressScreen(relationshipID: relationshipID, exerciseKey: group.id) }
+            }
+        }
+    }
+    private func summary(_ group: ProgressGroup) -> String {
+        let values = group.points.prefix(2).compactMap { point -> String? in
+            let exercise = group.exercise
+            let best = point.results.sorted { a, b in
+                if exercise.loadMode == .external && exercise.measureType == .reps && a.actual_weight != b.actual_weight { return a.actual_weight > b.actual_weight }
+                if a.actual_reps != b.actual_reps { return a.actual_reps > b.actual_reps }
+                if exercise.loadMode == .external && a.actual_weight != b.actual_weight { return a.actual_weight > b.actual_weight }
+                return a.set_number < b.set_number
+            }.first
+            guard let best else { return nil }
+            return (exercise.loadMode == .external ? "\(best.actual_weight.reppyNumber) кг × " : "") + "\(best.actual_reps) \(exercise.unit)"
+        }
+        guard let latest = values.first else { return "Нет результатов" }
+        return values.count > 1 ? "Было: \(values[1])\nСтало: \(latest)" : latest
+    }
+}
 import AVKit
 
 struct PlanSetRow: View {
