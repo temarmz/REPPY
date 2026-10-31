@@ -15,7 +15,7 @@ export function observeMobileViewport(target: Window, root: HTMLElement) {
     // off screen or collapsing it to a few pixels.
     if (!Number.isFinite(height) || height < 160) return;
     const active = target.document.activeElement;
-    const editing = Boolean(active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
+    const editing = Boolean(active && active.isConnected !== false && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName));
     if (restingWidth !== target.innerWidth) { restingWidth = target.innerWidth; restingHeight = target.innerHeight; }
     restingHeight = Math.max(restingHeight, height);
     const keyboardOpen = editing && restingHeight - height > 100;
@@ -36,6 +36,9 @@ export function observeMobileViewport(target: Window, root: HTMLElement) {
   target.addEventListener('resize', schedule);
   target.addEventListener('pageshow', schedule);
   target.document.addEventListener('visibilitychange', onVisible);
+  target.document.addEventListener('focusin', schedule);
+  target.document.addEventListener('focusout', schedule);
+  target.document.addEventListener('click', schedule);
   return () => {
     target.cancelAnimationFrame(frame);
     viewport?.removeEventListener('resize', schedule);
@@ -43,6 +46,9 @@ export function observeMobileViewport(target: Window, root: HTMLElement) {
     target.removeEventListener('resize', schedule);
     target.removeEventListener('pageshow', schedule);
     target.document.removeEventListener('visibilitychange', onVisible);
+    target.document.removeEventListener('focusin', schedule);
+    target.document.removeEventListener('focusout', schedule);
+    target.document.removeEventListener('click', schedule);
     root.removeAttribute?.('data-keyboard-open');
     root.style.removeProperty('--app-visible-height');
     root.style.removeProperty('--app-visible-top');
