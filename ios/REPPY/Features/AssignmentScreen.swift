@@ -37,7 +37,7 @@ struct AssignmentScreen: View {
                         }
                     } else {
                         ReppyCaption(text: assignment.scheduled_for < ReppyDate.day()
-                            ? "Назначенный день уже прошёл. Тренировку можно повторить на новую дату."
+                            ? "Назначенный день уже прошёл. Предложи другое время тренеру."
                             : "Очную тренировку можно начать в назначенный день.")
                     }
                     if !store.isTrainer && assignment.format == .inPerson && assignment.reschedule_requested_at == nil {

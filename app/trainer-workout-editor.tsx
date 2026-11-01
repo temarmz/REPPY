@@ -516,8 +516,8 @@ export function AssignmentDetails({
         <Button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</Button>
       </Section>}
       <Box className="assignment-detail-actions">
-        {assignment.status === 'assigned' && assignment.format === 'in-person' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
-        {assignment.status === 'assigned' && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать</ActionButton>}
+        {assignment.status === 'assigned' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
+        {assignment.status === 'assigned' && !activeSession && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать план</ActionButton>}
         <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
       </Box>
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>

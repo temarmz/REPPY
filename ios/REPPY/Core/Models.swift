@@ -129,7 +129,7 @@ public struct Assignment: Codable, Identifiable, ReppySendable {
         return "Предстоящая тренировка"
     }
     public func canStart(as role: Role, sessions: [WorkoutSession], today: String = ReppyDate.day()) -> Bool {
-        status == "assigned" && (role == .trainer || format == .online || scheduled_for == today || sessions.contains { $0.assignment_id == id && $0.completed_at == nil })
+        status == "assigned" && !sessions.contains(where: { $0.assignment_id == id && $0.completed_at != nil }) && (role == .trainer || format == .online || scheduled_for == today || sessions.contains { $0.assignment_id == id && $0.completed_at == nil })
     }
 }
 public struct SetResult: Codable, Identifiable, Equatable, ReppySendable {

@@ -103,6 +103,7 @@ function StudentAssignmentDetails({
 
       {completedSession && <ActionButton variant="secondary" icon="check" onClick={() => go(`/student/calendar/sessions/${completedSession.id}`)}>Посмотреть результат</ActionButton>}
       {canStart && <ActionButton className="student-start-button" icon="workout" onClick={onStart}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
+      {!completed && !canStart && <Paragraph>{assignment.scheduledFor < dateKey() ? 'Назначенный день уже прошёл. Предложи другое время тренеру.' : 'Очную тренировку можно начать в назначенный день.'}</Paragraph>}
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>
       <ReadOnlyExerciseList workout={workout} />
     </Page>
@@ -225,6 +226,8 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
 
   if (assignmentDetailsMatch) {
     const assignment = data.assignments.find((item) => item.id === assignmentDetailsMatch[1] && item.studentId === data.activeStudentId);
+    const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+    if (completedSession) return <SessionResult data={data} session={completedSession} />;
     return assignment ? <StudentAssignmentDetails
       data={data}
       assignment={assignment}
