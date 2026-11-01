@@ -1,6 +1,87 @@
 import XCTest
 
 final class SmokeTests: XCTestCase {
+    @MainActor func testPaymentFormOpensFromHistory() {
+      for largest in [false, true] {
+        let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", "light"]; app.launch()
+        if largest {
+            app.terminate(); app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]; app.launch()
+        }
+        XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+        revealAndTap(app.buttons["История"], in: app)
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Пополнение на 8 занятий")).firstMatch, in: app)
+        XCTAssertTrue(app.textFields["Количество занятий"].waitForExistence(timeout: 5))
+        capture(app, largest ? "payment-open-largest" : "payment-open")
+        revealAndTap(app.buttons["Сохранить изменения"], in: app)
+        XCTAssertTrue(app.staticTexts["История абонемента"].waitForExistence(timeout: 5))
+        app.terminate()
+      }
+    }
+    @MainActor func testLedgerAndInvitationParity() {
+        for theme in ["light", "dark"] { runLedgerAndInvitation(theme: theme) }
+    }
+    @MainActor func testLedgerAndInvitationLargestText() { runLedgerAndInvitation(theme: "dark", largest: true) }
+    @MainActor private func runLedgerAndInvitation(theme: String, largest: Bool = false) {
+        let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]
+        if largest { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        let suffix = theme + (largest ? "-largest" : "")
+        app.launch(); XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+        revealAndTap(app.buttons["История"], in: app)
+        XCTAssertTrue(app.staticTexts["История абонемента"].waitForExistence(timeout: 5)); capture(app, "history-\(suffix)")
+        let payment = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Пополнение на 8 занятий")).firstMatch
+        XCTAssertTrue(payment.exists)
+        let oldLabel = payment.label
+        let dateRange = oldLabel.range(of: #"\d{1,2}\s+[а-яё]+\s+\d{4}\s*г\.?"#, options: .regularExpression)
+        XCTAssertNotNil(dateRange, oldLabel)
+        let oldDate = dateRange.map { String(oldLabel[$0]) } ?? ""
+        revealAndTap(payment, in: app)
+        XCTAssertTrue(app.textFields["Количество занятий"].waitForExistence(timeout: 5)); capture(app, "payment-\(suffix)")
+        let comment = app.textFields["Комментарий"]
+        revealAndTap(comment, in: app); comment.typeText("Проверка даты")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        revealAndTap(app.buttons["Сохранить изменения"], in: app)
+        let edited = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Проверка даты")).firstMatch
+        XCTAssertTrue(edited.waitForExistence(timeout: 5)); XCTAssertTrue(edited.label.contains(oldDate))
+        revealAndTap(edited, in: app)
+        revealAndTap(app.buttons["Удалить это пополнение"], in: app)
+        XCTAssertTrue(app.buttons["Удалить"].waitForExistence(timeout: 5)); app.buttons["Удалить"].tap()
+        XCTAssertTrue(app.staticTexts["Осталось 3 занятия"].waitForExistence(timeout: 5))
+        revealAndTap(app.buttons["Добавить пополнение"], in: app)
+        let lessons = app.textFields["Количество занятий"]
+        XCTAssertTrue(lessons.waitForExistence(timeout: 5)); capture(app, "new-\(suffix)")
+        revealAndTap(lessons, in: app); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "0")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        revealAndTap(app.buttons["Добавить пополнение"], in: app)
+        XCTAssertTrue(app.staticTexts["Укажи целое количество занятий больше нуля."].exists)
+        revealAndTap(lessons, in: app); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "8")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        revealAndTap(app.buttons["Добавить пополнение"], in: app)
+        XCTAssertTrue(app.staticTexts["Осталось 11 занятий"].waitForExistence(timeout: 5))
+        revealAndTap(app.buttons["Удалить полностью"], in: app)
+        XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5)); app.buttons["Отмена"].tap()
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
+        revealAndTap(app.buttons["Пригласить ученика"], in: app)
+        let name = app.textFields["Имя ученика"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); capture(app, "invite-\(suffix)")
+        revealAndTap(name, in: app); name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 50) + "Демо ученик")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        revealAndTap(app.buttons["Продолжить"], in: app)
+        XCTAssertTrue(app.staticTexts["Ссылка готова"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Скопировать ссылку"].isEnabled); capture(app, "ready-\(suffix)")
+        revealAndTap(app.buttons["Готово"], in: app)
+        let invited = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Демо ученик,")).firstMatch
+        revealAndTap(invited, in: app)
+        XCTAssertTrue(app.staticTexts["Ожидает подключения"].waitForExistence(timeout: 5)); capture(app, "pending-\(suffix)")
+        XCTAssertFalse(app.buttons["Назначить тренировку"].exists)
+        revealAndTap(app.buttons["Удалить ученика"], in: app)
+        XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5))
+        app.buttons["confirm-delete-pending-student"].tap()
+        XCTAssertTrue(app.buttons["Пригласить ученика"].waitForExistence(timeout: 5)); XCTAssertFalse(invited.exists)
+        app.terminate()
+    }
     @MainActor func testWorkoutScreenParity() {
         for role in ["trainer", "student"] {
             for theme in ["light", "dark"] {

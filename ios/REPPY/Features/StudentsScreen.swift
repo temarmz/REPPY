@@ -29,8 +29,10 @@ struct StudentsScreen: View {
 }
 struct StudentScreen: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.presentationMode) private var presentation
     var studentID: String
     @State private var section = "data"
+    @State private var confirmDelete = false
     var body: some View {
         ReppyPage(back: true) {
             if let student = store.data.students.first(where: { $0.id == studentID }), let relationship = store.data.relationship(for: studentID) {
@@ -59,9 +61,14 @@ struct StudentScreen: View {
                 } else {
                     ReppyEmpty(title: "Ожидает подключения", message: "Ученик ещё не принял приглашение.", icon: "person.2")
                     ReppyLink(title: "Создать новую ссылку приглашения", icon: "person.badge.plus") { InviteStudentScreen(existing: relationship, initialName: student.name) }
+                    ReppyButton(title: "Удалить ученика", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
                 }
             } else { ReppyEmpty(title: "Ученик не найден", message: "Обнови данные и вернись к списку.") }
+        }
+        .confirmationDialog("Удалить приглашённого ученика? Ссылка перестанет действовать.", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Удалить ученика", role: .destructive) { Task { if await store.run({ try await store.deletePendingStudent(studentID) }) { presentation.wrappedValue.dismiss() } } }.accessibilityIdentifier("confirm-delete-pending-student")
+            Button("Отмена", role: .cancel) {}
         }
     }
 }
@@ -124,22 +131,38 @@ struct StudentFormScreen: View {
 }
 struct InviteStudentScreen: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
     var existing: Relationship? = nil
     var initialName = ""
     @State private var name = ""
-    @State private var link = ""
+    @State private var invitation: StudentInvitationLink?
+    @State private var initialized = false
+    private var draftKey: String { "invitation:" + (existing?.id ?? "new") }
     var body: some View {
         ReppyPage(back: true) {
-            ReppyTitle(text: "Пригласить ученика")
-            ReppyCard {
-                ReppyField(title: "Имя ученика", text: $name)
-                ReppyCaption(text: "Приглашение действует 48 часов. Ученик примет его через Telegram.")
-                if link.isEmpty {
-                    ReppyButton(title: "Создать приглашение", kind: .primary, disabled: store.busy || name.trimmingCharacters(in: .whitespacesAndNewlines).count < 2) {
-                        Task { await store.run { link = try await store.createInvitation(name: name, existing: existing) } }
+            ReppyCaption(text: "Новый участник команды")
+            ReppyTitle(text: invitation == nil ? "Пригласить ученика" : "Ссылка готова")
+            if let invitation {
+                ReppyInvitationReady(name: name, link: invitation.link, expiresAt: invitation.expiresAt, demo: store.isDemo) { dismiss() }
+            } else {
+              ReppyCard {
+                if existing == nil { ReppyField(title: "Имя ученика", text: $name) }
+                else { ReppyStudentContext(name: initialName) }
+                ReppyCaption(text: "Мы добавим ученика в список со статусом «Ожидает приглашения».")
+                    ReppyButton(title: store.busy ? "Создаём…" : "Продолжить", icon: "arrow.right", kind: .primary, disabled: store.busy || name.trimmingCharacters(in: .whitespacesAndNewlines).count < 2) {
+                        Task { await store.run {
+                            invitation = try await store.createInvitation(name: name, existing: existing)
+                            try DraftStorage.remove(account: store.accountKey, key: draftKey)
+                        } }
                     }
-                } else { ReppyText(text: link); ReppyShare(title: "Поделиться приглашением", item: link) }
+              }
             }
-        }.onAppear { name = initialName }
+        }.onAppear {
+            guard !initialized else { return }; initialized = true
+            if existing == nil, let restored: String = store.restoreDraft(key: draftKey) { name = restored } else { name = initialName }
+        }.onChange(of: name) { _, _ in
+            guard initialized, invitation == nil else { return }
+            do { try DraftStorage.save(name, account: store.accountKey, key: draftKey) } catch { store.present(error) }
+        }
     }
 }

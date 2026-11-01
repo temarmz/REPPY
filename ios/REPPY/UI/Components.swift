@@ -59,9 +59,10 @@ struct ReppyStack<Content: View>: View {
 }
 struct ReppyRow<Content: View>: View {
     @Environment(\.dynamicTypeSize) private var typeSize
+    var alignment: VerticalAlignment = .center
     @ViewBuilder var content: () -> Content
     var body: some View {
-        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space12)) : AnyLayout(HStackLayout(alignment: .center, spacing: ReppyMetrics.space12))
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space12)) : AnyLayout(HStackLayout(alignment: alignment, spacing: ReppyMetrics.space12))
         layout { content() }
     }
 }
@@ -107,6 +108,7 @@ struct ReppyButtonStyle: ButtonStyle {
     }
 }
 struct ReppyButton: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     var title: String
     var icon: String? = nil
     var kind: ActionKind = .secondary
@@ -114,7 +116,7 @@ struct ReppyButton: View {
     var disabled = false
     var action: () -> Void
     var body: some View {
-        Button(action: action) { if let icon { Label(title, systemImage: icon) } else { Text(title) } }
+        Button(action: action) { if let icon, !typeSize.isAccessibilitySize { Label(title, systemImage: icon) } else { Text(title) } }
             .buttonStyle(ReppyButtonStyle(kind: kind, compact: compact)).disabled(disabled)
     }
 }

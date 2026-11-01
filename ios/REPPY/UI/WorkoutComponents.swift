@@ -42,20 +42,78 @@ struct ReppySessionSummary: View {
 struct ReppySubscriptionEntry: View {
     var entry: SubscriptionEntry
     var balanceAfter: Int
+    var card = true
+    var body: some View {
+        Group { if card { ReppyCard { row } } else { row.padding(ReppyMetrics.space16) } }.foregroundStyle(ReppyTheme.text)
+    }
+    private var row: some View {
+        ReppyRow {
+            Text("\(entry.lesson_delta > 0 ? "+" : "")\(entry.lesson_delta)").reppyTypography(.setNumber).monospacedDigit()
+                .foregroundStyle(entry.lesson_delta > 0 ? ReppyTheme.trendUp : ReppyTheme.secondary)
+                .frame(minWidth: ReppyMetrics.small, minHeight: ReppyMetrics.small)
+            ReppyStack(compact: true) {
+                ReppyHeading(text: entry.kind == "payment" ? "Пополнение на \(entry.lesson_delta) \(ReppySubscriptionSummary.lessonWord(entry.lesson_delta))" : entry.kind == "session-refund" ? "Возврат занятия" : "Занятие списано")
+                let detail = entry.kind == "payment" ? "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "transfer" ? "перевод" : "наличные")" : entry.workout_name ?? "Тренировка"
+                ReppyCaption(text: detail + " · " + ReppySubscriptionDate.label(entry.occurred_at))
+                if let comment = entry.comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
+                ReppyCaption(text: "Баланс после операции: \(balanceAfter)")
+            }
+            if entry.kind == "payment" { Image(systemName: "pencil").accessibilityLabel("Изменить пополнение") }
+        }
+    }
+}
+enum ReppySubscriptionDate {
+    static func value(_ value: String) -> Date { ReppyDate.parse(value) ?? ReppyDate.fromDay(value) }
+    static func label(_ value: String) -> String { self.value(value).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))) }
+}
+struct ReppyConnectedList<Item: Identifiable, Content: View>: View {
+    var items: [Item]
+    @ViewBuilder var content: (Item) -> Content
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                content(item)
+                if index < items.count - 1 { Divider().overlay(ReppyTheme.divider) }
+            }
+        }.background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+    }
+}
+struct ReppyLedgerSummary<Action: View>: View {
+    var balance: Int
+    var hasEntries: Bool
+    @ViewBuilder var action: () -> Action
+    var body: some View {
+        ReppyCard { ReppyCaption(text: "ТЕКУЩИЙ БАЛАНС"); ReppyTitle(text: ReppySubscriptionSummary.balanceLabel(balance, hasEntries: hasEntries)); action() }
+    }
+}
+struct ReppyPaymentMethodPicker: View {
+    @Binding var selection: String
+    var body: some View {
+        ReppyStack(compact: true) {
+            ReppyCaption(text: "Способ оплаты")
+            Picker("Способ оплаты", selection: $selection) { Text("Наличные").tag("cash"); Text("Перевод").tag("transfer") }.pickerStyle(.segmented).frame(minHeight: ReppyMetrics.compact)
+        }
+    }
+}
+struct ReppyInvitationReady: View {
+    var name: String
+    var link: String
+    var expiresAt: Date?
+    var demo: Bool
+    var onDone: () -> Void
+    @State private var copied = false
     var body: some View {
         ReppyCard {
-            ReppyRow {
-                ReppyHeading(text: entry.kind == "payment" ? "Пополнение" : entry.kind == "session-refund" ? "Возврат занятия" : "Занятие списано")
-                Spacer()
-                ReppyText(text: "\(entry.lesson_delta > 0 ? "+" : "")\(entry.lesson_delta)")
-            }
-            ReppyCaption(text: ReppyDate.display(entry.occurred_at))
-            if entry.kind == "payment" { ReppyCaption(text: "\((entry.amount_rub ?? 0).reppyNumber) ₽ · \(entry.payment_method == "cash" ? "Наличные" : "Перевод")") }
-            else if let name = entry.workout_name { ReppyText(text: name, tone: .secondary) }
-            if let comment = entry.comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
-            ReppyCaption(text: "Баланс после операции: \(balanceAfter)")
-            if entry.kind == "payment" { Label("Изменить пополнение", systemImage: "pencil").reppyTypography(.caption) }
-        }.foregroundStyle(ReppyTheme.text)
+            Image(systemName: "person.badge.plus").font(.largeTitle).foregroundStyle(ReppyTheme.trendUp).accessibilityHidden(true)
+            ReppyHeading(text: "\(name) почти в команде")
+            ReppyText(text: demo ? "Демо-приглашение: подключение ученика доступно после входа в рабочий аккаунт." : "Отправь эту одноразовую ссылку ученику.", tone: .secondary)
+            if let expiresAt, !demo { ReppyCaption(text: "Действует до \(expiresAt.formatted(.dateTime.day().month(.wide).hour().minute().locale(Locale(identifier: "ru_RU"))))") }
+            Text(link).reppyTypography(.body).textSelection(.enabled).fixedSize(horizontal: false, vertical: true).padding(ReppyMetrics.space16)
+                .frame(maxWidth: .infinity, alignment: .leading).background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+            ReppyButton(title: copied ? "Ссылка скопирована" : "Скопировать ссылку", icon: copied ? "checkmark" : "doc.on.doc", kind: .primary, disabled: demo) { UIPasteboard.general.string = link; copied = true }
+            if !demo { ReppyShare(title: "Поделиться приглашением", item: link, kind: .secondary) }
+            ReppyButton(title: "Готово", icon: "checkmark", action: onDone)
+        }
     }
 }
 
@@ -322,7 +380,7 @@ struct ReppySubscriptionSummary: View {
                 ForEach(Array(payments.prefix(trainer ? 1 : 3))) { entry in
                     ReppyStack(compact: true) {
                         ReppyHeading(text: "+\(entry.lesson_delta) \(Self.lessonWord(entry.lesson_delta))")
-                        ReppyCaption(text: "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "cash" ? "наличные" : "перевод") · \(ReppyDate.fromDay(String(entry.occurred_at.prefix(10))).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))))")
+                        ReppyCaption(text: "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "transfer" ? "перевод" : "наличные") · \(ReppySubscriptionDate.label(entry.occurred_at))")
                     }
                 }
             }

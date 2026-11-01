@@ -23,6 +23,10 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyLedgerSummary(balance: 11, hasEntries: true) { ReppyButton(title: "Добавить пополнение", kind: .primary) {} }
+            ReppyPaymentMethodPicker(selection: .constant("cash"))
+            ReppyConnectedList(items: Array(store.data.subscriptions.prefix(3))) { ReppySubscriptionEntry(entry: $0, balanceAfter: 11, card: false) }
+            ReppyInvitationReady(name: "Демо ученик", link: "https://demo.reppy.invalid/invite/example", expiresAt: nil, demo: true) {}
             ReppyWorkoutOverview(elapsed: "1:02:03", completed: 3, total: 12)
             ReppySetSummaryRow(number: 1, value: "80 кг × 10 повт.", completed: true)
             ReppySetSummaryRow(number: 2, value: "45 сек.", completed: false)

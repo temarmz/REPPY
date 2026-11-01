@@ -13,43 +13,52 @@ private struct PaymentDraft: Codable {
 }
 struct PaymentFormScreen: View {
     @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentation
     var relationshipID: String
     var original: SubscriptionEntry? = nil
     @State private var id = UUID().uuidString.lowercased()
     @State private var lessons = "8"
-    @State private var amount = ""
-    @State private var method = "transfer"
+    @State private var amount = "11400"
+    @State private var method = "cash"
     @State private var date = Date()
     @State private var comment = ""
     @State private var initialized = false
     @State private var confirmDelete = false
     @State private var draftOriginal: SubscriptionEntry?
+    @State private var attempted = false
+    private var lessonsError: String? { (Int(lessons) ?? 0) > 0 ? nil : "Укажи целое количество занятий больше нуля." }
+    private var amountError: String? { ReppyValidation.number(amount) != nil ? nil : "Укажи корректную стоимость." }
     private var draftKey: String { "payment:\(original?.id ?? relationshipID + ":new")" }
     var body: some View {
         ReppyPage(back: true) {
-            ReppyTitle(text: original == nil ? "Пополнить абонемент" : "Изменить пополнение")
+            if let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
+            ReppyTitle(text: original == nil ? "Добавить абонемент" : "Исправить пополнение")
             ReppyCard {
-                ReppyField(title: "Количество занятий", text: $lessons, keyboard: .numberPad)
-                ReppyField(title: "Сумма, ₽", text: $amount, keyboard: .decimalPad)
-                ReppyPicker(title: "Способ оплаты", selection: $method) { Text("Наличные").tag("cash"); Text("Перевод").tag("transfer") }
+                ReppyRow(alignment: .top) {
+                    ReppyField(title: "Количество занятий", text: $lessons, keyboard: .numberPad, error: attempted ? lessonsError : nil)
+                    ReppyField(title: "Стоимость, ₽", text: $amount, keyboard: .decimalPad, error: attempted ? amountError : nil)
+                }
+                ReppyPaymentMethodPicker(selection: $method)
                 ReppyDateField(title: "Дата оплаты", date: $date)
                 ReppyField(title: "Комментарий", text: $comment, multiline: true)
+                ReppyCaption(text: "\(comment.count)/240 · необязательно")
             }
-            ReppyButton(title: store.busy ? "Сохраняем…" : "Сохранить", kind: .primary, disabled: store.busy) {
+            ReppyButton(title: store.busy ? "Сохраняем…" : original == nil ? "Добавить пополнение" : "Сохранить изменения", icon: "checkmark", kind: .primary, disabled: store.busy) {
+                attempted = true
+                guard lessonsError == nil, amountError == nil else { return }
                 Task {
                     let saved = await store.run {
                         guard let count = Int(lessons), count > 0, let total = ReppyValidation.number(amount) else { throw APIError.message("Укажи целое количество занятий и неотрицательную сумму.") }
                         try await store.savePayment(id: draftOriginal?.id ?? id, relationshipID: relationshipID, lessons: count, amount: total, method: method, date: date, comment: comment, original: draftOriginal)
                         try DraftStorage.remove(account: store.accountKey, key: draftKey)
                     }
-                    if saved { dismiss() }
+                    if saved { presentation.wrappedValue.dismiss() }
                 }
             }
             ReppyButton(title: "Отмена", disabled: store.busy) {
-                do { try DraftStorage.remove(account: store.accountKey, key: draftKey); dismiss() } catch { store.present(error) }
+                do { try DraftStorage.remove(account: store.accountKey, key: draftKey); presentation.wrappedValue.dismiss() } catch { store.present(error) }
             }
-            if original != nil { ReppyButton(title: "Удалить пополнение", kind: .danger, disabled: store.busy) { confirmDelete = true } }
+            if original != nil { ReppyButton(title: "Удалить это пополнение", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true } }
         }.onAppear {
             guard !initialized else { return }; initialized = true
             if let draft: PaymentDraft = store.restoreDraft(key: draftKey) {
@@ -57,13 +66,15 @@ struct PaymentFormScreen: View {
             }
             draftOriginal = original
             let latest = original ?? store.data.subscriptions.filter { $0.relationship_id == relationshipID && $0.kind == "payment" }.max { $0.occurred_at < $1.occurred_at }
-            if let latest { lessons = String(latest.lesson_delta); amount = (latest.amount_rub ?? 0).reppyNumber; method = latest.payment_method ?? "transfer" }
-            if let original { date = ReppyDate.parse(original.occurred_at) ?? Date(); comment = original.comment ?? "" }
-        }.onChange(of: [lessons, amount, method, comment]) { _, _ in saveDraft() }.onChange(of: date) { _, _ in saveDraft() }
-        .confirmationDialog("Удалить это пополнение? Баланс будет пересчитан.", isPresented: $confirmDelete, titleVisibility: .visible) {
+            if let latest { lessons = String(latest.lesson_delta); amount = (latest.amount_rub ?? 0).reppyNumber; method = latest.payment_method ?? "cash" }
+            if let original { date = ReppySubscriptionDate.value(original.occurred_at); comment = original.comment ?? "" }
+        }.onChange(of: [lessons, amount, method]) { _, _ in saveDraft() }
+            .onChange(of: comment) { _, _ in if comment.count > 240 { comment = String(comment.prefix(240)) }; saveDraft() }
+            .onChange(of: date) { _, _ in saveDraft() }
+        .confirmationDialog("Удалить пополнение? Баланс будет пересчитан, списания тренировок сохранятся.", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Удалить", role: .destructive) { Task { if let draftOriginal, await store.run({
                 try await store.deletePayment(draftOriginal); try DraftStorage.remove(account: store.accountKey, key: draftKey)
-            }) { dismiss() } } }
+            }) { presentation.wrappedValue.dismiss() } } }
             Button("Отмена", role: .cancel) {}
         }
     }
@@ -74,26 +85,38 @@ struct PaymentFormScreen: View {
 }
 struct SubscriptionHistoryScreen: View {
     @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentation
     var relationshipID: String
     @State private var confirmClear = false
+    @State private var selectedPayment: SubscriptionEntry?
+    @State private var editingPayment = false
     var body: some View {
         ReppyPage(back: true) {
+            if let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
             ReppyTitle(text: "История абонемента")
             let entries = store.data.subscriptions.filter { $0.relationship_id == relationshipID }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
-            ReppyBalanceSummary(balance: store.data.balance(relationshipID))
-            ReppyLink(title: "Добавить пополнение", icon: "plus") { PaymentFormScreen(relationshipID: relationshipID) }
-            if entries.isEmpty { ReppyEmpty(title: "Нет операций", message: "Пополнения и списания появятся здесь.", icon: "creditcard") }
-            ForEach(entries) { entry in
-                if entry.kind == "payment" {
-                    NavigationLink { PaymentFormScreen(relationshipID: relationshipID, original: entry) } label: {
-                        ReppySubscriptionEntry(entry: entry, balanceAfter: balance(after: entry, entries: entries))
-                    }.buttonStyle(.plain)
-                } else { ReppySubscriptionEntry(entry: entry, balanceAfter: balance(after: entry, entries: entries)) }
+            ReppyLedgerSummary(balance: store.data.balance(relationshipID), hasEntries: !entries.isEmpty) {
+                ReppyButton(title: "Добавить пополнение", icon: "plus", kind: .primary) { selectedPayment = nil; editingPayment = true }
             }
-            if !entries.isEmpty { ReppyButton(title: "Удалить абонемент", kind: .danger, disabled: store.busy) { confirmClear = true } }
-        }.confirmationDialog("Удалить все операции этого абонемента?", isPresented: $confirmClear, titleVisibility: .visible) {
-            Button("Удалить абонемент", role: .destructive) { Task { if await store.run({ try await store.deleteSubscription(relationshipID) }) { dismiss() } } }
+            if entries.isEmpty { ReppyEmpty(title: "История пока пуста", message: "Добавь первое пополнение абонемента.", icon: "clock.arrow.circlepath") }
+            ReppyConnectedList(items: entries) { entry in
+                if entry.kind == "payment" {
+                    Button { selectedPayment = entry; editingPayment = true } label: {
+                        ReppySubscriptionEntry(entry: entry, balanceAfter: balance(after: entry, entries: entries), card: false)
+                    }.buttonStyle(.plain)
+                } else { ReppySubscriptionEntry(entry: entry, balanceAfter: balance(after: entry, entries: entries), card: false) }
+            }
+            if !entries.isEmpty {
+                ReppyCard {
+                    ReppyHeading(text: "Удаление абонемента")
+                    ReppyCaption(text: "Тренировки и результаты ученика останутся на месте.")
+                    ReppyButton(title: "Удалить полностью", icon: "trash", kind: .danger, disabled: store.busy) { confirmClear = true }
+                }
+            }
+        }.navigationDestination(isPresented: $editingPayment) {
+            PaymentFormScreen(relationshipID: relationshipID, original: selectedPayment)
+        }.confirmationDialog("Удалить абонемент полностью? Баланс и вся история оплат, списаний и возвратов будут удалены. Тренировки и результаты сохранятся.", isPresented: $confirmClear, titleVisibility: .visible) {
+            Button("Удалить абонемент", role: .destructive) { Task { if await store.run({ try await store.deleteSubscription(relationshipID) }) { presentation.wrappedValue.dismiss() } } }
             Button("Отмена", role: .cancel) {}
         }
     }

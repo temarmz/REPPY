@@ -1,5 +1,9 @@
 import Foundation
 
+struct StudentInvitationLink {
+    var link: String
+    var expiresAt: Date?
+}
 extension AppStore {
     func saveAssignment(id: String, relationshipID: String, workout: Workout, date: Date, time: String,
                         format: TrainingFormat, original: Assignment? = nil, repeatedFrom: String? = nil) async throws {
@@ -147,16 +151,37 @@ extension AppStore {
         if let index = data.students.firstIndex(where: { $0.id == saved.id }) { data.students[index] = saved }
         else { data.students.append(saved) }
     }
-    func createInvitation(name: String, existing: Relationship? = nil) async throws -> String {
+    func createInvitation(name: String, existing: Relationship? = nil) async throws -> StudentInvitationLink {
         try requireTrainer()
         guard name.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 else { throw APIError.message("Введи имя ученика, минимум 2 символа.") }
-        guard !isDemo, let api else { throw APIError.message("Приглашения доступны после входа в рабочий аккаунт.") }
+        if let existing, existing.status != "invited" { throw APIError.conflict }
+        if isDemo {
+            let studentID = existing?.student_id ?? UUID().uuidString.lowercased()
+            if existing == nil {
+                data.students.append(Student(id: studentID, name: name.trimmingCharacters(in: .whitespacesAndNewlines), updated_at: ReppyDate.timestamp()))
+                data.relationships.append(Relationship(id: UUID().uuidString.lowercased(), trainer_id: profile!.id, student_id: studentID, status: "invited", color: "orange", updated_at: ReppyDate.timestamp()))
+            }
+            return StudentInvitationLink(link: "https://demo.reppy.invalid/invite/" + studentID, expiresAt: nil)
+        }
+        guard let api else { throw APIError.signedOut }
         struct Invitation: Decodable { var token: String; var expiresAt: String }
         let invitation: Invitation
         if let existing { invitation = try await api.rpc("create_student_invitation", ["p_relationship_id": existing.id]) }
         else { invitation = try await api.rpc("create_student_with_invitation", ["p_name": name.trimmingCharacters(in: .whitespacesAndNewlines), "p_color": "orange", "p_timezone": TimeZone.current.identifier]) }
         try await loadData()
-        return api.configuration.webURL.absoluteString + "#/invite/" + invitation.token
+        return StudentInvitationLink(link: api.configuration.webURL.absoluteString + "#/invite/" + invitation.token, expiresAt: ReppyDate.parse(invitation.expiresAt))
+    }
+    func deletePendingStudent(_ studentID: String) async throws {
+        try requireTrainer()
+        guard let relationship = data.relationship(for: studentID), relationship.status == "invited" else { throw APIError.conflict }
+        if !isDemo {
+            guard let api else { throw APIError.signedOut }
+            try await api.call("delete_pending_student", ["p_student_id": studentID])
+            try await loadData()
+        } else {
+            data.relationships.removeAll { $0.id == relationship.id }
+            data.students.removeAll { $0.id == studentID }
+        }
     }
     func savePayment(id: String, relationshipID: String, lessons: Int, amount: Double, method: String, date: Date, comment: String, original: SubscriptionEntry? = nil) async throws {
         try requireTrainer()
