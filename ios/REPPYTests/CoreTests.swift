@@ -226,3 +226,46 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(point.maximum, 60); XCTAssertEqual(point.total, 60)
     }
 }
+
+extension CoreTests {
+    func testProgressTimelineKeepsLatestSessionPerMonthAndStableTies() throws {
+        let data = try TestFixtures.load()
+        let source = try XCTUnwrap(data.sessions.first)
+        let exercise = try XCTUnwrap(source.workout_snapshot.exercises.first)
+        let dates = ["2025-01-02T10:00:00Z", "2025-01-30T10:00:00Z", "2025-01-30T10:00:00Z", "2025-08-03T10:00:00Z"]
+        let points = dates.enumerated().map { index, date -> ProgressPoint in
+            var session = source; session.id = "timeline-\(index)"; session.completed_at = date
+            return ProgressPoint(session: session, exercise: exercise, results: [])
+        }
+        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let timeline = ProgressTimeline(points: Array(points.reversed()), calendar: calendar)
+        XCTAssertTrue(timeline.monthly)
+        XCTAssertEqual(timeline.points.map(\.id), ["timeline-2", "timeline-3"])
+        XCTAssertEqual(ProgressTimeline(points: points, calendar: calendar).points.map(\.id), timeline.points.map(\.id))
+        let short = ProgressTimeline(points: Array(points.prefix(3).reversed()), calendar: calendar)
+        XCTAssertFalse(short.monthly); XCTAssertEqual(short.points.map(\.id), ["timeline-0", "timeline-1", "timeline-2"])
+        XCTAssertTrue(ProgressTimeline(points: []).points.isEmpty)
+    }
+    func testProgressIndexesKeepRepeatedExerciseBlocksInOneSession() throws {
+        var data = try TestFixtures.load()
+        var session = try XCTUnwrap(data.sessions.first { $0.completed_at != nil })
+        let assignment = try XCTUnwrap(data.assignments.first { $0.id == session.assignment_id })
+        let source = try XCTUnwrap(session.workout_snapshot.exercises.first)
+        var second = source; second.id = "repeated-instance"
+        session.workout_snapshot.exercises = [source, second]
+        var first = SetResult(session_id: session.id, exercise_instance_id: source.id, set_number: 1, actual_reps: 10, actual_weight: 80, completed: true)
+        var other = first; other.exercise_instance_id = second.id; other.actual_weight = 90
+        var unrelated = first; unrelated.session_id = "another-session"; unrelated.actual_weight = 999
+        data.sessions = [session]; data.results = [first, other, unrelated]
+        var groups = ExerciseProgress.collect(data: data, relationshipID: assignment.relationship_id)
+        XCTAssertEqual(groups.count, 1); XCTAssertEqual(groups[0].points.count, 1)
+        XCTAssertEqual(groups[0].points[0].results.count, 2)
+        XCTAssertEqual(groups[0].points[0].bestSet?.actual_weight, 90)
+        first.completed = false; data.results = [first, other, unrelated]
+        groups = ExerciseProgress.collect(data: data, relationshipID: assignment.relationship_id)
+        XCTAssertEqual(groups[0].points[0].results.count, 1)
+        var point = groups[0].points[0]
+        point.session.completed_at = "2026-12-15T10:00:00Z"
+        XCTAssertEqual(point.date, ReppyDate.parse("2026-12-15T10:00:00Z"))
+    }
+}

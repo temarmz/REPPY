@@ -2,6 +2,34 @@ import XCTest
 
 final class ScreenAuditTests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
+    @MainActor func testProgressLargeHistoryRemainsInteractive() {
+        for (role, theme) in [("student", "dark"), ("trainer", "light")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-" + role, "-appearance", theme, "--audit-screen", role == "trainer" ? "progress" : "home", "--audit-large-progress"]
+            app.launch()
+            let first = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "progress-summary-")).firstMatch
+            for _ in 0..<10 { if first.exists && first.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(first.waitForExistence(timeout: 10)); first.tap()
+            let previous = app.buttons["Предыдущее занятие"], next = app.buttons["Следующее занятие"]
+            for _ in 0..<5 { if previous.exists && previous.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(previous.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["По месяцам · последнее занятие месяца"].exists)
+            for _ in 0..<3 {
+                let date = app.staticTexts["progress-selected-date"]
+                let before = date.label
+                let start = Date(); previous.tap()
+                XCTAssertNotEqual(date.label, before)
+                XCTAssertLessThan(Date().timeIntervalSince(start), 10, "Date selection blocked the UI")
+                XCTAssertTrue(next.isEnabled)
+            }
+            capture(app, "progress-large-history-" + role + "-" + theme)
+            app.navigationBars.buttons.firstMatch.tap()
+            XCTAssertTrue(first.waitForExistence(timeout: 5))
+            app.swipeUp(); app.swipeUp(); app.swipeDown()
+            capture(app, "progress-long-feed-" + role + "-" + theme)
+            app.terminate()
+        }
+    }
     @MainActor func testTrainerScreenInventory() {
         let routes = ["home", "calendar", "students", "student", "invited", "student-form", "invite", "repeat", "editor", "new-editor", "assignment", "history", "result", "progress", "ledger", "payment", "edit-payment", "library", "definition", "exercise-picker", "instruction", "instruction-editor", "reorder", "active", "structure", "profile", "telegram", "notes", "notes-calendar", "empty-home", "error", "design-kit"]
         for theme in ["light", "dark"] { for route in routes { captureRoute(route, role: "trainer", theme: theme) } }
@@ -73,6 +101,7 @@ final class ScreenAuditTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Прогресс"].waitForExistence(timeout: 15))
         let exercise = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим ногами")).firstMatch
         XCTAssertTrue(exercise.waitForExistence(timeout: 5)); exercise.tap()
+        for _ in 0..<5 { if app.buttons["Предыдущее занятие"].exists && app.buttons["Предыдущее занятие"].isHittable { break }; app.swipeUp() }
         XCTAssertTrue(app.buttons["Предыдущее занятие"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["Предыдущее занятие"].isEnabled)
         app.buttons["Предыдущее занятие"].tap(); XCTAssertTrue(app.buttons["Следующее занятие"].isEnabled)
         app.terminate(); app.launchArguments = ["--demo-student", "-appearance", "light"]; app.launch()

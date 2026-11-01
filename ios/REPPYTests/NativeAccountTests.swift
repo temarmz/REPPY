@@ -114,6 +114,23 @@ private final class NotesTestServer {
 }
 
 @MainActor final class NativeAccountTests: XCTestCase {
+    func testProgressCacheInvalidatesOnNestedChangesAndAccountReset() throws {
+        let store = AppStore(configuration: nil, observeChanges: false)
+        store.data = try TestFixtures.load()
+        let session = try XCTUnwrap(store.data.sessions.first { $0.completed_at != nil })
+        let assignment = try XCTUnwrap(store.data.assignments.first { $0.id == session.assignment_id })
+        let scope: Set<String> = [assignment.relationship_id]
+        let initial = store.progressGroups(relationshipIDs: scope)
+        XCTAssertFalse(initial.isEmpty)
+        XCTAssertEqual(store.progressGroups(relationshipIDs: scope).map(\.id), initial.map(\.id))
+        XCTAssertTrue(store.progressGroups(relationshipIDs: ["another-student"]).isEmpty)
+        store.data.results.removeAll()
+        XCTAssertTrue(store.progressGroups(relationshipIDs: scope).isEmpty)
+        store.data = try TestFixtures.load()
+        XCTAssertFalse(store.progressGroups(relationshipIDs: scope).isEmpty)
+        store.data = AppData()
+        XCTAssertTrue(store.progressGroups(relationshipIDs: scope).isEmpty)
+    }
     private let day = "2035-05-17"
     private func session(_ account: String) -> AuthSession {
         AuthSession(access_token: "test-access-" + account, refresh_token: "test-refresh", expires_at: Date().timeIntervalSince1970 + 3600, user: .init(id: account))

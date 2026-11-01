@@ -49,7 +49,7 @@ struct AssignmentScreen: View {
                 if store.isTrainer { ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) } }
                 ReppyHeading(text: "Упражнения")
                 if assignment.workout_snapshot.exercises.isEmpty { ReppyEmpty(title: "План пока пуст", message: "Тренер ещё не добавил упражнения.") }
-                let progressKeys = Set(ExerciseProgress.collect(data: store.data, relationshipID: assignment.relationship_id).map(\.id))
+                let progressKeys = Set(store.progressGroups(relationshipIDs: [assignment.relationship_id]).map(\.id))
                 ForEach(Array(assignment.workout_snapshot.exercises.enumerated()), id: \.element.id) { index, exercise in
                     ReadOnlyExerciseCard(exercise: exercise, number: index + 1, relationshipID: store.isTrainer && progressKeys.contains(exercise.progressKey) ? assignment.relationship_id : nil)
                 }

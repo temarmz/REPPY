@@ -35,6 +35,7 @@ struct ScreenAuditHost: View {
         .sheet(isPresented: $modal) { NavigationStack { destination } }
         .task {
             guard !ready else { return }; ready = true
+            if ProcessInfo.processInfo.arguments.contains("--audit-large-progress") { store.data = largeProgressHistory() }
             await notes.start(store: store)
             if ["active", "structure", "finish"].contains(route), let assignment {
                 do { sessionID = try await store.startSession(assignment) } catch { store.present(error) }
@@ -68,6 +69,31 @@ struct ScreenAuditHost: View {
         }
         .onDisappear { notes.stop() }
     }
+    private func largeProgressHistory() -> AppData {
+        var data = store.data
+        guard var source = data.sessions.first(where: { session in
+            session.completed_at != nil && data.assignments.contains { $0.id == session.assignment_id && (store.isTrainer || store.ownRelationshipIDs.contains($0.relationship_id)) }
+        }), let exercise = source.workout_snapshot.exercises.first else { return data }
+        let valid = data.sessionResults(source.id).filter { $0.exercise_instance_id == exercise.id && $0.valid(for: exercise) }
+        guard !valid.isEmpty else { return data }
+        source.workout_snapshot.exercises = (0..<30).map { index in
+            var copy = exercise; copy.id = "stress-instance-\(index)"; copy.exerciseId = "stress-exercise-\(index)"
+            copy.name = String(format: "Нагрузочное упражнение %02d", index + 1); return copy
+        }
+        data.sessions = []; data.results = []
+        for index in 0..<156 {
+            var session = source; session.id = "stress-session-\(index)"
+            session.completed_at = ReppyDate.timestamp(Date().addingTimeInterval(-Double((156 - index) * 2 * 86400)))
+            data.sessions.append(session)
+            for item in session.workout_snapshot.exercises {
+                for result in valid {
+                    var copy = result; copy.session_id = session.id; copy.exercise_instance_id = item.id
+                    copy.actual_weight += Double(index); data.results.append(copy)
+                }
+            }
+        }
+        return data
+    }
     @ViewBuilder private var destination: some View {
         switch route {
         case "profile": ProfileScreen()
@@ -81,7 +107,7 @@ struct ScreenAuditHost: View {
         case "history", "empty-history": HistoryScreen(relationshipID: store.isTrainer ? relationship?.id : nil, back: true)
         case "result", "feedback": if let result { SessionResultScreen(sessionID: result.id) }
         case "progress", "empty-progress": ProgressScreen(relationshipID: relationship?.id)
-        case "progress-detail": ProgressScreen(relationshipID: relationship?.id, exerciseKey: relationship.flatMap { ExerciseProgress.collect(data: store.data, relationshipID: $0.id).first?.id })
+        case "progress-detail": ProgressScreen(relationshipID: relationship?.id, exerciseKey: relationship.flatMap { store.progressGroups(relationshipIDs: [$0.id]).first?.id })
         case "ledger": if let relationship { SubscriptionHistoryScreen(relationshipID: relationship.id) }
         case "payment": if let relationship { PaymentFormScreen(relationshipID: relationship.id) }
         case "edit-payment": if let relationship { PaymentFormScreen(relationshipID: relationship.id, original: store.data.subscriptions.first { $0.kind == "payment" }) }

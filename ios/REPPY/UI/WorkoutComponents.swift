@@ -461,21 +461,23 @@ struct ExerciseProgressSummary: View {
     var hideEmpty = false
     var body: some View {
         let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
-        let groups = ExerciseProgress.collect(data: store.data, relationshipIDs: scope)
+        let groups = store.progressGroups(relationshipIDs: scope)
         if !hideEmpty || !groups.isEmpty {
             ReppyHeading(text: "Прогресс по упражнениям")
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
             ForEach(groups) { group in
-                ReppyProgressComparisonLink(group: group) { ProgressScreen(relationshipIDs: scope, exerciseKey: group.id) }
+                ReppyProgressComparisonLink(group: group, relationshipIDs: scope)
             }
         }
     }
 }
-struct ReppyProgressComparisonLink<Destination: View>: View {
+struct ReppyProgressComparisonLink: View {
     var group: ProgressGroup
-    @ViewBuilder var destination: () -> Destination
+    var relationshipIDs: Set<String>
     var body: some View {
-        NavigationLink(destination: destination) {
+        NavigationLink {
+            ProgressScreen(relationshipIDs: relationshipIDs, exerciseKey: group.id)
+        } label: {
             ReppyRow {
                 ReppyStack(compact: true) {
                     ReppyHeading(text: group.exercise.name)
@@ -489,7 +491,7 @@ struct ReppyProgressComparisonLink<Destination: View>: View {
                 }
                 Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
             }.padding(ReppyMetrics.space16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier("progress-summary-" + group.id)
     }
     private var unit: String { group.exercise.measureType == .duration ? "сек." : "повт." }
     private func setLabel(_ set: SetResult) -> String {

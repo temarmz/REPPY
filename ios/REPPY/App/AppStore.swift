@@ -8,7 +8,16 @@ struct FailedDraft {
 
 @MainActor final class AppStore: ObservableObject {
     @Published var profile: Profile?
-    @Published var data = AppData()
+    @Published var data = AppData() {
+        didSet { progressCache.removeAll() }
+    }
+    private var progressCache: [Set<String>: [ProgressGroup]] = [:]
+    func progressGroups(relationshipIDs: Set<String>) -> [ProgressGroup] {
+        if let cached = progressCache[relationshipIDs] { return cached }
+        let groups = ExerciseProgress.collect(data: data, relationshipIDs: relationshipIDs)
+        progressCache[relationshipIDs] = groups
+        return groups
+    }
     @Published var loading = true
     @Published var busy = false
     @Published var error: String?

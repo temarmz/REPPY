@@ -5,7 +5,7 @@ struct HistoryScreen: View {
     var relationshipID: String?
     var back = false
     var body: some View {
-        ReppyPage(back: back, title: "История тренировок") {
+        ReppyPage(back: back, lazyContent: true, title: "История тренировок") {
             if store.isTrainer, let relationshipID, let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
             let assignments = store.data.assignments.filter { (store.isTrainer || store.ownRelationshipIDs.contains($0.relationship_id)) && (relationshipID == nil || $0.relationship_id == relationshipID) && $0.status == "completed" }.sorted { $0.scheduled_for > $1.scheduled_for }
             if assignments.isEmpty { ReppyEmpty(title: "История впереди", message: "Здесь появятся результаты завершённых тренировок.", icon: "clock.arrow.circlepath") }
@@ -25,16 +25,14 @@ struct ProgressScreen: View {
     var relationshipIDs: Set<String>? = nil
     var exerciseKey: String? = nil
     var body: some View {
-        ReppyPage(back: true, title: "Прогресс") {
+        ReppyPage(back: true, lazyContent: exerciseKey == nil, title: "Прогресс") {
             let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
             if store.isTrainer, scope.count == 1, let relationship = store.data.relationships.first(where: { scope.contains($0.id) }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
-            let groups = ExerciseProgress.collect(data: store.data, relationshipIDs: scope).filter { exerciseKey == nil || $0.id == exerciseKey }
+            let groups = store.progressGroups(relationshipIDs: scope).filter { exerciseKey == nil || $0.id == exerciseKey }
             if groups.isEmpty { ReppyEmpty(title: "Пока мало данных", message: "Выполненные подходы появятся здесь после завершения тренировок.", icon: "chart.xyaxis.line") }
             if exerciseKey == nil {
                 ForEach(groups) { group in
-                    ReppyProgressComparisonLink(group: group) {
-                        ProgressScreen(relationshipID: relationshipID, relationshipIDs: scope, exerciseKey: group.id)
-                    }
+                    ReppyProgressComparisonLink(group: group, relationshipIDs: scope)
                 }
             } else {
                 ForEach(groups) { group in

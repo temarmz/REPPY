@@ -3,6 +3,7 @@ import SwiftUI
 struct ReppyPage<Content: View>: View {
     var back = false
     var nativeList = false
+    var lazyContent = false
     var title: String? = nil
     @EnvironmentObject private var store: AppStore
     @State private var discardDraft = false
@@ -11,6 +12,9 @@ struct ReppyPage<Content: View>: View {
         Group {
             if nativeList {
                 List { pageContent }.scrollContentBackground(.hidden)
+            } else if lazyContent {
+                ScrollView { LazyVStack(alignment: .leading, spacing: ReppyMetrics.cardGap) { pageContent }
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
             } else {
                 ScrollView { VStack(alignment: .leading, spacing: ReppyMetrics.cardGap) { pageContent }
                     .frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }

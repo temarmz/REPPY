@@ -16,7 +16,7 @@ struct DashboardScreen: View {
         return upcoming.filter { $0.scheduled_for >= today } + upcoming.filter { $0.scheduled_for < today }
     }
     var body: some View {
-        ReppyPage {
+        ReppyPage(lazyContent: true) {
             if store.isTrainer {
                 ForEach(store.data.assignments.filter { $0.reschedule_requested_at != nil }) { assignment in
                     ReppyCard {

@@ -49,8 +49,8 @@ struct DesignKitScreen: View {
             ReppyWorkoutFocus(name: "Длинное название ближайшей тренировки", schedule: "Сегодня · 19:30", preview: "Жим лёжа · Приседания", progress: (1, 6)) { ReppyText(text: "Тренировка") }
             ReppySubscriptionSummary(balance: -2, entries: store.data.subscriptions)
             ReppySubscriptionSummary(balance: 0, entries: [])
-            if let relationship = store.data.relationships.first, let group = ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).first {
-                ReppyProgressComparisonLink(group: group) { ReppyText(text: "Прогресс") }
+            if let relationship = store.data.relationships.first, let group = store.progressGroups(relationshipIDs: [relationship.id]).first {
+                ReppyProgressComparisonLink(group: group, relationshipIDs: [relationship.id])
             }
             ReppyScheduleHeader(date: Date(), today: true) { ReppyText(text: "Назначение") }
             ReppyScheduleHeader(date: Date()) { ReppyText(text: "Назначение") }
@@ -61,7 +61,7 @@ struct DesignKitScreen: View {
                 if let exercise = session.workout_snapshot.exercises.first { ReppyResultExerciseCard(exercise: exercise, results: store.data.sessionResults(session.id)) }
             }
             if let entry = store.data.subscriptions.first { ReppySubscriptionEntry(entry: entry, balanceAfter: 3) }
-            if let relationship = store.data.relationships.first, let group = ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).first {
+            if let relationship = store.data.relationships.first, let group = store.progressGroups(relationshipIDs: [relationship.id]).first {
                 ReppyCard { ReppyProgressChart(points: group.points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit) }
             }
             ReppyWorkoutSaveState(status: "Все изменения сохранены", saving: false)

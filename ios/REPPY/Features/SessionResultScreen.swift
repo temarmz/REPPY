@@ -29,7 +29,7 @@ struct SessionResultScreen: View {
                 } else if let assignment {
                         ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) }
                 }
-                let progressKeys = Set(assignment.map { ExerciseProgress.collect(data: store.data, relationshipID: $0.relationship_id).map(\.id) } ?? [])
+                let progressKeys = Set(assignment.map { store.progressGroups(relationshipIDs: [$0.relationship_id]).map(\.id) } ?? [])
                 ForEach(Array(session.workout_snapshot.exercises.enumerated()), id: \.element.id) { index, exercise in
                     ReppyResultExerciseCard(exercise: exercise, results: results, number: index + 1, relationshipID: progressKeys.contains(exercise.progressKey) ? assignment?.relationship_id : nil)
                 }

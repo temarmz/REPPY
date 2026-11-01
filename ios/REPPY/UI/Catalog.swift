@@ -11,7 +11,7 @@ enum NativeComponentCatalog {
         ("SetSummaryRow", ReppySetSummaryRow.self), ("WorkoutOverview", ReppyWorkoutOverview.self), ("FeedbackSummary", ReppyFeedbackSummary.self),
         ("StudentLink", ReppyStudentLink<EmptyView>.self), ("StudentContext", ReppyStudentContext.self), ("FormatPicker", ReppyFormatPicker.self),
         ("WorkoutFocus", ReppyWorkoutFocus<EmptyView>.self), ("SubscriptionSummary", ReppySubscriptionSummary.self),
-        ("ProgressComparisonLink", ReppyProgressComparisonLink<EmptyView>.self),
+        ("ProgressComparisonLink", ReppyProgressComparisonLink.self),
         ("Avatar", ReppyAvatar.self), ("ProfileIdentity", ReppyProfileIdentity.self),
         ("ScheduleHeader", ReppyScheduleHeader<EmptyView>.self), ("ScheduleLink", ReppyScheduleLink<EmptyView>.self),
         ("SessionSummary", ReppySessionSummary.self), ("ResultExerciseCard", ReppyResultExerciseCard.self), ("SubscriptionEntry", ReppySubscriptionEntry.self),
