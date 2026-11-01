@@ -23,6 +23,12 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyWorkoutOverview(elapsed: "1:02:03", completed: 3, total: 12)
+            ReppySetSummaryRow(number: 1, value: "80 кг × 10 повт.", completed: true)
+            ReppySetSummaryRow(number: 2, value: "45 сек.", completed: false)
+            ReppyFeedbackSummary(mood: .great, comment: "Длинный отзыв ученика о прошедшей тренировке.")
+            ReppyChargeSummary(charged: true)
+            ReppyChargeSummary(charged: false)
             ReppyStudentLink(name: "Мария с длинным именем", status: "Сегодня · 18:00 · Длинное название тренировки", balance: 0, hasSubscription: false) { ReppyText(text: "Профиль ученика") }
             ReppyStudentContext(name: "Мария А.")
             ReppyFormatPicker(selection: .constant(.inPerson))

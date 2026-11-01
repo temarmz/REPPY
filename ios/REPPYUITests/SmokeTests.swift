@@ -1,6 +1,51 @@
 import XCTest
 
 final class SmokeTests: XCTestCase {
+    @MainActor func testWorkoutScreenParity() {
+        for role in ["trainer", "student"] {
+            for theme in ["light", "dark"] {
+                let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
+                XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 15))
+                if role == "trainer" {
+                    app.buttons["Ученики"].tap()
+                    revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+                    revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Грудь и плечи")).firstMatch, in: app)
+                } else { revealAndTap(app.buttons["Посмотреть тренировку"].firstMatch, in: app) }
+                let start = app.buttons["Начать тренировку"]
+                XCTAssertTrue(start.waitForExistence(timeout: 5)); capture(app, "\(role)-assignment-\(theme)")
+                revealAndTap(start, in: app)
+                XCTAssertTrue(app.buttons["Действия тренировки"].waitForExistence(timeout: 5))
+                capture(app, "\(role)-active-\(theme)")
+                app.buttons["Действия тренировки"].tap()
+                XCTAssertTrue(app.buttons["Изменить упражнения и подходы"].waitForExistence(timeout: 5))
+                app.buttons["Сохранить сейчас"].tap()
+                app.terminate(); app.launch()
+                XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 15))
+                if role == "trainer" {
+                    app.buttons["Ученики"].tap()
+                    revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+                } else { app.buttons["Календарь"].tap() }
+                revealAndTap(app.buttons["История тренировок"], in: app)
+                revealAndTap(app.buttons["Посмотреть результат"].firstMatch, in: app)
+                XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["1:00:00"].exists)
+                if role == "trainer" { XCTAssertTrue(app.staticTexts["Одно занятие списано"].exists) }
+                capture(app, "\(role)-result-\(theme)")
+                if role == "student" {
+                    revealAndTap(app.buttons["Изменить отзыв"], in: app)
+                    let comment = app.textFields["Комментарий тренеру"]
+                    XCTAssertTrue(comment.waitForExistence(timeout: 5)); capture(app, "feedback-\(theme)")
+                    revealAndTap(app.buttons["Отмена"], in: app)
+                    XCTAssertTrue(app.buttons["Изменить отзыв"].waitForExistence(timeout: 5))
+                } else {
+                    revealAndTap(app.buttons["Удалить тренировку"], in: app)
+                    XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5)); app.buttons["Отмена"].tap()
+                    XCTAssertTrue(app.staticTexts["Длительность"].exists)
+                }
+                app.terminate()
+            }
+        }
+    }
     @MainActor func testStudentManagementParity() {
         for theme in ["light", "dark"] { runStudentManagement(theme: theme) }
     }
@@ -47,8 +92,11 @@ final class SmokeTests: XCTestCase {
             app.terminate()
     }
     @MainActor private func revealAndTap(_ element: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: 5))
         for _ in 0..<16 {
-            if element.isHittable { break }
+            let bar = app.otherElements["reppy-tab-bar"]
+            let coveredByTabs = bar.exists && element.frame.midY >= bar.frame.minY
+            if element.isHittable && !coveredByTabs { break }
             if element.frame.midY < app.frame.midY { app.swipeDown(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
         }
         XCTAssertTrue(element.isHittable); element.tap()
@@ -71,10 +119,14 @@ final class SmokeTests: XCTestCase {
         let open = app.buttons["Посмотреть тренировку"].firstMatch
         XCTAssertTrue(open.waitForExistence(timeout: 15))
         let home = XCTAttachment(screenshot: app.screenshot()); home.name = accessibility ? "student-home-largest-text" : "student-home-small"; home.lifetime = .keepAlways; add(home)
-        for _ in 0..<8 { if open.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(open.isHittable); open.tap()
+        revealAndTap(open, in: app)
         let start = app.buttons.matching(NSPredicate(format: "label IN %@", ["Начать тренировку", "Продолжить тренировку"])).firstMatch
-        XCTAssertTrue(start.waitForExistence(timeout: 5)); start.tap()
+        XCTAssertTrue(start.waitForExistence(timeout: 5)); revealAndTap(start, in: app)
+        let instruction = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция:")).firstMatch
+        revealAndTap(instruction, in: app)
+        XCTAssertTrue(app.buttons["Закрыть"].waitForExistence(timeout: 5))
+        capture(app, accessibility ? "instruction-largest-text" : "instruction-small")
+        revealAndTap(app.buttons["Закрыть"], in: app)
         let weight = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Фактический вес подхода 1")).firstMatch
         for _ in 0..<10 { if weight.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(weight.isHittable); weight.tap()
@@ -96,6 +148,13 @@ final class SmokeTests: XCTestCase {
         let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = accessibility ? "active-finish-largest-text" : "active-finish-small"; screenshot.lifetime = .keepAlways; add(screenshot)
         confirm.tap()
         XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 10))
+        revealAndTap(app.buttons["Как прошла тренировка?"], in: app)
+        let feedback = app.textFields["Комментарий тренеру"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 5)); revealAndTap(feedback, in: app)
+        feedback.typeText("Тренировка прошла хорошо")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        revealAndTap(app.buttons["Сохранить обратную связь"], in: app)
+        XCTAssertTrue(app.staticTexts["Тренировка прошла хорошо"].waitForExistence(timeout: 10))
         app.terminate()
     }
     @MainActor func testProfileKeyboardCancelOnSmallScreen() {

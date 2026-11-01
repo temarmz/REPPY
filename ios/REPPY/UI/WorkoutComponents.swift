@@ -3,21 +3,18 @@ import SwiftUI
 struct ReppyResultExerciseCard: View {
     var exercise: WorkoutExercise
     var results: [SetResult]
+    var number: Int? = nil
+    var relationshipID: String? = nil
     var body: some View {
         ReppyCard {
-            ReppyExerciseHeader(exercise: exercise) { EmptyView() }
+            ReppyExerciseHeader(exercise: exercise, number: number) { EmptyView() }
             if let note = exercise.coachNote, !note.isEmpty { ReppyCaption(text: note) }
             let recorded = results.filter { $0.exercise_instance_id == exercise.id }.sorted { $0.set_number < $1.set_number }
             ForEach(recorded) { result in
-                ReppyRow {
-                    ReppyCaption(text: "Подход \(result.set_number)")
-                    Spacer()
-                    ReppyText(text: (exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(exercise.unit)")
-                    Image(systemName: result.completed ? "checkmark" : "minus").foregroundStyle(result.completed ? ReppyTheme.lime : ReppyTheme.muted)
-                        .accessibilityLabel(result.completed ? "Выполнено" : "Не выполнено")
-                }.frame(minHeight: ReppyMetrics.small)
+                ReppySetSummaryRow(number: result.set_number, value: (exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(exercise.unit)", completed: result.completed)
             }
             if recorded.isEmpty { ReppyCaption(text: "Нет записанных подходов") }
+            if let relationshipID { ReppyLink(title: "Прогресс упражнения", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationshipID, exerciseKey: exercise.progressKey) } }
         }
     }
 }
@@ -29,16 +26,13 @@ struct ReppySessionSummary: View {
     private var elapsed: String {
         guard let start = ReppyDate.parse(session.started_at), let end = ReppyDate.parse(session.completed_at ?? "") else { return "—" }
         let seconds = max(0, Int(end.timeIntervalSince(start)))
-        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
+        return ReppyElapsedTime.label(seconds: seconds)
     }
     var body: some View {
-        ReppyCard {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 3), alignment: .leading, spacing: ReppyMetrics.space16) {
-                item("Длительность", elapsed)
-                item("Подходы", "\(results.filter(\.completed).count) из \(results.count)")
-                item("Упражнения", String(session.workout_snapshot.exercises.count))
-            }
-            if let completed = session.completed_at { ReppyCaption(text: ReppyDate.display(completed)) }
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 3), alignment: .leading, spacing: ReppyMetrics.space16) {
+            item("Длительность", elapsed)
+            item("Подходы", "\(results.filter(\.completed).count) из \(results.count)")
+            item("Упражнения", String(session.workout_snapshot.exercises.count))
         }
     }
     private func item(_ title: String, _ value: String) -> some View {
@@ -78,14 +72,16 @@ struct ReppyExerciseSectionHeader: View {
 
 struct ReppyExerciseHeader<Actions: View>: View {
     var exercise: WorkoutExercise
+    var number: Int? = nil
     @ViewBuilder var actions: () -> Actions
     var body: some View {
         VStack(alignment: .leading, spacing: ReppyMetrics.space8) {
             HStack(alignment: .top, spacing: ReppyMetrics.space12) {
+                if let number { Text(String(format: "%02d", number)).reppyTypography(.caption).foregroundStyle(ReppyTheme.trendUp) }
                 ReppyHeading(text: exercise.name).frame(maxWidth: .infinity, alignment: .leading)
                 actions()
             }
-            ReppyCaption(text: [exercise.equipment, exercise.loadMode == .bodyweight ? "Свой вес" : "Внешний вес", exercise.measureType == .duration ? "Длительность" : "Повторения"].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+            ReppyCaption(text: [exercise.primaryMuscle, exercise.equipment, exercise.loadMode == .bodyweight ? "Свой вес" : nil, exercise.measureType == .duration ? "Длительность" : nil].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
         }
     }
 }
@@ -111,10 +107,11 @@ struct ReppyDisclosure<Content: View>: View {
 struct ReppyActiveExerciseCard: View {
     var exercise: WorkoutExercise
     @Binding var results: [SetResult]
+    var number: Int? = nil
     var onInstruction: () -> Void
     var body: some View {
         ReppyCard {
-            ReppyExerciseHeader(exercise: exercise) {
+            ReppyExerciseHeader(exercise: exercise, number: number) {
                 Button(action: onInstruction) { ReppyToolbarIcon(icon: "questionmark.circle") }.buttonStyle(.plain).accessibilityLabel("Инструкция: \(exercise.name)")
             }
             if let note = exercise.coachNote, !note.isEmpty { ReppyText(text: note, tone: .secondary) }
@@ -509,24 +506,81 @@ struct SetColumnLabels: View {
 struct ReadOnlyExerciseCard: View {
     var exercise: WorkoutExercise
     var results: [SetResult]? = nil
+    var number: Int? = nil
+    var relationshipID: String? = nil
     @State private var showInstruction = false
     var body: some View {
         ReppyCard {
-            ReppyExerciseHeader(exercise: exercise) { EmptyView() }
+            ReppyExerciseHeader(exercise: exercise, number: number) {
+                Button { showInstruction = true } label: { ReppyToolbarIcon(icon: "questionmark.circle") }.buttonStyle(.plain).accessibilityLabel("Инструкция: \(exercise.name)")
+            }
             if let note = exercise.coachNote, !note.isEmpty { ReppyText(text: note, tone: .secondary) }
             ForEach(Array(exercise.plannedSets.enumerated()), id: \.offset) { index, plan in
                 let result = results?.first { $0.exercise_instance_id == exercise.id && $0.set_number == index + 1 }
-                HStack {
-                    Text("\(index + 1)").frame(width: 24).foregroundStyle(ReppyTheme.secondary)
-                    if exercise.loadMode == .external { Text("\((result?.actual_weight ?? plan.targetWeight).reppyNumber) кг").monospacedDigit() }
-                    Spacer()
-                    Text("\(result?.actual_reps ?? plan.targetReps) \(exercise.unit)").monospacedDigit()
-                    if let result { Image(systemName: result.completed ? "checkmark.circle.fill" : "circle").foregroundStyle(result.completed ? ReppyTheme.lime : ReppyTheme.muted).accessibilityLabel(result.completed ? "Выполнено" : "Пропущено") }
-                }.font(.system(size: 20)).frame(minHeight: ReppyMetrics.small)
+                ReppySetSummaryRow(number: index + 1, value: (exercise.loadMode == .external ? "\((result?.actual_weight ?? plan.targetWeight).reppyNumber) кг × " : "") + "\(result?.actual_reps ?? plan.targetReps) \(exercise.unit)", completed: result?.completed)
             }
             if exercise.plannedSets.isEmpty { ReppyCaption(text: "Подходы не заданы") }
-            ReppyButton(title: "Инструкция", icon: "questionmark.circle", compact: true) { showInstruction = true }
+            if let relationshipID { ReppyLink(title: "Прогресс упражнения", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationshipID, exerciseKey: exercise.progressKey) } }
         }.sheet(isPresented: $showInstruction) { NavigationStack { InstructionScreen(exercise: exercise) }.presentationCornerRadius(ReppyMetrics.modalRadius) }
+    }
+}
+struct ReppySetSummaryRow: View {
+    var number: Int
+    var value: String
+    var completed: Bool? = nil
+    var body: some View {
+        ReppyRow {
+            ReppyCaption(text: "Подход \(number)")
+            Spacer(minLength: 0)
+            Text(value).reppyTypography(.setNumber).monospacedDigit().fixedSize(horizontal: false, vertical: true)
+            if let completed { Image(systemName: completed ? "checkmark" : "minus").foregroundStyle(completed ? ReppyTheme.trendUp : ReppyTheme.muted).accessibilityLabel(completed ? "Выполнено" : "Не выполнено") }
+        }.frame(minHeight: ReppyMetrics.small).accessibilityElement(children: .combine)
+    }
+}
+enum ReppyElapsedTime {
+    static func label(seconds: Int) -> String {
+        let seconds = max(0, seconds)
+        return seconds >= 3600 ? String(format: "%d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60) : String(format: "%02d:%02d", seconds / 60, seconds % 60)
+    }
+}
+struct ReppyWorkoutOverview: View {
+    var elapsed: String
+    var completed: Int
+    var total: Int
+    var body: some View {
+        ReppyStack(compact: true) {
+            ReppyRow {
+                Label(elapsed, systemImage: "timer").reppyTypography(.heading).monospacedDigit().accessibilityLabel("Время тренировки: \(elapsed)")
+                Spacer(minLength: 0)
+                ReppyCaption(text: "\(total > 0 ? Int(Double(completed) / Double(total) * 100) : 0)% · \(completed) из \(total) подходов")
+            }
+            ReppyProgressBar(completed: completed, total: total)
+        }
+    }
+}
+struct ReppyFeedbackSummary: View {
+    var mood: Mood?
+    var comment: String?
+    var body: some View {
+        ReppyCard {
+            ReppyCaption(text: "ОБРАТНАЯ СВЯЗЬ УЧЕНИКА")
+            if let mood { Label(mood.title, systemImage: "sun.max").reppyTypography(.heading) }
+            if let comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
+        }
+    }
+}
+struct ReppyChargeSummary: View {
+    var charged: Bool
+    var body: some View {
+        ReppyCard {
+            ReppyRow {
+                Image(systemName: charged ? "checkmark" : "minus").foregroundStyle(ReppyTheme.trendUp).accessibilityHidden(true)
+                ReppyStack(compact: true) {
+                    ReppyCaption(text: "АБОНЕМЕНТ")
+                    ReppyText(text: charged ? "Одно занятие списано" : "Занятие не списано")
+                }
+            }
+        }
     }
 }
 struct InstructionScreen: View {

@@ -6,6 +6,20 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testSessionChargeUsesItsRelationshipLedgerAndRecognizesRefunds() throws {
+        var data = try fixture()
+        let session = try XCTUnwrap(data.sessions.first { session in
+            session.charge_status == nil && data.subscriptions.contains { $0.kind == "session-charge" && $0.session_id == session.id }
+        })
+        let charge = try XCTUnwrap(data.subscriptions.first { $0.kind == "session-charge" && $0.session_id == session.id })
+        XCTAssertTrue(data.isSessionCharged(session.id))
+        var refund = charge; refund.id = "refund"; refund.kind = "session-refund"; refund.lesson_delta = 1
+        refund.relationship_id = "unrelated"; data.subscriptions.append(refund)
+        XCTAssertTrue(data.isSessionCharged(session.id))
+        refund.id = "matching-refund"; refund.relationship_id = charge.relationship_id; data.subscriptions.append(refund)
+        XCTAssertFalse(data.isSessionCharged(session.id))
+        XCTAssertFalse(data.isSessionCharged("unknown-session"))
+    }
     func testDemoPaymentDatesPreserveTheirDistanceFromTheAnchorDay() throws {
         let data = try fixture()
         let payment = try XCTUnwrap(data.subscriptions.first { $0.kind == "payment" })

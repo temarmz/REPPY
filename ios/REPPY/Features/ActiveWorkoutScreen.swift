@@ -25,24 +25,28 @@ struct ActiveWorkoutScreen: View {
     var body: some View {
         ReppyPage(back: true) {
             if let value = draft {
+                if let assignment = store.data.assignments.first(where: { $0.id == value.session.assignment_id }) { ReppyCaption(text: "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)") }
                 ReppyTitle(text: value.workout.name)
                 if store.conflict {
                     ReppyButton(title: "Загрузить актуальную тренировку", icon: "arrow.clockwise", disabled: saving || store.busy) { confirmReload = true }
                 }
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    ReppyText(text: "Время: \(elapsed(from: value.session.started_at, now: context.date))", tone: .secondary)
+                    ReppyWorkoutOverview(elapsed: elapsed(from: value.session.started_at, now: context.date), completed: value.results.filter(\.completed).count, total: value.results.count)
                 }
-                let count = value.results.filter(\.completed).count
-                ReppyProgressBar(completed: count, total: value.results.count)
-                ReppyCaption(text: "Выполнено \(count) из \(value.results.count) подходов")
-                ReppyButton(title: "Сохранить сейчас", icon: "arrow.clockwise", compact: true, disabled: saving || store.busy) { Task { await flush() } }
-                ReppyButton(title: "Изменить упражнения и подходы", icon: "pencil", compact: true, disabled: saving || store.busy) { structure = true }
-                ForEach(value.workout.exercises) { exercise in
-                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 })) { instruction = exercise }
+                ForEach(Array(value.workout.exercises.enumerated()), id: \.element.id) { index, exercise in
+                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1) { instruction = exercise }
                 }
                 ReppyButton(title: "Завершить тренировку", icon: "checkmark", kind: .primary, disabled: saving || store.busy) { finish = true }
             } else { ReppyEmpty(title: "Не удалось открыть тренировку", message: "Вернись к плану и обнови данные.") }
-        }.toolbar { ToolbarItem(placement: .principal) { ReppyWorkoutSaveState(status: status, saving: saving) } }
+        }.toolbar {
+            ToolbarItem(placement: .principal) { ReppyWorkoutSaveState(status: status, saving: saving) }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Сохранить сейчас", systemImage: "arrow.clockwise") { Task { await flush() } }
+                    Button("Изменить упражнения и подходы", systemImage: "pencil") { structure = true }
+                } label: { ReppyToolbarIcon(icon: "ellipsis") }.disabled(saving || store.busy || draft == nil).accessibilityLabel("Действия тренировки")
+            }
+        }
             .onAppear { initialize() }
             .onChange(of: draft?.results) { _, _ in changed() }
             .onChange(of: draft?.workout) { old, _ in reconcileResults(previous: old); changed() }
@@ -144,7 +148,7 @@ struct ActiveWorkoutScreen: View {
     }
     private func elapsed(from: String, now: Date) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(ReppyDate.parse(from) ?? now)))
-        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
+        return ReppyElapsedTime.label(seconds: seconds)
     }
 }
 struct ActiveStructureScreen: View {
