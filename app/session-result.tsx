@@ -26,6 +26,7 @@ export default function SessionResult({
   onDelete?: () => void;
 }) {
   const workout = findSessionWorkout(data, session);
+  const assignment = data.assignments.find((item) => item.id === session.assignmentId);
   const student = data.students.find((item) => item.id === session.studentId);
   const charged = isSessionCharged(data.subscriptionEntries, session.id);
   const chargeStatus = charged ? 'charged' : session.subscriptionChargeStatus === 'waived' ? 'waived' : undefined;
@@ -36,7 +37,7 @@ export default function SessionResult({
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <Page className="content-page narrow-page">
-      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(assignment?.scheduledFor ?? session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       <DefinitionList className="session-summary" aria-label="Итоги тренировки">
         <Box><DefinitionTerm>ДЛИТЕЛЬНОСТЬ</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
         <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{completedSets} из {session.results.length}</DefinitionValue></Box>

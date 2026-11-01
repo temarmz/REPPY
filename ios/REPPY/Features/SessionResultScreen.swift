@@ -15,7 +15,10 @@ struct SessionResultScreen: View {
         ReppyPage(back: true, title: "Результат тренировки") {
             if let session = store.data.sessions.first(where: { $0.id == sessionID }) {
                 let assignment = store.data.assignments.first { $0.id == session.assignment_id }
-                ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + ReppyDate.display(session.completed_at ?? session.started_at))
+                // Keep the header tied to the scheduled workout day. A session may be
+                // completed later when an overdue workout is opened from history.
+                let displayDate = assignment?.scheduled_for ?? session.completed_at ?? session.started_at
+                ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + ReppyDate.display(displayDate))
                 ReppyTitle(text: session.workout_snapshot.name)
                 let results = store.data.sessionResults(sessionID)
                 ReppySessionSummary(session: session, results: results)
