@@ -2048,7 +2048,7 @@ body.modal-open .bottom-nav { display: none; }
 .subscription-actions { display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--space-10); margin-top: var(--space-22); }
 .subscription-actions .primary-button, .subscription-actions .wide-secondary { min-height: var(--control-height-large); }
 
-.student-subscription-status { display: grid; min-height: var(--size-76); grid-template-columns: auto minmax(0,1fr); align-items: center; gap: var(--space-13); margin-bottom: var(--space-16); border: 0; border-radius: var(--card-radius); padding: var(--space-14) var(--space-17); background: var(--surface); }
+.student-subscription-status { width: 100%; color: var(--text-primary); text-align: left; cursor: pointer; display: grid; min-height: var(--size-76); grid-template-columns: auto minmax(0,1fr); align-items: center; gap: var(--space-13); margin-bottom: var(--space-16); border: 0; border-radius: var(--card-radius); padding: var(--space-14) var(--space-17); background: var(--surface); }
 .student-subscription-status > span { display: grid; width: var(--size-42); height: var(--size-42); place-items: center; border-radius: var(--control-radius); background: transparent; color: var(--lime); }
 .student-subscription-status > span .ui-icon { width: calc(var(--size-19) * var(--ui-icon-scale)); height: calc(var(--size-19) * var(--ui-icon-scale)); }
 .student-subscription-status > div { display: grid; gap: var(--space-4); }

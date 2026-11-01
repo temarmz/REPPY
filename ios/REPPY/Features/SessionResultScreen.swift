@@ -12,7 +12,7 @@ struct SessionResultScreen: View {
     @State private var feedbackEditing = false
     @State private var confirmDelete = false
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, title: "Результат тренировки") {
             if let session = store.data.sessions.first(where: { $0.id == sessionID }) {
                 let assignment = store.data.assignments.first { $0.id == session.assignment_id }
                 ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + ReppyDate.display(session.completed_at ?? session.started_at))
@@ -28,7 +28,6 @@ struct SessionResultScreen: View {
                     ReppyButton(title: session.mood == nil && (session.comment ?? "").isEmpty ? "Как прошла тренировка?" : "Изменить отзыв", icon: "square.and.pencil", compact: true) { feedbackEditing = true }
                 } else if let assignment {
                         ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) }
-                        ReppyButton(title: "Удалить тренировку", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
                 let progressKeys = Set(assignment.map { ExerciseProgress.collect(data: store.data, relationshipID: $0.relationship_id).map(\.id) } ?? [])
                 ForEach(Array(session.workout_snapshot.exercises.enumerated()), id: \.element.id) { index, exercise in
@@ -37,6 +36,7 @@ struct SessionResultScreen: View {
                 if store.isTrainer, let assignment {
                     ReppyLink(title: "Открыть тренировку") { AssignmentScreen(assignmentID: assignment.id) }
                     ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: assignment.relationship_id) }
+                    ReppyButton(title: "Удалить тренировку", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
             } else { ReppyEmpty(title: "Результат не найден", message: "Обнови данные и вернись к истории.") }
         }.onAppear {
@@ -46,24 +46,21 @@ struct SessionResultScreen: View {
         }.onChange(of: mood) { _, _ in saveDraft() }.onChange(of: comment) { _, _ in saveDraft() }
             .sheet(isPresented: $feedbackEditing) {
                 NavigationStack {
-                    ReppyPage(back: true) {
-                        ReppyTitle(text: "Как прошла тренировка?")
+                    ReppyPage(back: true, title: "Отзыв") {
                         ReppyPicker(title: "Самочувствие", selection: $mood) { ForEach(Mood.allCases, id: \.self) { Text($0.title).tag($0) } }
                         ReppyField(title: "Комментарий тренеру", text: $comment, multiline: true)
-                        ReppyButton(title: "Сохранить обратную связь", kind: .primary, disabled: store.busy) { Task {
+
+                    }.reppyFormActions(saveLabel: "Сохранить обратную связь", busy: store.busy, hasChanges: mood != (store.data.sessions.first { $0.id == sessionID }?.mood ?? .good) || comment != (store.data.sessions.first { $0.id == sessionID }?.comment ?? ""), save: {Task {
                             guard let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
                             if await store.run({
                                 try await store.saveFeedback(session, mood: mood, comment: comment)
                                 try DraftStorage.remove(account: store.accountKey, key: "feedback:\(sessionID)")
                             }) { feedbackEditing = false }
-                        } }
-                        ReppyButton(title: "Отмена", disabled: store.busy) {
+                        }}, discard: {
                             feedbackEditing = false
                             if let session = store.data.sessions.first(where: { $0.id == sessionID }) { mood = session.mood ?? .good; comment = session.comment ?? "" }
-                            do { try DraftStorage.remove(account: store.accountKey, key: "feedback:\(sessionID)") } catch { store.present(error) }
-                        }
-                    }
-                }.presentationCornerRadius(ReppyMetrics.modalRadius).interactiveDismissDisabled(store.busy)
+                            do { try DraftStorage.remove(account: store.accountKey, key: "feedback:\(sessionID)") } catch { store.present(error) }})
+                }.presentationCornerRadius(ReppyMetrics.modalRadius)
             }
             .confirmationDialog("Удалить завершённую тренировку? Если занятие списано, оно вернётся в абонемент ученика.", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Удалить тренировку", role: .destructive) { Task {

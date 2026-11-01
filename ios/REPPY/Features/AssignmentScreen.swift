@@ -11,7 +11,7 @@ struct AssignmentScreen: View {
     @State private var time = Date()
     @State private var confirmDelete = false
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, title: "Тренировка") {
             if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) {
                 let session = store.data.session(for: assignment.id)
                 ReppyCaption(text: store.isTrainer ? "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)" : session?.completed_at == nil && session != nil ? "Незавершённая тренировка" : "Предстоящая тренировка")
@@ -30,24 +30,20 @@ struct AssignmentScreen: View {
                                 ReppyButton(title: "Отклонить", disabled: store.busy) { Task { await store.run { try await store.decideReschedule(assignment, accept: false) } } }
                             } else { ReppyCaption(text: "Тренер подтвердит или отклонит новое время.") }
                         }
-                    } else if !store.isTrainer && assignment.format == .inPerson {
-                        ReppyButton(title: "Предложить другое время", icon: "calendar", disabled: store.busy) { reschedule.toggle() }
-                    }
-                    if reschedule {
-                        ReppyCard {
-                            ReppyDateField(title: "Новая дата", date: $date)
-                            ReppyDateField(title: "Новое время", date: $time, time: true)
-                            ReppyButton(title: "Отправить тренеру", kind: .primary, disabled: store.busy) {
-                                let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "HH:mm"
-                                Task { if await store.run({ try await store.requestReschedule(assignment, date: date, time: formatter.string(from: time)) }) { reschedule = false } }
-                            }
-                        }
                     }
                     if assignment.canStart(as: store.profile?.role ?? .student, sessions: store.data.sessions) {
                         ReppyButton(title: session == nil ? "Начать тренировку" : "Продолжить тренировку", icon: "play", kind: .primary, disabled: store.busy) {
                             Task { if await store.run({ activeID = try await store.startSession(assignment) }) { showActive = true } }
                         }
                     } else { ReppyCaption(text: "Очную тренировку можно начать в назначенный день.") }
+                    if !store.isTrainer && assignment.format == .inPerson && assignment.reschedule_requested_at == nil {
+                        ReppyButton(title: "Предложить другое время", icon: "calendar", compact: true, disabled: store.busy) {
+                            date = ReppyDate.fromDay(assignment.scheduled_for)
+                            let parts = (assignment.scheduled_time ?? "18:00").split(separator: ":").compactMap { Int($0) }
+                            time = Calendar.current.date(bySettingHour: parts.first ?? 18, minute: parts.dropFirst().first ?? 0, second: 0, of: date) ?? date
+                            reschedule = true
+                        }
+                    }
                     if store.isTrainer && session == nil { ReppyLink(title: "Редактировать план", icon: "pencil") { AssignmentEditorScreen(original: assignment) } }
                 }
                 if store.isTrainer { ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) } }
@@ -62,6 +58,21 @@ struct AssignmentScreen: View {
                 }
             } else { ReppyEmpty(title: "Тренировка не найдена", message: "Возможно, она была удалена на другом устройстве.") }
         }.navigationDestination(isPresented: $showActive) { if let activeID { ActiveWorkoutScreen(sessionID: activeID) } }
+            .sheet(isPresented: $reschedule) {
+                NavigationStack {
+                    ReppyPage(back: true, title: "Перенос") {
+                        ReppyText(text: "Предложи удобные дату и время. Тренер подтвердит перенос.", tone: .secondary)
+                        ReppyCard {
+                            ReppyDateField(title: "Новая дата", date: $date)
+                            ReppyDateField(title: "Новое время", date: $time, time: true)
+                        }
+                    }.reppyFormActions(saveTitle: "Отправить", saveLabel: "Отправить тренеру", busy: store.busy, hasChanges: false, save: {
+                        guard let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) else { return }
+                        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "HH:mm"
+                        Task { if await store.run({ try await store.requestReschedule(assignment, date: date, time: formatter.string(from: time)) }) { reschedule = false } }
+                    }, discard: { reschedule = false })
+                }
+            }
             .confirmationDialog("Удалить тренировку? Если занятие было списано, оно вернётся в абонемент.", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Удалить", role: .destructive) { Task {
                     if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }), await store.run({ try await store.deleteAssignment(assignment) }) { dismiss() }

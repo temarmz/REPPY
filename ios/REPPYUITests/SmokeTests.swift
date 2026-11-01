@@ -1,6 +1,44 @@
 import XCTest
 
 final class SmokeTests: XCTestCase {
+    @MainActor func testNativeRepeatReorderAndDraftExit() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", "dark"]; app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Ученики"].tap()
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+        revealAndTap(app.buttons["Назначить тренировку"], in: app)
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5), app.debugDescription); search.tap(); search.typeText("zzzzzzz")
+        XCTAssertTrue(app.staticTexts["Ничего не найдено"].waitForExistence(timeout: 5))
+        search.buttons.firstMatch.tap()
+        if app.buttons["Отменить"].exists { app.buttons["Отменить"].tap() } else { app.swipeUp() }
+        let previous = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Завершена")).firstMatch
+        revealAndTap(previous, in: app)
+        let name = app.textFields["Название тренировки"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); let original = name.value as? String ?? ""
+        revealAndTap(app.buttons["Изменить порядок упражнений"], in: app)
+        let cells = app.cells
+        XCTAssertGreaterThan(cells.count, 1)
+        let first = cells.element(boundBy: 0).staticTexts.firstMatch.label
+        let second = cells.element(boundBy: 1).staticTexts.firstMatch.label
+        let handle = cells.element(boundBy: 0).buttons.firstMatch
+        XCTAssertTrue(handle.exists)
+        handle.press(forDuration: 0.7, thenDragTo: cells.element(boundBy: 1))
+        XCTAssertEqual(cells.element(boundBy: 0).staticTexts.firstMatch.label, second)
+        XCTAssertEqual(cells.element(boundBy: 1).staticTexts.firstMatch.label, first)
+        capture(app, "native-reorder-dark")
+        app.navigationBars.buttons["Готово"].tap()
+        revealAndTap(name, in: app); name.typeText(" native-draft")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        app.navigationBars.buttons["Отмена"].tap(); app.buttons["Сохранить черновик и выйти"].tap()
+        revealAndTap(previous, in: app)
+        XCTAssertTrue(name.waitForExistence(timeout: 5)); XCTAssertTrue((name.value as? String ?? "").contains("native-draft"))
+        app.navigationBars.buttons["Отмена"].tap(); app.buttons["Удалить изменения"].tap()
+        revealAndTap(previous, in: app)
+        XCTAssertTrue(name.waitForExistence(timeout: 5), app.debugDescription); XCTAssertEqual(name.value as? String, original)
+        capture(app, "native-editor-dark")
+        app.terminate()
+    }
     @MainActor func testNotesCompactNavigation() {
         for theme in ["light", "dark"] {
             let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()
@@ -57,8 +95,11 @@ final class SmokeTests: XCTestCase {
             revealAndTap(app.buttons["Сохранить инструкцию"], in: app)
             revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
             XCTAssertTrue(text.waitForExistence(timeout: 5)); XCTAssertTrue((text.value as? String ?? "").contains("Проверка техники"))
-            revealAndTap(app.buttons["Закрыть описание"], in: app)
-            revealAndTap(app.buttons["Отменить изменения"], in: app)
+            tapVisibleButton("Отмена", in: app)
+            if app.buttons["Удалить изменения"].exists { app.buttons["Удалить изменения"].tap() }
+            let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: text)
+            XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed)
+            tapVisibleButton("Отмена", in: app)
             XCTAssertTrue(app.buttons["Удалить изменения"].waitForExistence(timeout: 5)); app.buttons["Удалить изменения"].tap()
         }
         app.terminate()
@@ -228,6 +269,7 @@ final class SmokeTests: XCTestCase {
             }
             revealAndTap(app.segmentedControls.buttons["Очно"], in: app)
             app.navigationBars.buttons.firstMatch.tap()
+            if app.buttons["Удалить изменения"].exists { app.buttons["Удалить изменения"].tap() }
             XCTAssertTrue(create.waitForExistence(timeout: 5))
             let repeated = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Завершена")).firstMatch
             XCTAssertTrue(repeated.exists); revealAndTap(repeated, in: app)
@@ -237,16 +279,45 @@ final class SmokeTests: XCTestCase {
             XCTAssertTrue(addSet.isHittable); capture(app, "repeat-\(theme)")
             app.terminate()
     }
+    @MainActor private func tapVisibleButton(_ title: String, in app: XCUIApplication) {
+        let buttons = app.buttons.matching(NSPredicate(format: "label == %@", title))
+        XCTAssertTrue(buttons.firstMatch.waitForExistence(timeout: 5))
+        guard let visible = buttons.allElementsBoundByIndex.first(where: { $0.isHittable }) else {
+            XCTFail("Нет доступной кнопки \(title): \(app.debugDescription)"); return
+        }
+        visible.tap()
+    }
+    @MainActor func testNativeInstructionToolbarWithLargestText() {
+        let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", "dark", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]; app.launch()
+        XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Грудь и плечи")).firstMatch, in: app)
+        revealAndTap(app.buttons["Редактировать план"], in: app)
+        revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+        let field = app.textFields["Подробное описание упражнения"]
+        revealAndTap(field, in: app); field.typeText(" нативная проверка")
+        app.buttons["dismiss-keyboard"].firstMatch.tap()
+        tapVisibleButton("Сохранить инструкцию", in: app)
+        revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+        XCTAssertTrue(field.waitForExistence(timeout: 5)); XCTAssertTrue((field.value as? String ?? "").contains("нативная проверка"))
+        capture(app, "native-instruction-largest")
+        tapVisibleButton("Отмена", in: app)
+        let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: field)
+        XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed)
+        tapVisibleButton("Отмена", in: app)
+        XCTAssertTrue(app.buttons["Удалить изменения"].waitForExistence(timeout: 5)); app.buttons["Удалить изменения"].tap()
+        app.terminate()
+    }
     @MainActor private func revealAndTap(_ element: XCUIElement, in app: XCUIApplication) {
         XCTAssertTrue(element.waitForExistence(timeout: 5))
         for _ in 0..<16 {
-            let bar = app.otherElements["reppy-tab-bar"]
-            let coveredByTabs = bar.exists && element.frame.midY >= bar.frame.minY
+            let bar = app.tabBars.firstMatch
+            let coveredByTabs = bar.exists && bar.isHittable && element.frame.midY >= bar.frame.minY
             let field = element.elementType == .textField || element.elementType == .textView
-            let headerBottom = app.navigationBars.allElementsBoundByIndex.map { $0.frame.maxY }.max() ?? app.frame.minY
+            let headerBottom = app.navigationBars.allElementsBoundByIndex.last?.frame.maxY ?? app.frame.minY
             let coveredByHeader = field && element.frame.minY < headerBottom + 8
             if element.isHittable && !coveredByTabs && !coveredByHeader { break }
-            if element.frame.midY < app.frame.midY { app.swipeDown(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
+            if coveredByHeader || element.frame.midY < app.frame.midY { app.swipeDown(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
         }
         XCTAssertTrue(element.isHittable); element.tap()
     }
@@ -318,8 +389,11 @@ final class SmokeTests: XCTestCase {
         let cancel = app.buttons["Отмена"]
         for _ in 0..<12 { if cancel.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(cancel.isHittable); cancel.tap()
-        app.buttons["Изменить личные данные"].tap()
-        XCTAssertTrue(name.waitForExistence(timeout: 5)); XCTAssertEqual(name.value as? String, original)
+        app.buttons["Удалить изменения"].tap()
+        let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: name)
+        XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed)
+        revealAndTap(app.buttons["Изменить личные данные"], in: app)
+        XCTAssertTrue(name.waitForExistence(timeout: 5), app.debugDescription); XCTAssertEqual(name.value as? String, original)
         app.terminate()
     }
     @MainActor func testSmallScreenDynamicType() {
@@ -378,7 +452,7 @@ final class SmokeTests: XCTestCase {
             let addExercise = app.buttons["Добавить упражнение"]
             for _ in 0..<6 { if addExercise.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(addExercise.isHittable); addExercise.tap()
-            let search = app.textFields["Поиск"]
+            let search = app.searchFields["Поиск"]
             XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Жим")
             let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим")).firstMatch
             XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
@@ -406,6 +480,8 @@ final class SmokeTests: XCTestCase {
                     XCTAssertTrue(app.buttons["Изменить личные данные"].exists)
                     app.buttons["Изменить личные данные"].tap()
                     XCTAssertTrue(app.textFields["Имя"].waitForExistence(timeout: 5))
+                    app.navigationBars.allElementsBoundByIndex.last!.buttons["Отмена"].tap()
+                    if app.buttons["Удалить изменения"].exists { app.buttons["Удалить изменения"].tap() }
                 }
                 app.buttons["Календарь"].tap()
                 XCTAssertTrue(app.buttons["Сегодня"].waitForExistence(timeout: 5))
@@ -441,9 +517,9 @@ final class SmokeTests: XCTestCase {
             for theme in ["light", "dark"] {
                 let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]; app.launch()
                 XCTAssertTrue(app.buttons["Профиль"].waitForExistence(timeout: 15))
-                XCTAssertFalse(app.tabBars.firstMatch.exists)
+                XCTAssertTrue(app.tabBars.firstMatch.exists)
                 XCTAssertEqual(app.buttons["Ученики"].exists, role == "trainer")
-                XCTAssertFalse(app.tabBars.firstMatch.exists)
+                XCTAssertTrue(app.tabBars.firstMatch.exists)
                 app.buttons["Профиль"].tap()
                 XCTAssertTrue(app.staticTexts["Оформление"].waitForExistence(timeout: 5))
                 app.navigationBars.buttons.firstMatch.tap()
@@ -453,8 +529,8 @@ final class SmokeTests: XCTestCase {
                 for _ in 0..<4 { if editor.isHittable { break }; app.swipeUp() }
                 XCTAssertTrue(editor.isHittable); editor.tap()
                 XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-                let hidden = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.buttons["Календарь"])
-                XCTAssertEqual(XCTWaiter.wait(for: [hidden], timeout: 5), .completed)
+                // The system owns tab bar placement while the keyboard is visible.
+                XCTAssertTrue(app.buttons["dismiss-keyboard"].firstMatch.isHittable)
                 app.buttons["dismiss-keyboard"].firstMatch.tap()
                 XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 5))
                 app.buttons["Календарь"].tap()
@@ -494,6 +570,8 @@ final class SmokeTests: XCTestCase {
             app.buttons["Закрыть"].tap()
             app.buttons["У меня есть приглашение"].tap()
             XCTAssertTrue(app.textFields["Приглашение"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["Вставить приглашение"].exists)
+            capture(app, "native-invitation-" + theme)
             app.buttons["Готово"].tap()
             app.terminate()
         }

@@ -83,7 +83,7 @@ struct ReppyLedgerSummary<Action: View>: View {
     var hasEntries: Bool
     @ViewBuilder var action: () -> Action
     var body: some View {
-        ReppyCard { ReppyCaption(text: "ТЕКУЩИЙ БАЛАНС"); ReppyTitle(text: ReppySubscriptionSummary.balanceLabel(balance, hasEntries: hasEntries)); action() }
+        ReppyCard { ReppyCaption(text: "ТЕКУЩИЙ БАЛАНС"); ReppyHeading(text: ReppySubscriptionSummary.balanceLabel(balance, hasEntries: hasEntries)); action() }
     }
 }
 struct ReppyPaymentMethodPicker: View {
@@ -119,10 +119,12 @@ struct ReppyInvitationReady: View {
 
 struct ReppyExerciseSectionHeader: View {
     var disabled = false
+    var reorder: (() -> Void)? = nil
     var add: () -> Void
     var body: some View {
         HStack(spacing: ReppyMetrics.space12) {
             ReppyHeading(text: "Упражнения").frame(maxWidth: .infinity, alignment: .leading)
+            if let reorder { Button(action: reorder) { ReppyToolbarIcon(icon: "arrow.up.arrow.down") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Изменить порядок упражнений") }
             Button(action: add) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Добавить упражнение")
         }
     }
@@ -209,7 +211,7 @@ struct ReppyStudentDetails: View {
                 ReppyRow {
                     ReppyHeading(text: "Данные и ограничения")
                     Spacer(minLength: 0)
-                    NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+                    ReppyStudentEditButton(student: student)
                 }
                 ReppyStudentFacts(student: student)
                 ReppyStack(compact: true) {
@@ -224,7 +226,7 @@ struct ReppyStudentDetails: View {
                 if !facts.isEmpty { ReppyCaption(text: facts.joined(separator: " · ")) }
                 if let text = student.contraindications, !text.isEmpty { ReppyCaption(text: "Ограничения: \(text)") }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+            ReppyStudentEditButton(student: student)
         }
         }
     }
@@ -369,12 +371,13 @@ struct ReppySubscriptionSummary: View {
     var trainer = false
     var relationshipID: String? = nil
     var body: some View {
-        ReppyCard {
+        let payments = entries.filter { $0.kind == "payment" }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
+        return ReppyStack {
+            ReppyCard {
             ReppyRow { ReppyCaption(text: "АБОНЕМЕНТ"); Spacer(minLength: 0); ReppyCaption(text: "Без срока действия") }
-            ReppyTitle(text: Self.balanceLabel(balance, hasEntries: !entries.isEmpty))
+            ReppyHeading(text: Self.balanceLabel(balance, hasEntries: !entries.isEmpty))
             if entries.isEmpty { ReppyCaption(text: trainer ? "Добавь первое пополнение, чтобы начать учёт занятий." : "Тренер ещё не добавил пополнение.") }
             else if balance <= 0 { ReppyCaption(text: balance < 0 ? "Новые занятия будут добавляться к долгу." : "Следующую тренировку можно провести в долг.") }
-            let payments = entries.filter { $0.kind == "payment" }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
             if !payments.isEmpty {
                 ReppyCaption(text: trainer ? "ПОСЛЕДНЕЕ ПОПОЛНЕНИЕ" : "ПОСЛЕДНИЕ ПОПОЛНЕНИЯ")
                 ForEach(Array(payments.prefix(trainer ? 1 : 3))) { entry in
@@ -384,8 +387,9 @@ struct ReppySubscriptionSummary: View {
                     }
                 }
             }
+            }
             if trainer, let relationshipID {
-                ReppyRow {
+                ReppyActionGroup {
                     ReppyLink(title: payments.isEmpty ? "Добавить абонемент" : "Продлить", icon: "plus", kind: .primary) { PaymentFormScreen(relationshipID: relationshipID) }
                     ReppyLink(title: "История", icon: "clock.arrow.circlepath") { SubscriptionHistoryScreen(relationshipID: relationshipID) }
                 }
@@ -417,7 +421,7 @@ struct ReppyStudentLink<Destination: View>: View {
                     ReppyHeading(text: name)
                     ReppyCaption(text: status)
                     Text(ReppySubscriptionSummary.balanceLabel(balance, hasEntries: hasSubscription)).reppyTypography(.button)
-                        .foregroundStyle(hasSubscription && balance <= 0 ? ReppyTheme.warning : ReppyTheme.trendUp)
+                        .foregroundStyle(hasSubscription && balance <= 0 ? ReppyTheme.warning : ReppyTheme.secondary)
                 }
                 Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
             }.padding(ReppyMetrics.space16).frame(minHeight: ReppyMetrics.control)
@@ -647,8 +651,8 @@ struct InstructionScreen: View {
     @Environment(\.presentationMode) private var presentation
     var exercise: WorkoutExercise
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: exercise.name)
+        ReppyPage(back: true, title: "Инструкция") {
+            ReppyHeading(text: exercise.name)
             ReppyCard {
                 ReppyInstructionMedia(video: exercise.instructionVideo)
                 ReppyInstructionEquipment(equipment: exercise.equipment)
@@ -656,8 +660,7 @@ struct InstructionScreen: View {
                 let instruction = exercise.instructionText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 ReppyText(text: instruction.isEmpty ? "Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли." : instruction, tone: instruction.isEmpty ? .secondary : .normal)
             }
-            ReppyButton(title: "Закрыть", compact: true) { presentation.wrappedValue.dismiss() }
-        }
+        }.reppyDismissAction()
     }
 }
 struct ReppyInstructionEquipment: View {
@@ -687,7 +690,7 @@ struct ReppyInstructionMedia: View {
             else {
                 VStack(spacing: ReppyMetrics.space12) {
                     Image(systemName: "figure.strengthtraining.traditional").font(.largeTitle).accessibilityHidden(true)
-                    ReppyCaption(text: loading ? "Загружаем видео…" : error != nil ? "Видео недоступно" : editable ? "Добавь короткое видео с техникой" : "Тренер пока не добавил видео")
+                    ReppyCaption(text: loading ? "Загружаем видео…" : error != nil ? "Видео недоступно" : editable ? "Видео не добавлено" : "Тренер пока не добавил видео")
                 }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.mediaMinHeight).padding(ReppyMetrics.space12)
                     .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
             }
@@ -727,4 +730,42 @@ struct ReppyInstructionMedia: View {
 struct ReppyVideo: View {
     var player: AVPlayer
     var body: some View { VideoPlayer(player: player).aspectRatio(16 / 9, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }
+}
+
+struct ReppyWorkoutChoiceLink<Destination: View>: View {
+    var title: String
+    var subtitle: String
+    @ViewBuilder var destination: () -> Destination
+    var body: some View {
+        NavigationLink(destination: destination) {
+            ReppyStack(compact: true) {
+                ReppyHeading(text: title)
+                ReppyCaption(text: subtitle)
+            }
+        }
+    }
+}
+
+struct ReppyStudentEditButton: View {
+    var student: Student
+    @State private var editing = false
+    var body: some View {
+        Button { editing = true } label: { ReppyToolbarIcon(icon: "pencil") }
+            .buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+            .sheet(isPresented: $editing) { NavigationStack { StudentFormScreen(student: student) } }
+    }
+}
+
+struct ReppyChoiceRow: View {
+    var title: String
+    var subtitle: String
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            ReppyStack(compact: true) {
+                ReppyHeading(text: title)
+                ReppyCaption(text: subtitle)
+            }.frame(minHeight: ReppyMetrics.small).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+    }
 }

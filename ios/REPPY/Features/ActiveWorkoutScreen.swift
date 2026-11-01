@@ -157,16 +157,15 @@ struct ActiveStructureScreen: View {
     @Binding var workout: Workout
     var relationshipID: String
     @State private var picker = false
+    @State private var reorder = false
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: "План выполнения")
-            ReppyExerciseSectionHeader { picker = true }
+        ReppyPage(back: true, title: "План выполнения") {
+            ReppyExerciseSectionHeader(reorder: workout.exercises.count > 1 ? { reorder = true } : nil) { picker = true }
             ForEach($workout.exercises) { $exercise in
-                ExerciseEditorCard(exercise: $exercise, relationshipID: relationshipID, onMove: { offset in
-                    if let index = workout.exercises.firstIndex(where: { $0.id == exercise.id }), workout.exercises.indices.contains(index + offset) { workout.exercises.swapAt(index, index + offset) }
-                }, onDelete: { workout.exercises.removeAll { $0.id == exercise.id } })
+                ExerciseEditorCard(exercise: $exercise, relationshipID: relationshipID, onDelete: { workout.exercises.removeAll { $0.id == exercise.id } })
             }
-            ReppyButton(title: "Готово", kind: .primary) { dismiss() }
-        }.sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen { workout.exercises.append(WorkoutExercise(definition: $0)); picker = false } } }
+        }.reppyFormActions(saveTitle: "Готово", showsCancel: false, hasChanges: false, save: { dismiss() }, discard: {})
+        .sheet(isPresented: $reorder) { NavigationStack { ReppyExerciseOrderEditor(exercises: $workout.exercises) } }
+        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen { workout.exercises.append(WorkoutExercise(definition: $0)); picker = false } } }
     }
 }

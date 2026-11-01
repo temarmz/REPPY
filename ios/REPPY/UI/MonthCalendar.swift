@@ -27,7 +27,7 @@ struct MonthCalendar: View {
                 Button { month = calendar.date(byAdding: .month, value: 1, to: month)! } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Следующий месяц")
                 if showToday { Button { date = Date() } label: { ReppyToolbarIcon(icon: "calendar") }.accessibilityLabel("Сегодня") }
             }.buttonStyle(.plain).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: ReppyMetrics.small), spacing: 0), count: typeSize.isAccessibilitySize ? 3 : 7), spacing: ReppyMetrics.space6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: ReppyMetrics.small), spacing: ReppyMetrics.space4), count: typeSize.isAccessibilitySize ? 3 : 7), spacing: ReppyMetrics.space6) {
                 if !typeSize.isAccessibilitySize {
                     ForEach(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], id: \.self) { Text($0).font(.subheadline).foregroundStyle(ReppyTheme.secondary) }
                 }
@@ -47,7 +47,7 @@ struct MonthCalendar: View {
                             .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
-        }.padding(.vertical, ReppyMetrics.space12).padding(.horizontal, ReppyMetrics.space4)
+        }.padding(.vertical, ReppyMetrics.space12).padding(.horizontal, 0)
             .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
             .onAppear { month = date }
             .onChange(of: month) { _, value in if selectFirstDayOnMonthChange && !calendar.isDate(date, equalTo: value, toGranularity: .month) { date = calendar.date(from: calendar.dateComponents([.year, .month], from: value))! } }

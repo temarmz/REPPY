@@ -3,6 +3,7 @@ import SwiftUI
 // Actual type references keep the native design kit tied to the library.
 enum NativeComponentCatalog {
     static let components: [(String, Any.Type)] = [
+        ("AppearancePicker", ReppyAppearancePicker.self), ("TelegramStatus", ReppyTelegramStatus.self), ("DiagnosticExport", ReppyDiagnosticExport.self),
         ("NotesHeader", ReppyNotesHeader.self), ("InstructionMedia", ReppyInstructionMedia.self), ("InstructionEquipment", ReppyInstructionEquipment.self), ("InstructionEditor", InstructionEditorScreen.self),
         ("ConnectedList", ReppyConnectedList<SubscriptionEntry, EmptyView>.self), ("LedgerSummary", ReppyLedgerSummary<EmptyView>.self),
         ("PaymentMethodPicker", ReppyPaymentMethodPicker.self), ("InvitationReady", ReppyInvitationReady.self),
@@ -28,7 +29,13 @@ enum NativeComponentCatalog {
         ("Caption", ReppyCaption.self), ("Number", ReppyNumber.self), ("Button", ReppyButton.self),
         ("Link", ReppyLink<EmptyView>.self), ("Field", ReppyField.self), ("NumericField", ReppyNumericField.self),
         ("DateField", ReppyDateField.self), ("Toggle", ReppyToggle.self), ("Empty", ReppyEmpty.self),
-        ("Status", ReppyStatus.self), ("ProgressBar", ReppyProgressBar.self), ("TabBar", ReppyTabBar.self),
+        ("Status", ReppyStatus.self), ("ProgressBar", ReppyProgressBar.self),
+        ("StudentEditButton", ReppyStudentEditButton.self),
+        ("WorkoutChoiceLink", ReppyWorkoutChoiceLink<EmptyView>.self),
+        ("ActionGroup", ReppyActionGroup<EmptyView>.self),
+        ("ChoiceRow", ReppyChoiceRow.self),
+        ("DismissAction", ReppyDismissAction.self),
+        ("FormActions", ReppyFormActions.self), ("InvitationInput", ReppyInvitationInput.self), ("ExerciseOrderEditor", ReppyExerciseOrderEditor.self),
         ("MonthCalendar", MonthCalendar.self), ("PlanSetRow", PlanSetRow.self), ("ActiveSetRow", ActiveSetRow.self),
         ("ReadOnlyExerciseCard", ReadOnlyExerciseCard.self), ("ExerciseEditorCard", ExerciseEditorCard.self),
         ("ProgressChart", ReppyProgressChart.self), ("Loading", ReppyLoading.self), ("Share", ReppyShare.self),

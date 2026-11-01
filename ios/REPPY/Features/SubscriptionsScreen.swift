@@ -26,13 +26,17 @@ struct PaymentFormScreen: View {
     @State private var confirmDelete = false
     @State private var draftOriginal: SubscriptionEntry?
     @State private var attempted = false
+    @State private var initialDraft: PaymentDraft?
+    private var hasChanges: Bool {
+        guard let initialDraft else { return false }
+        return lessons != initialDraft.lessons || amount != initialDraft.amount || method != initialDraft.method || date != initialDraft.date || comment != initialDraft.comment
+    }
     private var lessonsError: String? { (Int(lessons) ?? 0) > 0 ? nil : "Укажи целое количество занятий больше нуля." }
     private var amountError: String? { ReppyValidation.number(amount) != nil ? nil : "Укажи корректную стоимость." }
     private var draftKey: String { "payment:\(original?.id ?? relationshipID + ":new")" }
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, title: "Пополнение") {
             if let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
-            ReppyTitle(text: original == nil ? "Добавить абонемент" : "Исправить пополнение")
             ReppyCard {
                 ReppyRow(alignment: .top) {
                     ReppyField(title: "Количество занятий", text: $lessons, keyboard: .numberPad, error: attempted ? lessonsError : nil)
@@ -43,7 +47,8 @@ struct PaymentFormScreen: View {
                 ReppyField(title: "Комментарий", text: $comment, multiline: true)
                 ReppyCaption(text: "\(comment.count)/240 · необязательно")
             }
-            ReppyButton(title: store.busy ? "Сохраняем…" : original == nil ? "Добавить пополнение" : "Сохранить изменения", icon: "checkmark", kind: .primary, disabled: store.busy) {
+            if original != nil { ReppyButton(title: "Удалить это пополнение", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true } }
+        }.reppyFormActions(saveTitle: original == nil ? "Добавить" : "Сохранить", saveLabel: original == nil ? "Добавить пополнение" : "Сохранить изменения", busy: store.busy, hasChanges: hasChanges, save: {
                 attempted = true
                 guard lessonsError == nil, amountError == nil else { return }
                 Task {
@@ -54,20 +59,19 @@ struct PaymentFormScreen: View {
                     }
                     if saved { presentation.wrappedValue.dismiss() }
                 }
-            }
-            ReppyButton(title: "Отмена", disabled: store.busy) {
+            }, discard: {
                 do { try DraftStorage.remove(account: store.accountKey, key: draftKey); presentation.wrappedValue.dismiss() } catch { store.present(error) }
-            }
-            if original != nil { ReppyButton(title: "Удалить это пополнение", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true } }
-        }.onAppear {
+            }).onAppear {
             guard !initialized else { return }; initialized = true
-            if let draft: PaymentDraft = store.restoreDraft(key: draftKey) {
-                id = draft.id; lessons = draft.lessons; amount = draft.amount; method = draft.method; date = draft.date; comment = draft.comment; draftOriginal = draft.original; return
-            }
             draftOriginal = original
             let latest = original ?? store.data.subscriptions.filter { $0.relationship_id == relationshipID && $0.kind == "payment" }.max { $0.occurred_at < $1.occurred_at }
             if let latest { lessons = String(latest.lesson_delta); amount = (latest.amount_rub ?? 0).reppyNumber; method = latest.payment_method ?? "cash" }
             if let original { date = ReppySubscriptionDate.value(original.occurred_at); comment = original.comment ?? "" }
+            initialDraft = PaymentDraft(id: id, lessons: lessons, amount: amount, method: method, date: date, comment: comment, original: draftOriginal)
+            if let draft: PaymentDraft = store.restoreDraft(key: draftKey) {
+                id = draft.id; lessons = draft.lessons; amount = draft.amount; method = draft.method; date = draft.date; comment = draft.comment; draftOriginal = draft.original
+            }
+
         }.onChange(of: [lessons, amount, method]) { _, _ in saveDraft() }
             .onChange(of: comment) { _, _ in if comment.count > 240 { comment = String(comment.prefix(240)) }; saveDraft() }
             .onChange(of: date) { _, _ in saveDraft() }
@@ -91,9 +95,8 @@ struct SubscriptionHistoryScreen: View {
     @State private var selectedPayment: SubscriptionEntry?
     @State private var editingPayment = false
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, title: "История абонемента") {
             if let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
-            ReppyTitle(text: "История абонемента")
             let entries = store.data.subscriptions.filter { $0.relationship_id == relationshipID }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
             ReppyLedgerSummary(balance: store.data.balance(relationshipID), hasEntries: !entries.isEmpty) {
                 ReppyButton(title: "Добавить пополнение", icon: "plus", kind: .primary) { selectedPayment = nil; editingPayment = true }

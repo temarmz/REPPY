@@ -2,34 +2,28 @@ import SwiftUI
 
 struct ReppyPage<Content: View>: View {
     var back = false
+    var nativeList = false
+    var title: String? = nil
     @EnvironmentObject private var store: AppStore
     @State private var discardDraft = false
     @ViewBuilder var content: () -> Content
     var body: some View {
-        ScrollView { VStack(alignment: .leading, spacing: ReppyMetrics.cardGap) {
-            if !store.networkAvailable && !store.isDemo { ReppyStatus(message: "Нет сети. Несохранённый прогресс останется в черновике на этом iPhone.") }
-            if let error = store.error {
-                ReppyStatus(message: error, error: true, actionTitle: store.failedDraft != nil ? "Отбросить нечитабельный черновик" : store.conflict ? "Загрузить актуальные данные" : "Закрыть сообщение") {
-                    if store.failedDraft != nil { discardDraft = true }
-                    else if store.conflict { Task { await store.reload() } } else { store.error = nil }
-                }
+        Group {
+            if nativeList {
+                List { pageContent }.scrollContentBackground(.hidden)
+            } else {
+                ScrollView { VStack(alignment: .leading, spacing: ReppyMetrics.cardGap) { pageContent }
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
             }
-            content()
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset)
-            // Nested NavigationStack content can outlive the system tab bar's
-            // safe-area contribution. Keep the final row clear of our capsule.
-            .padding(.bottom, store.profile == nil ? 0 : ReppyMetrics.compact + ReppyMetrics.space12 + ReppyMetrics.space16) }
-            .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
-            .toolbar(.hidden, for: .tabBar)
-            .toolbarBackground(ReppyTheme.background, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+        }.onAppear { ActivityLog.record(back ? "screen.detail" : "screen.root") }.scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
+            .modifier(ReppyPageNavigationTitle(title: title))
             .toolbarColorScheme(nil, for: .navigationBar)
             .toolbar {
                 if !back && store.profile != nil {
-                    ToolbarItem(placement: .topBarLeading) { ReppyHeaderBrand() }
+                    ToolbarItem(placement: .principal) { Text("REPPY").font(.headline) }
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink { ProfileScreen() } label: {
-                            ReppyToolbarIcon(icon: "person.crop.circle")
+                            Image(systemName: "person.crop.circle")
                         }.accessibilityLabel("Профиль")
                     }
                 }
@@ -43,6 +37,24 @@ struct ReppyPage<Content: View>: View {
                 Button("Удалить черновик", role: .destructive) { store.discardFailedDraft() }
                 Button("Оставить файл", role: .cancel) {}
             }
+    }
+    @ViewBuilder private var pageContent: some View {
+        if !store.networkAvailable && !store.isDemo { ReppyStatus(message: "Нет сети. Несохранённый прогресс останется в черновике на этом iPhone.") }
+        if let error = store.error {
+            ReppyStatus(message: error, error: true, actionTitle: store.failedDraft != nil ? "Отбросить нечитабельный черновик" : store.conflict ? "Загрузить актуальные данные" : "Закрыть сообщение") {
+                if store.failedDraft != nil { discardDraft = true }
+                else if store.conflict { Task { await store.reload() } } else { store.error = nil }
+            }
+        }
+        content()
+    }
+
+}
+private struct ReppyPageNavigationTitle: ViewModifier {
+    var title: String?
+    @ViewBuilder func body(content: Content) -> some View {
+        if let title { content.navigationTitle(title).navigationBarTitleDisplayMode(.inline) }
+        else { content }
     }
 }
 struct ReppyCard<Content: View>: View {
@@ -121,6 +133,7 @@ struct ReppyButton: View {
     }
 }
 struct ReppyLink<Destination: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     var title: String
     var subtitle: String? = nil
     var icon: String = "chevron.right"
@@ -131,14 +144,17 @@ struct ReppyLink<Destination: View>: View {
             HStack(spacing: 12) {
                 if kind == .primary {
                     Spacer(minLength: 0)
-                    Label(title, systemImage: icon).font(.body.weight(.semibold)).multilineTextAlignment(.center)
+                    Group {
+                        if typeSize.isAccessibilitySize { Text(title) }
+                        else { Label(title, systemImage: icon) }
+                    }.font(.body.weight(.semibold)).multilineTextAlignment(.center)
                     Spacer(minLength: 0)
                 } else {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title).font(.body.weight(.semibold)).multilineTextAlignment(.leading)
                     if let subtitle { Text(subtitle).font(.subheadline).foregroundStyle(ReppyTheme.secondary).multilineTextAlignment(.leading) }
                 }.frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: icon).accessibilityHidden(true)
+                if !typeSize.isAccessibilitySize { Image(systemName: icon).accessibilityHidden(true) }
                 }
             }.padding(16).frame(minHeight: ReppyMetrics.control)
                 .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : ReppyTheme.text)
@@ -314,7 +330,7 @@ struct ReppyAuthPage<Content: View>: View {
                     .padding(ReppyMetrics.pageInset)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: geometry.size.height, alignment: .center)
-            }.scrollDismissesKeyboard(.interactively)
+            }.onAppear { ActivityLog.record("screen.signin") }.scrollDismissesKeyboard(.interactively)
         }.background(ReppyTheme.background.ignoresSafeArea())
     }
 }
@@ -340,5 +356,90 @@ extension Double {
     var reppyNumber: String {
         guard isFinite else { return "" }
         return formatted(.number.locale(Locale(identifier: "ru_RU")).precision(.fractionLength(0...2)).grouping(.never))
+    }
+}
+
+// All explicit-save editors share navigation actions and the same draft exit policy.
+struct ReppyFormActions: ViewModifier {
+    var saveTitle: String
+    var saveLabel: String? = nil
+    var cancelTitle = "Отмена"
+    var showsCancel = true
+    var disabled = false
+    var busy = false
+    var hasChanges = true
+    var allowsKeepDraft = true
+    var save: () -> Void
+    var discard: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmExit = false
+    func body(content: Content) -> some View {
+        content.navigationBarBackButtonHidden()
+            .interactiveDismissDisabled(busy || hasChanges)
+            .toolbar {
+                if showsCancel {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(cancelTitle) { if hasChanges { confirmExit = true } else { dismiss() } }
+                            .buttonStyle(.bordered).disabled(busy)
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(saveTitle, action: save).accessibilityLabel(saveLabel ?? saveTitle).buttonStyle(.borderedProminent)
+                        .tint(ReppyTheme.lime).foregroundStyle(disabled || busy ? ReppyTheme.secondary : ReppyTheme.selectedText).disabled(disabled || busy)
+                }
+            }
+            .alert("Выйти из редактора?", isPresented: $confirmExit) {
+                if allowsKeepDraft { Button("Сохранить черновик и выйти") { dismiss() } }
+                Button("Удалить изменения", role: .destructive, action: discard)
+                Button("Продолжить редактирование", role: .cancel) {}
+            } message: { Text("Черновик хранится на этом iPhone. Сохранённые данные изменятся только после сохранения формы.") }
+    }
+}
+extension View {
+    func reppyFormActions(saveTitle: String = "Сохранить", saveLabel: String? = nil, cancelTitle: String = "Отмена", showsCancel: Bool = true, disabled: Bool = false, busy: Bool = false, hasChanges: Bool = true, allowsKeepDraft: Bool = true, save: @escaping () -> Void, discard: @escaping () -> Void) -> some View {
+        modifier(ReppyFormActions(saveTitle: saveTitle, saveLabel: saveLabel, cancelTitle: cancelTitle, showsCancel: showsCancel, disabled: disabled, busy: busy, hasChanges: hasChanges, allowsKeepDraft: allowsKeepDraft, save: save, discard: discard))
+    }
+}
+struct ReppyInvitationInput: View {
+    @Binding var text: String
+    var body: some View {
+        ReppyStack {
+            ReppyField(title: "Приглашение", text: $text, keyboard: .URL)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+            PasteButton(payloadType: String.self) { values in
+                if let value = values.first { text = value.trimmingCharacters(in: .whitespacesAndNewlines) }
+            }.buttonStyle(.bordered).accessibilityLabel("Вставить приглашение")
+        }
+    }
+}
+
+// Read-only sheets and pickers always expose a reachable native close action.
+struct ReppyDismissAction: ViewModifier {
+    var title = "Закрыть"
+    @Environment(\.dismiss) private var dismiss
+    func body(content: Content) -> some View {
+        content.toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(title) { dismiss() }.buttonStyle(.bordered)
+            }
+        }
+    }
+}
+extension View {
+    func reppyDismissAction(title: String = "Закрыть") -> some View { modifier(ReppyDismissAction(title: title)) }
+}
+
+struct ReppyActionGroup<Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(spacing: ReppyMetrics.space12, content: content)
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: ReppyMetrics.space12, content: content).fixedSize(horizontal: true, vertical: false)
+                VStack(spacing: ReppyMetrics.space12, content: content)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }

@@ -110,7 +110,7 @@ export function AppErrorScreen({ onRecover, preview = false }: { onRecover?: () 
     <Paragraph>Приложение столкнулось с ошибкой. Ранее сохранённые черновики останутся на этом устройстве.</Paragraph>
     {onRecover && <ActionButton icon="arrow-right" onClick={onRecover}>Вернуться на главную</ActionButton>}
     {!onRecover && <ActionButton icon="history" onClick={() => window.location.reload()}>Перезагрузить</ActionButton>}
-    <Button className="system-state-diagnostics" type="button" onClick={downloadUiErrorDiagnostics}>Скачать журнал ошибки</Button>
+    <Button className="system-state-diagnostics" type="button" onClick={downloadUiErrorDiagnostics}>Скачать логи</Button>
   </Page>;
   return onRecover && !preview ? <ModalLayer onClose={onRecover} trackHistory={false} closeOnHistoryBack={false}>{fallback}</ModalLayer> : fallback;
 }

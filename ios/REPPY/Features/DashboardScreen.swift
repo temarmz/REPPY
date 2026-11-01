@@ -11,6 +11,10 @@ struct DashboardScreen: View {
             (assignment.scheduled_for >= today || assignment.format == .online || store.data.session(for: assignment.id) != nil) && assignment.scheduled_for <= horizon
         }.sorted { ($0.scheduled_for + ($0.scheduled_time ?? "")) < ($1.scheduled_for + ($1.scheduled_time ?? "")) }
     }
+    private var studentUpcoming: [Assignment] {
+        let today = ReppyDate.day()
+        return upcoming.filter { $0.scheduled_for >= today } + upcoming.filter { $0.scheduled_for < today }
+    }
     var body: some View {
         ReppyPage {
             if store.isTrainer {
@@ -44,14 +48,14 @@ struct DashboardScreen: View {
                 }
             } else {
                 if !store.ownSubscriptions.isEmpty {
-                    ReppyBalanceSummary(balance: store.ownBalance)
+                    NavigationLink { ProfileScreen() } label: { ReppyBalanceSummary(balance: store.ownBalance) }.buttonStyle(.plain).accessibilityLabel("Абонемент: открыть профиль")
                 }
-                if let first = upcoming.first { AssignmentCard(assignment: first, focus: true) }
+                if let first = studentUpcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }
                 ExerciseProgressSummary(relationshipIDs: store.ownRelationshipIDs, hideEmpty: true)
-                if upcoming.count > 1 {
+                if studentUpcoming.count > 1 {
                     ReppyHeading(text: "Следующие тренировки")
-                    ForEach(Array(upcoming.dropFirst())) { AssignmentAgendaRow(assignment: $0) }
+                    ForEach(Array(studentUpcoming.dropFirst())) { AssignmentAgendaRow(assignment: $0) }
                 }
             }
         }.refreshable { await store.reload() }

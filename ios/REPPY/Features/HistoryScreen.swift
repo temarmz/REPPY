@@ -5,11 +5,17 @@ struct HistoryScreen: View {
     var relationshipID: String?
     var back = false
     var body: some View {
-        ReppyPage(back: back) {
-            ReppyTitle(text: "История тренировок")
+        ReppyPage(back: back, title: "История тренировок") {
+            if store.isTrainer, let relationshipID, let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
             let assignments = store.data.assignments.filter { (store.isTrainer || store.ownRelationshipIDs.contains($0.relationship_id)) && (relationshipID == nil || $0.relationship_id == relationshipID) && $0.status == "completed" }.sorted { $0.scheduled_for > $1.scheduled_for }
             if assignments.isEmpty { ReppyEmpty(title: "История впереди", message: "Здесь появятся результаты завершённых тренировок.", icon: "clock.arrow.circlepath") }
-            ForEach(assignments) { AssignmentCard(assignment: $0) }
+            ForEach(assignments) { assignment in
+                if let session = store.data.session(for: assignment.id) {
+                    ReppyAgendaLink(title: session.workout_snapshot.name,
+                        subtitle: store.isTrainer && relationshipID == nil ? "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)" : assignment.scheduleLabel, completed: true) { SessionResultScreen(sessionID: session.id) }
+                        .accessibilityIdentifier("Посмотреть результат")
+                } else { AssignmentCard(assignment: assignment) }
+            }
         }.refreshable { await store.reload() }
     }
 }
@@ -19,21 +25,28 @@ struct ProgressScreen: View {
     var relationshipIDs: Set<String>? = nil
     var exerciseKey: String? = nil
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: "Прогресс")
+        ReppyPage(back: true, title: "Прогресс") {
             let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
+            if store.isTrainer, scope.count == 1, let relationship = store.data.relationships.first(where: { scope.contains($0.id) }), let student = store.data.students.first(where: { $0.id == relationship.student_id }) { ReppyCaption(text: student.name) }
             let groups = ExerciseProgress.collect(data: store.data, relationshipIDs: scope).filter { exerciseKey == nil || $0.id == exerciseKey }
             if groups.isEmpty { ReppyEmpty(title: "Пока мало данных", message: "Выполненные подходы появятся здесь после завершения тренировок.", icon: "chart.xyaxis.line") }
-            ForEach(groups) { group in
-                ReppyCard {
-                    ReppyHeading(text: group.exercise.name)
-                    ReppyCaption(text: "\(group.exercise.equipment ?? "") · \(group.exercise.loadMode == .bodyweight ? "Свой вес" : "Внешний вес")")
-                    let points = group.points.filter { $0.date > .distantPast && $0.date <= Date() }
-                    ReppyCaption(text: "Всё время · \(points.count) занятий")
-                    if points.isEmpty { ReppyCaption(text: "Нет выполнений за выбранный период.") }
-                    else {
-                        ReppyCaption(text: group.exercise.measureType == .duration ? "Максимальная длительность" : group.exercise.loadMode == .external ? "Максимальный вес" : "Максимум повторений")
-                        ReppyProgressChart(points: points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit)
+            if exerciseKey == nil {
+                ForEach(groups) { group in
+                    ReppyProgressComparisonLink(group: group) {
+                        ProgressScreen(relationshipID: relationshipID, relationshipIDs: scope, exerciseKey: group.id)
+                    }
+                }
+            } else {
+                ForEach(groups) { group in
+                    ReppyCard {
+                        ReppyHeading(text: group.exercise.name)
+                        ReppyCaption(text: "\(group.exercise.equipment ?? "") · \(group.exercise.loadMode == .bodyweight ? "Свой вес" : "Внешний вес")")
+                        let points = group.points.filter { $0.date > .distantPast && $0.date <= Date() }
+                        ReppyCaption(text: "Всё время · \(points.count) занятий")
+                        if points.isEmpty { ReppyCaption(text: "Для этого упражнения пока нет выполненных подходов.") }
+                        else {
+                            ReppyProgressChart(points: points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit)
+                        }
                     }
                 }
             }

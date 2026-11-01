@@ -43,6 +43,9 @@ struct NoteDraft: Codable {
     func start(store: AppStore) async {
         guard account.isEmpty else { return }
         account = store.isDemo ? "demo-notes-\(store.isTrainer ? "trainer" : "student")" : store.accountKey
+#if DEBUG
+        if store.isDemo && ProcessInfo.processInfo.arguments.contains("--audit-screen") { account = "visual-audit-notes-" + (store.isTrainer ? "trainer" : "student") }
+#endif
         api = store.api; demo = store.isDemo
         do {
             drafts = try DraftStorage.load(account: account, key: "personal-notes") ?? [:]

@@ -29,7 +29,12 @@ struct FailedDraft {
     private var reloadID: UUID?
     private let observeChanges: Bool
     private let network = NWPathMonitor()
-    var accountKey: String { isDemo ? "demo" : (profile?.id ?? "anonymous") }
+    var accountKey: String {
+#if DEBUG
+        if isDemo && ProcessInfo.processInfo.arguments.contains("--audit-screen") { return "visual-audit-" + (profile?.role.rawValue ?? "demo") }
+#endif
+        return isDemo ? "demo" : (profile?.id ?? "anonymous")
+    }
     var ownStudent: Student? { data.students.first { $0.account_id == profile?.id } ?? (isDemo ? data.students.first : nil) }
     var ownRelationshipIDs: Set<String> { profile.map { data.relationshipIDs(forAccount: $0.id) } ?? [] }
     var ownSubscriptions: [SubscriptionEntry] { data.subscriptions.filter { ownRelationshipIDs.contains($0.relationship_id) } }
@@ -53,6 +58,13 @@ struct FailedDraft {
     func bootstrap() async {
         defer { loading = false }
         do {
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--audit-sign-in") {
+                pendingRegistration = ProcessInfo.processInfo.arguments.contains("--audit-registration")
+                registrationName = pendingRegistration ? "Александр" : ""
+                return
+            }
+#endif
             if ProcessInfo.processInfo.arguments.contains("--demo-trainer") { try openDemo(.trainer); return }
             if ProcessInfo.processInfo.arguments.contains("--demo-student") { try openDemo(.student); return }
             guard let api else { return }
@@ -189,13 +201,16 @@ struct FailedDraft {
     func present(_ reason: Error) {
         if APIError.isCancellation(reason) { return }
         conflict = (reason as? APIError).map { if case .conflict = $0 { return true }; return false } ?? false
+        ActivityLog.record("application.error", outcome: "error")
         error = reason.localizedDescription
     }
-    @discardableResult func run(_ operation: () async throws -> Void) async -> Bool {
+    @discardableResult func run(name: String = #function, _ operation: () async throws -> Void) async -> Bool {
         guard !busy else { return false }
+        ActivityLog.record("operation." + name, outcome: "started")
         busy = true; refreshGate.invalidate(); error = nil; conflict = false
         defer { busy = false; scheduleRefresh() }
-        do { try await operation(); return true } catch {
+        do { try await operation(); ActivityLog.record("operation." + name); return true } catch {
+            ActivityLog.record("operation." + name, outcome: "error")
             present(error)
             if APIError.isCancellation(error), profile != nil { refreshGate.request() }
             return false

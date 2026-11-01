@@ -5,7 +5,6 @@ struct ExerciseEditorCard: View {
     @EnvironmentObject private var store: AppStore
     @Binding var exercise: WorkoutExercise
     var relationshipID: String
-    var onMove: (Int) -> Void
     var onDelete: () -> Void
     @State private var instructionOpen = false
     @State private var replacement = false
@@ -41,8 +40,6 @@ struct ExerciseEditorCard: View {
     private var exerciseMenu: some View {
         Menu {
             Button("Заменить упражнение", systemImage: "arrow.triangle.2.circlepath") { replacement = true }
-            Button("Переместить выше", systemImage: "arrow.up") { onMove(-1) }
-            Button("Переместить ниже", systemImage: "arrow.down") { onMove(1) }
             Button("Удалить упражнение", systemImage: "trash", role: .destructive, action: onDelete)
         } label: { ReppyToolbarIcon(icon: "ellipsis") }.disabled(store.busy).accessibilityLabel("Действия с упражнением: \(exercise.name)")
     }
@@ -66,8 +63,8 @@ struct InstructionEditorScreen: View {
     @State private var lifetime = UUID()
     private var draftKey: String { "instruction:" + exercise.id }
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: exercise.name)
+        ReppyPage(back: true, title: "Инструкция") {
+            ReppyHeading(text: exercise.name)
             ReppyCard {
                 ReppyInstructionMedia(video: video, localURL: pendingURL, localSize: pendingSize, editable: true)
                 ReppyButton(title: video == nil && pendingURL == nil ? "Записать или выбрать видео" : "Заменить видео", icon: "video", disabled: saving || relationshipID.isEmpty) { chooseVideo = true }
@@ -78,10 +75,12 @@ struct InstructionEditorScreen: View {
                 ReppyField(title: "Подробное описание упражнения", text: $text, multiline: true).disabled(saving)
                 ReppyCaption(text: "\(text.count)/1500")
                 if let error { ReppyStatus(message: error, error: true) }
-                ReppyButton(title: saving ? "Сохраняем…" : "Сохранить инструкцию", icon: "checkmark", kind: .primary, disabled: saving) { save() }
+
             }
-            ReppyButton(title: "Закрыть описание") { presentation.wrappedValue.dismiss() }
-        }.onAppear {
+
+        }.reppyFormActions(saveLabel: "Сохранить инструкцию", busy: saving, hasChanges: text != (exercise.instructionText ?? "") || video != exercise.instructionVideo || pendingURL != nil, allowsKeepDraft: pendingURL == nil && video == exercise.instructionVideo, save: { save() }, discard: {
+            do { try DraftStorage.remove(account: store.accountKey, key: draftKey); presentation.wrappedValue.dismiss() } catch { self.error = error.localizedDescription }
+        }).onAppear {
             guard !initialized else { return }; initialized = true
             let restored: String? = store.restoreDraft(key: draftKey)
             text = restored ?? exercise.instructionText ?? ""; video = exercise.instructionVideo
@@ -130,5 +129,20 @@ struct InstructionEditorScreen: View {
             } catch { if generation == lifetime { self.error = error.localizedDescription } }
             if generation == lifetime { saving = false }
         }
+    }
+}
+
+struct ReppyExerciseOrderEditor: View {
+    @Binding var exercises: [WorkoutExercise]
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        List {
+            ForEach(exercises) { exercise in
+                Text(exercise.name).reppyTypography(.heading)
+            }.onMove { source, destination in exercises.move(fromOffsets: source, toOffset: destination) }
+        }
+        .environment(\.editMode, .constant(.active))
+        .navigationTitle("Порядок упражнений").navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Готово") { dismiss() }.buttonStyle(.bordered) } }
     }
 }

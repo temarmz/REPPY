@@ -122,10 +122,10 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 
   return (
     <Page className="content-page student-page">
-      {hasSubscription && <Section className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Остаток абонемента">
+      {hasSubscription && <Button type="button" className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
         <Inline><Icon name={balance > 0 ? 'check' : 'minus'} /></Inline>
         <Box><Small>АБОНЕМЕНТ</Small><Strong>{subscriptionBalanceLabel(balance)}</Strong></Box>
-      </Section>}
+      </Button>}
       {mainAssignment ? (
         <Section className="student-focus-card">
           <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}</Small></Time>{mainSession && <Bold>{mainProgress}%</Bold>}</Box>

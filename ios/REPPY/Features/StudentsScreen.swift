@@ -91,9 +91,9 @@ struct StudentFormScreen: View {
     @State private var height = ""
     @State private var weight = ""
     @State private var restored = false
+    @State private var initialDraft: StudentFormDraft?
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: "Личные данные")
+        ReppyPage(back: true, title: "Личные данные") {
             ReppyCard {
                 ReppyField(title: "Имя", text: $student.name)
                 ReppyField(title: "Телефон", text: Binding(get: { student.phone ?? "" }, set: { student.phone = $0 }), keyboard: .phonePad)
@@ -104,7 +104,7 @@ struct StudentFormScreen: View {
                 }
                 ReppyField(title: "Противопоказания и ограничения", text: Binding(get: { student.contraindications ?? "" }, set: { student.contraindications = $0 }), multiline: true)
             }
-            ReppyButton(title: store.busy ? "Сохраняем…" : "Сохранить", kind: .primary, disabled: store.busy) {
+        }.reppyFormActions(busy: store.busy, hasChanges: initialDraft != nil && initialDraft != StudentFormDraft(student: student, height: height, weight: weight), save: {
                 Task {
                     let saved = await store.run {
                         let edited = try StudentFormDraft(student: student, height: height, weight: weight).validatedStudent()
@@ -113,12 +113,11 @@ struct StudentFormScreen: View {
                     }
                     if saved { dismiss() }
                 }
-            }
-            ReppyButton(title: "Отмена", disabled: store.busy) {
+            }, discard: {
                 do { try DraftStorage.remove(account: store.accountKey, key: "student:\(student.id)"); dismiss() } catch { store.present(error) }
-            }
-        }.onAppear {
+            }).onAppear {
             guard !restored else { return }; restored = true
+            initialDraft = StudentFormDraft(student: student, height: student.height_cm?.reppyNumber ?? "", weight: student.weight_kg?.reppyNumber ?? "")
             if let draft: StudentFormDraft = store.restoreDraft(key: "student:\(student.id)") { student = draft.student; height = draft.height; weight = draft.weight }
             else { height = student.height_cm?.reppyNumber ?? ""; weight = student.weight_kg?.reppyNumber ?? "" }
         }.onChange(of: student) { _, _ in saveDraft() }.onChange(of: height) { _, _ in saveDraft() }.onChange(of: weight) { _, _ in saveDraft() }
@@ -139,9 +138,8 @@ struct InviteStudentScreen: View {
     @State private var initialized = false
     private var draftKey: String { "invitation:" + (existing?.id ?? "new") }
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, title: invitation == nil ? "Пригласить ученика" : "Ссылка готова") {
             ReppyCaption(text: "Новый участник команды")
-            ReppyTitle(text: invitation == nil ? "Пригласить ученика" : "Ссылка готова")
             if let invitation {
                 ReppyInvitationReady(name: name, link: invitation.link, expiresAt: invitation.expiresAt, demo: store.isDemo) { dismiss() }
             } else {

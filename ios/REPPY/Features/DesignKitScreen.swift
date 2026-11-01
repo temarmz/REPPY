@@ -5,15 +5,16 @@ struct DesignKitScreen: View {
     @State private var number = 75.25
     @State private var toggle = true
     @State private var date = Date()
-    @State private var tab = AppTab.home
     @State private var modal = false
+    @State private var orderOpen = false
+    @State private var orderedExercises: [WorkoutExercise] = []
     @State private var profileSection = "data"
     @State private var sampleExercise: WorkoutExercise?
     @State private var sampleResults: [SetResult] = []
     @EnvironmentObject private var store: AppStore
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: "Дизайн-кит", subtitle: "Общие компоненты iPhone")
+        ReppyPage(back: true, title: "Дизайн-кит") {
+            ReppyCaption(text: "Общие компоненты iPhone")
             ReppyCard {
                 ReppyHeading(text: "Основа дизайн-системы")
                 ReppyCaption(text: "Контролы 44 / 48 / 56 · карточки 20 · интервал 24")
@@ -22,6 +23,9 @@ struct DesignKitScreen: View {
                 ReppyField(title: "Недоступное поле", text: $text).disabled(true)
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
+            ReppyAppearancePicker(selection: .constant("system"))
+            ReppyTelegramStatus()
+            ReppyDiagnosticExport()
             ReppyAuthIntro()
             ReppyNotesHeader(date: date, onToday: {}, onPrevious: {}, onNext: {}, onCalendar: {})
             ReppyInstructionMedia(video: nil, editable: true)
@@ -71,13 +75,13 @@ struct DesignKitScreen: View {
                 }
             }
             if let exercise = sampleExercise {
-                ExerciseEditorCard(exercise: Binding(get: { sampleExercise ?? exercise }, set: { sampleExercise = $0 }), relationshipID: "", onMove: { _ in }, onDelete: { sampleExercise = nil })
+                ExerciseEditorCard(exercise: Binding(get: { sampleExercise ?? exercise }, set: { sampleExercise = $0 }), relationshipID: "", onDelete: { sampleExercise = nil })
                 ReppyActiveExerciseCard(exercise: exercise, results: $sampleResults) { modal = true }
             }
             ReppyBalanceSummary(balance: 3)
             ReppyProfileSegments(selection: $profileSection)
             ReppyAgendaLink(title: "Длинное название тренировки для проверки переноса", subtitle: "Сегодня · 18:00", completed: true) { ReppyText(text: "Пример перехода") }
-            if let student = store.data.students.first { ReppyStudentDetails(student: student) }
+            if let student = store.data.students.first { ReppyStudentDetails(student: student); ReppyStudentEditButton(student: student) }
             if let relationship = store.data.relationships.first { ExerciseProgressSummary(relationshipID: relationship.id) }
             ReppyRow { ReppyHeaderBrand(); ReppyToolbarIcon(icon: "person.crop.circle") }
             ReppyCard {
@@ -101,12 +105,19 @@ struct DesignKitScreen: View {
             NoteDayCard(day: ReppyDate.day(), text: .constant("Несохранённый текст"), pending: true)
             NoteDayCard(day: ReppyDate.day(), text: .constant("Моя версия"), error: "Заметка изменена на другом устройстве. Выбери версию.", conflict: true)
             MonthCalendar(date: $date, counts: [ReppyDate.day(): 2])
-            ReppyTabBar(tabs: [.home, .calendar, .clients, .notes], selected: $tab)
+            ReppyActionGroup { ReppyButton(title: "Продлить", icon: "plus", kind: .primary) {}; ReppyButton(title: "История", icon: "clock.arrow.circlepath") {} }
+            ReppyCard { ReppyChoiceRow(title: "Жим лёжа", subtitle: "Штанга") {} }
+            ReppyCard { ReppyWorkoutChoiceLink(title: "Повторить тренировку", subtitle: "Завершена · 1 ноября") { ReppyText(text: "Повтор") } }
+            ReppyInvitationInput(text: $text)
+            ReppyButton(title: "Порядок упражнений") { orderOpen = true }
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }
             ReppyCard {
                 ReppyHeading(text: "Каталог")
                 ForEach(NativeComponentCatalog.components.map(\.0), id: \.self) { ReppyCaption(text: $0) }
             }
-        }.sheet(isPresented: $modal) { NavigationStack { ReppyPage(back: true) { ReppyTitle(text: "Модальное окно"); ReppyField(title: "Поле с клавиатурой", text: $text); ReppyButton(title: "Закрыть") { modal = false } } }.presentationCornerRadius(ReppyMetrics.modalRadius) }
+        }.sheet(isPresented: $orderOpen) {
+            NavigationStack { ReppyExerciseOrderEditor(exercises: $orderedExercises) }
+                .onAppear { orderedExercises = store.data.assignments.first?.workout_snapshot.exercises ?? [] }
+        }.sheet(isPresented: $modal) { NavigationStack { ReppyPage(back: true) { ReppyTitle(text: "Модальное окно"); ReppyField(title: "Поле с клавиатурой", text: $text); } .reppyFormActions(hasChanges: false, save: { modal = false }, discard: { modal = false }) }.presentationCornerRadius(ReppyMetrics.modalRadius) }
     }
 }
