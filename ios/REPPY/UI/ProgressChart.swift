@@ -50,7 +50,7 @@ struct ReppyProgressChart: View {
                 Button { move(1) } label: { ReppyToolbarIcon(icon: "chevron.right") }
                     .disabled(selected.id == ordered.last?.id).accessibilityLabel("Следующее занятие")
             }.buttonStyle(.plain)
-            ReppyCaption(text: selected.date.formatted(date: .abbreviated, time: .shortened))
+            if monthly { ReppyCaption(text: selected.date.formatted(date: .abbreviated, time: .shortened)) }
             ForEach(selected.results.sorted { $0.exercise_instance_id == $1.exercise_instance_id ? $0.set_number < $1.set_number : $0.exercise_instance_id < $1.exercise_instance_id }) { result in
                 ReppyText(text: "\(result.set_number). " + (selected.exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(selected.exercise.unit)")
             }
