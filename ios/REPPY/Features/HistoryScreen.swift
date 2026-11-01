@@ -7,7 +7,7 @@ struct HistoryScreen: View {
     var body: some View {
         ReppyPage(back: back) {
             ReppyTitle(text: "История тренировок")
-            let assignments = store.data.assignments.filter { (relationshipID == nil || $0.relationship_id == relationshipID) && $0.status == "completed" }.sorted { $0.scheduled_for > $1.scheduled_for }
+            let assignments = store.data.assignments.filter { (store.isTrainer || store.ownRelationshipIDs.contains($0.relationship_id)) && (relationshipID == nil || $0.relationship_id == relationshipID) && $0.status == "completed" }.sorted { $0.scheduled_for > $1.scheduled_for }
             if assignments.isEmpty { ReppyEmpty(title: "История впереди", message: "Здесь появятся результаты завершённых тренировок.", icon: "clock.arrow.circlepath") }
             ForEach(assignments) { AssignmentCard(assignment: $0) }
         }.refreshable { await store.reload() }
@@ -15,12 +15,14 @@ struct HistoryScreen: View {
 }
 struct ProgressScreen: View {
     @EnvironmentObject private var store: AppStore
-    var relationshipID: String
+    var relationshipID: String? = nil
+    var relationshipIDs: Set<String>? = nil
     var exerciseKey: String? = nil
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Прогресс")
-            let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID).filter { exerciseKey == nil || $0.id == exerciseKey }
+            let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
+            let groups = ExerciseProgress.collect(data: store.data, relationshipIDs: scope).filter { exerciseKey == nil || $0.id == exerciseKey }
             if groups.isEmpty { ReppyEmpty(title: "Пока мало данных", message: "Выполненные подходы появятся здесь после завершения тренировок.", icon: "chart.xyaxis.line") }
             ForEach(groups) { group in
                 ReppyCard {

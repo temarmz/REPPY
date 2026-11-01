@@ -48,7 +48,7 @@ open ios/REPPY.xcodeproj
 
 Пользователь подтвердил добавление iPhone callback 29 октября 2026. В Trusted Origins схема `reppy://` не нужна: это не origin страницы с виджетом. URLSession нативного клиента не требует изменения веб-CORS.
 
-Для рабочего входа ещё нужно опубликовать подготовленное дополнение allowlist функции `supabase/functions/telegram-auth/index.ts`. Веб-redirect сохранён. До публикации доступно локальное демо; рабочий iOS-вход покажет сообщение о ненастроенном серверном callback. HTTPS-callback вместо схемы потребует своего домена, Associated Domains и AASA/webcredentials. Вход необходимо проверить на реальном устройстве с установленным Telegram и без него.
+Серверная allowlist опубликована: 1 ноября публичный `telegram-auth/config` подтвердил вебовый и нативный redirect, пользователь выполнил вход в существующий аккаунт на физическом iPhone и увидел свои веб-заметки. Регистрация, приглашения и вариант без установленного Telegram требуют отдельной приёмки. HTTPS-callback вместо схемы потребует своего домена, Associated Domains и AASA/webcredentials.
 
 ```sh
 npm run ios:sync       # Обновить Swift-токены и детерминированные демо/тестовые данные из веба
@@ -56,8 +56,16 @@ npm run ios:project    # Обновить .xcodeproj после добавлен
 npm run ios:check      # Проверить отсутствие рассинхронизации
 npm run ios:test       # Переносимые тесты Swift без iPhone Simulator
 xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY \
-  -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+  -destination 'platform=iOS Simulator,name=iPhone 16' -derivedDataPath ios/DerivedData \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
+npm run ios:doctor     # Сверить локальные настройки, подпись сборки и публичный Telegram-config
+# --offline пропускает сетевой запрос:
+npm run ios:doctor -- --offline
 ```
+
+Для рабочего входа в Simulator нужна подпись приложения даже без Apple Developer Team: `CODE_SIGN_IDENTITY=-` создаёт локальную ad-hoc подпись. Вариант `CODE_SIGNING_ALLOWED=NO` подходит для части демо-проверок, но выявлен сбой доступа к Keychain в такой сборке. NativeAccountTests проверяет запись/чтение/удаление только отдельного синтетического Keychain item и сетевые сценарии на подменённом URLSession. Сохранённые входы пользователя эти тесты не читают и не меняют.
+
+`ios:doctor` читает собранный `Info.plist` и сравнивает его с имеющимися `.env.local`/`Config/Local.xcconfig`, обнаруживает пробелы в URL и несовпадение ключей, проверяет подпись и делает только публичный запрос `config`. Ключи и токены не выводятся. Команда не выполняет OAuth-вход, не проверяет BotFather и не записывает данные в Supabase. До запуска нужен собранный REPPY.app в указанном DerivedData.
 
 `ios:test` автоматически выбирает SDK macOS и архитектуру Intel/Apple silicon и использует кеш внутри `ios/.build`. Поэтому доменную логику можно тестировать и на нынешнем Intel Mac со старым Xcode, пока сборка SwiftUI остаётся недоступна. На этапе рефакторинга прошли 42 таких XCTest, включая проверку восьми переходов состояния по результатам живого веб-reducer. Это не заменяет simulator/UI и сетевую проверку двух рабочих аккаунтов.
 

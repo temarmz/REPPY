@@ -26,13 +26,18 @@ struct FailedDraft {
     private var refreshGate = SnapshotRefreshGate()
     private var active = true
     private var reloadTask: Task<Void, Never>?
+    private var reloadID: UUID?
+    private let observeChanges: Bool
     private let network = NWPathMonitor()
     var accountKey: String { isDemo ? "demo" : (profile?.id ?? "anonymous") }
     var ownStudent: Student? { data.students.first { $0.account_id == profile?.id } ?? (isDemo ? data.students.first : nil) }
-    var ownRelationship: Relationship? { ownStudent.flatMap { data.relationship(for: $0.id) } }
+    var ownRelationshipIDs: Set<String> { profile.map { data.relationshipIDs(forAccount: $0.id) } ?? [] }
+    var ownSubscriptions: [SubscriptionEntry] { data.subscriptions.filter { ownRelationshipIDs.contains($0.relationship_id) } }
+    var ownBalance: Int { ownSubscriptions.reduce(0) { $0 + $1.lesson_delta } }
     var isTrainer: Bool { profile?.role == .trainer }
-    init(configuration: AppConfiguration? = .current) {
-        api = configuration.map { SupabaseAPI(configuration: $0) }
+    init(configuration: AppConfiguration? = .current, transport: URLSession = .shared, vault: any SessionVault = SessionKeychain(), observeChanges: Bool = true) {
+        api = configuration.map { SupabaseAPI(configuration: $0, transport: transport, vault: vault) }
+        self.observeChanges = observeChanges
         network.pathUpdateHandler = { [weak self] path in
             let available = path.status == .satisfied
             Task { @MainActor [weak self] in
@@ -53,7 +58,10 @@ struct FailedDraft {
             guard let api else { return }
             try api.restore()
             if api.session != nil { try await loadProfile(); try await loadData(); startRealtime() }
-        } catch { present(error) }
+        } catch {
+            present(error)
+            if APIError.isCancellation(error), profile != nil { requestRefresh() }
+        }
     }
     func openDemo(_ role: Role) throws {
         guard let url = Bundle.main.url(forResource: "DemoData", withExtension: "json") else { throw APIError.invalidResponse }
@@ -99,7 +107,7 @@ struct FailedDraft {
     func signOut() async {
         await run {
             if !self.isDemo { try await self.api?.signOut() }
-            self.refreshGate.reset(); self.realtime?.stop(); self.realtime = nil; self.reloadTask?.cancel()
+            self.refreshGate.reset(); self.realtime?.stop(); self.realtime = nil; self.cancelScheduledRefresh()
             self.profile = nil; self.data = AppData(); self.isDemo = false; self.pendingTelegram = nil; self.pendingRegistration = false
             self.failedDraft = nil
         }
@@ -141,33 +149,45 @@ struct FailedDraft {
         guard profile != nil, !isDemo else { return }
         refreshGate.request(); await drainRefresh(); startRealtime()
     }
-    func background() { active = false; reloadTask?.cancel(); realtime?.stop(); realtime = nil }
+    func background() { active = false; cancelScheduledRefresh(); realtime?.stop(); realtime = nil }
     private func startRealtime() {
-        guard let api, let account = profile?.id, active, !isDemo else { return }
+        guard observeChanges, let api, let account = profile?.id, active, !isDemo else { return }
         realtime?.stop()
         realtime = RealtimeObserver(api: api) { [weak self] in
             guard let self, self.profile?.id == account else { return }
-            self.refreshGate.request(); self.scheduleRefresh()
+            self.requestRefresh()
         }
         realtime?.start()
     }
+    func requestRefresh() { refreshGate.request(); scheduleRefresh() }
+    private func cancelScheduledRefresh() { reloadTask?.cancel(); reloadTask = nil; reloadID = nil }
     private func scheduleRefresh() {
-        guard refreshGate.pending, active, !busy, !conflict, !isDemo, profile != nil else { return }
-        reloadTask?.cancel()
+        guard refreshGate.pending, !refreshGate.isReading, reloadTask == nil, active, !busy, !conflict, !isDemo, profile != nil else { return }
+        let id = UUID(); reloadID = id
         reloadTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.reloadID == id { self.reloadTask = nil; self.reloadID = nil; self.scheduleRefresh() }
+            }
             try? await Task.sleep(for: .milliseconds(350))
-            guard !Task.isCancelled, let self else { return }
+            guard !Task.isCancelled else { return }
             await self.drainRefresh()
+            if self.realtime == nil { self.startRealtime() }
         }
     }
     private func drainRefresh() async {
         guard let ticket = refreshGate.begin(allowed: active && !busy && !conflict && !isDemo && profile != nil) else { return }
         defer { refreshGate.finish(ticket); scheduleRefresh() }
         do { try await loadData() }
-        catch { if refreshGate.accepts(ticket), self.error == nil { present(error) } }
+        catch {
+            if refreshGate.accepts(ticket) {
+                if APIError.isCancellation(error) { refreshGate.request() }
+                else if self.error == nil { present(error) }
+            }
+        }
     }
     func present(_ reason: Error) {
-        if reason is CancellationError { return }
+        if APIError.isCancellation(reason) { return }
         conflict = (reason as? APIError).map { if case .conflict = $0 { return true }; return false } ?? false
         error = reason.localizedDescription
     }
@@ -175,7 +195,11 @@ struct FailedDraft {
         guard !busy else { return false }
         busy = true; refreshGate.invalidate(); error = nil; conflict = false
         defer { busy = false; scheduleRefresh() }
-        do { try await operation(); return true } catch { present(error); return false }
+        do { try await operation(); return true } catch {
+            present(error)
+            if APIError.isCancellation(error), profile != nil { refreshGate.request() }
+            return false
+        }
     }
     func requireTrainer() throws { guard isTrainer else { throw APIError.message("Это действие доступно тренеру.") } }
     func restoreDraft<T: Decodable>(key: String) -> T? {

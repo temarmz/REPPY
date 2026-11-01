@@ -47,6 +47,7 @@ next-env.d.ts
 # native iOS local state and signing
 /ios/.build/
 /ios/DerivedData/
+/ios/DeviceDerivedData/
 /ios/Config/Local.xcconfig
 *.xcuserstate
 xcuserdata/

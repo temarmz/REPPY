@@ -6,6 +6,7 @@ public struct SnapshotRefreshGate: ReppySendable {
     public private(set) var revision: UInt64 = 0
     public private(set) var pending = false
     private var active: UInt64?
+    public var isReading: Bool { active != nil }
     public init() {}
     public mutating func request() { pending = true }
     public mutating func invalidate() {

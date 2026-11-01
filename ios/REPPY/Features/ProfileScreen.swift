@@ -8,8 +8,8 @@ struct ProfileScreen: View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Профиль")
             ReppyProfileIdentity(name: store.profile?.display_name ?? "", role: store.isTrainer ? "Тренер" : "Ученик", student: store.isTrainer ? nil : store.ownStudent)
-            if !store.isTrainer, let relationship = store.ownRelationship {
-                ReppySubscriptionSummary(balance: store.data.balance(relationship.id), entries: store.data.subscriptions.filter { $0.relationship_id == relationship.id })
+            if !store.isTrainer, !store.ownRelationshipIDs.isEmpty {
+                ReppySubscriptionSummary(balance: store.ownBalance, entries: store.ownSubscriptions)
             }
             ReppyHeading(text: "Настройки")
             ReppyPicker(title: "Оформление", selection: $appearance) {

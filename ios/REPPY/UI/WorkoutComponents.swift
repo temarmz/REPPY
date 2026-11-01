@@ -452,15 +452,17 @@ struct ReppyWorkoutFocus<Destination: View>: View {
 }
 struct ExerciseProgressSummary: View {
     @EnvironmentObject private var store: AppStore
-    var relationshipID: String
+    var relationshipID: String? = nil
+    var relationshipIDs: Set<String>? = nil
     var hideEmpty = false
     var body: some View {
-        let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID)
+        let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
+        let groups = ExerciseProgress.collect(data: store.data, relationshipIDs: scope)
         if !hideEmpty || !groups.isEmpty {
             ReppyHeading(text: "Прогресс по упражнениям")
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
             ForEach(groups) { group in
-                ReppyProgressComparisonLink(group: group) { ProgressScreen(relationshipID: relationshipID, exerciseKey: group.id) }
+                ReppyProgressComparisonLink(group: group) { ProgressScreen(relationshipIDs: scope, exerciseKey: group.id) }
             }
         }
     }

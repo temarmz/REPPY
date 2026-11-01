@@ -46,7 +46,7 @@ jobs:
       - name: Wait for iPhone simulator readiness
         run: xcrun simctl bootstatus "$REPPY_SIMULATOR" -b
       - name: Build and run iPhone tests
-        run: xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult CODE_SIGNING_ALLOWED=NO SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
+        run: xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
       - name: Package simulator demo
         run: ditto -c -k --sequesterRsrc --keepParent ios/DerivedData/Build/Products/Debug-iphonesimulator/REPPY.app ios/REPPY-simulator.zip
       - name: Preserve simulator demo

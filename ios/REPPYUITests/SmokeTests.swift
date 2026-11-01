@@ -159,7 +159,10 @@ final class SmokeTests: XCTestCase {
                 revealAndTap(start, in: app)
                 XCTAssertTrue(app.buttons["Действия тренировки"].waitForExistence(timeout: 5))
                 capture(app, "\(role)-active-\(theme)")
-                app.buttons["Действия тренировки"].tap()
+                let actions = app.buttons["Действия тренировки"]
+                let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: actions)
+                XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
+                actions.tap()
                 XCTAssertTrue(app.buttons["Изменить упражнения и подходы"].waitForExistence(timeout: 5))
                 app.buttons["Сохранить сейчас"].tap()
                 app.terminate(); app.launch()

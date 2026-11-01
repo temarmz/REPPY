@@ -7,7 +7,8 @@ protocol SessionVault {
 }
 
 struct SessionKeychain: SessionVault {
-    private var service: String { (Bundle.main.bundleIdentifier ?? "app.reppy.ios") + ".auth" }
+    private let service: String
+    init(service: String = (Bundle.main.bundleIdentifier ?? "app.reppy.ios") + ".auth") { self.service = service }
     func read() throws -> AuthSession? {
         var result: CFTypeRef?
         let status = SecItemCopyMatching([kSecClass: kSecClassGenericPassword, kSecAttrService: service,

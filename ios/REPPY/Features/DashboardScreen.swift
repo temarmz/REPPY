@@ -7,7 +7,7 @@ struct DashboardScreen: View {
         let today = ReppyDate.day()
         let horizon = ReppyDate.day(Calendar.current.date(byAdding: .day, value: 14, to: Date())!)
         return store.data.assignments.filter { assignment in
-            (store.isTrainer || assignment.status == "assigned") && (store.isTrainer || assignment.relationship_id == store.ownRelationship?.id) &&
+            (store.isTrainer || assignment.status == "assigned") && (store.isTrainer || store.ownRelationshipIDs.contains(assignment.relationship_id)) &&
             (assignment.scheduled_for >= today || assignment.format == .online || store.data.session(for: assignment.id) != nil) && assignment.scheduled_for <= horizon
         }.sorted { ($0.scheduled_for + ($0.scheduled_time ?? "")) < ($1.scheduled_for + ($1.scheduled_time ?? "")) }
     }
@@ -43,12 +43,12 @@ struct DashboardScreen: View {
                     }
                 }
             } else {
-                if let relationship = store.ownRelationship, store.data.subscriptions.contains(where: { $0.relationship_id == relationship.id }) {
-                    ReppyBalanceSummary(balance: store.data.balance(relationship.id))
+                if !store.ownSubscriptions.isEmpty {
+                    ReppyBalanceSummary(balance: store.ownBalance)
                 }
                 if let first = upcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }
-                if let relationship = store.ownRelationship { ExerciseProgressSummary(relationshipID: relationship.id, hideEmpty: true) }
+                ExerciseProgressSummary(relationshipIDs: store.ownRelationshipIDs, hideEmpty: true)
                 if upcoming.count > 1 {
                     ReppyHeading(text: "Следующие тренировки")
                     ForEach(Array(upcoming.dropFirst())) { AssignmentAgendaRow(assignment: $0) }

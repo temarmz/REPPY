@@ -26,7 +26,10 @@ public struct ProgressGroup: Identifiable, ReppySendable {
 }
 public enum ExerciseProgress {
     public static func collect(data: AppData, relationshipID: String) -> [ProgressGroup] {
-        let ids = Set(data.assignments.filter { $0.relationship_id == relationshipID }.map { $0.id })
+        collect(data: data, relationshipIDs: [relationshipID])
+    }
+    public static func collect(data: AppData, relationshipIDs: Set<String>) -> [ProgressGroup] {
+        let ids = Set(data.assignments.filter { relationshipIDs.contains($0.relationship_id) }.map { $0.id })
         var groups: [String: ProgressGroup] = [:]
         for session in data.sessions where ids.contains(session.assignment_id) && session.completed_at != nil {
             for exercise in session.workout_snapshot.exercises {

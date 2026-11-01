@@ -6,6 +6,42 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testStudentScopeIncludesEmptyFirstTrainerAndTrainingFromSecondTrainer() throws {
+        var data = try TestFixtures.load()
+        let student = try XCTUnwrap(data.students.first { $0.account_id != nil })
+        let account = try XCTUnwrap(student.account_id)
+        let original = try XCTUnwrap(data.relationships.first { $0.student_id == student.id })
+        let expected = ExerciseProgress.collect(data: data, relationshipID: original.id)
+        var empty = original; empty.id = "first-trainer-without-workouts"; empty.trainer_id = "another-trainer"
+        data.relationships.insert(empty, at: 0)
+        XCTAssertEqual(data.relationship(for: student.id)?.id, empty.id)
+        XCTAssertTrue(ExerciseProgress.collect(data: data, relationshipID: empty.id).isEmpty)
+        let scope = data.relationshipIDs(forAccount: account)
+        XCTAssertEqual(scope, Set([empty.id, original.id]))
+        let progress = ExerciseProgress.collect(data: data, relationshipIDs: scope)
+        XCTAssertFalse(progress.isEmpty)
+        XCTAssertEqual(progress.map(\.id), expected.map(\.id))
+        XCTAssertTrue(data.relationshipIDs(forAccount: "unrelated-account").isEmpty)
+    }
+    func testProgressAcrossTwoTrainersRetainsEveryOwnSessionAndExcludesOtherStudents() throws {
+        var data = try TestFixtures.load()
+        let student = try XCTUnwrap(data.students.first { $0.account_id != nil })
+        let account = try XCTUnwrap(student.account_id)
+        let original = try XCTUnwrap(data.relationships.first { $0.student_id == student.id })
+        let expected = ExerciseProgress.collect(data: data, relationshipID: original.id)
+        var second = original; second.id = "second-trainer"; second.trainer_id = "other-trainer"
+        data.relationships.append(second)
+        let ownIndices = data.assignments.indices.filter { data.assignments[$0].relationship_id == original.id }
+        for (offset, index) in ownIndices.enumerated() where offset % 2 == 0 { data.assignments[index].relationship_id = second.id }
+        let scope = data.relationshipIDs(forAccount: account)
+        let progress = ExerciseProgress.collect(data: data, relationshipIDs: scope)
+        XCTAssertEqual(progress.map(\.id), expected.map(\.id))
+        for group in progress {
+            let source = try XCTUnwrap(expected.first { $0.id == group.id })
+            XCTAssertEqual(Set(group.points.map(\.id)), Set(source.points.map(\.id)))
+        }
+        XCTAssertFalse(scope.contains(data.relationships.first { $0.student_id != student.id }!.id))
+    }
     func testSessionChargeUsesItsRelationshipLedgerAndRecognizesRefunds() throws {
         var data = try fixture()
         let session = try XCTUnwrap(data.sessions.first { session in

@@ -6,6 +6,15 @@ import XCTest
 #endif
 
 final class BackendHTTPTests: XCTestCase {
+    func testCancellationIsRecognizedWithoutHidingRealNetworkErrors() {
+        XCTAssertTrue(APIError.isCancellation(URLError(.cancelled)))
+        XCTAssertTrue(APIError.isCancellation(NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)))
+        #if compiler(>=5.5)
+        XCTAssertTrue(APIError.isCancellation(CancellationError()))
+        #endif
+        XCTAssertFalse(APIError.isCancellation(URLError(.cannotFindHost)))
+        XCTAssertFalse(APIError.isCancellation(APIError.conflict))
+    }
     private let url = URL(string: "https://example.supabase.co")!
     private func configuration() throws -> PublicBackendConfiguration { try PublicBackendConfiguration(url: url, key: "sb_publishable_test") }
     private func jwt(role: String) -> String {

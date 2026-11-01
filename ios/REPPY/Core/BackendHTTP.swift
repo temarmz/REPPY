@@ -1,6 +1,13 @@
 import Foundation
 
 public enum APIError: LocalizedError, Equatable {
+    public static func isCancellation(_ error: Error) -> Bool {
+        #if compiler(>=5.5)
+        if error is CancellationError { return true }
+        #endif
+        let failure = error as NSError
+        return failure.domain == NSURLErrorDomain && failure.code == NSURLErrorCancelled
+    }
     case message(String), conflict, signedOut, invalidResponse
     public var errorDescription: String? {
         switch self {

@@ -182,6 +182,10 @@ public struct AppData: Codable, ReppySendable {
     public var subscriptions: [SubscriptionEntry] = []
     public var definitions: [ExerciseDefinition] = []
     public init() {}
+    public func relationshipIDs(forAccount accountID: String) -> Set<String> {
+        let studentIDs = Set(students.filter { $0.account_id == accountID }.map(\.id))
+        return Set(relationships.filter { studentIDs.contains($0.student_id) }.map(\.id))
+    }
     public func relationship(for student: String) -> Relationship? { relationships.first { $0.student_id == student } }
     public func student(for assignment: Assignment) -> Student? {
         let id = relationships.first { $0.id == assignment.relationship_id }?.student_id
