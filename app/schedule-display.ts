@@ -54,7 +54,7 @@ export function assignmentDateTime(assignment: Assignment) {
 export function assignmentStatusLabel(assignment: Assignment, sessions: WorkoutSession[], today = dateKey()) {
   if (assignment.status === 'completed' || sessions.some((session) => session.assignmentId === assignment.id && session.completedAt)) return 'Завершённая тренировка';
   if (sessions.some((session) => session.assignmentId === assignment.id && !session.completedAt)) return 'Незавершённая тренировка';
-  if (assignment.scheduledFor < today) return 'Прошедшая тренировка';
+  if (assignment.scheduledFor < today) return 'Не начата · назначенный день прошёл';
   if (assignment.scheduledFor === today) return 'Тренировка сегодня';
   return 'Предстоящая тренировка';
 }

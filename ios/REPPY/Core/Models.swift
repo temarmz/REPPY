@@ -124,7 +124,7 @@ public struct Assignment: Codable, Identifiable, ReppySendable {
         if sessions.contains(where: { $0.assignment_id == id && $0.completed_at == nil }) {
             return "Незавершённая тренировка"
         }
-        if scheduled_for < today { return "Прошедшая тренировка" }
+        if scheduled_for < today { return "Не начата · назначенный день прошёл" }
         if scheduled_for == today { return "Тренировка сегодня" }
         return "Предстоящая тренировка"
     }

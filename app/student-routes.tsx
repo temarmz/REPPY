@@ -77,8 +77,10 @@ function StudentAssignmentDetails({
 
   if (!workout) return <NotFound />;
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
+  const completedSession = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+  const completed = assignment.status === 'completed' || Boolean(completedSession);
   const assignmentStatus = assignmentStatusLabel(assignment, data.sessions);
-  const canStart = assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey();
+  const canStart = !completed && (assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey());
   const scheduleUnchanged = scheduledFor === assignment.scheduledFor && scheduledTime === assignment.scheduledTime;
   const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
@@ -99,6 +101,7 @@ function StudentAssignmentDetails({
         <Box><Strong>{subscriptionBalanceLabel(balance, hasSubscription)}</Strong><Small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</Small></Box>
       </Section>}
 
+      {completedSession && <ActionButton variant="secondary" icon="check" onClick={() => go(`/student/calendar/sessions/${completedSession.id}`)}>Посмотреть результат</ActionButton>}
       {canStart && <ActionButton className="student-start-button" icon="workout" onClick={onStart}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>
       <ReadOnlyExerciseList workout={workout} />

@@ -19,10 +19,14 @@ struct SessionResultScreen: View {
                 // completed later when an overdue workout is opened from history.
                 let displayDate = assignment?.scheduled_for ?? session.completed_at ?? session.started_at
                 let state = session.completed_at == nil ? "Незавершённая тренировка" : "Завершённая тренировка"
-                ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + "\(state) · \(ReppyDate.display(displayDate))")
+                ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + state)
                 ReppyTitle(text: session.workout_snapshot.name)
+                ReppyCaption(text: assignment?.scheduleLabel ?? ReppyDate.display(displayDate))
                 let results = store.data.sessionResults(sessionID)
                 ReppySessionSummary(session: session, results: results)
+                if session.completed_at != nil && !results.contains(where: \.completed) {
+                    ReppyCaption(text: "Тренировка завершена без отмеченных подходов.")
+                }
                 let charged = store.data.isSessionCharged(sessionID)
                 if store.isTrainer, charged || session.charge_status == "waived" {
                     ReppyChargeSummary(charged: charged)

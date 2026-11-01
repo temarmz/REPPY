@@ -31,7 +31,7 @@ import ReadOnlyExerciseList from './ui/read-only-exercise-list';
 import Avatar from './ui/avatar';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
-import { assignmentScheduleLabel, formatScheduleDay } from './schedule-display';
+import { assignmentScheduleLabel, assignmentStatusLabel, formatScheduleDay } from './schedule-display';
 import { exerciseMetadata, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import {
   clearUiDraft,
@@ -504,7 +504,8 @@ export function AssignmentDetails({
   if (!student || !workout) return <NotFound />;
   return (
     <Page className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${assignmentScheduleLabel(assignment)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${assignmentStatusLabel(assignment, data.sessions)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <Paragraph>{assignmentScheduleLabel(assignment)}</Paragraph>
       {assignment.format === 'in-person' && assignment.rescheduleRequest && <Section className="reschedule-request-card">
         <Box><Inline>ЗАПРОС НА ПЕРЕНОС</Inline><Heading>{student.name} предлагает другое время</Heading><Paragraph><Strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</Strong><Time>{assignment.rescheduleRequest.scheduledTime}</Time></Paragraph></Box>
         <Box className="reschedule-request-actions"><ActionButton variant="secondary" icon="close" onClick={onDeclineRequest}>Отклонить</ActionButton><ActionButton icon="check" onClick={onAcceptRequest}>Подтвердить</ActionButton></Box>

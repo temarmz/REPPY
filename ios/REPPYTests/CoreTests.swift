@@ -9,7 +9,7 @@ final class CoreTests: XCTestCase {
     func testAssignmentStatusUsesSessionStateAndScheduledDate() throws {
         var data = try TestFixtures.load()
         let assignment = try XCTUnwrap(data.assignments.first)
-        XCTAssertEqual(assignment.statusLabel(sessions: [], today: "2026-11-01"), assignment.scheduled_for < "2026-11-01" ? "Прошедшая тренировка" : assignment.scheduled_for == "2026-11-01" ? "Тренировка сегодня" : "Предстоящая тренировка")
+        XCTAssertEqual(assignment.statusLabel(sessions: [], today: "2026-11-01"), assignment.scheduled_for < "2026-11-01" ? "Не начата · назначенный день прошёл" : assignment.scheduled_for == "2026-11-01" ? "Тренировка сегодня" : "Предстоящая тренировка")
         var active = try XCTUnwrap(data.sessions.first)
         active.assignment_id = assignment.id; active.completed_at = nil
         XCTAssertEqual(assignment.statusLabel(sessions: [active], today: "2026-12-31"), "Незавершённая тренировка")
