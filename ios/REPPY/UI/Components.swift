@@ -16,11 +16,10 @@ struct ReppyPage<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
             }
         }.onAppear { ActivityLog.record(back ? "screen.detail" : "screen.root") }.scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
-            .modifier(ReppyPageNavigationTitle(title: title))
+            .modifier(ReppyPageNavigationTitle(title: title ?? (!back && store.profile != nil ? "REPPY" : nil)))
             .toolbarColorScheme(nil, for: .navigationBar)
             .toolbar {
                 if !back && store.profile != nil {
-                    ToolbarItem(placement: .principal) { Text("REPPY").font(.headline) }
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink { ProfileScreen() } label: {
                             Image(systemName: "person.crop.circle")
