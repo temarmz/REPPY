@@ -41,6 +41,12 @@ async function expectResponsiveScreen(page: Page) {
 }
 
 async function auditTouchTargets(page: Page) {
+  // Entry translations can make a 44px rect measure 43.99994px mid-animation.
+  await page.locator('[data-route-active="true"] main').evaluateAll(async (mains) => {
+    await Promise.all(mains.flatMap(main => main.getAnimations())
+      .filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
+      .map(animation => animation.finished.catch(() => undefined)));
+  });
   const problems = await page.locator('[data-route-view] main button:visible, .bottom-nav button:visible, .desktop-nav button:visible').evaluateAll((buttons) => buttons.flatMap((button) => {
     const element = button as HTMLButtonElement;
     if (element.disabled || element.getAttribute('aria-disabled') === 'true') return [];
@@ -127,6 +133,20 @@ test('critical navigation stays responsive for trainer and student', async ({ pa
     await expectResponsiveScreen(page);
   }
   expect(browserProblems).toEqual([]);
+});
+
+test('touch audit waits for resting geometry and still rejects a 43px control', async ({ page }) => {
+  await openFreshDemo(page);
+  const main = page.locator('[data-route-active="true"] main');
+  await main.evaluate(element => element.animate([
+    { transform: 'translateY(0.123456789px)' }, { transform: 'translateY(0)' },
+  ], { duration: 800 }));
+  await auditTouchTargets(page);
+  expect(await main.evaluate(element => element.getAnimations().some(animation => animation.playState === 'running'))).toBe(false);
+  await main.getByRole('button').first().evaluate(element => Object.assign(element.style, {
+    width: '43px', minWidth: '0', height: '44px', minHeight: '0', padding: '0',
+  }));
+  await expect(auditTouchTargets(page)).rejects.toThrow('44×44');
 });
 
 test('empty data has actionable trainer and student states', async ({ page }, testInfo) => {

@@ -116,7 +116,12 @@ for (const theme of ['dark', 'light']) {
     const card = page.locator('.note-day-card').first();
     await expect(card.getByRole('textbox')).not.toHaveAttribute('readonly');
     await card.getByRole('textbox').fill('Новый подтверждённый текст');
-    await expect(card.getByRole('status')).toHaveText('Сохранено');
+    const date = await card.getAttribute('data-note-date');
+    await expect.poll(() => page.evaluate(date => {
+      const notes = JSON.parse(localStorage.getItem('reppy-trainer-notes-demo-v1') ?? '{}');
+      return notes[date!]?.content;
+    }, date)).toBe('Новый подтверждённый текст');
+    await expect(card.getByRole('status')).toHaveText('');
     await expect(warning).toBeVisible();
     expect(await page.evaluate(key => localStorage.getItem(key), key)).toBe(raw);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
