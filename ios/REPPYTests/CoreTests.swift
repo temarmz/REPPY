@@ -6,6 +6,16 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testAssignmentStatusUsesSessionStateAndScheduledDate() throws {
+        var data = try TestFixtures.load()
+        let assignment = try XCTUnwrap(data.assignments.first)
+        XCTAssertEqual(assignment.statusLabel(sessions: [], today: "2026-11-01"), assignment.scheduled_for < "2026-11-01" ? "Прошедшая тренировка" : assignment.scheduled_for == "2026-11-01" ? "Тренировка сегодня" : "Предстоящая тренировка")
+        var active = try XCTUnwrap(data.sessions.first)
+        active.assignment_id = assignment.id; active.completed_at = nil
+        XCTAssertEqual(assignment.statusLabel(sessions: [active], today: "2026-12-31"), "Незавершённая тренировка")
+        active.completed_at = "2026-11-01T10:00:00Z"
+        XCTAssertEqual(assignment.statusLabel(sessions: [active], today: "2026-12-31"), "Завершённая тренировка")
+    }
     func testStudentScopeIncludesEmptyFirstTrainerAndTrainingFromSecondTrainer() throws {
         var data = try TestFixtures.load()
         let student = try XCTUnwrap(data.students.first { $0.account_id != nil })

@@ -19,7 +19,11 @@ struct ScreenAuditHost: View {
     @State private var workout = Workout()
     private var route: String { Self.route ?? "home" }
     private var relationship: Relationship? { store.data.relationships.first }
-    private var assignment: Assignment? { store.data.assignments.first { $0.id == "assignment-artem-push-today" } }
+    private var assignment: Assignment? {
+        let arguments = ProcessInfo.processInfo.arguments
+        let requestedID = arguments.firstIndex(of: "--audit-assignment-id").flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
+        return store.data.assignments.first { $0.id == (requestedID ?? "assignment-artem-push-today") }
+    }
     private var result: WorkoutSession? { store.data.sessions.first }
     private var modalRoutes: Set<String> { ["student-form", "instruction", "instruction-editor", "reorder", "structure", "exercise-picker"] }
     var body: some View {

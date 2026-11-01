@@ -117,6 +117,17 @@ public struct Assignment: Codable, Identifiable, ReppySendable {
     public var scheduleLabel: String {
         ReppyDate.display(scheduled_for) + " · " + (format == .online ? "Онлайн · в удобное время" : String((scheduled_time ?? "").prefix(5)))
     }
+    public func statusLabel(sessions: [WorkoutSession], today: String = ReppyDate.day()) -> String {
+        if status == "completed" || sessions.contains(where: { $0.assignment_id == id && $0.completed_at != nil }) {
+            return "Завершённая тренировка"
+        }
+        if sessions.contains(where: { $0.assignment_id == id && $0.completed_at == nil }) {
+            return "Незавершённая тренировка"
+        }
+        if scheduled_for < today { return "Прошедшая тренировка" }
+        if scheduled_for == today { return "Тренировка сегодня" }
+        return "Предстоящая тренировка"
+    }
     public func canStart(as role: Role, sessions: [WorkoutSession], today: String = ReppyDate.day()) -> Bool {
         status == "assigned" && (role == .trainer || format == .online || scheduled_for == today || sessions.contains { $0.assignment_id == id && $0.completed_at == nil })
     }

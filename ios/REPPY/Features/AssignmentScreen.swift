@@ -14,9 +14,9 @@ struct AssignmentScreen: View {
         ReppyPage(back: true, title: "Тренировка") {
             if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) {
                 let session = store.data.session(for: assignment.id)
-                ReppyCaption(text: store.isTrainer ? "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)" : session?.completed_at == nil && session != nil ? "Незавершённая тренировка" : "Предстоящая тренировка")
+                ReppyCaption(text: store.isTrainer ? "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.statusLabel(sessions: store.data.sessions))" : assignment.statusLabel(sessions: store.data.sessions))
                 ReppyTitle(text: assignment.workout_snapshot.name)
-                if !store.isTrainer { ReppyCaption(text: assignment.scheduleLabel) }
+                ReppyCaption(text: assignment.scheduleLabel)
                 if let session, session.completed_at != nil {
                     ReppyLink(title: "Посмотреть результат", icon: "checkmark.circle") { SessionResultScreen(sessionID: session.id) }
                 } else {
@@ -35,7 +35,11 @@ struct AssignmentScreen: View {
                         ReppyButton(title: session == nil ? "Начать тренировку" : "Продолжить тренировку", icon: "play", kind: .primary, disabled: store.busy) {
                             Task { if await store.run({ activeID = try await store.startSession(assignment) }) { showActive = true } }
                         }
-                    } else { ReppyCaption(text: "Очную тренировку можно начать в назначенный день.") }
+                    } else {
+                        ReppyCaption(text: assignment.scheduled_for < ReppyDate.day()
+                            ? "Назначенный день уже прошёл. Тренировку можно повторить на новую дату."
+                            : "Очную тренировку можно начать в назначенный день.")
+                    }
                     if !store.isTrainer && assignment.format == .inPerson && assignment.reschedule_requested_at == nil {
                         ReppyButton(title: "Предложить другое время", icon: "calendar", compact: true, disabled: store.busy) {
                             date = ReppyDate.fromDay(assignment.scheduled_for)

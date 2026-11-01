@@ -1,4 +1,4 @@
-import { dateKey, formatCalendarDay, type Assignment } from './reppy-data';
+import { dateKey, formatCalendarDay, type Assignment, type WorkoutSession } from './reppy-data';
 
 export function planDayParts(value: string) {
   const date = new Date(`${value}T12:00:00`);
@@ -49,4 +49,12 @@ export function assignmentScheduleLabel(assignment: Assignment) {
 
 export function assignmentDateTime(assignment: Assignment) {
   return assignment.scheduledTime ? `${assignment.scheduledFor}T${assignment.scheduledTime}` : assignment.scheduledFor;
+}
+
+export function assignmentStatusLabel(assignment: Assignment, sessions: WorkoutSession[], today = dateKey()) {
+  if (assignment.status === 'completed' || sessions.some((session) => session.assignmentId === assignment.id && session.completedAt)) return 'Завершённая тренировка';
+  if (sessions.some((session) => session.assignmentId === assignment.id && !session.completedAt)) return 'Незавершённая тренировка';
+  if (assignment.scheduledFor < today) return 'Прошедшая тренировка';
+  if (assignment.scheduledFor === today) return 'Тренировка сегодня';
+  return 'Предстоящая тренировка';
 }
