@@ -33,11 +33,12 @@ export default function SessionResult({
   const [deleteOpen, setDeleteOpen] = useState(false);
   if (!workout) return <NotFound />;
   const completedSets = session.results.filter((result) => result.completed).length;
+  const sessionState = session.completedAt ? 'Завершённая тренировка' : 'Незавершённая тренировка';
   const progressKeys = new Set(collectExerciseProgress(data.sessions, session.studentId).map((group) => group.key));
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <Page className="content-page narrow-page">
-      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(assignment?.scheduledFor ?? session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${sessionState} · ${formatDay(assignment?.scheduledFor ?? session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       <DefinitionList className="session-summary" aria-label="Итоги тренировки">
         <Box><DefinitionTerm>ДЛИТЕЛЬНОСТЬ</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
         <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{completedSets} из {session.results.length}</DefinitionValue></Box>

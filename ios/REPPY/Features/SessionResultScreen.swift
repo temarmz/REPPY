@@ -18,7 +18,8 @@ struct SessionResultScreen: View {
                 // Keep the header tied to the scheduled workout day. A session may be
                 // completed later when an overdue workout is opened from history.
                 let displayDate = assignment?.scheduled_for ?? session.completed_at ?? session.started_at
-                ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + ReppyDate.display(displayDate))
+                let state = session.completed_at == nil ? "Незавершённая тренировка" : "Завершённая тренировка"
+                ReppyCaption(text: (store.isTrainer ? "\(assignment.flatMap { store.data.student(for: $0)?.name } ?? "Ученик") · " : "") + "\(state) · \(ReppyDate.display(displayDate))")
                 ReppyTitle(text: session.workout_snapshot.name)
                 let results = store.data.sessionResults(sessionID)
                 ReppySessionSummary(session: session, results: results)
