@@ -42,6 +42,11 @@ enum ReppyMetrics {
     static let exerciseTitle: CGFloat = 18
     static let pageInset: CGFloat = 20
     static let iconSize: CGFloat = 20
+    static let notesGap: CGFloat = 16
+    static let notesPadding: CGFloat = 12
+    static let notesMinHeight: CGFloat = 208
+    static let notesFont: CGFloat = 16
+    static let mediaMinHeight: CGFloat = 150
     static let focusTitleFont: CGFloat = 44
     static let focusInset: CGFloat = 22
     static let focusMinHeight: CGFloat = 310

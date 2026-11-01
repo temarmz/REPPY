@@ -1,6 +1,68 @@
 import XCTest
 
 final class SmokeTests: XCTestCase {
+    @MainActor func testNotesCompactNavigation() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()
+            XCTAssertTrue(app.buttons["Заметки"].waitForExistence(timeout: 15)); app.buttons["Заметки"].tap()
+            XCTAssertTrue(app.textViews.firstMatch.waitForExistence(timeout: 5))
+            let height = app.buttons["notes-date-range"].frame.height
+            XCTAssertEqual(app.buttons["Предыдущие четыре дня"].frame.height, height, accuracy: 1)
+            XCTAssertEqual(app.buttons["Следующие четыре дня"].frame.height, height, accuracy: 1)
+            XCTAssertLessThan(app.buttons["Сегодня"].frame.width, app.frame.width / 2)
+            capture(app, "notes-final-trainer-" + theme); app.terminate()
+        }
+    }
+    @MainActor func testNotesAndInstructionParity() {
+        for role in ["trainer", "student"] { for theme in ["light", "dark"] { runNotesAndInstructions(role: role, theme: theme) } }
+    }
+    @MainActor func testNotesAndInstructionsLargestText() { runNotesAndInstructions(role: "trainer", theme: "dark", largest: true) }
+    @MainActor private func runNotesAndInstructions(role: String, theme: String, largest: Bool = false) {
+        let app = XCUIApplication(); app.launchArguments = ["--demo-" + role, "-appearance", theme]
+        if largest { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
+        let suffix = role + "-" + theme + (largest ? "-largest" : "")
+        app.launch(); XCTAssertTrue(app.buttons["Заметки"].waitForExistence(timeout: 15)); app.buttons["Заметки"].tap()
+        let note = app.textViews.firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 5))
+        let todayID = note.identifier, marker = "Личная заметка " + role + " " + theme
+        if !largest { XCTAssertEqual(app.textViews.count, 4) }
+        XCTAssertFalse((note.value as? String ?? "").contains("Личная заметка " + (role == "trainer" ? "student" : "trainer")))
+        revealAndTap(note, in: app); note.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 80) + marker)
+        app.buttons["dismiss-keyboard"].firstMatch.tap(); capture(app, "notes-" + suffix)
+        let range = app.buttons["notes-date-range"].label
+        revealAndTap(app.buttons["Следующие четыре дня"], in: app)
+        XCTAssertNotEqual(app.buttons["notes-date-range"].label, range)
+        revealAndTap(app.buttons["notes-date-range"], in: app)
+        XCTAssertTrue(app.buttons["Перейти к сегодня"].waitForExistence(timeout: 5)); capture(app, "notes-calendar-" + suffix)
+        revealAndTap(app.buttons["Перейти к сегодня"], in: app)
+        XCTAssertTrue(app.textViews[todayID].waitForExistence(timeout: 5)); XCTAssertTrue((app.textViews[todayID].value as? String ?? "").contains(marker))
+        app.terminate(); app.launch(); XCTAssertTrue(app.buttons["Заметки"].waitForExistence(timeout: 15)); app.buttons["Заметки"].tap()
+        XCTAssertTrue(app.textViews[todayID].waitForExistence(timeout: 5)); XCTAssertTrue((app.textViews[todayID].value as? String ?? "").contains(marker))
+        app.buttons["Главная"].tap()
+        if role == "trainer" {
+            app.buttons["Ученики"].tap()
+            revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
+            revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Грудь и плечи")).firstMatch, in: app)
+        } else { revealAndTap(app.buttons["Посмотреть тренировку"].firstMatch, in: app) }
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция:")).firstMatch, in: app)
+        XCTAssertTrue(app.staticTexts["Тренер пока не добавил видео"].waitForExistence(timeout: 5)); capture(app, "instruction-" + suffix)
+        revealAndTap(app.buttons["Закрыть"], in: app)
+        if role == "trainer" {
+            revealAndTap(app.buttons["Редактировать план"], in: app)
+            revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+            XCTAssertTrue(app.buttons["Сохранить инструкцию"].waitForExistence(timeout: 5)); capture(app, "instruction-editor-" + suffix)
+            let text = app.textFields["Подробное описание упражнения"]
+            revealAndTap(text, in: app); text.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 200) + "Проверка техники")
+            app.buttons["dismiss-keyboard"].firstMatch.tap()
+            revealAndTap(app.buttons["Сохранить инструкцию"], in: app)
+            revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+            XCTAssertTrue(text.waitForExistence(timeout: 5)); XCTAssertTrue((text.value as? String ?? "").contains("Проверка техники"))
+            revealAndTap(app.buttons["Закрыть описание"], in: app)
+            revealAndTap(app.buttons["Отменить изменения"], in: app)
+            XCTAssertTrue(app.buttons["Удалить изменения"].waitForExistence(timeout: 5)); app.buttons["Удалить изменения"].tap()
+        }
+        app.terminate()
+    }
     @MainActor func testPaymentFormOpensFromHistory() {
       for largest in [false, true] {
         let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", "light"]; app.launch()
@@ -177,7 +239,10 @@ final class SmokeTests: XCTestCase {
         for _ in 0..<16 {
             let bar = app.otherElements["reppy-tab-bar"]
             let coveredByTabs = bar.exists && element.frame.midY >= bar.frame.minY
-            if element.isHittable && !coveredByTabs { break }
+            let field = element.elementType == .textField || element.elementType == .textView
+            let headerBottom = app.navigationBars.allElementsBoundByIndex.map { $0.frame.maxY }.max() ?? app.frame.minY
+            let coveredByHeader = field && element.frame.minY < headerBottom + 8
+            if element.isHittable && !coveredByTabs && !coveredByHeader { break }
             if element.frame.midY < app.frame.midY { app.swipeDown(velocity: .slow) } else { app.swipeUp(velocity: .slow) }
         }
         XCTAssertTrue(element.isHittable); element.tap()

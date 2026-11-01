@@ -642,29 +642,87 @@ struct ReppyChargeSummary: View {
     }
 }
 struct InstructionScreen: View {
-    @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentation
     var exercise: WorkoutExercise
-    @State private var player: AVPlayer?
-    @State private var error: String?
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: exercise.name)
             ReppyCard {
-                ReppyText(text: exercise.instructionText?.isEmpty == false ? exercise.instructionText! : "Тренер пока не добавил подробную инструкцию.", tone: .secondary)
-                if let player { ReppyVideo(player: player) }
-                if let error { ReppyStatus(message: error, error: true) }
-                if let video = exercise.instructionVideo {
-                    ReppyButton(title: "Открыть видео", icon: "play.circle") {
-                        Task { do { player = AVPlayer(url: try await store.videoURL(video)); error = nil } catch { self.error = error.localizedDescription } }
-                    }
+                ReppyInstructionMedia(video: exercise.instructionVideo)
+                ReppyInstructionEquipment(equipment: exercise.equipment)
+                ReppyHeading(text: "Как выполнять")
+                let instruction = exercise.instructionText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                ReppyText(text: instruction.isEmpty ? "Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли." : instruction, tone: instruction.isEmpty ? .secondary : .normal)
+            }
+            ReppyButton(title: "Закрыть", compact: true) { presentation.wrappedValue.dismiss() }
+        }
+    }
+}
+struct ReppyInstructionEquipment: View {
+    var equipment: String?
+    var body: some View {
+        if let equipment, !equipment.isEmpty, equipment != "Свой вес" {
+            ReppyStack(compact: true) { ReppyCaption(text: "ОБОРУДОВАНИЕ"); ReppyHeading(text: equipment) }
+        }
+    }
+}
+struct ReppyInstructionMedia: View {
+    @EnvironmentObject private var store: AppStore
+    var video: InstructionVideo?
+    var localURL: URL? = nil
+    var localSize: Int? = nil
+    var editable = false
+    @State private var player: AVPlayer?
+    @State private var observer: NSKeyValueObservation?
+    @State private var scopedURL: URL?
+    @State private var loading = false
+    @State private var error: String?
+    @State private var retry = UUID()
+    private var requestKey: String { (localURL?.absoluteString ?? video?.id ?? "empty") + retry.uuidString }
+    var body: some View {
+        ReppyStack(compact: true) {
+            if let player, error == nil { ReppyVideo(player: player) }
+            else {
+                VStack(spacing: ReppyMetrics.space12) {
+                    Image(systemName: "figure.strengthtraining.traditional").font(.largeTitle).accessibilityHidden(true)
+                    ReppyCaption(text: loading ? "Загружаем видео…" : error != nil ? "Видео недоступно" : editable ? "Добавь короткое видео с техникой" : "Тренер пока не добавил видео")
+                }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.mediaMinHeight).padding(ReppyMetrics.space12)
+                    .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+            }
+            if let video, localURL == nil { ReppyCaption(text: video.name + " · " + Self.fileSize(video.size)) }
+            if let localURL { ReppyCaption(text: localURL.lastPathComponent + (localSize.map { " · " + Self.fileSize($0) } ?? "")) }
+            if let error { ReppyStatus(message: error, error: true, actionTitle: "Повторить") { retry = UUID() } }
+        }.task(id: requestKey) { await load() }.onDisappear { release() }
+    }
+    static func fileSize(_ bytes: Int) -> String {
+        bytes < 1024 * 1024 ? "\(max(1, Int((Double(bytes) / 1024).rounded()))) КБ" : "\((Double(bytes) / (1024 * 1024)).formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "ru_RU")))) МБ"
+    }
+    private func release() {
+        observer = nil; player?.pause(); player = nil
+        scopedURL?.stopAccessingSecurityScopedResource(); scopedURL = nil
+    }
+    @MainActor private func load() async {
+        release(); error = nil; loading = video != nil || localURL != nil
+        guard loading else { return }
+        do {
+            let url: URL
+            if let localURL { url = localURL; if url.startAccessingSecurityScopedResource() { scopedURL = url } }
+            else if let video { url = try await store.videoURL(video) }
+            else { return }
+            guard !Task.isCancelled else { return }
+            let item = AVPlayerItem(url: url)
+            player = AVPlayer(playerItem: item)
+            observer = item.observe(\.status, options: [.initial, .new]) { item, _ in
+                Task { @MainActor in
+                    guard player?.currentItem === item, item.status == .failed else { return }
+                    error = "Не удалось открыть видео. Проверь соединение и попробуй ещё раз."
                 }
             }
-            ReppyButton(title: "Закрыть", compact: true) { dismiss() }
-        }.onDisappear { player?.pause(); player = nil }
+            loading = false
+        } catch { if !Task.isCancelled { self.error = error.localizedDescription; loading = false } }
     }
 }
 struct ReppyVideo: View {
     var player: AVPlayer
-    var body: some View { VideoPlayer(player: player).aspectRatio(9 / 16, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }
+    var body: some View { VideoPlayer(player: player).aspectRatio(16 / 9, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }
 }

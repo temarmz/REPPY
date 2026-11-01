@@ -23,6 +23,9 @@ struct DesignKitScreen: View {
                 ReppyButton(title: "Компактное действие", compact: true) {}
             }
             ReppyAuthIntro()
+            ReppyNotesHeader(date: date, onToday: {}, onPrevious: {}, onNext: {}, onCalendar: {})
+            ReppyInstructionMedia(video: nil, editable: true)
+            ReppyInstructionEquipment(equipment: "Гантели")
             ReppyLedgerSummary(balance: 11, hasEntries: true) { ReppyButton(title: "Добавить пополнение", kind: .primary) {} }
             ReppyPaymentMethodPicker(selection: .constant("cash"))
             ReppyConnectedList(items: Array(store.data.subscriptions.prefix(3))) { ReppySubscriptionEntry(entry: $0, balanceAfter: 11, card: false) }
@@ -94,6 +97,9 @@ struct DesignKitScreen: View {
             ReppyStatus(message: "Ошибка сохранения. Повтори попытку.", error: true, actionTitle: "Повторить") {}
             ReppyEmpty(title: "Пустое состояние", message: "Описание следующего действия")
             NoteDayCard(day: ReppyDate.day(), text: $text)
+            NoteDayCard(day: ReppyDate.day(), text: .constant(""), loaded: false)
+            NoteDayCard(day: ReppyDate.day(), text: .constant("Несохранённый текст"), pending: true)
+            NoteDayCard(day: ReppyDate.day(), text: .constant("Моя версия"), error: "Заметка изменена на другом устройстве. Выбери версию.", conflict: true)
             MonthCalendar(date: $date, counts: [ReppyDate.day(): 2])
             ReppyTabBar(tabs: [.home, .calendar, .clients, .notes], selected: $tab)
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }

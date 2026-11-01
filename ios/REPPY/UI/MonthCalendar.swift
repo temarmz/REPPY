@@ -5,6 +5,7 @@ struct MonthCalendar: View {
     var counts: [String: Int]
     var selectFirstDayOnMonthChange = false
     var showToday = false
+    var countLabel = "тренировок"
     @State private var month = Date()
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var dayHeight = ReppyMetrics.small
@@ -42,7 +43,7 @@ struct MonthCalendar: View {
                                 .background(selected ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
                                 .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(calendar.isDateInToday(day) && !selected ? ReppyTheme.lime : .clear, lineWidth: 1))
                         }.buttonStyle(.plain)
-                            .accessibilityLabel("\(ReppyDate.display(ReppyDate.day(day))), тренировок: \(counts[ReppyDate.day(day), default: 0])")
+                            .accessibilityLabel("\(ReppyDate.display(ReppyDate.day(day))), \(countLabel): \(counts[ReppyDate.day(day), default: 0])")
                             .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }

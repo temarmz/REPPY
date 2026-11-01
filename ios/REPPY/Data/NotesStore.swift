@@ -20,6 +20,14 @@ struct NoteDraft: Codable {
     @Published var errors: [String: String] = [:]
     @Published var conflicts: [String: PersonalNote] = [:]
     @Published var storageError: String?
+    @Published private(set) var firstDay = ReppyDate.day()
+    @Published private(set) var loaded = false
+    var canEdit: Bool { loaded && writable }
+    var markedDays: [String: Int] {
+        var contents = notes.mapValues(\.content)
+        for (day, draft) in drafts { contents[day] = draft.content }
+        return contents.mapValues { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1 }
+    }
     private var account = ""
     private var api: SupabaseAPI?
     private var demo = false
@@ -37,6 +45,10 @@ struct NoteDraft: Codable {
             if demo { notes = try DraftStorage.load(account: account, key: "personal-notes-demo") ?? [:] }
         }
         catch { writable = false; storageError = "Не удалось прочитать черновики заметок. Файл сохранён: \(error.localizedDescription)" }
+        do {
+            let range: String? = try DraftStorage.load(account: account, key: "notes-range")
+            if let range { firstDay = ReppyDate.day(ReppyDate.fromDay(range)) }
+        } catch { if storageError == nil { storageError = "Не удалось восстановить выбранную дату: \(error.localizedDescription)" } }
         if !demo, let api {
             observer = RealtimeObserver(api: api) { [weak self] in Task { await self?.refresh() } }
             observer?.start()
@@ -44,9 +56,16 @@ struct NoteDraft: Codable {
         await refresh()
     }
     func stop() { observer?.stop(); observer = nil; tasks.values.forEach { $0.cancel() } }
+    func selectDay(_ date: Date) {
+        guard !account.isEmpty else { return }
+        firstDay = ReppyDate.day(date)
+        do { try DraftStorage.save(firstDay, account: account, key: "notes-range") }
+        catch { storageError = "Не удалось запомнить выбранную дату: \(error.localizedDescription)" }
+        Task { await flush() }
+    }
     func text(_ day: String) -> String { drafts[day]?.content ?? notes[day]?.content ?? "" }
     func edit(_ day: String, _ text: String) {
-        guard writable else { return }
+        guard canEdit else { return }
         var draft = drafts[day] ?? NoteDraft(content: text, revision: notes[day]?.revision ?? 0, mutationID: UUID().uuidString)
         draft.content = String(text.prefix(50_000)); drafts[day] = draft
         persist()
@@ -69,6 +88,7 @@ struct NoteDraft: Codable {
                 for row in rows { notes[row.note_date] = row }
             } catch { storageError = "Не удалось обновить заметки: \(error.localizedDescription)"; return }
         }
+        loaded = true
         await flush()
     }
     func flush() async {

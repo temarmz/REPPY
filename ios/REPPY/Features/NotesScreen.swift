@@ -2,23 +2,18 @@ import SwiftUI
 
 struct NotesScreen: View {
     @EnvironmentObject private var notes: NotesStore
-    @State private var date = Date()
+    private var date: Date { ReppyDate.fromDay(notes.firstDay) }
     @State private var calendarOpen = false
     @State private var conflictDay: String?
+    @State private var resolving = false
     private var days: [String] { (0..<4).map { ReppyDate.day(Calendar.current.date(byAdding: .day, value: $0, to: date)!) } }
     var body: some View {
         ReppyPage {
-            ReppyTitle(text: "Заметки")
-            ReppyButton(title: "Сегодня", compact: true) { date = Date() }
-            ReppyRow {
-                ReppyButton(title: "Предыдущие четыре дня", icon: "chevron.left", compact: true) { shift(-4) }
-                ReppyButton(title: "Следующие четыре дня", icon: "chevron.right", compact: true) { shift(4) }
-            }
-            ReppyButton(title: "\(ReppyDate.display(days[0])) — \(ReppyDate.display(days[3]))", icon: "calendar") { calendarOpen = true }
+            ReppyNotesHeader(date: date, onToday: { notes.selectDay(Date()) }, onPrevious: { shift(-4) }, onNext: { shift(4) }, onCalendar: { calendarOpen = true })
             if let error = notes.storageError { ReppyStatus(message: error, error: true, actionTitle: "Повторить") { Task { await notes.refresh() } } }
             ReppyNotesGrid {
                 ForEach(days, id: \.self) { day in
-                    NoteDayCard(day: day, text: Binding(get: { notes.text(day) }, set: { notes.edit(day, $0) }), pending: notes.drafts[day] != nil, error: notes.errors[day]) {
+                    NoteDayCard(day: day, text: Binding(get: { notes.text(day) }, set: { notes.edit(day, $0) }), pending: notes.drafts[day] != nil, loaded: notes.loaded, editable: notes.canEdit, error: notes.errors[day], conflict: notes.conflicts[day] != nil, onBlur: { Task { await notes.save(day) } }) {
                         if notes.conflicts[day] != nil { conflictDay = day }
                         else { Task { await notes.save(day) } }
                     }
@@ -27,20 +22,28 @@ struct NotesScreen: View {
         }.refreshable { await notes.refresh() }
             .onDisappear { Task { await notes.flush() } }
             .sheet(isPresented: $calendarOpen) {
-                ReppyPage { ReppyTitle(text: "Выбрать день"); MonthCalendar(date: $date, counts: notes.notes.mapValues { $0.content.isEmpty ? 0 : 1 }); ReppyButton(title: "Готово") { calendarOpen = false } }
+                NavigationStack { ReppyPage(back: true) {
+                    ReppyTitle(text: "Выбрать день")
+                    ReppyText(text: "Выбранный день и три следующих останутся рядом.", tone: .secondary)
+                    MonthCalendar(date: Binding(get: { date }, set: { notes.selectDay($0); calendarOpen = false }), counts: notes.markedDays, countLabel: "заметка")
+                    ReppyButton(title: "Перейти к сегодня") { notes.selectDay(Date()); calendarOpen = false }
+                    ReppyButton(title: "Закрыть") { calendarOpen = false }
+                } }.presentationCornerRadius(ReppyMetrics.modalRadius)
             }
             .sheet(isPresented: Binding(get: { conflictDay != nil }, set: { if !$0 { conflictDay = nil } })) {
                 ReppyPage {
                     if let day = conflictDay {
                         ReppyTitle(text: "Выбрать версию заметки")
+                        ReppyText(text: "Эта запись изменилась на другом устройстве. Выбери, какой текст оставить.", tone: .secondary)
                         ReppyHeading(text: "Твой текст"); ReppyText(text: notes.text(day))
                         ReppyHeading(text: "Текст на сервере"); ReppyText(text: notes.conflicts[day]?.content ?? "")
-                        ReppyButton(title: "Оставить мой текст", kind: .primary) { resolve(day, true) }
-                        ReppyButton(title: "Использовать серверный текст") { resolve(day, false) }
+                        if let error = notes.errors[day] { ReppyStatus(message: error, error: true) }
+                        ReppyButton(title: "Оставить мой текст", kind: .primary, disabled: resolving) { resolve(day, true) }
+                        ReppyButton(title: "Использовать серверный", disabled: resolving) { resolve(day, false) }
                     }
-                }
+                }.interactiveDismissDisabled(resolving)
             }
     }
-    private func shift(_ amount: Int) { Task { await notes.flush() }; date = Calendar.current.date(byAdding: .day, value: amount, to: date)! }
-    private func resolve(_ day: String, _ mine: Bool) { Task { await notes.resolve(day, keepMine: mine); if notes.conflicts[day] == nil { conflictDay = nil } } }
+    private func shift(_ amount: Int) { notes.selectDay(Calendar.current.date(byAdding: .day, value: amount, to: date)!) }
+    private func resolve(_ day: String, _ mine: Bool) { guard !resolving else { return }; resolving = true; Task { await notes.resolve(day, keepMine: mine); resolving = false; if notes.conflicts[day] == nil { conflictDay = nil } } }
 }

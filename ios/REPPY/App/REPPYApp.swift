@@ -49,7 +49,9 @@ struct MainScreen: View {
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !keyboardVisible {
-                ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .notes] : [.home, .calendar, .notes], selected: $tab)
+                ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .notes] : [.home, .calendar, .notes], selected: Binding(get: { tab }, set: { next in
+                    if next == .notes { notes.selectDay(Date()) }; tab = next
+                }))
             }
         }.background(ReppyTheme.background)
             .environmentObject(notes)
