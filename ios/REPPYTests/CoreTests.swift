@@ -6,6 +6,64 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testSessionChargeUsesItsRelationshipLedgerAndRecognizesRefunds() throws {
+        var data = try fixture()
+        let session = try XCTUnwrap(data.sessions.first { session in
+            session.charge_status == nil && data.subscriptions.contains { $0.kind == "session-charge" && $0.session_id == session.id }
+        })
+        let charge = try XCTUnwrap(data.subscriptions.first { $0.kind == "session-charge" && $0.session_id == session.id })
+        XCTAssertTrue(data.isSessionCharged(session.id))
+        var refund = charge; refund.id = "refund"; refund.kind = "session-refund"; refund.lesson_delta = 1
+        refund.relationship_id = "unrelated"; data.subscriptions.append(refund)
+        XCTAssertTrue(data.isSessionCharged(session.id))
+        refund.id = "matching-refund"; refund.relationship_id = charge.relationship_id; data.subscriptions.append(refund)
+        XCTAssertFalse(data.isSessionCharged(session.id))
+        XCTAssertFalse(data.isSessionCharged("unknown-session"))
+    }
+    func testDemoPaymentDatesPreserveTheirDistanceFromTheAnchorDay() throws {
+        let data = try fixture()
+        let payment = try XCTUnwrap(data.subscriptions.first { $0.kind == "payment" })
+        XCTAssertEqual(payment.occurred_at.count, 10)
+        let anchor = ReppyDate.fromDay(try XCTUnwrap(data.demoDay))
+        let target = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 2, to: anchor))
+        let rebased = data.rebasedDemo(today: target)
+        let moved = try XCTUnwrap(rebased.subscriptions.first { $0.id == payment.id })
+        XCTAssertEqual(moved.occurred_at, ReppyDate.day(try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 2, to: ReppyDate.fromDay(payment.occurred_at)))))
+    }
+    func testProgressOrderIsStableForEqualCompletionDates() throws {
+        var data = try fixture()
+        let relationship = try XCTUnwrap(data.relationships.first)
+        data.sessions = data.sessions.map { var session = $0; session.completed_at = "2026-10-29T09:00:00Z"; return session }
+        let forward = ExerciseProgress.collect(data: data, relationshipID: relationship.id)
+        XCTAssertGreaterThan(forward.count, 1)
+        data.sessions.reverse()
+        let reversed = ExerciseProgress.collect(data: data, relationshipID: relationship.id)
+        XCTAssertEqual(forward.map(\.id), reversed.map(\.id))
+        XCTAssertEqual(forward.map { $0.points.map(\.id) }, reversed.map { $0.points.map(\.id) })
+        let names = forward.map { $0.exercise.name }
+        XCTAssertEqual(names, names.sorted { $0.compare($1, locale: Locale(identifier: "ru_RU")) == .orderedAscending })
+    }
+    func testProgressComparisonUsesOneActualSetAndDistinguishesMixedChanges() throws {
+        let data = try fixture()
+        let session = try XCTUnwrap(data.sessions.first)
+        var exercise = try XCTUnwrap(session.workout_snapshot.exercises.first)
+        exercise.loadMode = .external; exercise.measureType = .reps
+        let latest = [SetResult(session_id: session.id, exercise_instance_id: exercise.id, set_number: 1, actual_reps: 8, actual_weight: 80, completed: true),
+                      SetResult(session_id: session.id, exercise_instance_id: exercise.id, set_number: 2, actual_reps: 15, actual_weight: 70, completed: true)]
+        var previous = latest[0]; previous.actual_weight = 75; previous.actual_reps = 10
+        var group = ProgressGroup(exercise: exercise, points: [ProgressPoint(session: session, exercise: exercise, results: latest), ProgressPoint(session: session, exercise: exercise, results: [previous])])
+        let comparison = try XCTUnwrap(ProgressComparison(group))
+        XCTAssertEqual(comparison.latest.actual_weight, 80); XCTAssertEqual(comparison.latest.actual_reps, 8)
+        XCTAssertEqual(comparison.weightChange, 5); XCTAssertEqual(comparison.amountChange, -2); XCTAssertEqual(comparison.trend, .mixed)
+        group.points[1].results = [latest[0]]
+        XCTAssertEqual(ProgressComparison(group)?.trend, .flat)
+        group.points.removeLast()
+        XCTAssertNil(ProgressComparison(group)?.previous); XCTAssertEqual(ProgressComparison(group)?.trend, ProgressComparison.Trend.none)
+        group.exercise.loadMode = .bodyweight
+        group.points[0].exercise.loadMode = .bodyweight
+        XCTAssertEqual(ProgressComparison(group)?.latest.actual_reps, 15)
+        XCTAssertEqual(ProgressComparison(group)?.weightChange, 0)
+    }
     func testInvitationParsingAcceptsCurrentLinksAndRejectsUnrelatedURLs() {
         let token = String(repeating: "a", count: 43)
         XCTAssertEqual(InvitationToken.parse(token), token)

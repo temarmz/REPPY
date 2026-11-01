@@ -20,7 +20,7 @@
   --card-radius: var(--radius-20);
   --card-list-gap: var(--space-24);
   --notes-day-min-height: 208px;
-  --notes-day-height: clamp(var(--notes-day-min-height), calc((100dvh - 360px) / 2), 360px);
+  --notes-day-height: clamp(var(--notes-day-min-height), calc((100svh - 360px) / 2), 360px);
   --notes-editor-font-size: var(--font-size-16);
   --notes-grid-gap: var(--space-16);
   --notes-card-padding: var(--space-12);
@@ -904,6 +904,14 @@
   --overlay-surface: var(--palette-171b17);
   --divider: var(--tint-ffffff-65);
   --lime-strong: var(--palette-b7e85a);
+  --nav-selected-bg: var(--palette-ecefe9);
+  --focus-surface: var(--palette-ecefe9);
+  --focus-text: var(--ink);
+  --focus-secondary: var(--palette-626961);
+  --focus-meta: var(--palette-5f7f18);
+  --focus-accent: var(--palette-6f9518);
+  --trend-up: var(--lime-strong);
+  --trend-down: var(--orange);
   --app-font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   /* Numeric labels use the same family as the rest of the interface. */
   --app-font-mono: var(--app-font-sans);
@@ -933,6 +941,9 @@ html[data-theme="light"] {
   --brand-soft: var(--tint-5d8012-100);
   --lime: var(--palette-acd957);
   --lime-strong: var(--palette-4f7111);
+  --nav-selected-bg: var(--lime);
+  --focus-surface: var(--palette-white);
+  --trend-down: var(--palette-a8442b);
   --field-outline: var(--tint-192317-200);
   --field-bg: var(--control-bg);
 }

@@ -13,9 +13,8 @@ struct ExerciseEditorCard: View {
     @State private var lifetime = UUID()
     var body: some View {
         ReppyCard {
-            ReppyHeading(text: exercise.name)
-            ReppyPicker(title: "Нагрузка", selection: $exercise.loadMode) { Text("Внешний вес").tag(LoadMode.external); Text("Свой вес").tag(LoadMode.bodyweight) }
-            ReppyPicker(title: "Измерение", selection: $exercise.measureType) { Text("Повторы").tag(MeasureType.reps); Text("Длительность").tag(MeasureType.duration) }
+            ReppyExerciseHeader(exercise: exercise) { exerciseMenu }
+            ReppyExerciseModes(exercise: $exercise)
             ReppyStack(compact: true) {
                 SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit)
                 ForEach($exercise.plannedSets) { $set in
@@ -26,8 +25,11 @@ struct ExerciseEditorCard: View {
                 let last = exercise.plannedSets.last ?? SetPlan()
                 exercise.plannedSets.append(SetPlan(targetReps: last.targetReps, targetWeight: last.targetWeight))
             }
-            ReppyField(title: "Комментарий тренера", text: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }))
+            ReppyDisclosure(title: "Комментарий тренера") {
+                ReppyField(title: "Комментарий тренера", text: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }), multiline: true)
+            }
             if store.isTrainer {
+                ReppyDisclosure(title: "Инструкция и видео") {
                 ReppyField(title: "Подробная инструкция", text: Binding(get: { exercise.instructionText ?? "" }, set: { exercise.instructionText = $0 }), multiline: true)
                 if let video = exercise.instructionVideo {
                     ReppyCaption(text: video.name)
@@ -42,13 +44,8 @@ struct ExerciseEditorCard: View {
                         }
                     }
                 }
+                }.disabled(store.busy)
             }
-            Menu {
-                Button("Заменить упражнение", systemImage: "arrow.triangle.2.circlepath") { replacement = true }
-                Button("Переместить выше", systemImage: "arrow.up") { onMove(-1) }
-                Button("Переместить ниже", systemImage: "arrow.down") { onMove(1) }
-                Button("Удалить упражнение", systemImage: "trash", role: .destructive, action: onDelete)
-            } label: { Label("Действия с упражнением", systemImage: "ellipsis") }.buttonStyle(ReppyButtonStyle(compact: true))
         }.fileImporter(isPresented: $importVideo, allowedContentTypes: [.movie]) { result in
             let generation = lifetime
             Task { await store.run {
@@ -71,5 +68,13 @@ struct ExerciseEditorCard: View {
             }.ignoresSafeArea()
         }
         .onDisappear { lifetime = UUID() }
+    }
+    private var exerciseMenu: some View {
+        Menu {
+            Button("Заменить упражнение", systemImage: "arrow.triangle.2.circlepath") { replacement = true }
+            Button("Переместить выше", systemImage: "arrow.up") { onMove(-1) }
+            Button("Переместить ниже", systemImage: "arrow.down") { onMove(1) }
+            Button("Удалить упражнение", systemImage: "trash", role: .destructive, action: onDelete)
+        } label: { ReppyToolbarIcon(icon: "ellipsis") }.disabled(store.busy).accessibilityLabel("Действия с упражнением: \(exercise.name)")
     }
 }

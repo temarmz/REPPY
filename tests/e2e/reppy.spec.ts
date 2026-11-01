@@ -490,7 +490,7 @@ test('нижнее меню остаётся кликабельным после
   expect(Math.round(scrolledNavBox?.y ?? -1)).toBe(Math.round(initialNavBox?.y ?? -2));
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-  await bottomNav.getByRole('button', { name: 'Профиль' }).tap();
+  await page.locator('.topbar').getByRole('button', { name: 'Профиль' }).tap();
   await expect(page).toHaveURL(/#\/trainer\/profile$/);
   await expect(page.locator('.app-shell')).not.toHaveAttribute('inert', '');
   await expect(page.locator('.modal-layer-root')).toHaveCount(0);

@@ -3,7 +3,6 @@ import SwiftUI
 struct ReppyPage<Content: View>: View {
     var back = false
     @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
     @State private var discardDraft = false
     @ViewBuilder var content: () -> Content
     var body: some View {
@@ -16,14 +15,28 @@ struct ReppyPage<Content: View>: View {
                 }
             }
             content()
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset)
+            // Nested NavigationStack content can outlive the system tab bar's
+            // safe-area contribution. Keep the final row clear of our capsule.
+            .padding(.bottom, store.profile == nil ? 0 : ReppyMetrics.compact + ReppyMetrics.space12 + ReppyMetrics.space16) }
             .scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
-            .navigationBarBackButtonHidden(back)
+            .toolbar(.hidden, for: .tabBar)
+            .toolbarBackground(ReppyTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(nil, for: .navigationBar)
             .toolbar {
-                if back {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { dismiss() } label: { Image(systemName: "chevron.left").frame(width: ReppyMetrics.small, height: ReppyMetrics.small).background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }.accessibilityLabel("Назад")
+                if !back && store.profile != nil {
+                    ToolbarItem(placement: .topBarLeading) { ReppyHeaderBrand() }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink { ProfileScreen() } label: {
+                            ReppyToolbarIcon(icon: "person.crop.circle")
+                        }.accessibilityLabel("Профиль")
                     }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Готово") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+                        .buttonStyle(.bordered).accessibilityIdentifier("dismiss-keyboard")
                 }
             }
             .confirmationDialog("Удалить нечитабельный локальный черновик? Сохранённые на сервере данные останутся доступны.", isPresented: $discardDraft, titleVisibility: .visible) {
@@ -35,46 +48,49 @@ struct ReppyPage<Content: View>: View {
 struct ReppyCard<Content: View>: View {
     @ViewBuilder var content: () -> Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 16, content: content).frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+        VStack(alignment: .leading, spacing: ReppyMetrics.space16, content: content).frame(maxWidth: .infinity, alignment: .leading)
+            .padding(ReppyMetrics.space16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
     }
 }
 struct ReppyStack<Content: View>: View {
     var compact = false
     @ViewBuilder var content: () -> Content
-    var body: some View { VStack(alignment: .leading, spacing: compact ? 8 : 16, content: content).frame(maxWidth: .infinity, alignment: .leading) }
+    var body: some View { VStack(alignment: .leading, spacing: compact ? ReppyMetrics.space8 : ReppyMetrics.space16, content: content).frame(maxWidth: .infinity, alignment: .leading) }
 }
 struct ReppyRow<Content: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ViewBuilder var content: () -> Content
-    var body: some View { HStack(alignment: .center, spacing: 12, content: content) }
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space12)) : AnyLayout(HStackLayout(alignment: .center, spacing: ReppyMetrics.space12))
+        layout { content() }
+    }
 }
 struct ReppyTitle: View {
     var text: String
     var subtitle: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(text).font(.system(.largeTitle, design: .default, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+            Text(text).reppyTypography(.title).fixedSize(horizontal: false, vertical: true)
             if let subtitle { Text(subtitle).font(.body).foregroundStyle(ReppyTheme.secondary) }
         }.accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
     }
 }
 struct ReppyHeading: View {
     var text: String
-    @ScaledMetric(relativeTo: .headline) private var size = ReppyMetrics.exerciseTitle
-    var body: some View { Text(text).font(.system(size: size, weight: .semibold)).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader) }
+    var body: some View { Text(text).reppyTypography(.heading).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader) }
 }
 struct ReppyText: View {
     var text: String
     var tone: TextTone = .normal
-    var body: some View { Text(text).font(.body).foregroundStyle(tone.color).fixedSize(horizontal: false, vertical: true) }
+    var body: some View { Text(text).reppyTypography(.body).foregroundStyle(tone.color).fixedSize(horizontal: false, vertical: true) }
 }
 struct ReppyCaption: View {
     var text: String
-    var body: some View { Text(text).font(.subheadline).foregroundStyle(ReppyTheme.secondary).fixedSize(horizontal: false, vertical: true) }
+    var body: some View { Text(text).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary).fixedSize(horizontal: false, vertical: true) }
 }
 struct ReppyNumber: View {
     var value: String
-    var body: some View { Text(value).font(.system(.largeTitle, design: .default, weight: .semibold)).monospacedDigit() }
+    var body: some View { Text(value).reppyTypography(.number).monospacedDigit() }
 }
 enum ActionKind { case primary, secondary, danger }
 struct ReppyButtonStyle: ButtonStyle {
@@ -82,8 +98,8 @@ struct ReppyButtonStyle: ButtonStyle {
     var compact = false
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(.body, weight: .semibold)).multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity).padding(.horizontal, 16).padding(.vertical, 10)
+        configuration.label.reppyTypography(.button).multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12)
             .frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.control)
             .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : (kind == .danger ? ReppyTheme.error : ReppyTheme.text))
             .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
@@ -106,17 +122,25 @@ struct ReppyLink<Destination: View>: View {
     var title: String
     var subtitle: String? = nil
     var icon: String = "chevron.right"
+    var kind: ActionKind = .secondary
     @ViewBuilder var destination: () -> Destination
     var body: some View {
         NavigationLink(destination: destination) {
             HStack(spacing: 12) {
+                if kind == .primary {
+                    Spacer(minLength: 0)
+                    Label(title, systemImage: icon).font(.body.weight(.semibold)).multilineTextAlignment(.center)
+                    Spacer(minLength: 0)
+                } else {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title).font(.body.weight(.semibold)).multilineTextAlignment(.leading)
                     if let subtitle { Text(subtitle).font(.subheadline).foregroundStyle(ReppyTheme.secondary).multilineTextAlignment(.leading) }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: icon).accessibilityHidden(true)
+                }
             }.padding(16).frame(minHeight: ReppyMetrics.control)
-                .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+                .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : ReppyTheme.text)
+                .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
         }.buttonStyle(.plain)
     }
 }
@@ -125,37 +149,54 @@ struct ReppyField: View {
     @Binding var text: String
     var multiline = false
     var keyboard: UIKeyboardType = .default
+    var error: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField().keyboardType(keyboard).accessibilityLabel(title)
-            } else { TextField(title, text: $text).reppyField().keyboardType(keyboard).accessibilityLabel(title) }
+                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
+            } else { TextField(title, text: $text).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
+            if let error { ReppyText(text: error, tone: .error) }
         }
     }
 }
 private struct FieldModifier: ViewModifier {
+    var invalid = false
+    var compact = false
+    @FocusState private var focused: Bool
+    @Environment(\.isEnabled) private var enabled
     func body(content: Content) -> some View {
-        content.font(.body).padding(.horizontal, 14).padding(.vertical, 12).frame(minHeight: ReppyMetrics.control)
+        content.reppyTypography(.body).focused($focused).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12).frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.control)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
-            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(ReppyTheme.outline, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(invalid ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
+            .opacity(enabled ? 1 : 0.4)
     }
 }
-private extension View { func reppyField() -> some View { modifier(FieldModifier()) } }
+private extension View { func reppyField(invalid: Bool = false, compact: Bool = false) -> some View { modifier(FieldModifier(invalid: invalid, compact: compact)) } }
 struct ReppyNumericField: View {
     var title: String
     @Binding var value: Double
     var integer = false
     @State private var text = ""
     @FocusState private var focused: Bool
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var size = ReppyMetrics.setNumberFont
     var body: some View {
         TextField(title, text: $text).font(.system(size: size, weight: .medium)).monospacedDigit().multilineTextAlignment(.center)
             .keyboardType(integer ? .numberPad : .decimalPad).focused($focused).accessibilityLabel(title)
-            .padding(.horizontal, 6).frame(minWidth: 44, minHeight: ReppyMetrics.small)
+            .accessibilityHint(value < 0 || !value.isFinite ? "Проверь число: значение не должно быть отрицательным." : integer ? "Введи целое число." : "Можно вводить дробное число с запятой.")
+            .padding(.horizontal, ReppyMetrics.space6).frame(minWidth: ReppyMetrics.small, minHeight: ReppyMetrics.small)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
-            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(value < 0 || !value.isFinite ? ReppyTheme.error : ReppyTheme.outline, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(value < 0 || !value.isFinite ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
             .onAppear { if text.isEmpty { text = value.reppyNumber } }
+            .onChange(of: focused) { _, active in
+                if active {
+                    Task { @MainActor in
+                        await Task.yield()
+                        guard focused else { return }
+                        UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
+                    }
+                }
+            }
             .onChange(of: text) { _, text in
                 let parsed = ReppyValidation.number(text)
                 value = parsed.map { integer ? Double(ReppyValidation.integer($0)) : $0 } ?? -1
@@ -167,20 +208,46 @@ struct ReppyDateField: View {
     var title: String
     @Binding var date: Date
     var time = false
+    var compact = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var presented = false
+    @State private var pendingDate = Date()
     var body: some View {
+        if typeSize.isAccessibilitySize {
+            ReppyStack(compact: true) {
+                ReppyCaption(text: title)
+                Button {
+                    pendingDate = date; presented = true
+                } label: {
+                    Text(time ? date.formatted(.dateTime.hour().minute().locale(Locale(identifier: "ru_RU"))) : date.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))))
+                }.buttonStyle(ReppyButtonStyle(compact: compact)).accessibilityLabel(title).accessibilityValue(date.formatted(date: time ? .omitted : .long, time: time ? .shortened : .omitted))
+            }.sheet(isPresented: $presented) {
+                NavigationStack {
+                    DatePicker(title, selection: $pendingDate, displayedComponents: time ? [.hourAndMinute] : [.date])
+                        .datePickerStyle(.wheel).labelsHidden()
+                        .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) { Button("Отмена") { presented = false } }
+                            ToolbarItem(placement: .confirmationAction) { Button("Готово") { date = pendingDate; presented = false } }
+                        }
+                }.presentationDetents([.medium, .large]).presentationCornerRadius(ReppyMetrics.modalRadius)
+            }
+        } else {
         DatePicker(title, selection: $date, displayedComponents: time ? [.hourAndMinute] : [.date])
-            .datePickerStyle(.compact).reppyField().tint(ReppyTheme.text)
+            .datePickerStyle(.compact).reppyField(compact: compact).tint(ReppyTheme.text)
+        }
     }
 }
 struct ReppyPicker<T: Hashable, Content: View>: View {
     var title: String
     @Binding var selection: T
+    var compact = false
     @ViewBuilder var content: () -> Content
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             Picker(title, selection: $selection, content: content).pickerStyle(.menu).labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading).reppyField().tint(ReppyTheme.text)
+                .frame(maxWidth: .infinity, alignment: .leading).reppyField(compact: compact).tint(ReppyTheme.text)
                 .accessibilityLabel(title).accessibilityIdentifier(title)
         }
     }
@@ -219,6 +286,44 @@ struct ReppyLoading: View {
 }
 struct ReppyBrand: View {
     var body: some View { Image("Wordmark").resizable().scaledToFit().frame(width: 150, height: 44).accessibilityLabel("REPPY") }
+}
+struct ReppyHeaderBrand: View {
+    var body: some View {
+        Image("Wordmark").resizable().scaledToFit().frame(width: 100, height: ReppyMetrics.small).accessibilityLabel("REPPY")
+    }
+}
+struct ReppyToolbarIcon: View {
+    var icon: String
+    var body: some View {
+        Image(systemName: icon).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
+            .frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
+            .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+    }
+}
+
+// Native scroll/keyboard behavior; the auth screen has no marketing sections.
+struct ReppyAuthPage<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: ReppyMetrics.cardGap, content: content)
+                    .frame(maxWidth: 440, alignment: .leading)
+                    .padding(ReppyMetrics.pageInset)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: geometry.size.height, alignment: .center)
+            }.scrollDismissesKeyboard(.interactively)
+        }.background(ReppyTheme.background.ignoresSafeArea())
+    }
+}
+
+struct ReppyAuthIntro: View {
+    var body: some View {
+        ReppyStack {
+            ReppyBrand()
+            ReppyTitle(text: "Войти в REPPY", subtitle: "Твои тренировки и прогресс.")
+        }
+    }
 }
 struct ReppySearch: View {
     @Binding var text: String

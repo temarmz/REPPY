@@ -36,7 +36,7 @@ import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledg
 import { subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import { clearUiDraft, isDraftDateString, isDraftTimeString, loadUiDraft, saveUiDraft } from './ui-persistence';
 import ActiveWorkout from './active-workout';
-import ExerciseProgressView from './exercise-progress-view';
+import ExerciseProgressView, { StudentExerciseProgress } from './exercise-progress-view';
 import { goBack } from './navigation';
 
 const STUDENT_COPY = {
@@ -134,6 +134,8 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
           <Button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</Button>
         </Section>
       ) : <EmptyState icon="sun" title="Две недели свободны" text={STUDENT_COPY.emptyAssignments} />}
+
+      <StudentExerciseProgress data={data} studentId={data.activeStudentId} go={go} area="student" hideEmpty />
 
       {laterAssignments.length > 0 && <Section className="student-upcoming">
         <SectionHeading title="Следующие тренировки" />

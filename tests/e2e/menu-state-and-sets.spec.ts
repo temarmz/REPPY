@@ -21,60 +21,38 @@ test('долгая навигация не накапливает скрытые
   await expect(page.locator('[data-route-active="true"]')).toHaveAttribute('data-route-view', '/trainer');
 });
 
-test('вкладки сохраняют раскрытый профиль, незавершённый ввод, календарь и независимый скролл', async ({ page }) => {
+test('профиль в шапке сохраняет черновик, а меню сбрасывает календарь', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 600 });
   await demo(page, true);
   const nav = page.locator('.bottom-nav');
-  const scroll = page.locator('.page-wrap');
-  await nav.getByRole('button', { name: 'Профиль' }).click();
+  const profile = page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true });
+  await profile.click();
   await page.getByRole('button', { name: 'Редактировать', exact: true }).click();
-  const field = page.getByLabel('Рост, см');
-  await field.fill('183');
-  await field.evaluate((element: HTMLInputElement) => element.blur());
-  await page.evaluate(() => window.scrollTo(0, 180));
-  const profileDepth = await page.evaluate(() => window.scrollY);
-  expect(profileDepth).toBeGreaterThan(0);
+  await page.getByLabel('Рост, см').fill('183');
+  await page.getByLabel('Рост, см').blur();
   await nav.getByRole('button', { name: 'Календарь' }).click();
-  await page.getByRole('button', { name: 'Следующий месяц' }).click();
   const month = await page.locator('[data-route-active="true"] .calendar-toolbar h2').innerText();
-  const selected = await page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]').getAttribute('aria-label');
-  await scroll.evaluate((element) => { element.scrollTop = 120; });
-  const calendarDepth = await scroll.evaluate((element) => element.scrollTop);
-  await nav.getByRole('button', { name: 'Сегодня' }).click();
-  await nav.getByRole('button', { name: 'Профиль' }).click();
-  await expect(field).toHaveValue('183');
-  await expect.poll(async () => Math.abs(await page.evaluate(() => window.scrollY) - profileDepth)).toBeLessThanOrEqual(1);
-  await nav.getByRole('button', { name: 'Профиль' }).click();
-  await expect.poll(async () => Math.abs(await page.evaluate(() => window.scrollY) - profileDepth)).toBeLessThanOrEqual(1);
+  await page.getByRole('button', { name: 'Следующий месяц' }).click();
+  await profile.click();
+  await expect(page.getByLabel('Рост, см')).toHaveValue('183');
   await nav.getByRole('button', { name: 'Календарь' }).click();
   await expect(page.locator('[data-route-active="true"] .calendar-toolbar h2')).toHaveText(month);
-  await expect(page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]')).toHaveAttribute('aria-label', selected!);
-  await expect.poll(async () => Math.abs(await scroll.evaluate((element) => element.scrollTop) - calendarDepth)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test('вкладка возвращает открытую страницу внутри раздела и её глубину прокрутки', async ({ page }) => {
+test('вкладка возвращает в начало раздела из вложенного экрана', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 600 });
   await demo(page, true);
   const nav = page.locator('.bottom-nav');
-  await page.evaluate(() => {
-    const data = JSON.parse(localStorage.getItem('reppy-demo-v0')!);
-    const assignment = data.assignments.find((item: { studentId: string; status: string }) => item.studentId === 'artem' && item.status === 'completed');
-    sessionStorage.setItem('reppy-ui:calendar-day:student', assignment.scheduledFor);
-  });
   await nav.getByRole('button', { name: 'Календарь' }).click();
   await page.locator('[data-route-active="true"] .agenda-list button').first().click();
-  const url = page.url();
-  const scroll = page.locator('.page-wrap');
-  await scroll.evaluate((element) => { element.scrollTop = 180; });
-  const depth = await scroll.evaluate((element) => element.scrollTop);
-  expect(depth).toBeGreaterThan(0);
-  await nav.getByRole('button', { name: 'Сегодня' }).click();
+  await expect(page).toHaveURL(/#\/student\/calendar\/assignments\//);
+  await page.locator('.page-wrap').evaluate((element) => { element.scrollTop = element.scrollHeight; });
   await nav.getByRole('button', { name: 'Календарь' }).click();
-  await expect(page).toHaveURL(url);
-  await expect.poll(async () => Math.abs(await scroll.evaluate((element) => element.scrollTop) - depth)).toBeLessThanOrEqual(1);
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
 });
 
-test('завершённая тренировка возвращается в календарь на ту же дату и прокрутку', async ({ page }) => {
+test('завершённая тренировка возвращается в календарь на ту же дату', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 600 });
   await demo(page, true);
   const nav = page.locator('.bottom-nav');
@@ -85,18 +63,17 @@ test('завершённая тренировка возвращается в к
     const assignment = data.assignments.find((item: { studentId: string; status: string }) => item.studentId === 'artem' && item.status === 'completed');
     sessionStorage.setItem('reppy-ui:calendar-day:student', assignment.scheduledFor);
   });
-  await nav.getByRole('button', { name: 'Календарь' }).click();
+  await page.goto('/#/student/calendar');
   const selected = await page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]').getAttribute('aria-label');
   const card = page.locator('[data-route-active="true"] .agenda-list button').first();
   await card.scrollIntoViewIfNeeded();
-  const depth = await page.locator('.page-wrap').evaluate((element) => element.scrollTop);
   await card.click();
   await expect(page).toHaveURL(/#\/student\/calendar\/sessions\//);
   await expect(nav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/#\/student\/calendar$/);
   await expect(page.locator('[data-route-active="true"] .calendar-grid [aria-pressed="true"]')).toHaveAttribute('aria-label', selected!);
-  await expect.poll(async () => Math.abs(await page.locator('.page-wrap').evaluate((element) => element.scrollTop) - depth)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
 test('незавершённая тренировка сохраняет раздел открытия: календарь или сегодня', async ({ page }) => {
@@ -112,10 +89,10 @@ test('незавершённая тренировка сохраняет раз�
   await expect(page).toHaveURL(/#\/student\/calendar\/assignments\//);
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/#\/student\/calendar$/);
-  await nav.getByRole('button', { name: 'Сегодня' }).click();
+  await nav.getByRole('button', { name: 'Главная' }).click();
   await page.getByRole('button', { name: 'Посмотреть тренировку', exact: true }).click();
   await expect(page).toHaveURL(/#\/student\/assignments\//);
-  await expect(nav.getByRole('button', { name: 'Сегодня' })).toHaveAttribute('aria-current', 'page');
+  await expect(nav.getByRole('button', { name: 'Главная' })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/#\/student$/);
 });
@@ -159,7 +136,8 @@ test('редактор сохраняет незаполненную трени�
   await expect(page).toHaveURL(/#\/trainer\/calendar$/);
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await nav.getByRole('button', { name: 'Ученики' }).click();
-  await expect(page).toHaveURL(/#\/trainer\/clients\/maria\/assign\/new$/);
+  await expect(page).toHaveURL(/#\/trainer\/clients$/);
+  await page.goto('/#/trainer/clients/maria/assign/new');
   await expect(page.getByLabel('Название тренировки')).toHaveValue('Незаконченный план');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });

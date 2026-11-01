@@ -37,7 +37,7 @@ test('заметка сохраняется обычным текстом, см�
   await field.fill('Анна');
   await expect(first.locator('.note-editor-tools')).toHaveCount(0);
   await field.fill('Анна\nПроверить технику');
-  await expect(first.getByRole('status')).toHaveText('Сохранено');
+  await expect(first.getByRole('status')).toHaveText('');
   await page.reload();
   await expect(page.locator('.note-editor').first()).toHaveValue('Анна\nПроверить технику');
   const original = await page.locator('.note-day-card').first().getAttribute('data-note-date');
@@ -80,7 +80,7 @@ test('ошибка сохранения сохраняет черновик по
   page.on('dialog', (dialog) => void dialog.accept());
   await page.reload();
   await expect(page.locator('.note-editor').first()).toHaveValue('Текст переживёт сбой');
-  await expect(page.locator('.note-day-card').first().getByRole('status')).toHaveText('Сохранено');
+  await expect(page.locator('.note-day-card').first().getByRole('status')).toHaveText('');
 });
 
 test('конфликт показывает оба текста и сохраняет явно выбранную версию', async ({ page }) => {
@@ -99,7 +99,7 @@ test('конфликт показывает оба текста и сохран�
   await expect(dialog.getByRole('textbox').nth(1)).toHaveValue('Текст с другого устройства');
   await dialog.getByRole('button', { name: 'Оставить мой текст' }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(card.getByRole('status')).toHaveText('Сохранено');
+  await expect(card.getByRole('status')).toHaveText('');
   await page.reload();
   await expect(page.locator('.note-editor').first()).toHaveValue('Мой новый текст');
 });

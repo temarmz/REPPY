@@ -33,7 +33,7 @@ extension AppStore {
             else { _ = try await api.request("rest/v1/assignments", method: "DELETE", query: ["id": "eq.\(assignment.id)"]) }
         }
         if let session = data.session(for: assignment.id) {
-            if isDemo, session.charge_status == "charged", !data.subscriptions.contains(where: { $0.session_id == session.id && $0.kind == "session-refund" }) {
+            if isDemo, data.isSessionCharged(session.id) {
                 data.subscriptions.append(try decodeObject(["id": UUID().uuidString.lowercased(), "relationship_id": assignment.relationship_id,
                     "kind": "session-refund", "lesson_delta": 1, "occurred_at": ReppyDate.timestamp(), "created_at": ReppyDate.timestamp(),
                     "session_id": session.id, "workout_name": session.workout_snapshot.name, "revision": 1]))
@@ -144,7 +144,8 @@ extension AppStore {
                 saved = typed
             }
         }
-        data.students.removeAll { $0.id == saved.id }; data.students.append(saved)
+        if let index = data.students.firstIndex(where: { $0.id == saved.id }) { data.students[index] = saved }
+        else { data.students.append(saved) }
     }
     func createInvitation(name: String, existing: Relationship? = nil) async throws -> String {
         try requireTrainer()

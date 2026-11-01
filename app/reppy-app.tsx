@@ -401,7 +401,7 @@ export default function ReppyApp() {
     if (route === `/${area}/notes`) return <TrainerNotesScreen controller={notesController} identity={notesIdentity} />;
     if (area === 'trainer') {
       if (route === '/trainer/notes') return <TrainerNotesScreen controller={notesController} identity={profileId ?? 'demo'} />;
-      if (route === '/trainer/profile') return <TrainerProfileTabs data={data} settings={accountSettings} />;
+      if (route === '/trainer/profile') return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />{accountSettings}</Page>;
       return <TrainerRoutes
         path={route}
         data={data}
@@ -449,17 +449,9 @@ export default function ReppyApp() {
 }
 
 
-function TrainerProfileTabs({ data, settings }: { data: DemoState; settings: ReactNode }) {
-  const [tab, setTab] = useState('data');
-  return <Page className="content-page"><PageHeader title="ПРОФИЛЬ" />
-    <SegmentedControl label="Раздел профиля" value={tab} onChange={setTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
-    <Box className="profile-data-stack" hidden={tab !== 'data'}>{settings}</Box>
-    {tab === 'progress' && (data.students.length ? data.students.map((student) => <Section key={student.id} className="section-block"><SectionHeading title={student.name} /><StudentExerciseProgress data={data} studentId={student.id} go={go} area="trainer" /></Section>) : <EmptyState icon="users" title="Пока нет учеников" text="Прогресс появится после завершённых тренировок учеников." />)}
-  </Page>;
-}
-
-function StudentProfile({ data, studentId, onUpdate, trainerView = false, settings }: { data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean; settings?: ReactNode }) {
-  const [profileTab, setProfileTab] = useState('data');
+function StudentProfile({ data, studentId, onUpdate, onDeleteInvitation, showProgress = false, trainerView = false, settings }: { data: DemoState; studentId: string; onUpdate: (student: Student) => void; trainerView?: boolean; settings?: ReactNode; onDeleteInvitation?: () => void; showProgress?: boolean }) {
+  const [profileTab, setProfileTab] = useState(showProgress ? 'progress' : 'data');
+  const [deleteInvitation, setDeleteInvitation] = useState(false);
   const student = findStudent(data, studentId);
   if (!student) return <NotFound />;
   const assignments = data.assignments
@@ -469,10 +461,9 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
   return (
     <Page className="content-page">
       {trainerView && <Box className="student-profile-intro"><PageHeader back="/trainer/clients" semanticBack title={student.name.toUpperCase()} /><AthleteDetails student={student} onSave={onUpdate} compact /></Box>}
-      <SegmentedControl label="Раздел профиля" value={profileTab} onChange={setProfileTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />
-      <Box className={trainerView ? undefined : 'profile-data-stack'} hidden={profileTab !== 'data'}>
-      {trainerView || !settings ? <SubscriptionCard data={data} student={student} trainerView={trainerView} /> : null}
-      {trainerView && <Section className="profile-schedule">
+      {trainerView && student.status === 'active' && <SegmentedControl label="Раздел профиля" value={profileTab} onChange={setProfileTab} options={[{ value: 'data', label: 'Данные' }, { value: 'progress', label: 'Прогресс' }]} />}
+      <Box className="profile-data-stack" hidden={trainerView && profileTab !== 'data'}>
+      {trainerView && student.status === 'active' && <Section className="profile-schedule">
         <SectionHeading title="Предстоящие тренировки" />
         {trainerView && <Button className="list-primary-action" type="button" onClick={() => go(`/trainer/clients/${student.id}/assign`)}><Icon name="plus" /> Назначить тренировку</Button>}
         {assignments.length ? <Box className="connected-list">{assignments.map((assignment) => {
@@ -487,7 +478,8 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
           : <EmptyState icon="calendar" title="Пока пусто" text="Тренер ещё не добавил ближайшие занятия." />}
       </Section>}
 
-      {trainerView && <Section className="section-block">
+      {(trainerView && student.status === 'active') || (!trainerView && !settings) ? <SubscriptionCard data={data} student={student} trainerView={trainerView} /> : null}
+      {trainerView && student.status === 'active' && <Section className="section-block">
         <SectionHeading title="Последняя активность" />
         {sessions.length ? <Box className="connected-list">{sessions.slice(0, 3).map((session) => (
           <ListRow className="session-row" key={session.id} type="button" onClick={() => go(`/trainer/sessions/${session.id}`)}>
@@ -498,8 +490,10 @@ function StudentProfile({ data, studentId, onUpdate, trainerView = false, settin
 
       {!trainerView && !settings && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
       {settings}
+      {trainerView && student.status === 'invited' && <Section className="profile-data-stack"><EmptyState icon="users" title="Ожидает подключения" text="Ученик ещё не принял приглашение." /><ActionButton variant="danger" icon="trash" onClick={() => setDeleteInvitation(true)}>Удалить ученика</ActionButton></Section>}
       </Box>
-      {profileTab === 'progress' && <StudentExerciseProgress data={data} studentId={studentId} go={go} area={trainerView ? 'trainer' : 'student'} />}
+      {deleteInvitation && <ConfirmationModal title="Удалить ученика?" text={`Приглашение для ${student.name} перестанет действовать. Ученик будет удалён из списка.`} confirmLabel="Удалить ученика" danger onClose={() => setDeleteInvitation(false)} onConfirm={() => { setDeleteInvitation(false); onDeleteInvitation?.(); }} />}
+      {trainerView && student.status === 'active' && profileTab === 'progress' && <StudentExerciseProgress data={data} studentId={studentId} go={go} area={trainerView ? 'trainer' : 'student'} />}
 
     </Page>
   );

@@ -188,6 +188,11 @@ public struct AppData: Codable, ReppySendable {
         return students.first { $0.id == id }
     }
     public func balance(_ relationshipID: String) -> Int { subscriptions.filter { $0.relationship_id == relationshipID }.reduce(0) { $0 + $1.lesson_delta } }
+    public func isSessionCharged(_ sessionID: String) -> Bool {
+        guard let session = sessions.first(where: { $0.id == sessionID }), let assignment = assignments.first(where: { $0.id == session.assignment_id }) else { return false }
+        let entries = subscriptions.filter { $0.relationship_id == assignment.relationship_id && $0.session_id == sessionID }
+        return entries.contains { $0.kind == "session-charge" } && !entries.contains { $0.kind == "session-refund" }
+    }
     public func session(for assignmentID: String) -> WorkoutSession? { sessions.first { $0.assignment_id == assignmentID } }
     public func sessionResults(_ sessionID: String) -> [SetResult] { results.filter { $0.session_id == sessionID } }
     public func rebasedDemo(today: Date = Date()) -> AppData {
@@ -199,7 +204,11 @@ public struct AppData: Codable, ReppySendable {
         func timestamp(_ value: String) -> String { ReppyDate.timestamp(calendar.date(byAdding: .day, value: days, to: ReppyDate.parse(value) ?? today)!) }
         copy.assignments = assignments.map { item in var item = item; item.scheduled_for = shifted(item.scheduled_for); item.assigned_at = timestamp(item.assigned_at); return item }
         copy.sessions = sessions.map { item in var item = item; item.started_at = timestamp(item.started_at); item.completed_at = item.completed_at.map(timestamp); return item }
-        copy.subscriptions = subscriptions.map { item in var item = item; item.occurred_at = timestamp(item.occurred_at); return item }
+        copy.subscriptions = subscriptions.map { item in
+            var item = item
+            item.occurred_at = item.occurred_at.count == 10 ? shifted(item.occurred_at) : timestamp(item.occurred_at)
+            return item
+        }
         copy.demoDay = ReppyDate.day(today); return copy
     }
 }

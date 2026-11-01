@@ -31,9 +31,10 @@ test('просмотр тренировки всегда возвращает в
   await expect(page).toHaveURL(/#\/student\/calendar$/);
 
   await page.locator('.agenda-list > button').first().tap();
-  await nav.getByRole('button', { name: 'Профиль' }).tap();
+  await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).tap();
   await nav.getByRole('button', { name: 'Календарь' }).tap();
-  await expect(page).toHaveURL(/#\/student\/calendar\/assignments\/[^/]+$/);
+  await expect(page).toHaveURL(/#\/student\/calendar$/);
+  await page.locator('.agenda-list > button').first().tap();
   await page.getByRole('button', { name: 'Назад' }).tap();
   await expect(page).toHaveURL(/#\/student\/calendar$/);
 

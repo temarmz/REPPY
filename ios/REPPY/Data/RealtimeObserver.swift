@@ -18,7 +18,7 @@ import Foundation
                     var url = URLComponents(url: self.api.configuration.url.appendingPathComponent("realtime/v1/websocket"), resolvingAgainstBaseURL: false)!
                     url.scheme = "wss"; url.queryItems = [URLQueryItem(name: "apikey", value: self.api.configuration.key), URLQueryItem(name: "vsn", value: "1.0.0")]
                     let socket = URLSession.shared.webSocketTask(with: url.url!); self.socket = socket; socket.resume()
-                    let tables = ["students", "trainer_student_relationships", "exercise_definitions", "assignments", "workout_sessions", "set_results", "subscription_entries"]
+                    let tables = ["students", "trainer_student_relationships", "exercise_definitions", "assignments", "workout_sessions", "set_results", "subscription_entries", "trainer_notes"]
                     try await self.send(["topic": "realtime:reppy-ios", "event": "phx_join", "ref": "1", "payload": ["access_token": token,
                         "config": ["broadcast": ["self": false], "presence": ["key": ""], "postgres_changes": tables.map { ["event": "*", "schema": "public", "table": $0] }]]], socket: socket)
                     self.heartbeat = Task { [weak self] in

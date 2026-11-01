@@ -20,6 +20,14 @@ enum ReppyTheme {
     static let warning = adaptive(0xffd166, 0x86492d, darkAlpha: 1, lightAlpha: 1)
     static let button = adaptive(0xffffff, 0x192317, darkAlpha: 0.07, lightAlpha: 0.08)
     static let outline = adaptive(0xffffff, 0x192317, darkAlpha: 0.12, lightAlpha: 0.2)
+    static let navSelected = adaptive(0xecefe9, 0xacd957, darkAlpha: 1, lightAlpha: 1)
+    static let focusSurface = adaptive(0xecefe9, 0xffffff, darkAlpha: 1, lightAlpha: 1)
+    static let focusText = adaptive(0x070908, 0x070908, darkAlpha: 1, lightAlpha: 1)
+    static let focusSecondary = adaptive(0x626961, 0x626961, darkAlpha: 1, lightAlpha: 1)
+    static let focusAccent = adaptive(0x6f9518, 0x6f9518, darkAlpha: 1, lightAlpha: 1)
+    static let trendUp = adaptive(0xb7e85a, 0x4f7111, darkAlpha: 1, lightAlpha: 1)
+    static let trendDown = adaptive(0xff6a35, 0xa8442b, darkAlpha: 1, lightAlpha: 1)
+    static let focusMeta = adaptive(0x5f7f18, 0x5f7f18, darkAlpha: 1, lightAlpha: 1)
     static let selectedText = Color(red: 7.0 / 255, green: 9.0 / 255, blue: 8.0 / 255)
 }
 enum ReppyMetrics {
@@ -32,4 +40,20 @@ enum ReppyMetrics {
     static let cardGap: CGFloat = 24
     static let exerciseTitle: CGFloat = 18
     static let pageInset: CGFloat = 20
+    static let iconSize: CGFloat = 20
+    static let focusTitleFont: CGFloat = 44
+    static let focusInset: CGFloat = 22
+    static let focusMinHeight: CGFloat = 310
+    static let space4: CGFloat = 4
+    static let space6: CGFloat = 6
+    static let space8: CGFloat = 8
+    static let space12: CGFloat = 12
+    static let space16: CGFloat = 16
+    static let controlPadding: CGFloat = 16
+    static let bodyFont: CGFloat = 17
+    static let captionFont: CGFloat = 15
+    static let titleFont: CGFloat = 34
+    static let numberFont: CGFloat = 34
+    static let setNumberFont: CGFloat = 20
+    static let focusWidth: CGFloat = 3
 }

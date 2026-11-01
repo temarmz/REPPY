@@ -7,13 +7,13 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
-    await page.getByRole('navigation', { name: 'Основная навигация' }).last().getByRole('button', { name: 'Профиль' }).click();
+    await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
     await expect(page).toHaveURL(/#\/trainer\/profile$/);
     await expect(page.getByRole('button', { name: 'Переключиться в роль ученика' })).toBeVisible();
     if (theme === 'light') await profileAction(page, 'Включить светлую тему');
     await profileAction(page, 'Переключиться в роль ученика');
     await expect(page).toHaveURL(/#\/student$/);
-    await page.getByRole('navigation', { name: 'Основная навигация' }).last().getByRole('button', { name: 'Профиль' }).click();
+    await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
     const edit = page.getByRole('button', { name: 'Редактировать', exact: true });
     await edit.click();
     const phone = page.getByLabel('Мобильный телефон');

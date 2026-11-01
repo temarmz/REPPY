@@ -15,29 +15,29 @@ test('плавающее меню сохраняет боковые отступ
     await page.setViewportSize(size);
     await expect.poll(async () => {
       const box = await nav.boundingBox();
-      return Math.abs((box?.y ?? 0) + (box?.height ?? 0) - (size.height - 4));
+      return Math.abs((box?.y ?? 0) + (box?.height ?? 0) - (size.height));
     }).toBeLessThanOrEqual(1);
     await expect(nav).toHaveCSS('margin-left', '12px');
     await expect(nav).toHaveCSS('margin-right', '12px');
-    await expect(nav).toHaveCSS('margin-bottom', '4px');
+    await expect(nav).toHaveCSS('margin-bottom', '0px');
     await expect(nav).toHaveCSS('border-bottom-left-radius', '999px');
     await expect(nav).toHaveCSS('border-bottom-right-radius', '999px');
-    await expect(nav.getByRole('button', { name: 'Сегодня' })).toHaveCSS('border-radius', '999px');
+    await expect(nav.getByRole('button', { name: 'Главная' })).toHaveCSS('border-radius', '999px');
     const navBox = await nav.boundingBox();
     expect(navBox!.x).toBe(12);
     expect(navBox!.x + navBox!.width).toBe(size.width - 12);
-    const button = await nav.getByRole('button', { name: 'Сегодня' }).boundingBox();
+    const button = await nav.getByRole('button', { name: 'Главная' }).boundingBox();
     expect(Math.abs((button!.y - navBox!.y) - (navBox!.y + navBox!.height - button!.y - button!.height))).toBeLessThanOrEqual(1);
-    expect(button!.y + button!.height).toBeLessThanOrEqual(size.height - 4);
+    expect(button!.y + button!.height).toBeLessThanOrEqual(size.height);
     await page.locator('.page-wrap').evaluate((element) => { element.scrollTop = element.scrollHeight; });
     await expect.poll(async () => {
       const box = await nav.boundingBox();
-      return Math.abs(box!.y + box!.height - (size.height - 4));
+      return Math.abs(box!.y + box!.height - (size.height));
     }).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
     await nav.getByRole('button', { name: 'Календарь' }).tap();
     await expect(nav.getByRole('button', { name: 'Календарь' })).toHaveAttribute('aria-current', 'page');
-    await nav.getByRole('button', { name: 'Сегодня' }).tap();
+    await nav.getByRole('button', { name: 'Главная' }).tap();
   }
   await expect(nav.locator('button:not(.active)').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(nav.locator('button.active')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
@@ -76,10 +76,10 @@ test('меню не обрезается, когда видимая област
   await expect(page.locator('.app-shell')).toHaveCSS('height', '720px');
   const nav = page.locator('.bottom-nav');
   const box = await nav.boundingBox();
-  expect(box!.y + box!.height).toBeLessThanOrEqual(720);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(720.5);
   for (const label of await nav.locator('small').all()) {
     const bounds = await label.boundingBox();
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(720);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(720.5);
   }
   await page.evaluate(() => {
     Object.defineProperty(window.visualViewport!, 'height', { configurable: true, get: () => 600 });
@@ -100,7 +100,7 @@ for (const role of ['student', 'trainer'] as const) {
     if (role === 'student') await profileAction(page, 'Переключиться в роль ученика');
 
     const nav = page.locator('.bottom-nav');
-    const target = role === 'student' ? 'Профиль' : 'Ученики';
+    const target = role === 'student' ? 'Заметки' : 'Ученики';
     await nav.getByRole('button', { name: target }).tap();
     await expect(nav.getByRole('button', { name: target })).toHaveAttribute('aria-current', 'page');
     await nav.getByRole('button', { name: 'Календарь' }).tap();

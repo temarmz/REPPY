@@ -7,10 +7,72 @@ struct DesignKitScreen: View {
     @State private var date = Date()
     @State private var tab = AppTab.home
     @State private var modal = false
+    @State private var profileSection = "data"
+    @State private var sampleExercise: WorkoutExercise?
+    @State private var sampleResults: [SetResult] = []
     @EnvironmentObject private var store: AppStore
     var body: some View {
         ReppyPage(back: true) {
             ReppyTitle(text: "Дизайн-кит", subtitle: "Общие компоненты iPhone")
+            ReppyCard {
+                ReppyHeading(text: "Основа дизайн-системы")
+                ReppyCaption(text: "Контролы 44 / 48 / 56 · карточки 20 · интервал 24")
+                ReppyText(text: "Системный шрифт iOS поддерживает Dynamic Type. Цвета и геометрия синхронизируются с вебом.")
+                ReppyField(title: "Поле с ошибкой", text: $text, error: "Проверь введённое значение")
+                ReppyField(title: "Недоступное поле", text: $text).disabled(true)
+                ReppyButton(title: "Компактное действие", compact: true) {}
+            }
+            ReppyAuthIntro()
+            ReppyWorkoutOverview(elapsed: "1:02:03", completed: 3, total: 12)
+            ReppySetSummaryRow(number: 1, value: "80 кг × 10 повт.", completed: true)
+            ReppySetSummaryRow(number: 2, value: "45 сек.", completed: false)
+            ReppyFeedbackSummary(mood: .great, comment: "Длинный отзыв ученика о прошедшей тренировке.")
+            ReppyChargeSummary(charged: true)
+            ReppyChargeSummary(charged: false)
+            ReppyStudentLink(name: "Мария с длинным именем", status: "Сегодня · 18:00 · Длинное название тренировки", balance: 0, hasSubscription: false) { ReppyText(text: "Профиль ученика") }
+            ReppyStudentContext(name: "Мария А.")
+            ReppyFormatPicker(selection: .constant(.inPerson))
+            ReppySubscriptionSummary(balance: 3, entries: store.data.subscriptions, trainer: true, relationshipID: store.data.relationships.first?.id)
+            ReppyProfileIdentity(name: "Александр с длинным именем", role: "Тренер")
+            if let student = store.data.students.first { ReppyProfileIdentity(name: student.name, role: "Ученик", student: student) }
+            ReppyWorkoutFocus(name: "Длинное название ближайшей тренировки", schedule: "Сегодня · 19:30", preview: "Жим лёжа · Приседания", progress: (1, 6)) { ReppyText(text: "Тренировка") }
+            ReppySubscriptionSummary(balance: -2, entries: store.data.subscriptions)
+            ReppySubscriptionSummary(balance: 0, entries: [])
+            if let relationship = store.data.relationships.first, let group = ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).first {
+                ReppyProgressComparisonLink(group: group) { ReppyText(text: "Прогресс") }
+            }
+            ReppyScheduleHeader(date: Date(), today: true) { ReppyText(text: "Назначение") }
+            ReppyScheduleHeader(date: Date()) { ReppyText(text: "Назначение") }
+            ReppyScheduleLink(name: "Мария А.", workout: "Длинное название тренировки", time: "18:00", completed: true) { ReppyText(text: "Результат") }
+            ReppyLink(title: "Посмотреть тренировку", icon: "calendar", kind: .primary) { ReppyText(text: "Тренировка") }
+            if let session = store.data.sessions.first {
+                ReppySessionSummary(session: session, results: store.data.sessionResults(session.id))
+                if let exercise = session.workout_snapshot.exercises.first { ReppyResultExerciseCard(exercise: exercise, results: store.data.sessionResults(session.id)) }
+            }
+            if let entry = store.data.subscriptions.first { ReppySubscriptionEntry(entry: entry, balanceAfter: 3) }
+            if let relationship = store.data.relationships.first, let group = ExerciseProgress.collect(data: store.data, relationshipID: relationship.id).first {
+                ReppyCard { ReppyProgressChart(points: group.points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit) }
+            }
+            ReppyWorkoutSaveState(status: "Все изменения сохранены", saving: false)
+            ReppyWorkoutSaveState(status: "Сохраняем…", saving: true)
+            ReppyExerciseSectionHeader {}.onAppear {
+                guard sampleExercise == nil, var exercise = store.data.assignments.first?.workout_snapshot.exercises.first else { return }
+                exercise.plannedSets = [SetPlan(targetReps: 8, targetWeight: 75.25), SetPlan(targetReps: 10, targetWeight: 70)]
+                sampleExercise = exercise
+                sampleResults = exercise.plannedSets.enumerated().map { index, plan in
+                    SetResult(session_id: "design-kit", exercise_instance_id: exercise.id, set_number: index + 1, actual_reps: plan.targetReps, actual_weight: plan.targetWeight, completed: index == 0)
+                }
+            }
+            if let exercise = sampleExercise {
+                ExerciseEditorCard(exercise: Binding(get: { sampleExercise ?? exercise }, set: { sampleExercise = $0 }), relationshipID: "", onMove: { _ in }, onDelete: { sampleExercise = nil })
+                ReppyActiveExerciseCard(exercise: exercise, results: $sampleResults) { modal = true }
+            }
+            ReppyBalanceSummary(balance: 3)
+            ReppyProfileSegments(selection: $profileSection)
+            ReppyAgendaLink(title: "Длинное название тренировки для проверки переноса", subtitle: "Сегодня · 18:00", completed: true) { ReppyText(text: "Пример перехода") }
+            if let student = store.data.students.first { ReppyStudentDetails(student: student) }
+            if let relationship = store.data.relationships.first { ExerciseProgressSummary(relationshipID: relationship.id) }
+            ReppyRow { ReppyHeaderBrand(); ReppyToolbarIcon(icon: "person.crop.circle") }
             ReppyCard {
                 ReppyHeading(text: "Типографика и данные")
                 ReppyText(text: text); ReppyCaption(text: "Вторичный текст"); ReppyNumber(value: "75,25")
@@ -27,8 +89,9 @@ struct DesignKitScreen: View {
             }
             ReppyStatus(message: "Ошибка сохранения. Повтори попытку.", error: true, actionTitle: "Повторить") {}
             ReppyEmpty(title: "Пустое состояние", message: "Описание следующего действия")
+            NoteDayCard(day: ReppyDate.day(), text: $text)
             MonthCalendar(date: $date, counts: [ReppyDate.day(): 2])
-            ReppyTabBar(tabs: [.home, .calendar, .clients, .profile], selected: $tab)
+            ReppyTabBar(tabs: [.home, .calendar, .clients, .notes], selected: $tab)
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }
             ReppyCard {
                 ReppyHeading(text: "Каталог")

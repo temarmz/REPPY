@@ -91,18 +91,20 @@ test('critical navigation stays responsive for trainer and student', async ({ pa
 
   for (const label of ['Календарь', 'Ученики', 'Заметки', 'Профиль', 'Главная']) {
     const navigation = page.locator('.bottom-nav:visible, .desktop-nav:visible');
-    await navigation.getByRole('button', { name: label, exact: true }).click();
-    await expect(navigation.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
+    const control = (label === 'Профиль' ? page.locator('.topbar') : navigation).getByRole('button', { name: label, exact: true });
+    await control.click();
+    await expect(control).toHaveAttribute('aria-current', 'page');
     await expectResponsiveScreen(page);
     await auditTouchTargets(page);
   }
 
   await profileAction(page, 'Переключиться в роль ученика');
   await expect(page).toHaveURL(/#\/student$/);
-  for (const label of ['Календарь', 'Профиль', 'Сегодня']) {
+  for (const label of ['Календарь', 'Заметки', 'Профиль', 'Главная']) {
     const navigation = page.locator('.bottom-nav:visible, .desktop-nav:visible');
-    await navigation.getByRole('button', { name: label, exact: true }).click();
-    await expect(navigation.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-current', 'page');
+    const control = (label === 'Профиль' ? page.locator('.topbar') : navigation).getByRole('button', { name: label, exact: true });
+    await control.click();
+    await expect(control).toHaveAttribute('aria-current', 'page');
     await expectResponsiveScreen(page);
     await auditTouchTargets(page);
   }

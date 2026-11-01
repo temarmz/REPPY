@@ -5,31 +5,21 @@ struct ProfileScreen: View {
     @AppStorage("appearance") private var appearance = "system"
     @State private var confirmSignOut = false
     var body: some View {
-        ReppyPage {
-            ReppyTitle(text: "Профиль", subtitle: store.profile?.display_name)
-            ReppyCard {
-                ReppyCaption(text: store.isTrainer ? "Тренер" : "Ученик")
-                ReppyPicker(title: "Оформление", selection: $appearance) {
-                    Text("Как в системе").tag("system"); Text("Светлое").tag("light"); Text("Тёмное").tag("dark")
-                }
+        ReppyPage(back: true) {
+            ReppyTitle(text: "Профиль")
+            ReppyProfileIdentity(name: store.profile?.display_name ?? "", role: store.isTrainer ? "Тренер" : "Ученик", student: store.isTrainer ? nil : store.ownStudent)
+            if !store.isTrainer, let relationship = store.ownRelationship {
+                ReppySubscriptionSummary(balance: store.data.balance(relationship.id), entries: store.data.subscriptions.filter { $0.relationship_id == relationship.id })
             }
-            if !store.isTrainer, let student = store.ownStudent {
-                StudentDetailsCard(student: student)
-                ReppyLink(title: "Изменить личные данные", icon: "pencil") { StudentFormScreen(student: student) }
-                if let relationship = store.ownRelationship {
-                    BalanceCard(relationshipID: relationship.id)
-                    ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationship.id) }
-                }
+            ReppyHeading(text: "Настройки")
+            ReppyPicker(title: "Оформление", selection: $appearance) {
+                Text("Как в системе").tag("system"); Text("Светлое").tag("light"); Text("Тёмное").tag("dark")
             }
             if store.isTrainer {
                 ReppyLink(title: "Библиотека упражнений", icon: "dumbbell") { ExerciseLibraryScreen() }
                 ReppyLink(title: "Открыть дизайн-кит", icon: "square.grid.2x2") { DesignKitScreen() }
             }
-            ReppyCard {
-                ReppyHeading(text: "Уведомления")
-                ReppyText(text: "Напоминания и изменения расписания приходят в Telegram, как и в веб-версии.", tone: .secondary)
-                ReppyLink(title: "Подключение Telegram", icon: "paperplane") { TelegramConnectionScreen() }
-            }
+            ReppyLink(title: "Уведомления в Telegram", icon: "paperplane") { TelegramConnectionScreen() }
             ReppyButton(title: "Обновить данные", icon: "arrow.clockwise", disabled: store.busy) { Task { await store.reload() } }
             ReppyButton(title: store.isDemo ? "Выйти из демо" : "Выйти из аккаунта", kind: .danger, disabled: store.busy) { confirmSignOut = true }
         }.confirmationDialog("Выйти из аккаунта? Черновики останутся на этом iPhone и будут доступны после входа в тот же аккаунт.", isPresented: $confirmSignOut, titleVisibility: .visible) {

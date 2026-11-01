@@ -3,6 +3,23 @@ import SwiftUI
 // Actual type references keep the native design kit tied to the library.
 enum NativeComponentCatalog {
     static let components: [(String, Any.Type)] = [
+        ("ChargeSummary", ReppyChargeSummary.self),
+        ("SetSummaryRow", ReppySetSummaryRow.self), ("WorkoutOverview", ReppyWorkoutOverview.self), ("FeedbackSummary", ReppyFeedbackSummary.self),
+        ("StudentLink", ReppyStudentLink<EmptyView>.self), ("StudentContext", ReppyStudentContext.self), ("FormatPicker", ReppyFormatPicker.self),
+        ("WorkoutFocus", ReppyWorkoutFocus<EmptyView>.self), ("SubscriptionSummary", ReppySubscriptionSummary.self),
+        ("ProgressComparisonLink", ReppyProgressComparisonLink<EmptyView>.self),
+        ("Avatar", ReppyAvatar.self), ("ProfileIdentity", ReppyProfileIdentity.self),
+        ("ScheduleHeader", ReppyScheduleHeader<EmptyView>.self), ("ScheduleLink", ReppyScheduleLink<EmptyView>.self),
+        ("SessionSummary", ReppySessionSummary.self), ("ResultExerciseCard", ReppyResultExerciseCard.self), ("SubscriptionEntry", ReppySubscriptionEntry.self),
+        ("ExerciseHeader", ReppyExerciseHeader<EmptyView>.self), ("ExerciseModes", ReppyExerciseModes.self),
+        ("ExerciseSectionHeader", ReppyExerciseSectionHeader.self), ("Disclosure", ReppyDisclosure<EmptyView>.self),
+        ("ActiveExerciseCard", ReppyActiveExerciseCard.self), ("WorkoutSaveState", ReppyWorkoutSaveState.self),
+        ("AgendaLink", ReppyAgendaLink<EmptyView>.self), ("BalanceSummary", ReppyBalanceSummary.self),
+        ("StudentDetails", ReppyStudentDetails.self), ("ProfileSegments", ReppyProfileSegments.self), ("ExerciseProgressSummary", ExerciseProgressSummary.self),
+        ("HeaderBrand", ReppyHeaderBrand.self), ("ToolbarIcon", ReppyToolbarIcon.self),
+        ("Typography", ReppyTypography.self),
+        ("AuthPage", ReppyAuthPage<EmptyView>.self), ("AuthIntro", ReppyAuthIntro.self),
+        ("NoteDayCard", NoteDayCard.self), ("NotesGrid", ReppyNotesGrid<EmptyView>.self),
         ("Page", ReppyPage<EmptyView>.self), ("Card", ReppyCard<EmptyView>.self),
         ("Title", ReppyTitle.self), ("Heading", ReppyHeading.self), ("Text", ReppyText.self),
         ("Caption", ReppyCaption.self), ("Number", ReppyNumber.self), ("Button", ReppyButton.self),

@@ -92,6 +92,10 @@ struct FailedDraft {
     var invitationToken: String? {
         InvitationToken.parse(invitation)
     }
+    func cancelRegistration() {
+        guard !busy else { return }
+        pendingTelegram = nil; pendingRegistration = false; registrationName = ""; error = nil
+    }
     func signOut() async {
         await run {
             if !self.isDemo { try await self.api?.signOut() }
