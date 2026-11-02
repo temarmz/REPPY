@@ -6,6 +6,7 @@ struct SignInScreen: View {
     @State private var invitationError: String?
     @State private var invitationOpen = false
     @State private var demoOpen = false
+    @State private var invitationDraft = ""
     private struct InvitationPreview: Decodable { var studentName: String; var trainerName: String; var expiresAt: String }
     var body: some View {
         ReppyAuthPage {
@@ -30,7 +31,7 @@ struct SignInScreen: View {
                         disabled: store.busy || store.api == nil || !store.networkAvailable) { Task { await store.login() } }
                     ReppyCaption(text: "Используй свой Telegram. Если ты уже в REPPY, твои данные появятся после входа.")
                 }
-                ReppyButton(title: store.invitation.isEmpty ? "У меня есть приглашение" : "Изменить приглашение", icon: "link", disabled: store.busy) { invitationOpen = true }
+                ReppyButton(title: store.invitation.isEmpty ? "У меня есть приглашение" : "Изменить приглашение", icon: "link", disabled: store.busy) { invitationDraft = store.invitation; invitationOpen = true }
                 if store.pendingRegistration {
                     ReppyButton(title: "Вернуться ко входу", disabled: store.busy) { store.cancelRegistration() }
                 }
@@ -40,23 +41,21 @@ struct SignInScreen: View {
         }
         .sheet(isPresented: $invitationOpen) {
             NavigationStack {
-                ReppyPage {
-                    ReppyTitle(text: "Приглашение от тренера")
+                ReppyPage(back: true, title: "Приглашение") {
                     ReppyCaption(text: "Вставь ссылку или токен, который прислал тренер.")
-                    ReppyField(title: "Приглашение", text: $store.invitation)
-                    ReppyButton(title: "Готово", kind: .primary) { store.cancelRegistration(); invitationOpen = false }
-                }
+                    ReppyInvitationInput(text: $invitationDraft)
+                }.reppyFormActions(saveTitle: "Готово", hasChanges: false, save: {
+                    store.invitation = invitationDraft; store.cancelRegistration(); invitationOpen = false
+                }, discard: { invitationOpen = false })
             }
         }
         .sheet(isPresented: $demoOpen) {
             NavigationStack {
-                ReppyPage {
-                    ReppyTitle(text: "Попробовать REPPY")
+                ReppyPage(back: true, title: "Попробовать REPPY") {
                     ReppyCaption(text: "Демо с тестовыми данными. Выбери роль.")
                     ReppyButton(title: "Демо тренера") { openDemo(.trainer) }
                     ReppyButton(title: "Демо ученика") { openDemo(.student) }
-                    ReppyButton(title: "Закрыть", compact: true) { demoOpen = false }
-                }
+                }.reppyDismissAction()
             }
         }
         .task(id: store.invitation) {

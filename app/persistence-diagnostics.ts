@@ -1,3 +1,5 @@
+import { getActivityLog, recordActivity } from './activity-log';
+
 type Diagnostic = {
   at: string;
   operation: string;
@@ -22,11 +24,12 @@ const entries: Diagnostic[] = readEntries();
 
 export function getPersistenceDiagnostics() { return entries.map((entry) => ({ ...entry })); }
 
-export function downloadPersistenceDiagnostics() {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(getPersistenceDiagnostics(), null, 2)], { type: 'application/json' }));
+export function downloadActivityLog() {
+  recordActivity('diagnostics.export');
+  const url = URL.createObjectURL(new Blob([JSON.stringify({ version: 1, platform: 'web', scope: 'events-current-tab-and-recent-saving-operations', events: getActivityLog(), operations: getPersistenceDiagnostics() }, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'reppy-saving-log.json';
+  link.download = 'reppy-activity-log.json';
   document.body.append(link);
   link.click();
   link.remove();
@@ -37,7 +40,8 @@ export function downloadPersistenceDiagnostics() {
 export function recordPersistence(operation: string, outcome: Diagnostic['outcome'], startedAt: number, reason?: unknown) {
   const code = reason && typeof reason === 'object' && 'code' in reason ? String(reason.code) : undefined;
   const entry: Diagnostic = { at: new Date().toISOString(), operation, outcome,
-    durationMs: Math.round(performance.now() - startedAt), code: code?.slice(0, 64) };
+    durationMs: Math.round(performance.now() - startedAt), code: code && /^[A-Z0-9_]{1,64}$/.test(code) ? code : undefined };
+  recordActivity(`operation.${operation}`, outcome);
   entries.push(entry);
   if (entries.length > 60) {
     const ordinary = entries.findIndex((item) => item.outcome === 'success' && item.durationMs <= 5000);

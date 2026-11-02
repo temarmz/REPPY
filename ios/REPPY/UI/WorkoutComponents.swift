@@ -42,29 +42,89 @@ struct ReppySessionSummary: View {
 struct ReppySubscriptionEntry: View {
     var entry: SubscriptionEntry
     var balanceAfter: Int
+    var card = true
+    var body: some View {
+        Group { if card { ReppyCard { row } } else { row.padding(ReppyMetrics.space16) } }.foregroundStyle(ReppyTheme.text)
+    }
+    private var row: some View {
+        ReppyRow {
+            Text("\(entry.lesson_delta > 0 ? "+" : "")\(entry.lesson_delta)").reppyTypography(.setNumber).monospacedDigit()
+                .foregroundStyle(entry.lesson_delta > 0 ? ReppyTheme.trendUp : ReppyTheme.secondary)
+                .frame(minWidth: ReppyMetrics.small, minHeight: ReppyMetrics.small)
+            ReppyStack(compact: true) {
+                ReppyHeading(text: entry.kind == "payment" ? "Пополнение на \(entry.lesson_delta) \(ReppySubscriptionSummary.lessonWord(entry.lesson_delta))" : entry.kind == "session-refund" ? "Возврат занятия" : "Занятие списано")
+                let detail = entry.kind == "payment" ? "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "transfer" ? "перевод" : "наличные")" : entry.workout_name ?? "Тренировка"
+                ReppyCaption(text: detail + " · " + ReppySubscriptionDate.label(entry.occurred_at))
+                if let comment = entry.comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
+                ReppyCaption(text: "Баланс после операции: \(balanceAfter)")
+            }
+            if entry.kind == "payment" { Image(systemName: "pencil").accessibilityLabel("Изменить пополнение") }
+        }
+    }
+}
+enum ReppySubscriptionDate {
+    static func value(_ value: String) -> Date { ReppyDate.parse(value) ?? ReppyDate.fromDay(value) }
+    static func label(_ value: String) -> String { self.value(value).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))) }
+}
+struct ReppyConnectedList<Item: Identifiable, Content: View>: View {
+    var items: [Item]
+    @ViewBuilder var content: (Item) -> Content
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                content(item)
+                if index < items.count - 1 { Divider().overlay(ReppyTheme.divider) }
+            }
+        }.background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+    }
+}
+struct ReppyLedgerSummary<Action: View>: View {
+    var balance: Int
+    var hasEntries: Bool
+    @ViewBuilder var action: () -> Action
+    var body: some View {
+        ReppyCard { ReppyCaption(text: "ТЕКУЩИЙ БАЛАНС"); ReppyHeading(text: ReppySubscriptionSummary.balanceLabel(balance, hasEntries: hasEntries)); action() }
+    }
+}
+struct ReppyPaymentMethodPicker: View {
+    @Binding var selection: String
+    var body: some View {
+        ReppyStack(compact: true) {
+            ReppyCaption(text: "Способ оплаты")
+            Picker("Способ оплаты", selection: $selection) { Text("Наличные").tag("cash"); Text("Перевод").tag("transfer") }.pickerStyle(.segmented).frame(minHeight: ReppyMetrics.compact)
+        }
+    }
+}
+struct ReppyInvitationReady: View {
+    var name: String
+    var link: String
+    var expiresAt: Date?
+    var demo: Bool
+    var onDone: () -> Void
+    @State private var copied = false
     var body: some View {
         ReppyCard {
-            ReppyRow {
-                ReppyHeading(text: entry.kind == "payment" ? "Пополнение" : entry.kind == "session-refund" ? "Возврат занятия" : "Занятие списано")
-                Spacer()
-                ReppyText(text: "\(entry.lesson_delta > 0 ? "+" : "")\(entry.lesson_delta)")
-            }
-            ReppyCaption(text: ReppyDate.display(entry.occurred_at))
-            if entry.kind == "payment" { ReppyCaption(text: "\((entry.amount_rub ?? 0).reppyNumber) ₽ · \(entry.payment_method == "cash" ? "Наличные" : "Перевод")") }
-            else if let name = entry.workout_name { ReppyText(text: name, tone: .secondary) }
-            if let comment = entry.comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
-            ReppyCaption(text: "Баланс после операции: \(balanceAfter)")
-            if entry.kind == "payment" { Label("Изменить пополнение", systemImage: "pencil").reppyTypography(.caption) }
-        }.foregroundStyle(ReppyTheme.text)
+            Image(systemName: "person.badge.plus").font(.largeTitle).foregroundStyle(ReppyTheme.trendUp).accessibilityHidden(true)
+            ReppyHeading(text: "\(name) почти в команде")
+            ReppyText(text: demo ? "Демо-приглашение: подключение ученика доступно после входа в рабочий аккаунт." : "Отправь эту одноразовую ссылку ученику.", tone: .secondary)
+            if let expiresAt, !demo { ReppyCaption(text: "Действует до \(expiresAt.formatted(.dateTime.day().month(.wide).hour().minute().locale(Locale(identifier: "ru_RU"))))") }
+            Text(link).reppyTypography(.body).textSelection(.enabled).fixedSize(horizontal: false, vertical: true).padding(ReppyMetrics.space16)
+                .frame(maxWidth: .infinity, alignment: .leading).background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+            ReppyButton(title: copied ? "Ссылка скопирована" : "Скопировать ссылку", icon: copied ? "checkmark" : "doc.on.doc", kind: .primary, disabled: demo) { UIPasteboard.general.string = link; copied = true }
+            if !demo { ReppyShare(title: "Поделиться приглашением", item: link, kind: .secondary) }
+            ReppyButton(title: "Готово", icon: "checkmark", action: onDone)
+        }
     }
 }
 
 struct ReppyExerciseSectionHeader: View {
     var disabled = false
+    var reorder: (() -> Void)? = nil
     var add: () -> Void
     var body: some View {
         HStack(spacing: ReppyMetrics.space12) {
             ReppyHeading(text: "Упражнения").frame(maxWidth: .infinity, alignment: .leading)
+            if let reorder { Button(action: reorder) { ReppyToolbarIcon(icon: "arrow.up.arrow.down") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Изменить порядок упражнений") }
             Button(action: add) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Добавить упражнение")
         }
     }
@@ -151,7 +211,7 @@ struct ReppyStudentDetails: View {
                 ReppyRow {
                     ReppyHeading(text: "Данные и ограничения")
                     Spacer(minLength: 0)
-                    NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+                    ReppyStudentEditButton(student: student)
                 }
                 ReppyStudentFacts(student: student)
                 ReppyStack(compact: true) {
@@ -166,7 +226,7 @@ struct ReppyStudentDetails: View {
                 if !facts.isEmpty { ReppyCaption(text: facts.joined(separator: " · ")) }
                 if let text = student.contraindications, !text.isEmpty { ReppyCaption(text: "Ограничения: \(text)") }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            NavigationLink { StudentFormScreen(student: student) } label: { ReppyToolbarIcon(icon: "pencil") }.buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+            ReppyStudentEditButton(student: student)
         }
         }
     }
@@ -311,23 +371,25 @@ struct ReppySubscriptionSummary: View {
     var trainer = false
     var relationshipID: String? = nil
     var body: some View {
-        ReppyCard {
+        let payments = entries.filter { $0.kind == "payment" }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
+        return ReppyStack {
+            ReppyCard {
             ReppyRow { ReppyCaption(text: "АБОНЕМЕНТ"); Spacer(minLength: 0); ReppyCaption(text: "Без срока действия") }
-            ReppyTitle(text: Self.balanceLabel(balance, hasEntries: !entries.isEmpty))
+            ReppyHeading(text: Self.balanceLabel(balance, hasEntries: !entries.isEmpty))
             if entries.isEmpty { ReppyCaption(text: trainer ? "Добавь первое пополнение, чтобы начать учёт занятий." : "Тренер ещё не добавил пополнение.") }
             else if balance <= 0 { ReppyCaption(text: balance < 0 ? "Новые занятия будут добавляться к долгу." : "Следующую тренировку можно провести в долг.") }
-            let payments = entries.filter { $0.kind == "payment" }.sorted { $0.occurred_at == $1.occurred_at ? $0.created_at > $1.created_at : $0.occurred_at > $1.occurred_at }
             if !payments.isEmpty {
                 ReppyCaption(text: trainer ? "ПОСЛЕДНЕЕ ПОПОЛНЕНИЕ" : "ПОСЛЕДНИЕ ПОПОЛНЕНИЯ")
                 ForEach(Array(payments.prefix(trainer ? 1 : 3))) { entry in
                     ReppyStack(compact: true) {
                         ReppyHeading(text: "+\(entry.lesson_delta) \(Self.lessonWord(entry.lesson_delta))")
-                        ReppyCaption(text: "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "cash" ? "наличные" : "перевод") · \(ReppyDate.fromDay(String(entry.occurred_at.prefix(10))).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "ru_RU"))))")
+                        ReppyCaption(text: "\((entry.amount_rub ?? 0).formatted(.number.locale(Locale(identifier: "ru_RU")))) ₽ · \(entry.payment_method == "transfer" ? "перевод" : "наличные") · \(ReppySubscriptionDate.label(entry.occurred_at))")
                     }
                 }
             }
+            }
             if trainer, let relationshipID {
-                ReppyRow {
+                ReppyActionGroup {
                     ReppyLink(title: payments.isEmpty ? "Добавить абонемент" : "Продлить", icon: "plus", kind: .primary) { PaymentFormScreen(relationshipID: relationshipID) }
                     ReppyLink(title: "История", icon: "clock.arrow.circlepath") { SubscriptionHistoryScreen(relationshipID: relationshipID) }
                 }
@@ -359,7 +421,7 @@ struct ReppyStudentLink<Destination: View>: View {
                     ReppyHeading(text: name)
                     ReppyCaption(text: status)
                     Text(ReppySubscriptionSummary.balanceLabel(balance, hasEntries: hasSubscription)).reppyTypography(.button)
-                        .foregroundStyle(hasSubscription && balance <= 0 ? ReppyTheme.warning : ReppyTheme.trendUp)
+                        .foregroundStyle(hasSubscription && balance <= 0 ? ReppyTheme.warning : ReppyTheme.secondary)
                 }
                 Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
             }.padding(ReppyMetrics.space16).frame(minHeight: ReppyMetrics.control)
@@ -394,24 +456,28 @@ struct ReppyWorkoutFocus<Destination: View>: View {
 }
 struct ExerciseProgressSummary: View {
     @EnvironmentObject private var store: AppStore
-    var relationshipID: String
+    var relationshipID: String? = nil
+    var relationshipIDs: Set<String>? = nil
     var hideEmpty = false
     var body: some View {
-        let groups = ExerciseProgress.collect(data: store.data, relationshipID: relationshipID)
+        let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
+        let groups = store.progressGroups(relationshipIDs: scope)
         if !hideEmpty || !groups.isEmpty {
             ReppyHeading(text: "Прогресс по упражнениям")
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
             ForEach(groups) { group in
-                ReppyProgressComparisonLink(group: group) { ProgressScreen(relationshipID: relationshipID, exerciseKey: group.id) }
+                ReppyProgressComparisonLink(group: group, relationshipIDs: scope)
             }
         }
     }
 }
-struct ReppyProgressComparisonLink<Destination: View>: View {
+struct ReppyProgressComparisonLink: View {
     var group: ProgressGroup
-    @ViewBuilder var destination: () -> Destination
+    var relationshipIDs: Set<String>
     var body: some View {
-        NavigationLink(destination: destination) {
+        NavigationLink {
+            ProgressScreen(relationshipIDs: relationshipIDs, exerciseKey: group.id)
+        } label: {
             ReppyRow {
                 ReppyStack(compact: true) {
                     ReppyHeading(text: group.exercise.name)
@@ -425,7 +491,7 @@ struct ReppyProgressComparisonLink<Destination: View>: View {
                 }
                 Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
             }.padding(ReppyMetrics.space16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier("progress-summary-" + group.id)
     }
     private var unit: String { group.exercise.measureType == .duration ? "сек." : "повт." }
     private func setLabel(_ set: SetResult) -> String {
@@ -584,29 +650,124 @@ struct ReppyChargeSummary: View {
     }
 }
 struct InstructionScreen: View {
-    @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentation
     var exercise: WorkoutExercise
-    @State private var player: AVPlayer?
-    @State private var error: String?
     var body: some View {
-        ReppyPage(back: true) {
-            ReppyTitle(text: exercise.name)
+        ReppyPage(back: true, title: "Инструкция") {
+            ReppyHeading(text: exercise.name)
             ReppyCard {
-                ReppyText(text: exercise.instructionText?.isEmpty == false ? exercise.instructionText! : "Тренер пока не добавил подробную инструкцию.", tone: .secondary)
-                if let player { ReppyVideo(player: player) }
-                if let error { ReppyStatus(message: error, error: true) }
-                if let video = exercise.instructionVideo {
-                    ReppyButton(title: "Открыть видео", icon: "play.circle") {
-                        Task { do { player = AVPlayer(url: try await store.videoURL(video)); error = nil } catch { self.error = error.localizedDescription } }
-                    }
+                ReppyInstructionMedia(video: exercise.instructionVideo)
+                ReppyInstructionEquipment(equipment: exercise.equipment)
+                ReppyHeading(text: "Как выполнять")
+                let instruction = exercise.instructionText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                ReppyText(text: instruction.isEmpty ? "Подробное описание пока не добавлено. Выполняй движение плавно и остановись при резкой боли." : instruction, tone: instruction.isEmpty ? .secondary : .normal)
+            }
+        }.reppyDismissAction()
+    }
+}
+struct ReppyInstructionEquipment: View {
+    var equipment: String?
+    var body: some View {
+        if let equipment, !equipment.isEmpty, equipment != "Свой вес" {
+            ReppyStack(compact: true) { ReppyCaption(text: "ОБОРУДОВАНИЕ"); ReppyHeading(text: equipment) }
+        }
+    }
+}
+struct ReppyInstructionMedia: View {
+    @EnvironmentObject private var store: AppStore
+    var video: InstructionVideo?
+    var localURL: URL? = nil
+    var localSize: Int? = nil
+    var editable = false
+    @State private var player: AVPlayer?
+    @State private var observer: NSKeyValueObservation?
+    @State private var scopedURL: URL?
+    @State private var loading = false
+    @State private var error: String?
+    @State private var retry = UUID()
+    private var requestKey: String { (localURL?.absoluteString ?? video?.id ?? "empty") + retry.uuidString }
+    var body: some View {
+        ReppyStack(compact: true) {
+            if let player, error == nil { ReppyVideo(player: player) }
+            else {
+                VStack(spacing: ReppyMetrics.space12) {
+                    Image(systemName: "figure.strengthtraining.traditional").font(.largeTitle).accessibilityHidden(true)
+                    ReppyCaption(text: loading ? "Загружаем видео…" : error != nil ? "Видео недоступно" : editable ? "Видео не добавлено" : "Тренер пока не добавил видео")
+                }.frame(maxWidth: .infinity).frame(minHeight: ReppyMetrics.mediaMinHeight).padding(ReppyMetrics.space12)
+                    .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+            }
+            if let video, localURL == nil { ReppyCaption(text: video.name + " · " + Self.fileSize(video.size)) }
+            if let localURL { ReppyCaption(text: localURL.lastPathComponent + (localSize.map { " · " + Self.fileSize($0) } ?? "")) }
+            if let error { ReppyStatus(message: error, error: true, actionTitle: "Повторить") { retry = UUID() } }
+        }.task(id: requestKey) { await load() }.onDisappear { release() }
+    }
+    static func fileSize(_ bytes: Int) -> String {
+        bytes < 1024 * 1024 ? "\(max(1, Int((Double(bytes) / 1024).rounded()))) КБ" : "\((Double(bytes) / (1024 * 1024)).formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "ru_RU")))) МБ"
+    }
+    private func release() {
+        observer = nil; player?.pause(); player = nil
+        scopedURL?.stopAccessingSecurityScopedResource(); scopedURL = nil
+    }
+    @MainActor private func load() async {
+        release(); error = nil; loading = video != nil || localURL != nil
+        guard loading else { return }
+        do {
+            let url: URL
+            if let localURL { url = localURL; if url.startAccessingSecurityScopedResource() { scopedURL = url } }
+            else if let video { url = try await store.videoURL(video) }
+            else { return }
+            guard !Task.isCancelled else { return }
+            let item = AVPlayerItem(url: url)
+            player = AVPlayer(playerItem: item)
+            observer = item.observe(\.status, options: [.initial, .new]) { item, _ in
+                Task { @MainActor in
+                    guard player?.currentItem === item, item.status == .failed else { return }
+                    error = "Не удалось открыть видео. Проверь соединение и попробуй ещё раз."
                 }
             }
-            ReppyButton(title: "Закрыть", compact: true) { dismiss() }
-        }.onDisappear { player?.pause(); player = nil }
+            loading = false
+        } catch { if !Task.isCancelled { self.error = error.localizedDescription; loading = false } }
     }
 }
 struct ReppyVideo: View {
     var player: AVPlayer
-    var body: some View { VideoPlayer(player: player).aspectRatio(9 / 16, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }
+    var body: some View { VideoPlayer(player: player).aspectRatio(16 / 9, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: ReppyMetrics.radius)) }
+}
+
+struct ReppyWorkoutChoiceLink<Destination: View>: View {
+    var title: String
+    var subtitle: String
+    @ViewBuilder var destination: () -> Destination
+    var body: some View {
+        NavigationLink(destination: destination) {
+            ReppyStack(compact: true) {
+                ReppyHeading(text: title)
+                ReppyCaption(text: subtitle)
+            }
+        }
+    }
+}
+
+struct ReppyStudentEditButton: View {
+    var student: Student
+    @State private var editing = false
+    var body: some View {
+        Button { editing = true } label: { ReppyToolbarIcon(icon: "pencil") }
+            .buttonStyle(.plain).accessibilityLabel("Изменить личные данные")
+            .sheet(isPresented: $editing) { NavigationStack { StudentFormScreen(student: student) } }
+    }
+}
+
+struct ReppyChoiceRow: View {
+    var title: String
+    var subtitle: String
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            ReppyStack(compact: true) {
+                ReppyHeading(text: title)
+                ReppyCaption(text: subtitle)
+            }.frame(minHeight: ReppyMetrics.small).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+    }
 }

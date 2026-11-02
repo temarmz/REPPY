@@ -1,3 +1,6 @@
+import { recordActivity } from './activity-log';
+import { downloadActivityLog } from './persistence-diagnostics';
+
 type UiErrorEntry = {
   at: string;
   routeArea: string;
@@ -17,6 +20,7 @@ function readEntries(): UiErrorEntry[] {
 }
 
 export function recordUiError(error: Error, componentStack: string) {
+  recordActivity("ui.render", "error");
   const routeArea = location.hash.replace(/^#\/?/, '').split('/').slice(0, 2).join('/');
   const entry: UiErrorEntry = {
     at: new Date().toISOString(),
@@ -30,13 +34,4 @@ export function recordUiError(error: Error, componentStack: string) {
   catch { /* Error reporting must never cause a second crash. */ }
 }
 
-export function downloadUiErrorDiagnostics() {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(readEntries(), null, 2)], { type: 'application/json' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'reppy-screen-errors.json';
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+export function downloadUiErrorDiagnostics() { downloadActivityLog(); }

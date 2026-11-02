@@ -28,6 +28,7 @@ enum ReppyTheme {
     static let trendUp = adaptive(0xb7e85a, 0x4f7111, darkAlpha: 1, lightAlpha: 1)
     static let trendDown = adaptive(0xff6a35, 0xa8442b, darkAlpha: 1, lightAlpha: 1)
     static let focusMeta = adaptive(0x5f7f18, 0x5f7f18, darkAlpha: 1, lightAlpha: 1)
+    static let divider = adaptive(0xffffff, 0x192317, darkAlpha: 0.065, lightAlpha: 0.09)
     static let selectedText = Color(red: 7.0 / 255, green: 9.0 / 255, blue: 8.0 / 255)
 }
 enum ReppyMetrics {
@@ -41,6 +42,11 @@ enum ReppyMetrics {
     static let exerciseTitle: CGFloat = 18
     static let pageInset: CGFloat = 20
     static let iconSize: CGFloat = 20
+    static let notesGap: CGFloat = 16
+    static let notesPadding: CGFloat = 12
+    static let notesMinHeight: CGFloat = 208
+    static let notesFont: CGFloat = 16
+    static let mediaMinHeight: CGFloat = 150
     static let focusTitleFont: CGFloat = 44
     static let focusInset: CGFloat = 22
     static let focusMinHeight: CGFloat = 310

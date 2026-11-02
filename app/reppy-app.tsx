@@ -22,7 +22,7 @@ import RetainedRouteViews from './retained-route-views';
 import StudentRoutes from './student-routes';
 import TrainerRoutes from './trainer-routes';
 import { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, PersistencePhaseContext, useOnlineStatus } from './ui/app-status';
-import { downloadPersistenceDiagnostics } from './persistence-diagnostics';
+import { downloadActivityLog } from './persistence-diagnostics';
 import ModalFrame, { MODAL_LAYER_EVENT, reconcileModalLayerState } from './ui/modal-frame';
 import { ActionButton, FormError, Button, Input, Select, Textarea, SegmentedControl } from './ui/controls';
 import {
@@ -682,7 +682,7 @@ function ProfileSettings({ details, summary, accountMode, account, theme, onTogg
         <ActionButton variant="secondary" icon={theme === 'dark' ? 'sun' : 'moon'} onClick={onToggleTheme}>{theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}</ActionButton>
         {onSwitchRole && <ActionButton variant="secondary" icon="change" onClick={onSwitchRole}>Переключиться в роль {account.role === 'trainer' ? 'ученика' : 'тренера'}</ActionButton>}
         {onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}
-        {accountMode && <ActionButton variant="secondary" icon="history" onClick={downloadPersistenceDiagnostics}>Скачать журнал сохранений</ActionButton>}
+        <ActionButton variant="secondary" icon="history" onClick={downloadActivityLog}>Скачать логи</ActionButton>
         {signOutError && <FormError>{signOutError}</FormError>}
         {accountMode && onSignOut ? <ActionButton variant="danger" disabled={signOutBusy} onClick={() => setSignOutConfirmation(true)}>{signOutBusy ? 'Выходим…' : 'Выйти из аккаунта'}</ActionButton> : <Button className="reset-button" type="button" onClick={() => setResetConfirmationOpen(true)}><Icon name="trash" /> Сбросить демо-данные</Button>}
       </Box>

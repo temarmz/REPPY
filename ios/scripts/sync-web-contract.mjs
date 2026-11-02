@@ -28,8 +28,10 @@ function dimension(token) {
 const colors = { background: '--app-bg', surface: '--surface', field: '--field-bg', text: '--text-primary', secondary: '--text-secondary', muted: '--muted', lime: '--lime', error: '--error-color', warning: '--badge-warning-text', button: '--button-bg', outline: '--field-outline' };
 Object.assign(colors, { navSelected: '--nav-selected-bg', focusSurface: '--focus-surface', focusText: '--focus-text', focusSecondary: '--focus-secondary', focusAccent: '--focus-accent', trendUp: '--trend-up', trendDown: '--trend-down' });
 colors.focusMeta = '--focus-meta';
+colors.divider = '--divider';
 const dimensions = { control: '--control-height-large', compact: '--control-height-medium', small: '--control-height-small', radius: '--control-radius', cardRadius: '--card-radius', modalRadius: '--modal-radius', cardGap: '--card-list-gap', exerciseTitle: '--exercise-title-font-size', pageInset: '--space-20' };
 dimensions.iconSize = '--size-20';
+Object.assign(dimensions, { notesGap: '--notes-grid-gap', notesPadding: '--notes-card-padding', notesMinHeight: '--notes-day-min-height', notesFont: '--notes-editor-font-size', mediaMinHeight: '--size-150' });
 Object.assign(dimensions, { focusTitleFont: '--font-size-44', focusInset: '--space-22', focusMinHeight: '--size-310' });
 // Native text retains iOS readability and Dynamic Type; geometry comes from web.
 Object.assign(dimensions, { space4: '--space-4', space6: '--space-6', space8: '--space-8', space12: '--space-12', space16: '--space-16', controlPadding: '--control-padding', bodyFont: '--font-size-17', captionFont: '--font-size-15', titleFont: '--font-size-34', numberFont: '--font-size-34', setNumberFont: '--font-size-20', focusWidth: '--focus-ring-width' });

@@ -31,7 +31,7 @@ import ReadOnlyExerciseList from './ui/read-only-exercise-list';
 import Avatar from './ui/avatar';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
-import { assignmentScheduleLabel, formatScheduleDay } from './schedule-display';
+import { assignmentScheduleLabel, assignmentStatusLabel, formatScheduleDay } from './schedule-display';
 import { exerciseMetadata, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import {
   clearUiDraft,
@@ -504,7 +504,8 @@ export function AssignmentDetails({
   if (!student || !workout) return <NotFound />;
   return (
     <Page className="content-page narrow-page">
-      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${assignmentScheduleLabel(assignment)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <PageHeader back={`/trainer/clients/${student.id}`} eyebrow={`${student.name} · ${assignmentStatusLabel(assignment, data.sessions)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <Paragraph>{assignmentScheduleLabel(assignment)}</Paragraph>
       {assignment.format === 'in-person' && assignment.rescheduleRequest && <Section className="reschedule-request-card">
         <Box><Inline>ЗАПРОС НА ПЕРЕНОС</Inline><Heading>{student.name} предлагает другое время</Heading><Paragraph><Strong>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)}</Strong><Time>{assignment.rescheduleRequest.scheduledTime}</Time></Paragraph></Box>
         <Box className="reschedule-request-actions"><ActionButton variant="secondary" icon="close" onClick={onDeclineRequest}>Отклонить</ActionButton><ActionButton icon="check" onClick={onAcceptRequest}>Подтвердить</ActionButton></Box>
@@ -515,8 +516,8 @@ export function AssignmentDetails({
         <Button type="button" onClick={() => go(`/trainer/clients/${student.id}/subscription/new`)}>{hasSubscription ? 'Продлить' : 'Добавить'}</Button>
       </Section>}
       <Box className="assignment-detail-actions">
-        {assignment.status === 'assigned' && assignment.format === 'in-person' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
-        {assignment.status === 'assigned' && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать</ActionButton>}
+        {assignment.status === 'assigned' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
+        {assignment.status === 'assigned' && !activeSession && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать план</ActionButton>}
         <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
       </Box>
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>

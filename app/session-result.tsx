@@ -11,6 +11,7 @@ import { go } from './navigation';
 import { isSessionCharged } from './subscription-ledger';
 import { moodLabel } from './mood';
 import { actualSetLabel, exerciseMetadata, formatElapsedTime } from './workout-display';
+import { assignmentScheduleLabel } from './schedule-display';
 
 export default function SessionResult({
   data,
@@ -26,22 +27,26 @@ export default function SessionResult({
   onDelete?: () => void;
 }) {
   const workout = findSessionWorkout(data, session);
+  const assignment = data.assignments.find((item) => item.id === session.assignmentId);
   const student = data.students.find((item) => item.id === session.studentId);
   const charged = isSessionCharged(data.subscriptionEntries, session.id);
   const chargeStatus = charged ? 'charged' : session.subscriptionChargeStatus === 'waived' ? 'waived' : undefined;
   const [deleteOpen, setDeleteOpen] = useState(false);
   if (!workout) return <NotFound />;
   const completedSets = session.results.filter((result) => result.completed).length;
+  const sessionState = session.completedAt ? 'Завершённая тренировка' : 'Незавершённая тренировка';
   const progressKeys = new Set(collectExerciseProgress(data.sessions, session.studentId).map((group) => group.key));
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
   return (
     <Page className="content-page narrow-page">
-      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${formatDay(session.completedAt)}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${sessionState}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
+      <Paragraph>{assignment ? assignmentScheduleLabel(assignment) : formatDay(session.completedAt ?? session.startedAt)}</Paragraph>
       <DefinitionList className="session-summary" aria-label="Итоги тренировки">
         <Box><DefinitionTerm>ДЛИТЕЛЬНОСТЬ</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
         <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{completedSets} из {session.results.length}</DefinitionValue></Box>
         <Box><DefinitionTerm>УПРАЖНЕНИЯ</DefinitionTerm><DefinitionValue>{workout.exercises.length}</DefinitionValue></Box>
       </DefinitionList>
+      {session.completedAt && completedSets === 0 && <Paragraph>Тренировка завершена без отмеченных подходов.</Paragraph>}
       {trainerView && chargeStatus && <Section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><Inline><Small>АБОНЕМЕНТ</Small><Strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</Strong></Inline></Section>}
       {(session.mood || session.comment) && <Section className="session-feedback"><Inline>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</Inline>{session.mood && <Strong><Icon name="sun" /> {moodLabel(session.mood)}</Strong>}{session.comment && <Paragraph>{session.comment}</Paragraph>}</Section>}
       {trainerView && <Box className="session-result-actions">

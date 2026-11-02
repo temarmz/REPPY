@@ -6,6 +6,52 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testAssignmentStatusUsesSessionStateAndScheduledDate() throws {
+        var data = try TestFixtures.load()
+        let assignment = try XCTUnwrap(data.assignments.first)
+        XCTAssertEqual(assignment.statusLabel(sessions: [], today: "2026-11-01"), assignment.scheduled_for < "2026-11-01" ? "Не начата · назначенный день прошёл" : assignment.scheduled_for == "2026-11-01" ? "Тренировка сегодня" : "Предстоящая тренировка")
+        var active = try XCTUnwrap(data.sessions.first)
+        active.assignment_id = assignment.id; active.completed_at = nil
+        XCTAssertEqual(assignment.statusLabel(sessions: [active], today: "2026-12-31"), "Незавершённая тренировка")
+        active.completed_at = "2026-11-01T10:00:00Z"
+        XCTAssertEqual(assignment.statusLabel(sessions: [active], today: "2026-12-31"), "Завершённая тренировка")
+    }
+    func testStudentScopeIncludesEmptyFirstTrainerAndTrainingFromSecondTrainer() throws {
+        var data = try TestFixtures.load()
+        let student = try XCTUnwrap(data.students.first { $0.account_id != nil })
+        let account = try XCTUnwrap(student.account_id)
+        let original = try XCTUnwrap(data.relationships.first { $0.student_id == student.id })
+        let expected = ExerciseProgress.collect(data: data, relationshipID: original.id)
+        var empty = original; empty.id = "first-trainer-without-workouts"; empty.trainer_id = "another-trainer"
+        data.relationships.insert(empty, at: 0)
+        XCTAssertEqual(data.relationship(for: student.id)?.id, empty.id)
+        XCTAssertTrue(ExerciseProgress.collect(data: data, relationshipID: empty.id).isEmpty)
+        let scope = data.relationshipIDs(forAccount: account)
+        XCTAssertEqual(scope, Set([empty.id, original.id]))
+        let progress = ExerciseProgress.collect(data: data, relationshipIDs: scope)
+        XCTAssertFalse(progress.isEmpty)
+        XCTAssertEqual(progress.map(\.id), expected.map(\.id))
+        XCTAssertTrue(data.relationshipIDs(forAccount: "unrelated-account").isEmpty)
+    }
+    func testProgressAcrossTwoTrainersRetainsEveryOwnSessionAndExcludesOtherStudents() throws {
+        var data = try TestFixtures.load()
+        let student = try XCTUnwrap(data.students.first { $0.account_id != nil })
+        let account = try XCTUnwrap(student.account_id)
+        let original = try XCTUnwrap(data.relationships.first { $0.student_id == student.id })
+        let expected = ExerciseProgress.collect(data: data, relationshipID: original.id)
+        var second = original; second.id = "second-trainer"; second.trainer_id = "other-trainer"
+        data.relationships.append(second)
+        let ownIndices = data.assignments.indices.filter { data.assignments[$0].relationship_id == original.id }
+        for (offset, index) in ownIndices.enumerated() where offset % 2 == 0 { data.assignments[index].relationship_id = second.id }
+        let scope = data.relationshipIDs(forAccount: account)
+        let progress = ExerciseProgress.collect(data: data, relationshipIDs: scope)
+        XCTAssertEqual(progress.map(\.id), expected.map(\.id))
+        for group in progress {
+            let source = try XCTUnwrap(expected.first { $0.id == group.id })
+            XCTAssertEqual(Set(group.points.map(\.id)), Set(source.points.map(\.id)))
+        }
+        XCTAssertFalse(scope.contains(data.relationships.first { $0.student_id != student.id }!.id))
+    }
     func testSessionChargeUsesItsRelationshipLedgerAndRecognizesRefunds() throws {
         var data = try fixture()
         let session = try XCTUnwrap(data.sessions.first { session in
@@ -188,5 +234,48 @@ final class CoreTests: XCTestCase {
         let assignment = try XCTUnwrap(data.assignments.first { $0.id == session.assignment_id })
         let point = try XCTUnwrap(ExerciseProgress.collect(data: data, relationshipID: assignment.relationship_id).first?.points.first)
         XCTAssertEqual(point.maximum, 60); XCTAssertEqual(point.total, 60)
+    }
+}
+
+extension CoreTests {
+    func testProgressTimelineKeepsLatestSessionPerMonthAndStableTies() throws {
+        let data = try TestFixtures.load()
+        let source = try XCTUnwrap(data.sessions.first)
+        let exercise = try XCTUnwrap(source.workout_snapshot.exercises.first)
+        let dates = ["2025-01-02T10:00:00Z", "2025-01-30T10:00:00Z", "2025-01-30T10:00:00Z", "2025-08-03T10:00:00Z"]
+        let points = dates.enumerated().map { index, date -> ProgressPoint in
+            var session = source; session.id = "timeline-\(index)"; session.completed_at = date
+            return ProgressPoint(session: session, exercise: exercise, results: [])
+        }
+        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let timeline = ProgressTimeline(points: Array(points.reversed()), calendar: calendar)
+        XCTAssertTrue(timeline.monthly)
+        XCTAssertEqual(timeline.points.map(\.id), ["timeline-2", "timeline-3"])
+        XCTAssertEqual(ProgressTimeline(points: points, calendar: calendar).points.map(\.id), timeline.points.map(\.id))
+        let short = ProgressTimeline(points: Array(points.prefix(3).reversed()), calendar: calendar)
+        XCTAssertFalse(short.monthly); XCTAssertEqual(short.points.map(\.id), ["timeline-0", "timeline-1", "timeline-2"])
+        XCTAssertTrue(ProgressTimeline(points: []).points.isEmpty)
+    }
+    func testProgressIndexesKeepRepeatedExerciseBlocksInOneSession() throws {
+        var data = try TestFixtures.load()
+        var session = try XCTUnwrap(data.sessions.first { $0.completed_at != nil })
+        let assignment = try XCTUnwrap(data.assignments.first { $0.id == session.assignment_id })
+        let source = try XCTUnwrap(session.workout_snapshot.exercises.first)
+        var second = source; second.id = "repeated-instance"
+        session.workout_snapshot.exercises = [source, second]
+        var first = SetResult(session_id: session.id, exercise_instance_id: source.id, set_number: 1, actual_reps: 10, actual_weight: 80, completed: true)
+        var other = first; other.exercise_instance_id = second.id; other.actual_weight = 90
+        var unrelated = first; unrelated.session_id = "another-session"; unrelated.actual_weight = 999
+        data.sessions = [session]; data.results = [first, other, unrelated]
+        var groups = ExerciseProgress.collect(data: data, relationshipID: assignment.relationship_id)
+        XCTAssertEqual(groups.count, 1); XCTAssertEqual(groups[0].points.count, 1)
+        XCTAssertEqual(groups[0].points[0].results.count, 2)
+        XCTAssertEqual(groups[0].points[0].bestSet?.actual_weight, 90)
+        first.completed = false; data.results = [first, other, unrelated]
+        groups = ExerciseProgress.collect(data: data, relationshipID: assignment.relationship_id)
+        XCTAssertEqual(groups[0].points[0].results.count, 1)
+        var point = groups[0].points[0]
+        point.session.completed_at = "2026-12-15T10:00:00Z"
+        XCTAssertEqual(point.date, ReppyDate.parse("2026-12-15T10:00:00Z"))
     }
 }

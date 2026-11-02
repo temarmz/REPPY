@@ -2,10 +2,16 @@ import Foundation
 
 public struct ProgressPoint: Identifiable, ReppySendable {
     public var id: String { session.id }
-    public var session: WorkoutSession
+    public var session: WorkoutSession {
+        didSet { date = ReppyDate.parse(session.completed_at ?? "") ?? .distantPast }
+    }
     public var exercise: WorkoutExercise
     public var results: [SetResult]
-    public var date: Date { ReppyDate.parse(session.completed_at ?? "") ?? .distantPast }
+    public private(set) var date: Date
+    public init(session: WorkoutSession, exercise: WorkoutExercise, results: [SetResult], date: Date? = nil) {
+        self.session = session; self.exercise = exercise; self.results = results
+        self.date = date ?? ReppyDate.parse(session.completed_at ?? "") ?? .distantPast
+    }
     public var maximum: Double {
         results.map { exercise.loadMode == .external && exercise.measureType == .reps ? $0.actual_weight : Double($0.actual_reps) }.max() ?? 0
     }
@@ -26,19 +32,29 @@ public struct ProgressGroup: Identifiable, ReppySendable {
 }
 public enum ExerciseProgress {
     public static func collect(data: AppData, relationshipID: String) -> [ProgressGroup] {
-        let ids = Set(data.assignments.filter { $0.relationship_id == relationshipID }.map { $0.id })
+        collect(data: data, relationshipIDs: [relationshipID])
+    }
+    public static func collect(data: AppData, relationshipIDs: Set<String>) -> [ProgressGroup] {
+        let ids = Set(data.assignments.filter { relationshipIDs.contains($0.relationship_id) }.map { $0.id })
+        let resultsBySession = Dictionary(grouping: data.results, by: \.session_id)
         var groups: [String: ProgressGroup] = [:]
         for session in data.sessions where ids.contains(session.assignment_id) && session.completed_at != nil {
+            let date = ReppyDate.parse(session.completed_at ?? "") ?? .distantPast
+            let resultsByExercise = Dictionary(grouping: resultsBySession[session.id] ?? [], by: \.exercise_instance_id)
+            var sessionPoints: [String: ProgressPoint] = [:]
             for exercise in session.workout_snapshot.exercises {
-                let results = data.sessionResults(session.id).filter { $0.exercise_instance_id == exercise.id && $0.set_number > 0 && $0.set_number <= exercise.plannedSets.count && $0.valid(for: exercise) }
+                let results = (resultsByExercise[exercise.id] ?? []).filter { $0.set_number > 0 && $0.set_number <= exercise.plannedSets.count && $0.valid(for: exercise) }
                 guard !results.isEmpty else { continue }
                 let key = exercise.progressKey
-                if groups[key] == nil { groups[key] = ProgressGroup(exercise: exercise, points: []) }
-                if let index = groups[key]!.points.firstIndex(where: { $0.session.id == session.id }) {
-                    groups[key]!.points[index].results += results
+                if var point = sessionPoints[key] {
+                    point.results += results; sessionPoints[key] = point
                 } else {
-                    groups[key]!.points.append(ProgressPoint(session: session, exercise: exercise, results: results))
+                    sessionPoints[key] = ProgressPoint(session: session, exercise: exercise, results: results, date: date)
                 }
+            }
+            for (key, point) in sessionPoints {
+                if groups[key] == nil { groups[key] = ProgressGroup(exercise: point.exercise, points: []) }
+                groups[key]!.points.append(point)
             }
         }
         return groups.values.map { group in
@@ -53,6 +69,21 @@ public enum ExerciseProgress {
         }
     }
 }
+/// Prepared once when chart input changes, never while selecting a date or drawing a mark.
+public struct ProgressTimeline: ReppySendable {
+    public let points: [ProgressPoint]
+    public let monthly: Bool
+    public init(points: [ProgressPoint], calendar: Calendar = .current) {
+        let chronological = points.sorted { $0.date == $1.date ? $0.id < $1.id : $0.date < $1.date }
+        monthly = points.count > 60 || (chronological.last?.date.timeIntervalSince(chronological.first?.date ?? .distantPast) ?? 0) > 180 * 86400
+        if monthly {
+            var months: [DateComponents: ProgressPoint] = [:]
+            for point in chronological { months[calendar.dateComponents([.era, .year, .month], from: point.date)] = point }
+            self.points = months.values.sorted { $0.date == $1.date ? $0.id < $1.id : $0.date < $1.date }
+        } else { self.points = chronological }
+    }
+}
+
 public struct ProgressComparison: ReppySendable {
     public enum Trend: ReppySendable { case none, flat, up, down, mixed }
     public var latest: SetResult

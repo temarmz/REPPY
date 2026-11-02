@@ -290,7 +290,14 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
       ) : <NotFound />;
     } else if (assignmentMatch) {
       const assignment = data.assignments.find((item) => item.id === assignmentMatch[1]);
-      content = assignment ? <AssignmentDetails
+      const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+      content = completedSession ? <SessionResult data={data} session={completedSession} trainerView
+        onRepeat={() => go(`/trainer/assignments/${completedSession.assignmentId}/repeat`)}
+        onDelete={() => {
+          dispatch({ type: 'session.archive', session: completedSession, workoutName: completedSession.workoutSnapshot.name });
+          go(`/trainer/clients/${completedSession.studentId}`);
+        }}
+      /> : assignment ? <AssignmentDetails
         data={data}
         assignment={assignment}
         onAcceptRequest={() => {

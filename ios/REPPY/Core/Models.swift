@@ -117,8 +117,19 @@ public struct Assignment: Codable, Identifiable, ReppySendable {
     public var scheduleLabel: String {
         ReppyDate.display(scheduled_for) + " · " + (format == .online ? "Онлайн · в удобное время" : String((scheduled_time ?? "").prefix(5)))
     }
+    public func statusLabel(sessions: [WorkoutSession], today: String = ReppyDate.day()) -> String {
+        if status == "completed" || sessions.contains(where: { $0.assignment_id == id && $0.completed_at != nil }) {
+            return "Завершённая тренировка"
+        }
+        if sessions.contains(where: { $0.assignment_id == id && $0.completed_at == nil }) {
+            return "Незавершённая тренировка"
+        }
+        if scheduled_for < today { return "Не начата · назначенный день прошёл" }
+        if scheduled_for == today { return "Тренировка сегодня" }
+        return "Предстоящая тренировка"
+    }
     public func canStart(as role: Role, sessions: [WorkoutSession], today: String = ReppyDate.day()) -> Bool {
-        status == "assigned" && (role == .trainer || format == .online || scheduled_for == today || sessions.contains { $0.assignment_id == id && $0.completed_at == nil })
+        status == "assigned" && !sessions.contains(where: { $0.assignment_id == id && $0.completed_at != nil }) && (role == .trainer || format == .online || scheduled_for == today || sessions.contains { $0.assignment_id == id && $0.completed_at == nil })
     }
 }
 public struct SetResult: Codable, Identifiable, Equatable, ReppySendable {
@@ -182,6 +193,10 @@ public struct AppData: Codable, ReppySendable {
     public var subscriptions: [SubscriptionEntry] = []
     public var definitions: [ExerciseDefinition] = []
     public init() {}
+    public func relationshipIDs(forAccount accountID: String) -> Set<String> {
+        let studentIDs = Set(students.filter { $0.account_id == accountID }.map(\.id))
+        return Set(relationships.filter { studentIDs.contains($0.student_id) }.map(\.id))
+    }
     public func relationship(for student: String) -> Relationship? { relationships.first { $0.student_id == student } }
     public func student(for assignment: Assignment) -> Student? {
         let id = relationships.first { $0.id == assignment.relationship_id }?.student_id

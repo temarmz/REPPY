@@ -28,6 +28,7 @@ import { go } from './navigation';
 import { MOODS, moodLabel } from './mood';
 import {
   assignmentDateTime,
+  assignmentStatusLabel,
   assignmentSortValue,
   assignmentTimeLabel,
   formatScheduleDay,
@@ -76,14 +77,17 @@ function StudentAssignmentDetails({
 
   if (!workout) return <NotFound />;
   const activeSession = data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
-  const canStart = assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey();
+  const completedSession = data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+  const completed = assignment.status === 'completed' || Boolean(completedSession);
+  const assignmentStatus = assignmentStatusLabel(assignment, data.sessions);
+  const canStart = !completed && (assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey());
   const scheduleUnchanged = scheduledFor === assignment.scheduledFor && scheduledTime === assignment.scheduledTime;
   const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
 
   return (
     <Page className="content-page narrow-page student-assignment-page">
-      <RoutePageHeader back={backPath} semanticBack eyebrow={activeSession ? 'Незавершённая тренировка' : 'Предстоящая тренировка'} title={workout.name.toUpperCase()} />
+      <RoutePageHeader back={backPath} semanticBack eyebrow={assignmentStatus} title={workout.name.toUpperCase()} />
       <Paragraph className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><Inline>{formatScheduleDay(assignment.scheduledFor)}</Inline><Inline aria-hidden="true">·</Inline><Time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</Time></Paragraph>
       {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <Section className="student-request-status"><Icon name="check" /><Box><Strong>Новое время предложено</Strong><Paragraph>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</Paragraph><Small>Тренер увидит запрос и подтвердит или отклонит его.</Small></Box></Section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
@@ -97,7 +101,9 @@ function StudentAssignmentDetails({
         <Box><Strong>{subscriptionBalanceLabel(balance, hasSubscription)}</Strong><Small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</Small></Box>
       </Section>}
 
+      {completedSession && <ActionButton variant="secondary" icon="check" onClick={() => go(`/student/calendar/sessions/${completedSession.id}`)}>Посмотреть результат</ActionButton>}
       {canStart && <ActionButton className="student-start-button" icon="workout" onClick={onStart}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
+      {!completed && !canStart && <Paragraph>{assignment.scheduledFor < dateKey() ? 'Назначенный день уже прошёл. Предложи другое время тренеру.' : 'Очную тренировку можно начать в назначенный день.'}</Paragraph>}
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>
       <ReadOnlyExerciseList workout={workout} />
     </Page>
@@ -122,10 +128,10 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 
   return (
     <Page className="content-page student-page">
-      {hasSubscription && <Section className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Остаток абонемента">
+      {hasSubscription && <Button type="button" className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
         <Inline><Icon name={balance > 0 ? 'check' : 'minus'} /></Inline>
         <Box><Small>АБОНЕМЕНТ</Small><Strong>{subscriptionBalanceLabel(balance)}</Strong></Box>
-      </Section>}
+      </Button>}
       {mainAssignment ? (
         <Section className="student-focus-card">
           <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}</Small></Time>{mainSession && <Bold>{mainProgress}%</Bold>}</Box>
@@ -220,6 +226,8 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
 
   if (assignmentDetailsMatch) {
     const assignment = data.assignments.find((item) => item.id === assignmentDetailsMatch[1] && item.studentId === data.activeStudentId);
+    const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
+    if (completedSession) return <SessionResult data={data} session={completedSession} />;
     return assignment ? <StudentAssignmentDetails
       data={data}
       assignment={assignment}

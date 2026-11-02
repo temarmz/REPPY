@@ -9,7 +9,7 @@ struct ReppyTypography: ViewModifier {
     @ScaledMetric(relativeTo: .body) private var bodySize = ReppyMetrics.bodyFont
     @ScaledMetric(relativeTo: .subheadline) private var caption = ReppyMetrics.captionFont
     @ScaledMetric(relativeTo: .largeTitle) private var number = ReppyMetrics.numberFont
-    @ScaledMetric(relativeTo: .body) private var setNumber = ReppyMetrics.setNumberFont
+    @ScaledMetric(relativeTo: .body) private var setNumber = ReppyMetrics.exerciseTitle
     func body(content: Content) -> some View {
         content.font(.system(size: size, weight: weight))
     }

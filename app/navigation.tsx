@@ -1,3 +1,4 @@
+import { recordNavigation } from './activity-log';
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ConfirmationModal from './ui/confirmation-modal';
 import { hasOpenModalLayers } from './ui/modal-frame';
@@ -163,6 +164,7 @@ export function useHashNavigation() {
       // retain the previous one-step Back fallback on older browsers.
       currentIndex = historyIndex() ?? currentIndex + (window.history.state ? -1 : 1);
       replaceHistoryEntry(window.history.state ?? {}, window.location.href, currentIndex);
+      if (nextPath !== currentPathRef.current) recordNavigation(nextPath);
       currentPathRef.current = nextPath;
       setPath(nextPath);
     };

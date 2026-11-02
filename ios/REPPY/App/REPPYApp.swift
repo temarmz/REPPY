@@ -28,7 +28,14 @@ struct RootScreen: View {
     var body: some View {
         Group {
             if store.loading { ReppyLoading() }
-            else if let profile = store.profile { MainScreen().id(profile.id + profile.role.rawValue) }
+            else if let profile = store.profile {
+#if DEBUG
+                if ScreenAuditHost.route != nil && store.isDemo { ScreenAuditHost().id(profile.id + profile.role.rawValue) }
+                else { MainScreen().id(profile.id + profile.role.rawValue) }
+#else
+                MainScreen().id(profile.id + profile.role.rawValue)
+#endif
+            }
             else { NavigationStack { SignInScreen() } }
         }
     }
@@ -37,24 +44,19 @@ struct MainScreen: View {
     @EnvironmentObject private var store: AppStore
     @State private var tab: AppTab = .home
     @StateObject private var notes = NotesStore()
-    @State private var keyboardVisible = false
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         TabView(selection: $tab) {
-            NavigationStack { DashboardScreen() }.tag(AppTab.home)
-            NavigationStack { CalendarScreen() }.tag(AppTab.calendar)
-            if store.isTrainer { NavigationStack { StudentsScreen() }.tag(AppTab.clients) }
-            NavigationStack { NotesScreen() }.tag(AppTab.notes)
-        }
-        .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !keyboardVisible {
-                ReppyTabBar(tabs: store.isTrainer ? [.home, .calendar, .clients, .notes] : [.home, .calendar, .notes], selected: $tab)
+            NavigationStack { DashboardScreen() }.tabItem { Label(AppTab.home.title, systemImage: AppTab.home.icon) }.tag(AppTab.home)
+            NavigationStack { CalendarScreen() }.tabItem { Label(AppTab.calendar.title, systemImage: AppTab.calendar.icon) }.tag(AppTab.calendar)
+            if store.isTrainer {
+                NavigationStack { StudentsScreen() }.tabItem { Label(AppTab.clients.title, systemImage: AppTab.clients.icon) }.tag(AppTab.clients)
             }
-        }.background(ReppyTheme.background)
+            NavigationStack { NotesScreen() }.tabItem { Label(AppTab.notes.title, systemImage: AppTab.notes.icon) }.tag(AppTab.notes)
+        }
+            .tint(ReppyTheme.text)
             .environmentObject(notes)
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardVisible = true }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardVisible = false }
+            .onChange(of: tab) { _, next in ActivityLog.record("tab." + next.rawValue); if next == .notes { notes.selectDay(Date()) } }
             .task { await notes.start(store: store) }
             .onChange(of: scenePhase) { _, phase in
                 Task { if phase == .active { await notes.refresh() } else { await notes.flush() } }
