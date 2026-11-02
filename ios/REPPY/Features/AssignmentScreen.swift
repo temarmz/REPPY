@@ -41,7 +41,7 @@ struct AssignmentScreen: View {
                             : "Очную тренировку можно начать в назначенный день.")
                     }
                     if !store.isTrainer && assignment.format == .inPerson && assignment.reschedule_requested_at == nil {
-                        ReppyButton(title: "Предложить другое время", icon: "calendar", compact: true, disabled: store.busy) {
+                        ReppyButton(title: "Предложить другое время", icon: "calendar", disabled: store.busy) {
                             date = ReppyDate.fromDay(assignment.scheduled_for)
                             let parts = (assignment.scheduled_time ?? "18:00").split(separator: ":").compactMap { Int($0) }
                             time = Calendar.current.date(bySettingHour: parts.first ?? 18, minute: parts.dropFirst().first ?? 0, second: 0, of: date) ?? date

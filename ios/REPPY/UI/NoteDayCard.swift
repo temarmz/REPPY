@@ -17,24 +17,36 @@ struct NoteDayCard: View {
     var error: String?
     var conflict = false
     var onBlur: () -> Void = {}
+    var onFocus: () -> Void = {}
     var retry: () -> Void = {}
     @FocusState private var focused: Bool
     @ScaledMetric(relativeTo: .body) private var cardHeight = ReppyMetrics.notesMinHeight
     @ScaledMetric(relativeTo: .body) private var textSize = ReppyMetrics.notesFont
+    private var shortDate: String {
+        let date = ReppyDate.fromDay(day)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "MMM"
+        return "\(Calendar.current.component(.day, from: date)) \(formatter.string(from: date).prefix(3))"
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: ReppyMetrics.space4) {
-            Text(ReppyDate.fromDay(day).formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "ru_RU")))).font(.subheadline.weight(.semibold))
-            Text(Calendar.current.isDateInToday(ReppyDate.fromDay(day)) ? "Сегодня" : ReppyDate.fromDay(day).formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "ru_RU")))).font(.caption).foregroundStyle(ReppyTheme.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: ReppyMetrics.space4) {
+                Text(shortDate).font(.subheadline.weight(.semibold))
+                Text("· " + (Calendar.current.isDateInToday(ReppyDate.fromDay(day)) ? "Сегодня" : ReppyDate.fromDay(day).formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "ru_RU"))))).font(.caption).foregroundStyle(ReppyTheme.secondary)
+            }.lineLimit(1).minimumScaleFactor(0.8)
             TextEditor(text: $text).font(.system(size: textSize)).scrollContentBackground(.hidden).focused($focused).disabled(!loaded || !editable)
                 .overlay(alignment: .topLeading) {
                     if text.isEmpty { Text(loaded ? "Запиши здесь…" : "Загружаем…").font(.system(size: textSize)).foregroundStyle(ReppyTheme.muted).padding(.top, ReppyMetrics.space8).padding(.leading, ReppyMetrics.space4).allowsHitTesting(false).accessibilityHidden(true) }
-                }.frame(height: cardHeight * 0.55).accessibilityLabel("Заметка на \(ReppyDate.display(day))").accessibilityIdentifier("note-" + day)
+                }.frame(height: cardHeight * 0.7).accessibilityLabel("Заметка на \(ReppyDate.display(day))").accessibilityIdentifier("note-" + day)
             if let error { ReppyStatus(message: error, error: true, actionTitle: conflict ? "Выбрать версию" : "Повторить", action: retry) }
-            else { Text(!loaded ? "Загрузка…" : pending ? "Сохраняем…" : " ").font(.caption).foregroundStyle(ReppyTheme.secondary).accessibilityHidden(loaded && !pending) }
             if text.count >= 50_000 { ReppyCaption(text: "Лимит: 50 000 знаков") }
-        }.padding(ReppyMetrics.notesPadding).frame(minHeight: cardHeight)
+        }.padding(ReppyMetrics.notesPadding).frame(height: error == nil && text.count < 50_000 ? cardHeight : nil)
             .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
-            .onChange(of: focused) { was, active in if was && !active { onBlur() } }
+            .onChange(of: focused) { was, active in
+                if active { onFocus() }
+                else if was { onBlur() }
+            }
     }
 }
 

@@ -145,7 +145,7 @@ struct ReppyLink<Destination: View>: View {
     var body: some View {
         NavigationLink(destination: destination) {
             HStack(spacing: 12) {
-                if kind == .primary {
+                if subtitle == nil {
                     Spacer(minLength: 0)
                     Group {
                         if typeSize.isAccessibilitySize { Text(title) }

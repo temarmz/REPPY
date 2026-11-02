@@ -6,19 +6,26 @@ struct NotesScreen: View {
     @State private var calendarOpen = false
     @State private var conflictDay: String?
     @State private var resolving = false
+    @State private var focusedDay: String?
     private var days: [String] { (0..<4).map { ReppyDate.day(Calendar.current.date(byAdding: .day, value: $0, to: date)!) } }
     var body: some View {
+        ScrollViewReader { scroll in
         ReppyPage {
             ReppyNotesHeader(date: date, onToday: { notes.selectDay(Date()) }, onPrevious: { shift(-4) }, onNext: { shift(4) }, onCalendar: { calendarOpen = true })
             if let error = notes.storageError { ReppyStatus(message: error, error: true, actionTitle: "Повторить") { Task { await notes.refresh() } } }
             ReppyNotesGrid {
                 ForEach(days, id: \.self) { day in
-                    NoteDayCard(day: day, text: Binding(get: { notes.text(day) }, set: { notes.edit(day, $0) }), pending: notes.drafts[day] != nil, loaded: notes.loaded, editable: notes.canEdit, error: notes.errors[day], conflict: notes.conflicts[day] != nil, onBlur: { Task { await notes.save(day) } }) {
+                    NoteDayCard(day: day, text: Binding(get: { notes.text(day) }, set: { notes.edit(day, $0) }), pending: notes.drafts[day] != nil, loaded: notes.loaded, editable: notes.canEdit, error: notes.errors[day], conflict: notes.conflicts[day] != nil, onBlur: { if focusedDay == day { focusedDay = nil }; Task { await notes.save(day) } }, onFocus: { focusedDay = day }) {
                         if notes.conflicts[day] != nil { conflictDay = day }
                         else { Task { await notes.save(day) } }
-                    }
+                    }.id(day)
                 }
             }
+        }.onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+            if let focusedDay { withAnimation { scroll.scrollTo(focusedDay, anchor: .bottom) } }
+        }.onChange(of: focusedDay) { _, day in
+            if let day { withAnimation { scroll.scrollTo(day, anchor: .bottom) } }
+        }
         }.refreshable { await notes.refresh() }
             .onDisappear { Task { await notes.flush() } }
             .sheet(isPresented: $calendarOpen) {

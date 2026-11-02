@@ -36,7 +36,7 @@ struct MonthCalendar: View {
                         Button { date = day } label: {
                             VStack(spacing: 2) {
                                 if typeSize.isAccessibilitySize { Text(day.formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "ru_RU")))).font(.caption) }
-                                Text(String(calendar.component(.day, from: day))).font(.body)
+                                Text(String(calendar.component(.day, from: day))).font(.body.weight(.semibold))
                                 Circle().fill(counts[ReppyDate.day(day), default: 0] > 0 ? (selected ? ReppyTheme.selectedText : ReppyTheme.lime) : .clear).frame(width: 4, height: 4)
                             }.frame(maxWidth: .infinity).frame(minHeight: dayHeight)
                                 .foregroundStyle(selected ? ReppyTheme.selectedText : calendar.isDate(day, equalTo: month, toGranularity: .month) ? ReppyTheme.text : ReppyTheme.muted)
@@ -47,7 +47,7 @@ struct MonthCalendar: View {
                             .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
-        }.padding(.vertical, ReppyMetrics.space12).padding(.horizontal, 0)
+        }.padding(.vertical, ReppyMetrics.space12).padding(.horizontal, ReppyMetrics.space12)
             .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
             .onAppear { month = date }
             .onChange(of: month) { _, value in if selectFirstDayOnMonthChange && !calendar.isDate(date, equalTo: value, toGranularity: .month) { date = calendar.date(from: calendar.dateComponents([.year, .month], from: value))! } }
