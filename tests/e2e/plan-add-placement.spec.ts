@@ -34,6 +34,7 @@ for (const theme of ['dark', 'light'] as const) {
           return element.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
         })).toBe(true);
       }
+      await page.screenshot({ path: testInfo.outputPath('exercise-controls-visible.png'), animations: 'disabled' });
       await repeat.fill('14');
       await repeat.press('Tab');
       await add.scrollIntoViewIfNeeded();
