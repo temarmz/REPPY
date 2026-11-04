@@ -38,8 +38,7 @@ struct ExercisePickerScreen: View {
                     }.disabled(store.busy)
                 } else { ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { add(definition) }.disabled(store.busy) }
             }
-        }.toolbar { if exercises != nil { ToolbarItem(placement: .confirmationAction) { Button("Готово") { dismiss() } } } }
-            .reppyDismissAction()
+        }.toolbar { ToolbarItem(placement: .confirmationAction) { Button(exercises == nil ? "Закрыть" : "Готово") { dismiss() } } }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Поиск")
     }
 }
