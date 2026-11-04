@@ -70,7 +70,7 @@ struct AssignmentScreen: View {
                             ReppyDateField(title: "Новая дата", date: $date)
                             ReppyDateField(title: "Новое время", date: $time, time: true)
                         }
-                    }.reppyFormActions(saveTitle: "Отправить", saveLabel: "Отправить тренеру", busy: store.busy, hasChanges: false, save: {
+                    }.reppyFormActions(saveTitle: "Отправить", saveLabel: "Отправить тренеру", cancelIcon: true, busy: store.busy, hasChanges: false, save: {
                         guard let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) else { return }
                         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "HH:mm"
                         Task { if await store.run({ try await store.requestReschedule(assignment, date: date, time: formatter.string(from: time)) }) { reschedule = false } }

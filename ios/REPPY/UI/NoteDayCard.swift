@@ -11,14 +11,10 @@ struct ReppyNotesGrid<Content: View>: View {
 struct NoteDayCard: View {
     var day: String
     @Binding var text: String
-    var pending = false
     var loaded = true
     var editable = true
-    var error: String?
-    var conflict = false
     var onBlur: () -> Void = {}
     var onFocus: () -> Void = {}
-    var retry: () -> Void = {}
     @FocusState private var focused: Bool
     @ScaledMetric(relativeTo: .body) private var cardHeight = ReppyMetrics.notesMinHeight
     @ScaledMetric(relativeTo: .body) private var textSize = ReppyMetrics.notesFont
@@ -39,9 +35,7 @@ struct NoteDayCard: View {
                 .overlay(alignment: .topLeading) {
                     if text.isEmpty { Text(loaded ? "Запиши здесь…" : "Загружаем…").font(.system(size: textSize)).foregroundStyle(ReppyTheme.muted).padding(.top, ReppyMetrics.space8).padding(.leading, ReppyMetrics.space4).allowsHitTesting(false).accessibilityHidden(true) }
                 }.frame(height: cardHeight * 0.7).accessibilityLabel("Заметка на \(ReppyDate.display(day))").accessibilityIdentifier("note-" + day)
-            if let error { ReppyStatus(message: error, error: true, actionTitle: conflict ? "Выбрать версию" : "Повторить", action: retry) }
-            if text.count >= 50_000 { ReppyCaption(text: "Лимит: 50 000 знаков") }
-        }.padding(ReppyMetrics.notesPadding).frame(height: error == nil && text.count < 50_000 ? cardHeight : nil)
+        }.padding(ReppyMetrics.notesPadding).frame(height: cardHeight)
             .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
             .onChange(of: focused) { was, active in
                 if active { onFocus() }

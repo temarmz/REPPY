@@ -75,12 +75,13 @@ struct NoteDraft: Codable {
         guard canEdit else { return }
         var draft = drafts[day] ?? NoteDraft(content: text, revision: notes[day]?.revision ?? 0, mutationID: UUID().uuidString)
         draft.content = String(text.prefix(50_000)); drafts[day] = draft
+        if conflicts[day] == nil { errors[day] = nil }
         persist()
         tasks[day]?.cancel()
         tasks[day] = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(650))
+            try? await Task.sleep(for: .milliseconds(1500))
             guard !Task.isCancelled else { return }
-            await self?.save(day)
+            Task { await self?.save(day) }
         }
     }
     private func persist() {
@@ -139,7 +140,9 @@ struct NoteDraft: Codable {
                 guard let remote = rows.first else { throw APIError.invalidResponse }
                 conflicts[day] = remote; errors[day] = "Заметка изменена на другом устройстве. Выбери версию."
             } catch { if ownsSession { errors[day] = error.localizedDescription } }
-        } catch { if ownsSession { errors[day] = error.localizedDescription } }
+        } catch {
+            if ownsSession && !APIError.isCancellation(error) { errors[day] = error.localizedDescription }
+        }
     }
     func resolve(_ day: String, keepMine: Bool) async {
         guard ownsSession else { return }

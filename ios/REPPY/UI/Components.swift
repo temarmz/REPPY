@@ -20,6 +20,12 @@ struct ReppyPage<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
             }
         }.onAppear { ActivityLog.record(back ? "screen.detail" : "screen.root") }.scrollDismissesKeyboard(.interactively).background(ReppyTheme.background)
+            .overlay(alignment: .top) {
+                if let error = store.error, !store.conflict, store.failedDraft == nil {
+                    ReppyToast(message: error, actionTitle: "Закрыть") { store.error = nil }
+                        .padding(.horizontal, ReppyMetrics.pageInset).padding(.top, ReppyMetrics.space8)
+                }
+            }
             .modifier(ReppyPageNavigationTitle(title: title ?? (!back && store.profile != nil ? "REPPY" : nil)))
             .toolbarColorScheme(nil, for: .navigationBar)
             .toolbar {
@@ -43,7 +49,7 @@ struct ReppyPage<Content: View>: View {
     }
     @ViewBuilder private var pageContent: some View {
         if !store.networkAvailable && !store.isDemo { ReppyStatus(message: "Нет сети. Несохранённый прогресс останется в черновике на этом iPhone.") }
-        if let error = store.error {
+        if let error = store.error, store.conflict || store.failedDraft != nil {
             ReppyStatus(message: error, error: true, actionTitle: store.failedDraft != nil ? "Отбросить нечитабельный черновик" : store.conflict ? "Загрузить актуальные данные" : "Закрыть сообщение") {
                 if store.failedDraft != nil { discardDraft = true }
                 else if store.conflict { Task { await store.reload() } } else { store.error = nil }
@@ -367,6 +373,7 @@ struct ReppyFormActions: ViewModifier {
     var saveTitle: String
     var saveLabel: String? = nil
     var cancelTitle = "Отмена"
+    var cancelIcon = false
     var showsCancel = true
     var disabled = false
     var busy = false
@@ -382,7 +389,10 @@ struct ReppyFormActions: ViewModifier {
             .toolbar {
                 if showsCancel {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button(cancelTitle) { if hasChanges { confirmExit = true } else { dismiss() } }
+                        Button { if hasChanges { confirmExit = true } else { dismiss() } } label: {
+                            if cancelIcon { Image(systemName: "chevron.left") }
+                            else { Text(cancelTitle) }
+                        }.accessibilityLabel(cancelIcon ? "Назад" : cancelTitle)
                             .buttonStyle(.bordered).disabled(busy)
                     }
                 }
@@ -399,8 +409,8 @@ struct ReppyFormActions: ViewModifier {
     }
 }
 extension View {
-    func reppyFormActions(saveTitle: String = "Сохранить", saveLabel: String? = nil, cancelTitle: String = "Отмена", showsCancel: Bool = true, disabled: Bool = false, busy: Bool = false, hasChanges: Bool = true, allowsKeepDraft: Bool = true, save: @escaping () -> Void, discard: @escaping () -> Void) -> some View {
-        modifier(ReppyFormActions(saveTitle: saveTitle, saveLabel: saveLabel, cancelTitle: cancelTitle, showsCancel: showsCancel, disabled: disabled, busy: busy, hasChanges: hasChanges, allowsKeepDraft: allowsKeepDraft, save: save, discard: discard))
+    func reppyFormActions(saveTitle: String = "Сохранить", saveLabel: String? = nil, cancelTitle: String = "Отмена", cancelIcon: Bool = false, showsCancel: Bool = true, disabled: Bool = false, busy: Bool = false, hasChanges: Bool = true, allowsKeepDraft: Bool = true, save: @escaping () -> Void, discard: @escaping () -> Void) -> some View {
+        modifier(ReppyFormActions(saveTitle: saveTitle, saveLabel: saveLabel, cancelTitle: cancelTitle, cancelIcon: cancelIcon, showsCancel: showsCancel, disabled: disabled, busy: busy, hasChanges: hasChanges, allowsKeepDraft: allowsKeepDraft, save: save, discard: discard))
     }
 }
 struct ReppyInvitationInput: View {
