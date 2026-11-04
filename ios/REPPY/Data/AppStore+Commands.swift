@@ -94,11 +94,12 @@ extension AppStore {
         try DraftStorage.remove(account: accountKey, key: key)
         return session.id
     }
-    func saveProgress(_ session: WorkoutSession, workout: Workout, results: [SetResult]) async throws {
+    func saveProgress(_ session: WorkoutSession, workout: Workout, results: [SetResult], baseResults: [SetResult]? = nil) async throws {
         guard session.completed_at == nil else { throw APIError.message("Завершённая тренировка доступна только для просмотра.") }
         if let message = ReppyValidation.workout(workout) { throw APIError.message(message) }
         guard WorkoutExecution.validate(sessionID: session.id, workout: workout, results: results) else { throw APIError.message("Проверь фактические значения подходов.") }
         var saved = session; saved.workout_snapshot = workout
+        var persistedResults = results
         if !isDemo, let api {
             let payload: [[String: Any]] = results.map { ["exerciseInstanceId": $0.exercise_instance_id, "setNumber": $0.set_number,
                 "actualReps": $0.actual_reps, "actualWeight": $0.actual_weight, "completed": $0.completed] }
@@ -108,13 +109,40 @@ extension AppStore {
             } catch APIError.conflict {
                 let rows: [WorkoutSession] = try await api.rows("workout_sessions", query: ["id": "eq.\(session.id)"])
                 let stored: [SetResult] = try await api.rows("set_results", query: ["session_id": "eq.\(session.id)"])
-                guard let remote = rows.first, remote.completed_at == nil, remote.workout_snapshot == workout,
-                    stored.sorted(by: { $0.id < $1.id }) == results.sorted(by: { $0.id < $1.id }) else { throw APIError.conflict }
-                saved = remote
+                guard let remote = rows.first, remote.completed_at == nil else { throw APIError.conflict }
+                if remote.workout_snapshot == workout && stored.sorted(by: { $0.id < $1.id }) == results.sorted(by: { $0.id < $1.id }) {
+                    saved = remote
+                    persistedResults = stored
+                } else {
+                    guard let baseResults, remote.workout_snapshot == workout,
+                          session.workout_snapshot == workout,
+                          let merged = Self.mergeResults(base: baseResults, local: results, remote: stored) else { throw APIError.conflict }
+                    if merged.sorted(by: { $0.id < $1.id }) == stored.sorted(by: { $0.id < $1.id }) { saved = remote }
+                    else {
+                        let mergedPayload: [[String: Any]] = merged.map { ["exerciseInstanceId": $0.exercise_instance_id, "setNumber": $0.set_number,
+                            "actualReps": $0.actual_reps, "actualWeight": $0.actual_weight, "completed": $0.completed] }
+                        saved = try await api.rpc("save_session_progress", ["p_session_id": session.id, "p_expected_revision": remote.revision,
+                            "p_workout_snapshot": try jsonObject(workout), "p_results": mergedPayload])
+                    }
+                    persistedResults = merged
+                }
             }
         } else { saved.revision += 1 }
         data.sessions.removeAll { $0.id == session.id }; data.sessions.append(saved)
-        data.results.removeAll { $0.session_id == session.id }; data.results += results
+        data.results.removeAll { $0.session_id == session.id }; data.results += persistedResults
+    }
+    private static func mergeResults(base: [SetResult], local: [SetResult], remote: [SetResult]) -> [SetResult]? {
+        let old = Dictionary(uniqueKeysWithValues: base.map { ($0.id, $0) })
+        let incoming = Dictionary(uniqueKeysWithValues: remote.map { ($0.id, $0) })
+        guard old.count == local.count, old.count == incoming.count, Set(old.keys) == Set(incoming.keys) else { return nil }
+        var merged: [SetResult] = []
+        for result in local {
+            guard let previous = old[result.id], let current = incoming[result.id] else { return nil }
+            if result == previous { merged.append(current) }
+            else if current == previous || current == result { merged.append(result) }
+            else { return nil }
+        }
+        return merged
     }
     func completeSession(_ session: WorkoutSession, charge: Bool) async throws {
         if session.completed_at != nil { return }

@@ -9,6 +9,7 @@ struct ActiveWorkoutScreen: View {
     @EnvironmentObject private var store: AppStore
     var sessionID: String
     @State private var draft: SessionDraft?
+    @State private var baseResults: [SetResult] = []
     @State private var revision = 0
     @State private var savedRevision = 0
     @State private var saving = false
@@ -76,11 +77,21 @@ struct ActiveWorkoutScreen: View {
                 if draft != nil { NavigationStack { ActiveStructureScreen(workout: Binding(get: { draft!.workout }, set: { draft?.workout = $0 }), relationshipID: relationshipID) } }
             }
             .navigationDestination(isPresented: $completed) { SessionResultScreen(sessionID: sessionID) }
-            .confirmationDialog("Отбросить несохранённые изменения этого iPhone и загрузить данные сервера?", isPresented: $confirmReload, titleVisibility: .visible) {
+            .confirmationDialog("Изменения тренировки отличаются на двух устройствах. Выбери, какой вариант сохранить.", isPresented: $confirmReload, titleVisibility: .visible) {
+                Button("Сохранить мой вариант") { Task {
+                    guard let local = draft else { return }
+                    await store.reload()
+                    guard store.error == nil, let remote = store.data.sessions.first(where: { $0.id == sessionID }), remote.completed_at == nil else { return }
+                    baseResults = store.data.sessionResults(sessionID)
+                    draft = SessionDraft(session: remote, workout: local.workout, results: local.results)
+                    revision += 1; savedRevision = 0
+                    await flush()
+                } }
                 Button("Загрузить данные сервера", role: .destructive) { Task {
                     await store.reload()
                     guard store.error == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
                     draft = SessionDraft(session: session, workout: session.workout_snapshot, results: store.data.sessionResults(sessionID))
+                    baseResults = store.data.sessionResults(sessionID)
                     revision = 0; savedRevision = 0; status = "Все изменения сохранены"
                     do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
                     if session.completed_at != nil { completed = true }
@@ -98,6 +109,7 @@ struct ActiveWorkoutScreen: View {
         guard draft == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
         draftAccount = store.accountKey
         if session.completed_at != nil { completed = true; return }
+        baseResults = store.data.sessionResults(sessionID)
         if let restored: SessionDraft = store.restoreDraft(key: draftKey) {
             draft = restored; revision = 1; savedRevision = 0
             if restored.session.revision != session.revision { store.present(APIError.conflict); status = "Нужна проверка изменений на другом устройстве" }
@@ -125,11 +137,14 @@ struct ActiveWorkoutScreen: View {
         guard let value = draft, !saving, !store.busy, revision != savedRevision else { return }
         guard !store.conflict else { status = "Конфликт изменений"; return }
         saving = true; status = "Сохраняем…"; let version = revision
-        let success = await store.run { try await store.saveProgress(value.session, workout: value.workout, results: value.results) }
+        let success = await store.run { try await store.saveProgress(value.session, workout: value.workout, results: value.results, baseResults: baseResults) }
         saving = false
         if success, let session = store.data.sessions.first(where: { $0.id == sessionID }) {
             draft?.session = session; savedRevision = version
             if revision == version {
+                draft?.workout = session.workout_snapshot
+                draft?.results = store.data.sessionResults(sessionID)
+                baseResults = store.data.sessionResults(sessionID)
                 status = "Все изменения сохранены"
                 do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
             } else {
