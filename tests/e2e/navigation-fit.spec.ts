@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 for (const role of ['trainer', 'student']) for (const theme of ['dark', 'light']) {
-  for (const [width, height] of [[320, 568], [390, 844], [440, 844], [844, 320], [1280, 800]]) {
-    test(`navigation fits without overlapping labels: ${role}, ${theme}, ${width}x${height}`, async ({ page }, testInfo) => {
+  for (const [width, height, scale] of [[320, 568, 1], [320, 568, 1.1], [390, 844, 1], [440, 844, 1], [844, 320, 1], [1280, 800, 1]]) {
+    test(`navigation fits without overlapping labels: ${role}, ${theme}, ${width}x${height}, scale ${scale}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height });
       await page.addInitScript(theme => localStorage.setItem('reppy-ui:theme', theme), theme);
       await page.goto('/');
+      await page.evaluate(scale => document.documentElement.style.setProperty('--ui-font-scale', String(scale)), scale);
       await page.getByRole('button', { name: 'Попробовать REPPY' }).click();
       await page.goto(`/#/${role}`);
       const nav = page.locator(width > 800 ? '.desktop-nav' : '.bottom-nav');
