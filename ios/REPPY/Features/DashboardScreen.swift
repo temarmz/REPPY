@@ -50,9 +50,10 @@ struct DashboardScreen: View {
                 }
             } else {
                 let studentUpcoming = upcoming.filter { $0.scheduled_for >= today } + upcoming.filter { $0.scheduled_for < today }
-                if !store.ownSubscriptions.isEmpty {
+                if store.ownRelationshipIDs.count == 1 && !store.ownSubscriptions.isEmpty {
                     NavigationLink { ProfileScreen() } label: { ReppyBalanceSummary(balance: store.ownBalance) }.buttonStyle(.plain).accessibilityLabel("Абонемент: открыть профиль")
                 }
+                if store.ownRelationshipIDs.count > 1 { ReppyLink(title: "Абонементы по тренерам", icon: "person.2") { ProfileScreen() } }
                 if let first = studentUpcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }
                 ExerciseProgressSummary(relationshipIDs: store.ownRelationshipIDs, hideEmpty: true)
@@ -72,7 +73,7 @@ struct AssignmentAgendaRow: View {
     var dayContext = false
     private var subtitle: String {
         let when = dayContext ? (assignment.format == .online ? "Онлайн · в удобное время" : String((assignment.scheduled_time ?? "—").prefix(5))) : assignment.scheduleLabel
-        return store.isTrainer ? "\(when) · \(assignment.workout_snapshot.name)" : when
+        return store.isTrainer ? "\(when) · \(assignment.workout_snapshot.name)" : "\(when) · \(store.data.trainerName(for: assignment.relationship_id) ?? "Тренер")"
     }
     var body: some View {
         if schedule {
@@ -103,7 +104,7 @@ struct AssignmentCard: View {
     }
     var body: some View {
         if focus {
-        ReppyWorkoutFocus(name: assignment.workout_snapshot.name, schedule: assignment.scheduleLabel,
+        ReppyWorkoutFocus(name: assignment.workout_snapshot.name, schedule: assignment.scheduleLabel + (store.ownRelationshipIDs.count > 1 ? " · \(store.data.trainerName(for: assignment.relationship_id) ?? "Тренер")" : ""),
             preview: assignment.workout_snapshot.exercises.prefix(3).map(\.name).joined(separator: " · "), completed: assignment.status == "completed", progress: progress) {
             if let session = store.data.session(for: assignment.id), session.completed_at != nil { SessionResultScreen(sessionID: session.id) }
             else { AssignmentScreen(assignmentID: assignment.id) }

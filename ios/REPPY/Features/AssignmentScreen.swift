@@ -15,6 +15,8 @@ struct AssignmentScreen: View {
             if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) {
                 let session = store.data.session(for: assignment.id)
                 ReppyCaption(text: store.isTrainer ? "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.statusLabel(sessions: store.data.sessions))" : assignment.statusLabel(sessions: store.data.sessions))
+                if !store.isTrainer, let trainer = store.data.trainerName(for: assignment.relationship_id) { ReppyCaption(text: "Тренер: \(trainer)") }
+                if !store.isTrainer && !store.data.overlappingAssignments(for: assignment).isEmpty { ReppyStatus(message: "На это время назначена ещё одна тренировка. Уточни расписание у тренеров.") }
                 ReppyTitle(text: assignment.workout_snapshot.name)
                 ReppyCaption(text: assignment.scheduleLabel)
                 if let session, session.completed_at != nil {

@@ -186,6 +186,7 @@ public struct ExerciseDefinition: Codable, Identifiable, ReppySendable {
 public struct AppData: Codable, ReppySendable {
     public var demoDay: String?
     public var students: [Student] = []
+    public var profiles: [Profile] = []
     public var relationships: [Relationship] = []
     public var assignments: [Assignment] = []
     public var sessions: [WorkoutSession] = []
@@ -193,6 +194,19 @@ public struct AppData: Codable, ReppySendable {
     public var subscriptions: [SubscriptionEntry] = []
     public var definitions: [ExerciseDefinition] = []
     public init() {}
+    enum CodingKeys: String, CodingKey { case demoDay, students, profiles, relationships, assignments, sessions, results, subscriptions, definitions }
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        demoDay = try values.decodeIfPresent(String.self, forKey: .demoDay)
+        students = try values.decodeIfPresent([Student].self, forKey: .students) ?? []
+        profiles = try values.decodeIfPresent([Profile].self, forKey: .profiles) ?? []
+        relationships = try values.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+        assignments = try values.decodeIfPresent([Assignment].self, forKey: .assignments) ?? []
+        sessions = try values.decodeIfPresent([WorkoutSession].self, forKey: .sessions) ?? []
+        results = try values.decodeIfPresent([SetResult].self, forKey: .results) ?? []
+        subscriptions = try values.decodeIfPresent([SubscriptionEntry].self, forKey: .subscriptions) ?? []
+        definitions = try values.decodeIfPresent([ExerciseDefinition].self, forKey: .definitions) ?? []
+    }
     public func relationshipIDs(forAccount accountID: String) -> Set<String> {
         let studentIDs = Set(students.filter { $0.account_id == accountID }.map(\.id))
         return Set(relationships.filter { studentIDs.contains($0.student_id) }.map(\.id))
@@ -201,6 +215,16 @@ public struct AppData: Codable, ReppySendable {
     public func student(for assignment: Assignment) -> Student? {
         let id = relationships.first { $0.id == assignment.relationship_id }?.student_id
         return students.first { $0.id == id }
+    }
+    public func trainerName(for relationshipID: String) -> String? {
+        guard let trainerID = relationships.first(where: { $0.id == relationshipID })?.trainer_id else { return nil }
+        return profiles.first(where: { $0.id == trainerID })?.display_name
+    }
+    public func overlappingAssignments(for assignment: Assignment) -> [Assignment] {
+        guard assignment.format == .inPerson, let time = assignment.scheduled_time else { return [] }
+        let studentID = relationships.first(where: { $0.id == assignment.relationship_id })?.student_id
+        let relationshipIDs = Set(relationships.filter { $0.student_id == studentID }.map(\.id))
+        return assignments.filter { $0.id != assignment.id && $0.status == "assigned" && $0.format == .inPerson && $0.scheduled_for == assignment.scheduled_for && $0.scheduled_time == time && relationshipIDs.contains($0.relationship_id) }
     }
     public func balance(_ relationshipID: String) -> Int { subscriptions.filter { $0.relationship_id == relationshipID }.reduce(0) { $0 + $1.lesson_delta } }
     public func isSessionCharged(_ sessionID: String) -> Bool {

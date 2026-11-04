@@ -44,6 +44,14 @@ const STUDENT_COPY = {
   emptyAssignments: 'На ближайшие две недели тренер пока ничего не назначил.',
 };
 
+function assignmentEntries(data: DemoState, assignment: Assignment) {
+  return data.subscriptionEntries.filter((entry) => entry.studentId === assignment.studentId && (!assignment.relationshipId || entry.relationshipId === assignment.relationshipId));
+}
+
+function simultaneousAssignments(data: DemoState, assignment: Assignment) {
+  return assignment.format === 'in-person' && data.assignments.some((other) => other.id !== assignment.id && other.studentId === assignment.studentId && other.status === 'assigned' && other.format === 'in-person' && other.scheduledFor === assignment.scheduledFor && other.scheduledTime === assignment.scheduledTime);
+}
+
 function exercisePreview(workout?: Workout) {
   if (!workout?.exercises.length) return 'Упражнения не добавлены';
   const preview = workout.exercises.slice(0, 3).map((exercise) => exercise.name).join(' · ');
@@ -82,12 +90,15 @@ function StudentAssignmentDetails({
   const assignmentStatus = assignmentStatusLabel(assignment, data.sessions);
   const canStart = !completed && (assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey());
   const scheduleUnchanged = scheduledFor === assignment.scheduledFor && scheduledTime === assignment.scheduledTime;
-  const balance = subscriptionBalance(data.subscriptionEntries, assignment.studentId);
-  const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, assignment.studentId).length > 0;
+  const entries = assignmentEntries(data, assignment);
+  const balance = entries.reduce((total, entry) => total + entry.lessonDelta, 0);
+  const hasSubscription = entries.length > 0;
 
   return (
     <Page className="content-page narrow-page student-assignment-page">
       <RoutePageHeader back={backPath} semanticBack eyebrow={assignmentStatus} title={workout.name.toUpperCase()} />
+      {assignment.trainerName && <Paragraph>Тренер: {assignment.trainerName}</Paragraph>}
+      {simultaneousAssignments(data, assignment) && <Paragraph>На это время назначена ещё одна тренировка. Уточни расписание у тренеров.</Paragraph>}
       <Paragraph className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><Inline>{formatScheduleDay(assignment.scheduledFor)}</Inline><Inline aria-hidden="true">·</Inline><Time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</Time></Paragraph>
       {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <Section className="student-request-status"><Icon name="check" /><Box><Strong>Новое время предложено</Strong><Paragraph>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</Paragraph><Small>Тренер увидит запрос и подтвердит или отклонит его.</Small></Box></Section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
 
@@ -125,16 +136,17 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const laterAssignments = assignments.slice(1);
   const balance = subscriptionBalance(data.subscriptionEntries, data.activeStudentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, data.activeStudentId).length > 0;
+  const trainerCount = new Set([...data.assignments, ...data.subscriptionEntries].filter((item) => item.studentId === data.activeStudentId).map((item) => item.relationshipId).filter(Boolean)).size;
 
   return (
     <Page className="content-page student-page">
-      {hasSubscription && <Button type="button" className={`student-subscription-status ${subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
-        <Inline><Icon name={balance > 0 ? 'check' : 'minus'} /></Inline>
-        <Box><Small>АБОНЕМЕНТ</Small><Strong>{subscriptionBalanceLabel(balance)}</Strong></Box>
+      {hasSubscription && <Button type="button" className={`student-subscription-status ${trainerCount > 1 ? '' : subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
+        <Inline><Icon name={trainerCount > 1 ? 'users' : balance > 0 ? 'check' : 'minus'} /></Inline>
+        <Box><Small>АБОНЕМЕНТ</Small><Strong>{trainerCount > 1 ? 'По тренерам' : subscriptionBalanceLabel(balance)}</Strong></Box>
       </Button>}
       {mainAssignment ? (
         <Section className="student-focus-card">
-          <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}</Small></Time>{mainSession && <Bold>{mainProgress}%</Bold>}</Box>
+          <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}{mainAssignment.trainerName ? ` · ${mainAssignment.trainerName}` : ''}</Small></Time>{mainSession && <Bold>{mainProgress}%</Bold>}</Box>
           <Box><Heading>{mainWorkout?.name}</Heading><Paragraph>{exercisePreview(mainWorkout)}</Paragraph></Box>
           {mainSession && <ProgressBar value={mainProgress} />}
           <Button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</Button>
@@ -147,7 +159,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
         <SectionHeading title="Следующие тренировки" />
         <Box>{laterAssignments.map((assignment) => {
           const workout = findAssignmentWorkout(data, assignment);
-          return <ListRow className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><Time dateTime={assignmentDateTime(assignment)}><Strong>{formatCalendarDay(assignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(assignment)}</Small></Time><Inline><Strong>{workout?.name}</Strong><Small>{exercisePreview(workout)}</Small></Inline><Icon name="chevron-right" /></ListRow>;
+          return <ListRow className="student-upcoming-row" key={assignment.id} type="button" onClick={() => onOpen(assignment.id)}><Time dateTime={assignmentDateTime(assignment)}><Strong>{formatCalendarDay(assignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(assignment)}{assignment.trainerName ? ` · ${assignment.trainerName}` : ''}</Small></Time><Inline><Strong>{workout?.name}</Strong><Small>{exercisePreview(workout)}</Small></Inline><Icon name="chevron-right" /></ListRow>;
         })}</Box>
       </Section>}
     </Page>
@@ -190,7 +202,8 @@ function WorkoutFeedback({ data, session, backPath, onComplete }: { data: DemoSt
 
 function WorkoutSuccess({ data, session, backPath }: { data: DemoState; session: WorkoutSession; backPath: string }) {
   const workout = findSessionWorkout(data, session);
-  const balance = subscriptionBalance(data.subscriptionEntries, session.studentId);
+  const assignment = data.assignments.find((item) => item.id === session.assignmentId);
+  const balance = assignment ? assignmentEntries(data, assignment).reduce((total, entry) => total + entry.lessonDelta, 0) : subscriptionBalance(data.subscriptionEntries, session.studentId);
   return (
     <Page className="success-screen">
       <Image className="success-illustration" src={UI_ASSETS.success} alt="" />

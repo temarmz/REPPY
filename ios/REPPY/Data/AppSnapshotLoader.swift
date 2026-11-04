@@ -13,6 +13,7 @@ import Foundation
 
     func data(for role: Role) async throws -> AppData {
         async let students: [Student] = api.rows("students")
+        async let profiles: [Profile] = api.rows("profiles")
         async let relationships: [Relationship] = api.rows("trainer_student_relationships")
         async let assignments: [Assignment] = api.rows("assignments")
         async let sessions: [WorkoutSession] = api.rows("workout_sessions")
@@ -23,6 +24,7 @@ import Foundation
         else { subscriptions = try await api.rows("subscription_entries") }
         var snapshot = AppData()
         snapshot.students = try await students
+        snapshot.profiles = try await profiles
         snapshot.relationships = try await relationships
         snapshot.assignments = try await assignments
         snapshot.sessions = try await sessions

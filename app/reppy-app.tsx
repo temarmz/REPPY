@@ -382,7 +382,7 @@ export default function ReppyApp() {
     const profileStudent = area === 'student' ? findStudent(data, data.activeStudentId) : undefined;
     const accountSettings = <ProfileSettings
       details={profileStudent ? <AthleteDetails student={profileStudent} onSave={(student) => dispatch({ type: 'student.update', student })} alwaysExpanded /> : undefined}
-      summary={profileStudent ? <SubscriptionCard data={data} student={profileStudent} trainerView={false} /> : undefined}
+      summary={profileStudent ? <StudentSubscriptionCards data={data} student={profileStudent} /> : undefined}
       accountMode={auth.enabled}
       account={auth.profile ? {
         displayName: auth.profile.displayName,
@@ -470,7 +470,7 @@ function StudentProfile({ data, studentId, onUpdate, onDeleteInvitation, showPro
           const workout = findAssignmentWorkout(data, assignment);
           return (
             <ListRow className="workout-row" key={assignment.id} type="button" onClick={() => workout && go(trainerView ? `/trainer/assignments/${assignment.id}` : `/student/assignments/${assignment.id}`)}>
-              <Inline><Strong>{workout?.name}</Strong><Small>{assignmentScheduleLabel(assignment)}</Small></Inline><Italic><Icon name="chevron-right" /></Italic>
+              <Inline><Strong>{workout?.name}</Strong><Small>{assignmentScheduleLabel(assignment)}{!trainerView && assignment.trainerName ? ` · ${assignment.trainerName}` : ''}</Small></Inline><Italic><Icon name="chevron-right" /></Italic>
             </ListRow>
           );
         })}</Box> : trainerView
@@ -478,7 +478,7 @@ function StudentProfile({ data, studentId, onUpdate, onDeleteInvitation, showPro
           : <EmptyState icon="calendar" title="Пока пусто" text="Тренер ещё не добавил ближайшие занятия." />}
       </Section>}
 
-      {(trainerView && student.status === 'active') || (!trainerView && !settings) ? <SubscriptionCard data={data} student={student} trainerView={trainerView} /> : null}
+      {(trainerView && student.status === 'active') || (!trainerView && !settings) ? trainerView ? <SubscriptionCard data={data} student={student} trainerView /> : <StudentSubscriptionCards data={data} student={student} /> : null}
       {trainerView && student.status === 'active' && <Section className="section-block">
         <SectionHeading title="Последняя активность" />
         {sessions.length ? <Box className="connected-list">{sessions.slice(0, 3).map((session) => (
@@ -499,10 +499,19 @@ function StudentProfile({ data, studentId, onUpdate, onDeleteInvitation, showPro
   );
 }
 
-function SubscriptionCard({ data, student, trainerView }: { data: DemoState; student: Student; trainerView: boolean }) {
-  const entries = subscriptionEntriesFor(data.subscriptionEntries, student.id);
-  const payments = recentSubscriptionPayments(data.subscriptionEntries, student.id, trainerView ? 1 : 3);
-  const balance = subscriptionBalance(data.subscriptionEntries, student.id);
+function StudentSubscriptionCards({ data, student }: { data: DemoState; student: Student }) {
+  const groups = new Map<string, string>();
+  for (const item of [...data.assignments, ...data.subscriptionEntries]) {
+    if (item.studentId === student.id && item.relationshipId) groups.set(item.relationshipId, item.trainerName ?? 'Тренер');
+  }
+  if (groups.size <= 1) return <SubscriptionCard data={data} student={student} trainerView={false} />;
+  return <Box>{[...groups].map(([id, name]) => <Box key={id}><SectionHeading title={name} /><SubscriptionCard data={data} student={student} trainerView={false} relationshipId={id} /></Box>)}</Box>;
+}
+
+function SubscriptionCard({ data, student, trainerView, relationshipId }: { data: DemoState; student: Student; trainerView: boolean; relationshipId?: string }) {
+  const entries = relationshipId ? data.subscriptionEntries.filter((entry) => entry.studentId === student.id && entry.relationshipId === relationshipId) : subscriptionEntriesFor(data.subscriptionEntries, student.id);
+  const payments = (relationshipId ? entries.filter((entry) => entry.kind === 'payment').sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)) : recentSubscriptionPayments(data.subscriptionEntries, student.id)).slice(0, trainerView ? 1 : 3);
+  const balance = relationshipId ? entries.reduce((total, entry) => total + entry.lessonDelta, 0) : subscriptionBalance(data.subscriptionEntries, student.id);
   const hasEntries = entries.length > 0;
   return (
     <Section className={`subscription-card ${subscriptionTone(balance, hasEntries)}`} aria-label="Абонемент">
