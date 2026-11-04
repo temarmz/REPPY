@@ -18,6 +18,7 @@ struct ActiveWorkoutScreen: View {
     @State private var debounce: Task<Void, Never>?
     @State private var finish = false
     @State private var structure = false
+    @State private var picker = false
     @State private var charge = true
     @State private var completed = false
     @State private var instruction: WorkoutExercise?
@@ -35,8 +36,20 @@ struct ActiveWorkoutScreen: View {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     ReppyWorkoutOverview(elapsed: elapsed(from: value.session.started_at, now: context.date), completed: value.results.filter(\.completed).count, total: value.results.count)
                 }
+                ReppyExerciseSectionHeader(reorder: value.workout.exercises.count > 1 ? { structure = true } : nil) { picker = true }
                 ForEach(Array(value.workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1) { instruction = exercise }
+                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1,
+                        onInstruction: { instruction = exercise },
+                        onAddSet: { addSet(to: exercise.id) },
+                        onRemoveSet: { removeLastSet(from: exercise.id) },
+                        canRemoveSet: exercise.plannedSets.count > 0 && !value.results.contains { $0.exercise_instance_id == exercise.id && $0.set_number == exercise.plannedSets.count && $0.completed },
+                        onMoveUp: { moveExercise(exercise.id, by: -1) }, onMoveDown: { moveExercise(exercise.id, by: 1) }, onEditPlan: { structure = true },
+                        canMoveUp: index > 0, canMoveDown: index + 1 < value.workout.exercises.count,
+                        onDelete: { draft?.workout.exercises.removeAll { $0.id == exercise.id } },
+                        canDelete: !value.results.contains { $0.exercise_instance_id == exercise.id && $0.completed },
+                        onNoteChange: { note in
+                            if let position = draft?.workout.exercises.firstIndex(where: { $0.id == exercise.id }) { draft?.workout.exercises[position].coachNote = note }
+                        })
                 }
                 ReppyButton(title: "Завершить тренировку", icon: "checkmark", kind: .primary, disabled: saving || store.busy) { finish = true }
             } else { ReppyEmpty(title: "Не удалось открыть тренировку", message: "Вернись к плану и обнови данные.") }
@@ -83,6 +96,9 @@ struct ActiveWorkoutScreen: View {
             .sheet(isPresented: $structure) {
                 if draft != nil { NavigationStack { ActiveStructureScreen(workout: Binding(get: { draft!.workout }, set: { draft?.workout = $0 }), relationshipID: relationshipID) } }
             }
+            .sheet(isPresented: $picker) {
+                NavigationStack { ExercisePickerScreen(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }
+            }
             .navigationDestination(isPresented: $completed) { SessionResultScreen(sessionID: sessionID) }
             .confirmationDialog("Изменения тренировки отличаются на двух устройствах. Выбери, какой вариант сохранить.", isPresented: $confirmReload, titleVisibility: .visible) {
                 Button("Сохранить мой вариант") { Task {
@@ -99,6 +115,22 @@ struct ActiveWorkoutScreen: View {
             }
     }
     private var relationshipID: String { store.data.assignments.first { $0.id == draft?.session.assignment_id }?.relationship_id ?? "" }
+    private func addSet(to id: String) {
+        guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }) else { return }
+        let last = draft!.workout.exercises[index].plannedSets.last ?? SetPlan()
+        draft?.workout.exercises[index].plannedSets.append(SetPlan(targetReps: last.targetReps, targetWeight: last.targetWeight))
+    }
+    private func removeLastSet(from id: String) {
+        guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
+              let count = draft?.workout.exercises[index].plannedSets.count, count > 0,
+              draft?.results.contains(where: { $0.exercise_instance_id == id && $0.set_number == count && $0.completed }) == false else { return }
+        draft?.workout.exercises[index].plannedSets.removeLast()
+    }
+    private func moveExercise(_ id: String, by offset: Int) {
+        guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
+              let count = draft?.workout.exercises.count, (0..<count).contains(index + offset) else { return }
+        draft?.workout.exercises.swapAt(index, index + offset)
+    }
     private func syncServerVersionIfClean() {
         guard !saving, !restoringRemote, revision == savedRevision,
               let current = draft?.session,
@@ -205,6 +237,6 @@ struct ActiveStructureScreen: View {
             }
         }.reppyFormActions(saveTitle: "Готово", showsCancel: false, hasChanges: false, save: { dismiss() }, discard: {})
         .sheet(isPresented: $reorder) { NavigationStack { ReppyExerciseOrderEditor(exercises: $workout.exercises) } }
-        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen { workout.exercises.append(WorkoutExercise(definition: $0)); picker = false } } }
+        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen(exercises: $workout.exercises) } }
     }
 }

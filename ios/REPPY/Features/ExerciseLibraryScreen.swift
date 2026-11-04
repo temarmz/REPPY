@@ -3,21 +3,43 @@ import SwiftUI
 private let reppyMuscles = ["Грудь", "Спина", "Плечи", "Бицепс", "Трицепс", "Квадрицепс", "Ягодицы", "Задняя поверхность бедра", "Икры", "Кор"]
 struct ExercisePickerScreen: View {
     @EnvironmentObject private var store: AppStore
-    var onChoose: (ExerciseDefinition) -> Void
+    @Environment(\.dismiss) private var dismiss
+    var onChoose: ((ExerciseDefinition) -> Void)?
+    var exercises: Binding<[WorkoutExercise]>?
     @State private var search = ""
     @State private var muscle = "Все"
+    init(onChoose: @escaping (ExerciseDefinition) -> Void) { self.onChoose = onChoose; exercises = nil }
+    init(exercises: Binding<[WorkoutExercise]>) { self.exercises = exercises; onChoose = nil }
+    private func add(_ definition: ExerciseDefinition) {
+        if let exercises { exercises.wrappedValue.append(WorkoutExercise(definition: definition)) }
+        else { onChoose?(definition) }
+    }
     var body: some View {
-        ReppyPage(back: true, nativeList: true, title: "Упражнение") {
+        ReppyPage(back: true, nativeList: true, title: exercises == nil ? "Упражнение" : "Добавить упражнения") {
             ReppyPicker(title: "Мышечная группа", selection: $muscle) { Text("Все").tag("Все"); ForEach(reppyMuscles, id: \.self) { Text($0).tag($0) } }
-            if store.isTrainer { ReppyLink(title: "Создать своё упражнение", icon: "plus") { DefinitionFormScreen(onSaved: onChoose) } }
+            if store.isTrainer { ReppyLink(title: "Создать своё упражнение", icon: "plus") { DefinitionFormScreen(onSaved: add) } }
             let definitions = store.data.definitions.filter { definition in
                 (search.isEmpty || definition.name.localizedCaseInsensitiveContains(search)) && (muscle == "Все" || definition.muscle_groups.contains(muscle) || definition.primary_muscle == muscle)
             }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
             if definitions.isEmpty { ReppyEmpty(title: "Ничего не найдено", message: "Измени поиск или выбери другую мышечную группу.") }
             ForEach(definitions) { definition in
-                ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { onChoose(definition) }.disabled(store.busy)
+                if let exercises {
+                    HStack(spacing: ReppyMetrics.space12) {
+                        VStack(alignment: .leading, spacing: ReppyMetrics.space8) {
+                            Text(definition.name).reppyTypography(.body)
+                            Text(definition.equipment).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                        let count = exercises.wrappedValue.filter { $0.exerciseId == definition.id }.count
+                        Button {
+                            if let index = exercises.wrappedValue.lastIndex(where: { $0.exerciseId == definition.id }) { exercises.wrappedValue.remove(at: index) }
+                        } label: { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0).accessibilityLabel("Убрать \(definition.name)")
+                        Text("\(count)").monospacedDigit().frame(minWidth: 20).accessibilityLabel("Добавлено: \(count)")
+                        Button { add(definition) } label: { ReppyToolbarIcon(icon: "plus") }.accessibilityLabel("Добавить \(definition.name)")
+                    }.disabled(store.busy)
+                } else { ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { add(definition) }.disabled(store.busy) }
             }
-        }.reppyDismissAction()
+        }.toolbar { if exercises != nil { ToolbarItem(placement: .confirmationAction) { Button("Готово") { dismiss() } } } }
+            .reppyDismissAction()
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Поиск")
     }
 }

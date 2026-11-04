@@ -33,7 +33,7 @@ struct DashboardScreen: View {
                 ForEach(byDay[today, default: []]) { AssignmentAgendaRow(assignment: $0, schedule: true) }
                 ReppyRow {
                     ReppyStack(compact: true) { ReppyHeading(text: "Дальше"); ReppyCaption(text: "Ближайшие две недели") }
-                    ReppyToggle(title: "Все дни", value: $showAllDays)
+                    ReppyToggle(title: "Все дни", value: $showAllDays).fixedSize(horizontal: true, vertical: false)
                 }
                 if !showAllDays && !upcoming.contains(where: { $0.scheduled_for > today }) {
                     ReppyEmpty(title: "Остальные дни свободны", message: "На ближайшие две недели больше ничего не назначено.", icon: "calendar")

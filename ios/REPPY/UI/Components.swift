@@ -39,8 +39,9 @@ struct ReppyPage<Content: View>: View {
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Готово") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
-                        .buttonStyle(.bordered).accessibilityIdentifier("dismiss-keyboard")
+                    Button("Скрыть клавиатуру", systemImage: "keyboard.chevron.compact.down") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }.accessibilityIdentifier("dismiss-keyboard")
                 }
             }
             .confirmationDialog("Удалить нечитабельный локальный черновик? Сохранённые на сервере данные останутся доступны.", isPresented: $discardDraft, titleVisibility: .visible) {

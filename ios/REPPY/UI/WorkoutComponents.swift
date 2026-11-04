@@ -92,18 +92,44 @@ struct ReppyActiveExerciseCard: View {
     @Binding var results: [SetResult]
     var number: Int? = nil
     var onInstruction: () -> Void
+    var onAddSet: () -> Void = {}
+    var onRemoveSet: () -> Void = {}
+    var canRemoveSet = false
+    var onMoveUp: () -> Void = {}
+    var onMoveDown: () -> Void = {}
+    var onEditPlan: () -> Void = {}
+    var canMoveUp = false
+    var canMoveDown = false
+    var onDelete: () -> Void = {}
+    var canDelete = true
+    var onNoteChange: (String) -> Void = { _ in }
     var body: some View {
         ReppyCard {
             ReppyExerciseHeader(exercise: exercise, number: number) {
-                Button(action: onInstruction) { ReppyToolbarIcon(icon: "questionmark.circle") }.buttonStyle(.plain).accessibilityLabel("Инструкция: \(exercise.name)")
+                HStack(spacing: ReppyMetrics.space8) {
+                    Button(action: onInstruction) { ReppyToolbarIcon(icon: "questionmark.circle") }.buttonStyle(.plain).accessibilityLabel("Инструкция: \(exercise.name)")
+                    Menu {
+                        Button("Изменить план и упражнение", systemImage: "pencil", action: onEditPlan)
+                        Button("Выше", systemImage: "arrow.up", action: onMoveUp).disabled(!canMoveUp)
+                        Button("Ниже", systemImage: "arrow.down", action: onMoveDown).disabled(!canMoveDown)
+                        Button("Удалить упражнение", systemImage: "trash", role: .destructive, action: onDelete).disabled(!canDelete)
+                    } label: { ReppyToolbarIcon(icon: "ellipsis") }.accessibilityLabel("Действия с упражнением: \(exercise.name)")
+                }
             }
-            if let note = exercise.coachNote, !note.isEmpty { ReppyText(text: note, tone: .secondary) }
+            ReppyDisclosure(title: "Комментарий к упражнению") {
+                ReppyField(title: "Комментарий", text: Binding(get: { exercise.coachNote ?? "" }, set: { onNoteChange($0) }), multiline: true)
+            }
             ReppyStack(compact: true) {
                 SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit)
                 ForEach($results) { $result in
                     if result.exercise_instance_id == exercise.id { ActiveSetRow(exercise: exercise, result: $result, onChange: {}) }
                 }
                 if !results.contains(where: { $0.exercise_instance_id == exercise.id }) { ReppyCaption(text: "Подходы не заданы") }
+            }
+            HStack(spacing: ReppyMetrics.space8) {
+                ReppyButton(title: "Добавить подход", icon: "plus", compact: true, action: onAddSet)
+                Button(action: onRemoveSet) { ReppyToolbarIcon(icon: "minus") }
+                    .disabled(!canRemoveSet).accessibilityLabel("Удалить последний подход: \(exercise.name)")
             }
         }
     }

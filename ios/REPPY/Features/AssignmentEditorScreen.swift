@@ -30,7 +30,7 @@ struct StudentAssignmentPickerScreen: View {
                 ForEach(matches) { assignment in
                     let workout = completed(assignment) ? store.data.session(for: assignment.id)?.workout_snapshot ?? assignment.workout_snapshot : assignment.workout_snapshot
                     let status = completed(assignment) ? "Завершена" : assignment.scheduled_for < ReppyDate.day() ? "Не завершена" : "Запланирована"
-                    ReppyWorkoutChoiceLink(title: workout.name, subtitle: "\(status) · \(assignment.scheduleLabel)\n\(workout.exercises.prefix(3).map(\.name).joined(separator: " · "))") {
+                    ReppyWorkoutChoiceLink(title: workout.name, subtitle: "\(status) · \(assignment.scheduleLabel) · \(workout.exercises.count) упр.") {
                         AssignmentEditorScreen(relationshipID: relationshipID, initialDate: initialDate, repeatAssignment: assignment)
                     }
                 }
@@ -111,7 +111,7 @@ struct AssignmentEditorScreen: View {
                 draft.time = formatter.string(from: date); saveDraft()
             }
             .sheet(isPresented: $reorder) { NavigationStack { ReppyExerciseOrderEditor(exercises: $draft.workout.exercises) } }
-            .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen { definition in draft.workout.exercises.append(WorkoutExercise(definition: definition)); picker = false } }.presentationCornerRadius(ReppyMetrics.modalRadius) }
+            .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen(exercises: $draft.workout.exercises) }.presentationCornerRadius(ReppyMetrics.modalRadius) }
 
     }
     private func initialize() {
