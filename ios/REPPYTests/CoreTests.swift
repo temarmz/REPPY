@@ -7,7 +7,7 @@ import XCTest
 
 final class CoreTests: XCTestCase {
     func testAssignmentStatusUsesSessionStateAndScheduledDate() throws {
-        var data = try TestFixtures.load()
+        let data = try TestFixtures.load()
         let assignment = try XCTUnwrap(data.assignments.first)
         XCTAssertEqual(assignment.statusLabel(sessions: [], today: "2026-11-01"), assignment.scheduled_for < "2026-11-01" ? "Не начата · назначенный день прошёл" : assignment.scheduled_for == "2026-11-01" ? "Тренировка сегодня" : "Предстоящая тренировка")
         var active = try XCTUnwrap(data.sessions.first)
