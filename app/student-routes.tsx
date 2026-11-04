@@ -89,6 +89,7 @@ function StudentAssignmentDetails({
   const completed = assignment.status === 'completed' || Boolean(completedSession);
   const assignmentStatus = assignmentStatusLabel(assignment, data.sessions);
   const canStart = !completed && (assignment.format === 'online' || Boolean(activeSession) || assignment.scheduledFor === dateKey());
+  const canRequestReschedule = !completed && !activeSession && assignment.format === 'in-person' && assignment.scheduledFor >= dateKey();
   const scheduleUnchanged = scheduledFor === assignment.scheduledFor && scheduledTime === assignment.scheduledTime;
   const entries = assignmentEntries(data, assignment);
   const balance = entries.reduce((total, entry) => total + entry.lessonDelta, 0);
@@ -100,21 +101,21 @@ function StudentAssignmentDetails({
       {assignment.trainerName && <Paragraph>Тренер: {assignment.trainerName}</Paragraph>}
       {simultaneousAssignments(data, assignment) && <Paragraph>На это время назначена ещё одна тренировка. Уточни расписание у тренеров.</Paragraph>}
       <Paragraph className="student-assignment-meta"><Icon name={assignment.format === 'online' ? 'workout' : 'calendar'} /><Inline>{formatScheduleDay(assignment.scheduledFor)}</Inline><Inline aria-hidden="true">·</Inline><Time dateTime={assignmentDateTime(assignment)}>{assignment.format === 'online' ? 'Онлайн · в удобное время' : assignmentTimeLabel(assignment)}</Time></Paragraph>
-      {assignment.format === 'in-person' && (assignment.rescheduleRequest ? <Section className="student-request-status"><Icon name="check" /><Box><Strong>Новое время предложено</Strong><Paragraph>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</Paragraph><Small>Тренер увидит запрос и подтвердит или отклонит его.</Small></Box></Section> : <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>)}
+      {!completed && assignment.rescheduleRequest ? <Section className="student-request-status"><Icon name="check" /><Box><Strong>Новое время предложено</Strong><Paragraph>{formatScheduleDay(assignment.rescheduleRequest.scheduledFor)} · {assignment.rescheduleRequest.scheduledTime}</Paragraph><Small>Тренер увидит запрос и подтвердит или отклонит его.</Small></Box></Section> : canRequestReschedule && <ActionButton variant="secondary" className="student-reschedule-button" icon="calendar" aria-expanded={requestOpen} onClick={() => setRequestOpen((current) => !current)}>Предложить другое время</ActionButton>}
 
-      {assignment.format === 'in-person' && requestOpen && !assignment.rescheduleRequest && <Section className="student-reschedule-form">
+      {canRequestReschedule && requestOpen && !assignment.rescheduleRequest && <Section className="student-reschedule-form">
         <WorkoutScheduleFields dateLabel="Новая дата" timeLabel="Новое время" scheduledFor={scheduledFor} scheduledTime={scheduledTime} onDateChange={setScheduledFor} onTimeChange={setScheduledTime} />
-        <ActionButton icon="check" disabled={!scheduledFor || !scheduledTime || scheduleUnchanged} onClick={() => { clearUiDraft(draftKey); onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
+        <ActionButton icon="check" disabled={!scheduledFor || scheduledFor < dateKey() || !scheduledTime || scheduleUnchanged} onClick={() => { clearUiDraft(draftKey); onRequest(scheduledFor, scheduledTime); setRequestOpen(false); }}>Отправить тренеру</ActionButton>
       </Section>}
 
-      {balance <= 0 && <Section className="subscription-warning debt student-debt-warning">
+      {canStart && balance <= 0 && <Section className="subscription-warning debt student-debt-warning">
         <Icon name="minus" />
         <Box><Strong>{subscriptionBalanceLabel(balance, hasSubscription)}</Strong><Small>Эту тренировку можно завершить в долг. Занятие спишется как обычно.</Small></Box>
       </Section>}
 
       {completedSession && <ActionButton variant="secondary" icon="check" onClick={() => go(`/student/calendar/sessions/${completedSession.id}`)}>Посмотреть результат</ActionButton>}
       {canStart && <ActionButton className="student-start-button" icon="workout" onClick={onStart}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
-      {!completed && !canStart && <Paragraph>{assignment.scheduledFor < dateKey() ? 'Назначенный день уже прошёл. Предложи другое время тренеру.' : 'Очную тренировку можно начать в назначенный день.'}</Paragraph>}
+      {!completed && !canStart && <Paragraph>{assignment.scheduledFor < dateKey() ? 'Назначенный день уже прошёл. Свяжись с тренером, чтобы выбрать новое время.' : 'Очную тренировку можно начать в назначенный день.'}</Paragraph>}
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>
       <ReadOnlyExerciseList workout={workout} />
     </Page>
@@ -126,7 +127,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + 14);
   const assignments = data.assignments
-    .filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned' && (item.format === 'online' || item.scheduledFor >= dateKey()) && item.scheduledFor <= dateKey(horizon))
+    .filter((item) => item.studentId === data.activeStudentId && item.status === 'assigned' && (item.format === 'online' || item.scheduledFor >= dateKey() || data.sessions.some((session) => session.assignmentId === item.id && !session.completedAt)) && item.scheduledFor <= dateKey(horizon))
     .sort((a, b) => assignmentSortValue(a).localeCompare(assignmentSortValue(b)));
   const mainAssignment = assignments[0];
   const mainSession = mainAssignment && data.sessions.find((item) => item.assignmentId === mainAssignment.id && !item.completedAt);

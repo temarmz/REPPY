@@ -52,7 +52,8 @@ extension AppStore {
         if !isDemo { try await loadData() }
     }
     func requestReschedule(_ assignment: Assignment, date: Date, time: String) async throws {
-        guard assignment.format == .inPerson, assignment.status == "assigned" else { throw APIError.message("Перенос для этой тренировки недоступен.") }
+        guard assignment.format == .inPerson, assignment.status == "assigned", assignment.scheduled_for >= ReppyDate.day(), data.session(for: assignment.id) == nil else { throw APIError.message("Перенос для этой тренировки недоступен. Свяжись с тренером.") }
+        guard ReppyDate.day(date) >= ReppyDate.day() else { throw APIError.message("Выбери сегодняшнюю или будущую дату.") }
         if isDemo {
             guard let index = data.assignments.firstIndex(where: { $0.id == assignment.id }) else { return }
             data.assignments[index].reschedule_scheduled_for = ReppyDate.day(date)
