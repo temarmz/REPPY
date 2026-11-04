@@ -29,9 +29,10 @@ struct SignInScreen: View {
                 if !store.pendingRegistration {
                     ReppyButton(title: store.busy ? "Входим…" : "Войти через Telegram", icon: "paperplane.fill", kind: .primary,
                         disabled: store.busy || store.api == nil || !store.networkAvailable) { Task { await store.login() } }
-                    ReppyCaption(text: "Используй свой Telegram. Если ты уже в REPPY, твои данные появятся после входа.")
+                    ReppyCaption(text: "Войди через свой Telegram: REPPY откроет уже привязанный кабинет тренера или ученика. Новый кабинет тренера можно создать после входа.")
                 }
                 ReppyButton(title: store.invitation.isEmpty ? "У меня есть приглашение" : "Изменить приглашение", icon: "link", disabled: store.busy) { invitationDraft = store.invitation; invitationOpen = true }
+                if !store.pendingRegistration { ReppyCaption(text: "Впервые входишь как ученик? Сначала открой приглашение от тренера.") }
                 if store.pendingRegistration {
                     ReppyButton(title: "Вернуться ко входу", disabled: store.busy) { store.cancelRegistration() }
                 }

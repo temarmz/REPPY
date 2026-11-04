@@ -23,6 +23,10 @@ extension AppStore {
         }
         guard let api else { throw APIError.signedOut }
         if let original {
+            guard original.relationship_id == relationshipID else {
+                throw APIError.message("Нельзя перенести существующую тренировку к другому ученику. Создай новую тренировку.")
+            }
+            values.removeValue(forKey: "relationship_id")
             let row: Assignment = try await api.update("assignments", id: id, revision: original.revision, values: values)
             data.assignments.removeAll { $0.id == id }; data.assignments.append(row)
         } else {

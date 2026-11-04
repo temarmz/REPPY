@@ -97,7 +97,7 @@ export function AccountScreen({
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="arrow-right" disabled={busy} onClick={() => void signIn(resumable)}>{busy ? 'Открываем Telegram…' : resumable ? 'Повторить вход' : 'Продолжить через Telegram'}</ActionButton>
           {resumable && <ActionButton variant="secondary" icon="history" disabled={busy} onClick={() => void signIn()}>Войти заново</ActionButton>}
-          <Paragraph className="auth-description">Ученику нужна ссылка-приглашение от тренера.</Paragraph>
+          <Paragraph className="auth-description">Войди через свой Telegram: REPPY откроет уже привязанный кабинет тренера или ученика. Для первого входа ученику нужна ссылка-приглашение от тренера.</Paragraph>
         </Box> : <Form className="auth-form" onSubmit={create}>
           <Paragraph className="auth-description">Аккаунта ещё нет. Проверь имя и создай кабинет тренера — повторно открывать Telegram не нужно.</Paragraph>
           <Box><TextField id="trainer-telegram-name" label="Имя тренера" autoComplete="name" minLength={2} maxLength={120} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></Box>
