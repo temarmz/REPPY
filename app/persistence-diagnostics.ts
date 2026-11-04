@@ -1,4 +1,4 @@
-import { getActivityLog, recordActivity } from './activity-log';
+import { getActivityLog, recordActivity } from './activity-log.ts';
 
 type Diagnostic = {
   at: string;
