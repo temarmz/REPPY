@@ -5,6 +5,7 @@ struct ReppyPage<Content: View>: View {
     var nativeList = false
     var lazyContent = false
     var title: String? = nil
+    var onConflictReload: (() -> Void)? = nil
     @EnvironmentObject private var store: AppStore
     @State private var discardDraft = false
     @ViewBuilder var content: () -> Content
@@ -52,7 +53,10 @@ struct ReppyPage<Content: View>: View {
         if let error = store.error, store.conflict || store.failedDraft != nil {
             ReppyStatus(message: error, error: true, actionTitle: store.failedDraft != nil ? "Отбросить нечитабельный черновик" : store.conflict ? "Загрузить актуальные данные" : "Закрыть сообщение") {
                 if store.failedDraft != nil { discardDraft = true }
-                else if store.conflict { Task { await store.reload() } } else { store.error = nil }
+                else if store.conflict {
+                    if let onConflictReload { onConflictReload() }
+                    else { Task { await store.reload() } }
+                } else { store.error = nil }
             }
         }
         content()

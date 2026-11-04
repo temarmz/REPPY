@@ -13,6 +13,7 @@ struct ActiveWorkoutScreen: View {
     @State private var revision = 0
     @State private var savedRevision = 0
     @State private var saving = false
+    @State private var restoringRemote = false
     @State private var status = "Все изменения сохранены"
     @State private var debounce: Task<Void, Never>?
     @State private var finish = false
@@ -24,7 +25,7 @@ struct ActiveWorkoutScreen: View {
     @State private var draftAccount = ""
     private var draftKey: String { "active:\(sessionID)" }
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, onConflictReload: { Task { await loadServerVersion() } }) {
             if let value = draft {
                 if let assignment = store.data.assignments.first(where: { $0.id == value.session.assignment_id }) { ReppyCaption(text: "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)") }
                 ReppyTitle(text: value.workout.name)
@@ -50,11 +51,17 @@ struct ActiveWorkoutScreen: View {
         }
             .onAppear { initialize() }
             .onChange(of: draft?.results) { _, _ in changed() }
-            .onChange(of: draft?.workout) { old, _ in reconcileResults(previous: old); changed() }
+            .onChange(of: draft?.workout) { old, _ in
+                if draft?.workout != draft?.session.workout_snapshot { reconcileResults(previous: old) }
+                changed()
+            }
             .onChange(of: store.busy) { _, busy in
-                if !busy, !saving, store.error == nil, !store.conflict, revision != savedRevision { Task { await flush() } }
+                if !busy, !saving, !restoringRemote, store.error == nil, !store.conflict, revision != savedRevision { Task { await flush() } }
             }
             .onChange(of: store.networkAvailable) { _, available in if available { Task { await flush() } } }
+            .onChange(of: store.data.sessions.first(where: { $0.id == sessionID })?.revision) { _, _ in
+                syncServerVersionIfClean()
+            }
             .onDisappear {
                 debounce?.cancel()
                 if !completed, revision != savedRevision, !draftAccount.isEmpty, let draft { do { try DraftStorage.save(draft, account: draftAccount, key: draftKey) } catch { store.present(error) } }
@@ -87,19 +94,36 @@ struct ActiveWorkoutScreen: View {
                     revision += 1; savedRevision = 0
                     await flush()
                 } }
-                Button("Загрузить данные сервера", role: .destructive) { Task {
-                    await store.reload()
-                    guard store.error == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
-                    draft = SessionDraft(session: session, workout: session.workout_snapshot, results: store.data.sessionResults(sessionID))
-                    baseResults = store.data.sessionResults(sessionID)
-                    revision = 0; savedRevision = 0; status = "Все изменения сохранены"
-                    do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
-                    if session.completed_at != nil { completed = true }
-                } }
+                Button("Загрузить данные сервера", role: .destructive) { Task { await loadServerVersion() } }
                 Button("Оставить черновик", role: .cancel) {}
             }
     }
     private var relationshipID: String { store.data.assignments.first { $0.id == draft?.session.assignment_id }?.relationship_id ?? "" }
+    private func syncServerVersionIfClean() {
+        guard !saving, !restoringRemote, revision == savedRevision,
+              let current = draft?.session,
+              let session = store.data.sessions.first(where: { $0.id == sessionID }),
+              session.revision != current.revision else { return }
+        let results = store.data.sessionResults(sessionID)
+        draft = SessionDraft(session: session, workout: session.workout_snapshot, results: results)
+        baseResults = results
+        status = "Все изменения сохранены"
+        if session.completed_at != nil { completed = true }
+    }
+    private func loadServerVersion() async {
+        guard !saving, !store.busy else { return }
+        restoringRemote = true
+        defer { restoringRemote = false }
+        debounce?.cancel()
+        await store.reload()
+        guard store.error == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
+        let results = store.data.sessionResults(sessionID)
+        draft = SessionDraft(session: session, workout: session.workout_snapshot, results: results)
+        baseResults = results
+        revision = 0; savedRevision = 0; status = "Все изменения сохранены"
+        do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
+        if session.completed_at != nil { completed = true }
+    }
     private func resultBinding(_ fallback: SetResult) -> Binding<SetResult> {
         Binding(get: { draft?.results.first { $0.id == fallback.id } ?? fallback }, set: { result in
             if let index = draft?.results.firstIndex(where: { $0.id == fallback.id }) { draft?.results[index] = result }
@@ -134,7 +158,7 @@ struct ActiveWorkoutScreen: View {
         debounce = Task { try? await Task.sleep(for: .milliseconds(700)); guard !Task.isCancelled else { return }; await flush() }
     }
     private func flush() async {
-        guard let value = draft, !saving, !store.busy, revision != savedRevision else { return }
+        guard let value = draft, !saving, !restoringRemote, !store.busy, revision != savedRevision else { return }
         guard !store.conflict else { status = "Конфликт изменений"; return }
         saving = true; status = "Сохраняем…"; let version = revision
         let success = await store.run { try await store.saveProgress(value.session, workout: value.workout, results: value.results, baseResults: baseResults) }
