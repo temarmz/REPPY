@@ -77,11 +77,11 @@ struct AssignmentScreen: View {
                     }, discard: { reschedule = false })
                 }
             }
-            .confirmationDialog("Удалить тренировку? Если занятие было списано, оно вернётся в абонемент.", isPresented: $confirmDelete, titleVisibility: .visible) {
+            .alert("Удалить тренировку?", isPresented: $confirmDelete) {
                 Button("Удалить", role: .destructive) { Task {
                     if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }), await store.run({ try await store.deleteAssignment(assignment) }) { dismiss() }
                 } }
                 Button("Отмена", role: .cancel) {}
-            }
+            } message: { Text("Если занятие было списано, оно вернётся в абонемент.") }
     }
 }

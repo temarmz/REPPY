@@ -70,13 +70,13 @@ struct SessionResultScreen: View {
                             do { try DraftStorage.remove(account: store.accountKey, key: "feedback:\(sessionID)") } catch { store.present(error) }})
                 }.presentationCornerRadius(ReppyMetrics.modalRadius)
             }
-            .confirmationDialog("Удалить завершённую тренировку? Если занятие списано, оно вернётся в абонемент ученика.", isPresented: $confirmDelete, titleVisibility: .visible) {
+            .alert("Удалить завершённую тренировку?", isPresented: $confirmDelete) {
                 Button("Удалить тренировку", role: .destructive) { Task {
                     guard let assignment = store.data.assignments.first(where: { $0.id == store.data.sessions.first(where: { $0.id == sessionID })?.assignment_id }) else { return }
                     if await store.run({ try await store.deleteAssignment(assignment) }) { dismiss() }
                 } }
                 Button("Отмена", role: .cancel) {}
-            }
+            } message: { Text("Если занятие списано, оно вернётся в абонемент ученика.") }
     }
     private func saveDraft() {
         guard initialized, !store.isTrainer, feedbackEditing else { return }

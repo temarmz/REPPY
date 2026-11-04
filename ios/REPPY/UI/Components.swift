@@ -373,7 +373,7 @@ struct ReppyFormActions: ViewModifier {
     var saveTitle: String
     var saveLabel: String? = nil
     var cancelTitle = "Отмена"
-    var cancelIcon = false
+    var cancelIcon = true
     var showsCancel = true
     var disabled = false
     var busy = false
@@ -409,7 +409,7 @@ struct ReppyFormActions: ViewModifier {
     }
 }
 extension View {
-    func reppyFormActions(saveTitle: String = "Сохранить", saveLabel: String? = nil, cancelTitle: String = "Отмена", cancelIcon: Bool = false, showsCancel: Bool = true, disabled: Bool = false, busy: Bool = false, hasChanges: Bool = true, allowsKeepDraft: Bool = true, save: @escaping () -> Void, discard: @escaping () -> Void) -> some View {
+    func reppyFormActions(saveTitle: String = "Сохранить", saveLabel: String? = nil, cancelTitle: String = "Отмена", cancelIcon: Bool = true, showsCancel: Bool = true, disabled: Bool = false, busy: Bool = false, hasChanges: Bool = true, allowsKeepDraft: Bool = true, save: @escaping () -> Void, discard: @escaping () -> Void) -> some View {
         modifier(ReppyFormActions(saveTitle: saveTitle, saveLabel: saveLabel, cancelTitle: cancelTitle, cancelIcon: cancelIcon, showsCancel: showsCancel, disabled: disabled, busy: busy, hasChanges: hasChanges, allowsKeepDraft: allowsKeepDraft, save: save, discard: discard))
     }
 }
