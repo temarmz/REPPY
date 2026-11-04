@@ -67,6 +67,7 @@ type SessionRow = {
   mood: WorkoutSession['mood'] | null;
   comment: string | null;
   charge_status: WorkoutSession['subscriptionChargeStatus'] | null;
+  auto_completed?: boolean;
   revision: number;
 };
 
@@ -272,7 +273,7 @@ export function createSupabaseRepository(
       client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color, updated_at'),
       client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications, updated_at'),
       client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at, revision'),
-      client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, revision'),
+      client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, auto_completed, revision'),
       client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
       subscriptionsQuery,
       client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, muscle_groups, equipment, measure_type, load_mode, archived_at'),
@@ -404,6 +405,7 @@ export function createSupabaseRepository(
         startedAt: session.started_at,
         recordedBy: session.recorded_by_role,
         completedAt: session.completed_at ?? undefined,
+        autoCompleted: session.auto_completed,
         mood: session.mood ?? undefined,
         comment: session.comment ?? undefined,
         subscriptionChargeStatus: session.charge_status ?? undefined,
@@ -790,6 +792,10 @@ export function createSupabaseRepository(
       throwIfError(completed);
       sessionRevision.set(command.sessionId, (completed.data as SessionRow).revision);
       telegramNotificationCreated = profile.role === 'student';
+    } else if (command.type === 'session.charge') {
+      const updated = await client.rpc('set_session_charge', { p_session_id: getRemoteId(remoteSessionId, command.sessionId), p_charged: command.charged });
+      throwIfError(updated);
+      sessionRevision.set(command.sessionId, (updated.data as SessionRow).revision);
     } else if (command.type === 'session.feedback') {
       throwIfError(await client.rpc('save_session_feedback', {
         p_session_id: getRemoteId(remoteSessionId, command.sessionId),

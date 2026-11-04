@@ -164,3 +164,16 @@ test('удаление приглашения убирает только неп
   assert.strictEqual(next.assignments, state.assignments);
   assert.strictEqual(next.sessions, state.sessions);
 });
+
+test('списание завершённой тренировки можно многократно отменять и возвращать без дублей', () => {
+  let state = createInitialState();
+  const assignment = state.assignments[0];
+  const session = createWorkoutSession(assignment, assignment.workoutSnapshot, 'trainer');
+  state = applyReppyCommand(state, { type: 'session.start', session });
+  state = applyReppyCommand(state, { type: 'session.complete', sessionId: session.id, assignmentId: assignment.id, completedAt: new Date().toISOString(), chargeSubscription: true, workoutName: session.workoutSnapshot.name });
+  for (const charged of [false, false, true, true, false, true]) {
+    state = applyReppyCommand(state, { type: 'session.charge', sessionId: session.id, charged });
+    assert.equal(state.subscriptionEntries.filter(e => e.sessionId === session.id).reduce((sum, e) => sum + e.lessonDelta, 0), charged ? -1 : 0);
+    assert.ok(state.sessions.find(s => s.id === session.id)?.completedAt);
+  }
+});

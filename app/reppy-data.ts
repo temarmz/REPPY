@@ -85,6 +85,7 @@ export type WorkoutSession = {
   startedAt: string;
   recordedBy: Role;
   completedAt?: string;
+  autoCompleted?: boolean;
   mood?: MoodRating;
   comment?: string;
   subscriptionChargeStatus?: 'charged' | 'waived';

@@ -24,12 +24,16 @@ struct SessionResultScreen: View {
                 ReppyCaption(text: assignment?.scheduleLabel ?? ReppyDate.display(displayDate))
                 let results = store.data.sessionResults(sessionID)
                 ReppySessionSummary(session: session, results: results)
+                if session.auto_completed == true { ReppyCaption(text: "Тренировка завершена автоматически.") }
                 if session.completed_at != nil && !results.contains(where: \.completed) {
                     ReppyCaption(text: "Тренировка завершена без отмеченных подходов.")
                 }
                 let charged = store.data.isSessionCharged(sessionID)
                 if store.isTrainer, charged || session.charge_status == "waived" {
                     ReppyChargeSummary(charged: charged)
+                    ReppyButton(title: charged ? "Сделать бесплатной" : "Списать занятие", icon: "checkmark", disabled: store.busy) {
+                        Task { await store.run { try await store.setSessionCharge(session, charged: !charged) } }
+                    }
                 }
                 if session.mood != nil || !(session.comment ?? "").isEmpty { ReppyFeedbackSummary(mood: session.mood, comment: session.comment) }
                 if !store.isTrainer {

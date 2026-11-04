@@ -153,6 +153,7 @@ public struct WorkoutSession: Codable, Identifiable, ReppySendable {
     public var completed_at: String?
     public var mood: Mood?
     public var comment: String?
+    public var auto_completed: Bool? = nil
     public var charge_status: String?
     public var revision: Int
 }

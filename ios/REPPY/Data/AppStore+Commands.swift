@@ -132,6 +132,21 @@ extension AppStore {
         if let index = data.assignments.firstIndex(where: { $0.id == session.assignment_id }) { data.assignments[index].status = "completed" }
         if !isDemo { try await loadData() }
     }
+    func setSessionCharge(_ session: WorkoutSession, charged: Bool) async throws {
+        guard isTrainer, session.completed_at != nil else { return }
+        if !isDemo, let api {
+            let _: WorkoutSession = try await api.rpc("set_session_charge", ["p_session_id": session.id, "p_charged": charged])
+            try await loadData()
+        } else if let assignment = data.assignments.first(where: { $0.id == session.assignment_id }) {
+            data.subscriptions.removeAll { $0.session_id == session.id && ($0.kind == "session-charge" || $0.kind == "session-refund") }
+            if charged {
+                data.subscriptions.append(try decodeObject(["id": UUID().uuidString.lowercased(), "relationship_id": assignment.relationship_id,
+                    "kind": "session-charge", "lesson_delta": -1, "occurred_at": session.completed_at!, "created_at": ReppyDate.timestamp(),
+                    "session_id": session.id, "workout_name": session.workout_snapshot.name, "revision": 1]))
+            }
+            if let index = data.sessions.firstIndex(where: { $0.id == session.id }) { data.sessions[index].charge_status = charged ? "charged" : "waived" }
+        }
+    }
     func saveFeedback(_ session: WorkoutSession, mood: Mood, comment: String) async throws {
         if !isDemo, let api { try await api.call("save_session_feedback", ["p_session_id": session.id, "p_mood": mood.rawValue, "p_comment": comment.trimmingCharacters(in: .whitespacesAndNewlines)]) }
         if let index = data.sessions.firstIndex(where: { $0.id == session.id }) { data.sessions[index].mood = mood; data.sessions[index].comment = comment }
