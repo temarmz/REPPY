@@ -41,7 +41,8 @@ jobs:
           if not phones:
               raise SystemExit('No iOS 18+ iPhone simulator installed')
           with open(os.environ['GITHUB_ENV'], 'a') as output:
-              output.write('REPPY_SIMULATOR=' + sorted(phones, reverse=True)[0][1]['udid'] + '\n')
+          selected = max(phones, key=lambda item: (tuple(int(part) for part in item[0].split('iOS-')[1].split('-')), item[1]['name']))
+          output.write('REPPY_SIMULATOR=' + selected[1]['udid'] + '\n')
           PY
       - name: Wait for iPhone simulator readiness
         run: xcrun simctl bootstatus "$REPPY_SIMULATOR" -b
