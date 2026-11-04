@@ -123,7 +123,7 @@ struct ReppySubscriptionSummary: View {
             }
             }
             if trainer, let relationshipID {
-                ReppyActionGroup {
+                ReppyStack(compact: true) {
                     ReppyLink(title: payments.isEmpty ? "Добавить абонемент" : "Продлить", icon: "plus", kind: .primary) { PaymentFormScreen(relationshipID: relationshipID) }
                     ReppyLink(title: "История", icon: "clock.arrow.circlepath") { SubscriptionHistoryScreen(relationshipID: relationshipID) }
                 }

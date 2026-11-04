@@ -46,7 +46,6 @@ struct SessionResultScreen: View {
                     ReppyResultExerciseCard(exercise: exercise, results: results, number: index + 1, relationshipID: progressKeys.contains(exercise.progressKey) ? assignment?.relationship_id : nil)
                 }
                 if store.isTrainer, let assignment {
-                    ReppyLink(title: "Открыть тренировку") { AssignmentScreen(assignmentID: assignment.id) }
                     ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: assignment.relationship_id) }
                     ReppyButton(title: "Удалить тренировку", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }

@@ -64,8 +64,16 @@ struct ReppyExerciseHeader<Actions: View>: View {
                 ReppyHeading(text: exercise.name).frame(maxWidth: .infinity, alignment: .leading)
                 actions()
             }
-            ReppyCaption(text: [exercise.primaryMuscle, exercise.equipment, exercise.loadMode == .bodyweight ? "Свой вес" : nil, exercise.measureType == .duration ? "Длительность" : nil].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+            ReppyCaption(text: Self.metadata(for: exercise))
         }
+    }
+    static func metadata(for exercise: WorkoutExercise) -> String {
+        var seen = Set<String>()
+        return [exercise.primaryMuscle, exercise.equipment, exercise.loadMode == .bodyweight ? "Свой вес" : nil,
+                exercise.measureType == .duration ? "Длительность" : nil]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
+            .joined(separator: " · ")
     }
 }
 struct ReppyExerciseModes: View {

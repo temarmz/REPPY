@@ -10,7 +10,12 @@ struct AssignmentScreen: View {
     @State private var date = Date()
     @State private var time = Date()
     @State private var confirmDelete = false
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if let session = store.data.session(for: assignmentID), session.completed_at != nil {
+            SessionResultScreen(sessionID: session.id)
+        } else { assignmentContent }
+    }
+    private var assignmentContent: some View {
         ReppyPage(back: true, title: "Тренировка") {
             if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) {
                 let session = store.data.session(for: assignment.id)
@@ -63,7 +68,7 @@ struct AssignmentScreen: View {
                     ReppyButton(title: "Удалить тренировку", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
             } else { ReppyEmpty(title: "Тренировка не найдена", message: "Возможно, она была удалена на другом устройстве.") }
-        }.navigationDestination(isPresented: $showActive) { if let activeID { ActiveWorkoutScreen(sessionID: activeID) } }
+        }.navigationDestination(isPresented: $showActive) { if let activeID { ActiveWorkoutScreen(sessionID: activeID, onCompleted: { showActive = false }) } }
             .sheet(isPresented: $reschedule) {
                 NavigationStack {
                     ReppyPage(back: true, title: "Перенос") {

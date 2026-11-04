@@ -38,7 +38,8 @@ struct ProgressScreen: View {
                 ForEach(groups) { group in
                     ReppyCard {
                         ReppyHeading(text: group.exercise.name)
-                        ReppyCaption(text: "\(group.exercise.equipment ?? "") · \(group.exercise.loadMode == .bodyweight ? "Свой вес" : "Внешний вес")")
+                        ReppyCaption(text: [group.exercise.equipment, group.exercise.loadMode == .bodyweight ? "Свой вес" : "Внешний вес"]
+                            .compactMap { $0 }.reduce(into: [String]()) { parts, value in if !parts.contains(value) { parts.append(value) } }.joined(separator: " · "))
                         let points = group.points.filter { $0.date > .distantPast && $0.date <= Date() }
                         ReppyCaption(text: "Всё время · \(points.count) занятий")
                         if points.isEmpty { ReppyCaption(text: "Для этого упражнения пока нет выполненных подходов.") }

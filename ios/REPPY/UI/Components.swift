@@ -170,7 +170,7 @@ struct ReppyLink<Destination: View>: View {
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if !typeSize.isAccessibilitySize { Image(systemName: icon).accessibilityHidden(true) }
                 }
-            }.padding(16).frame(minHeight: ReppyMetrics.control)
+            }.padding(16).frame(maxWidth: .infinity, minHeight: ReppyMetrics.control)
                 .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : ReppyTheme.text)
                 .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
         }.buttonStyle(.plain)

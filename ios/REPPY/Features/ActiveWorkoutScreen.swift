@@ -8,6 +8,7 @@ struct SessionDraft: Codable {
 struct ActiveWorkoutScreen: View {
     @EnvironmentObject private var store: AppStore
     var sessionID: String
+    var onCompleted: (() -> Void)? = nil
     @State private var draft: SessionDraft?
     @State private var baseResults: [SetResult] = []
     @State private var revision = 0
@@ -21,6 +22,7 @@ struct ActiveWorkoutScreen: View {
     @State private var picker = false
     @State private var charge = true
     @State private var completed = false
+    @State private var didFinish = false
     @State private var instruction: WorkoutExercise?
     @State private var confirmReload = false
     @State private var draftAccount = ""
@@ -77,7 +79,7 @@ struct ActiveWorkoutScreen: View {
             }
             .onDisappear {
                 debounce?.cancel()
-                if !completed, revision != savedRevision, !draftAccount.isEmpty, let draft { do { try DraftStorage.save(draft, account: draftAccount, key: draftKey) } catch { store.present(error) } }
+                if !completed, !didFinish, revision != savedRevision, !draftAccount.isEmpty, let draft { do { try DraftStorage.save(draft, account: draftAccount, key: draftKey) } catch { store.present(error) } }
             }
             .sheet(isPresented: $finish) {
                 NavigationStack {
@@ -214,7 +216,8 @@ struct ActiveWorkoutScreen: View {
         guard savedRevision == revision, let session = store.data.sessions.first(where: { $0.id == sessionID }), !saving else { return }
         if await store.run({ try await store.completeSession(session, charge: charge) }) {
             do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
-            completed = true
+            didFinish = true
+            if let onCompleted { onCompleted() } else { completed = true }
         }
     }
     private func elapsed(from: String, now: Date) -> String {
