@@ -279,7 +279,7 @@ export function createSupabaseRepository(
       client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, muscle_groups, equipment, measure_type, load_mode, archived_at'),
       client.from('profiles').select('id, display_name'),
     ]);
-    for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, definitionsResult, profilesResult]) {
+    for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult, profilesResult]) {
       throwIfError(result);
     }
 
