@@ -47,6 +47,35 @@ function assignedWorkoutClient({ active = false } = {}) {
   return { client, tables, repository: createSupabaseRepository(client, { id: accountId, role: 'student' }), calls, definitionId, instanceId };
 }
 
+for (const role of ['trainer', 'student']) {
+  for (const error of [{ message: 'TypeError: Failed to fetch' }, { message: 'Subscription access denied', code: '42501' }]) {
+    test(`subscription load rejects failed ${role} reads and recovers without a false zero balance: ${error.code ?? 'network'}`, async () => {
+      const { client, tables } = assignedWorkoutClient();
+      const relationship = tables.trainer_student_relationships[0];
+      let ledger = [{ id: crypto.randomUUID(), relationship_id: relationship.id, kind: 'payment', lesson_delta: 8,
+        occurred_at: '2026-11-05T12:00:00Z', created_at: '2026-11-05T12:00:00Z', amount_rub: 8000, revision: 1 }];
+      let failed = false;
+      const result = () => ({ data: failed ? null : ledger, error: failed ? error : null });
+      const originalFrom = client.from;
+      const originalRpc = client.rpc;
+      client.from = table => table === 'subscription_entries' ? { select: async () => result() } : originalFrom(table);
+      client.rpc = async (name, payload) => name === 'get_trainer_subscription_entries' ? result() : originalRpc(name, payload);
+      const repository = createSupabaseRepository(client, {
+        id: role === 'trainer' ? relationship.trainer_id : tables.students[0].account_id, role,
+      });
+      assert.equal((await repository.load()).subscriptionEntries[0].lessonDelta, 8);
+      failed = true;
+      await assert.rejects(repository.load(), { code: error.code ?? 'REPPY_NETWORK' });
+      failed = false;
+      const recovered = await repository.load();
+      assert.equal(recovered.subscriptionEntries[0].id, ledger[0].id);
+      assert.equal(recovered.subscriptionEntries.reduce((sum, entry) => sum + entry.lessonDelta, 0), 8);
+      ledger = [];
+      assert.deepEqual((await repository.load()).subscriptionEntries, []);
+    });
+  }
+}
+
 test('ученик запускает тренировку с личным упражнением тренера, сохраняя исходные UUID', async () => {
   const { repository, calls, definitionId, instanceId } = assignedWorkoutClient();
   const data = await repository.load();

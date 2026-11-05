@@ -72,3 +72,25 @@ test('pinch zoom не сжимает интерфейс, cleanup снимает 
   fixture.target.dispatchEvent(new Event('pageshow'));
   assert.equal(fixture.callbacks.size, 0);
 });
+
+test('смена фокуса обновляет состояние клавиатуры без resize и снимается при cleanup', () => {
+  const fixture = viewportFixture();
+  const attributes = new Set();
+  fixture.root.classList = { contains: () => false };
+  fixture.root.toggleAttribute = (key, enabled) => enabled ? attributes.add(key) : attributes.delete(key);
+  fixture.root.removeAttribute = key => attributes.delete(key);
+  const stop = observeMobileViewport(fixture.target, fixture.root);
+  fixture.viewport.height = 420;
+  fixture.target.document.activeElement = { tagName: 'TEXTAREA' };
+  fixture.target.document.dispatchEvent(new Event('focusin'));
+  fixture.flush();
+  assert.equal(attributes.has('data-keyboard-open'), true);
+  fixture.target.document.activeElement = { tagName: 'BUTTON' };
+  fixture.target.document.dispatchEvent(new Event('focusout'));
+  fixture.flush();
+  assert.equal(attributes.has('data-keyboard-open'), false);
+  stop();
+  fixture.target.document.dispatchEvent(new Event('focusin'));
+  fixture.target.document.dispatchEvent(new Event('focusout'));
+  assert.equal(fixture.callbacks.size, 0);
+});

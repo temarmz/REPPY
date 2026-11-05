@@ -79,7 +79,8 @@ for (const theme of ['dark', 'light'] as const) {
     await page.evaluate(() => { location.hash = '/trainer'; });
     await expect(page.getByRole('switch', { name: 'Все дни' })).toHaveCSS('min-height', '55px');
     await expect(page.locator('.bottom-nav button').first()).toHaveCSS('font-size', '15.4px');
-    await expect(page.locator('.plan-day-card').first()).toHaveCSS('border-radius', '25px');
+    await expect(page.locator('.plan-day-card .plan-session-row').first()).toHaveCSS('border-radius', '25px');
+    await expect(page.locator('.plan-day-card').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     expect(await page.locator('main:not([data-ui-element]), section:not([data-ui-element]), article:not([data-ui-element]), h1:not([data-ui-element]), h2:not([data-ui-element])').count()).toBe(0);
   });
 }

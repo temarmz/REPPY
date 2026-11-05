@@ -99,11 +99,11 @@ for (const area of ['trainer', 'student'] as const) {
       await expect(recover).toBeFocused();
       await expect(page.locator('.app-shell')).toHaveAttribute('inert', '');
       await page.keyboard.press('Tab');
-      await expect(page.getByRole('button', { name: 'Скачать журнал ошибки' })).toBeFocused();
+      await expect(page.getByRole('button', { name: 'Скачать логи', exact: true })).toBeFocused();
       await page.keyboard.press('Tab');
       await expect(recover).toBeFocused();
       await page.keyboard.press('Shift+Tab');
-      await expect(page.getByRole('button', { name: 'Скачать журнал ошибки' })).toBeFocused();
+      await expect(page.getByRole('button', { name: 'Скачать логи', exact: true })).toBeFocused();
       await page.keyboard.press('Tab');
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(new RegExp(`#/${area}$`));
