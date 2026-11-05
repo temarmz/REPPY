@@ -188,16 +188,18 @@ for (const width of [320, 440]) {
     await expect(complete).toBeEnabled();
     await complete.click();
     await expect(card.locator('.set-card.completed')).toHaveCount(1);
-    const layout = await card.locator('.set-card').evaluate((element) => {
-      const label = element.querySelector('.set-number span')!.getBoundingClientRect();
-      const labels = [...element.querySelectorAll('label span')].map((el) => el.getBoundingClientRect().top);
-      const input = element.querySelector('input')!.getBoundingClientRect();
-      const check = element.querySelector('button')!.getBoundingClientRect();
-      const number = element.querySelector('.set-number')!.getBoundingClientRect();
-      return { labelTop: label.top, labels, inputY: input.y, checkY: check.y, inputHeight: input.height,
-        checkHeight: check.height, gap: input.x - number.right };
+    const layout = await card.locator('.active-card-sets').evaluate((element) => {
+      const row = element.querySelector('.set-card')!;
+      const headerCells = [...element.querySelectorAll('.set-columns span')];
+      const number = row.querySelector('.set-number')!.getBoundingClientRect();
+      const inputs = [...row.querySelectorAll('input')].map((input) => input.getBoundingClientRect());
+      const check = row.querySelector('button')!.getBoundingClientRect();
+      const centerX = (rect: DOMRect) => rect.x + rect.width / 2;
+      return { columns: headerCells.map((cell) => centerX(cell.getBoundingClientRect())),
+        fields: [centerX(number), ...inputs.map(centerX)], inputY: inputs[0].y, checkY: check.y,
+        inputHeight: inputs[0].height, checkHeight: check.height, gap: inputs[0].x - number.right };
     });
-    for (const top of layout.labels) expect(Math.abs(top - layout.labelTop)).toBeLessThanOrEqual(1);
+    for (const [index, center] of layout.columns.entries()) expect(Math.abs(center - layout.fields[index])).toBeLessThanOrEqual(1);
     expect(layout.inputY).toBe(layout.checkY);
     expect(layout.inputHeight).toBe(layout.checkHeight);
     expect(layout.gap).toBeGreaterThanOrEqual(8);

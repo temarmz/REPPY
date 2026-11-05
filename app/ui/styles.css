@@ -626,7 +626,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .reschedule-notification-row > .ui-icon { width: calc(var(--size-17) * var(--ui-icon-scale)); height: calc(var(--size-17) * var(--ui-icon-scale)); }
 .plan-day-list { display: grid; gap: var(--card-list-gap); }
 .plan-day-card { min-width: 0; border: 0; background: transparent; }
-.plan-day-card > header { display: flex; min-height: var(--size-82); align-items: center; gap: var(--space-16); border-bottom: 0; padding: 0 0 var(--space-16); background: transparent; }
+.plan-day-card > header { display: flex; min-height: var(--size-82); align-items: center; gap: var(--space-16); border-bottom: 0; padding: 0 var(--space-18) var(--space-16); background: transparent; }
 .plan-session-row { display: grid; width: 100%; min-height: calc(var(--size-76) * var(--ui-control-height-scale)); grid-template-columns: 58px auto minmax(0,1fr) auto; align-items: center; gap: var(--space-13); border: 0; border-radius: var(--card-radius); padding: var(--space-9) var(--space-14); background: var(--surface); color: inherit; cursor: pointer; text-align: left; }
 .plan-session-row:last-child { border-bottom: 0; }
 .plan-session-row > time { color: var(--text-primary); font-size: var(--font-size-15); font-weight:var(--font-weight-850); }

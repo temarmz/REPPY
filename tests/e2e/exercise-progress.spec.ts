@@ -75,14 +75,14 @@ test('прогресс встроен внизу профиля, упражне�
 test('график, клавиатура, соседние занятия и полная тренировка', async ({ page }) => {
   await seedProgress(page);
   await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
-  await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
+  await expect(page.locator('.progress-selected .progress-sets')).toContainText('80 кг');
   await page.getByRole('button', { name: 'Предыдущее занятие' }).click();
-  await expect(page.locator('.progress-selected h3')).toContainText('77,5 кг');
+  await expect(page.locator('.progress-selected .progress-sets')).toContainText('77,5 кг');
   await page.getByRole('button', { name: 'Следующее занятие' }).click();
-  await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
+  await expect(page.locator('.progress-selected .progress-sets')).toContainText('80 кг');
   await page.locator('svg g[role="button"]').first().focus();
   await page.keyboard.press('Enter');
-  await expect(page.locator('.progress-selected h3')).toContainText('75 кг');
+  await expect(page.locator('.progress-selected .progress-sets')).toContainText('75 кг');
   await page.getByRole('button', { name: 'Открыть тренировку' }).click();
   await expect(page).toHaveURL(/sessions\/progress-2$/);
   await expect(page.getByText('Контрольный комментарий к тренировке')).toBeVisible();
@@ -118,7 +118,7 @@ test('старые ссылки показывают всю историю, чу
   await page.goto('/#/trainer/clients/artem/progress/bench-press?loadMode=external&measureType=reps&view=table&metric=sum&period=30&q=missing');
   await page.reload();
   await expect(page.locator('svg g[role="button"]')).toHaveCount(25);
-  await expect(page.locator('.progress-selected h3')).toContainText('80 кг');
+  await expect(page.locator('.progress-selected .progress-sets')).toContainText('80 кг');
   await page.goto('/#/trainer/clients/maria/progress');
   await expect(progressSection(page).locator('.workout-row')).toHaveCount(0);
   await expect(progressSection(page).locator('.empty-state')).toBeVisible();

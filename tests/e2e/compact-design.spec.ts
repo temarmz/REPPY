@@ -85,9 +85,9 @@ for (const theme of ['dark', 'light'] as const) {
     await page.goto('/#/student/calendar');
     await expectVisibleButtonSurfaces(page);
     await page.goto('/#/student/assignments/assignment-artem-push-today');
-    const reschedule = page.getByRole('button', { name: 'Предложить другое время' });
-    await expect(reschedule).toBeVisible();
-    const backgroundDifference = await reschedule.evaluate((element) => {
+    const backButton = page.getByRole('button', { name: 'Назад' });
+    await expect(backButton).toBeVisible();
+    const backgroundDifference = await backButton.evaluate((element) => {
       const parse = (color: string) => color.match(/[\d.]+/g)!.map(Number);
       const [red, green, blue, alpha = 1] = parse(getComputedStyle(element).backgroundColor);
       const [baseRed, baseGreen, baseBlue] = parse(getComputedStyle(document.querySelector('.app-shell')!).backgroundColor);

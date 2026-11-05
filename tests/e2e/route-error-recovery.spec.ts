@@ -31,8 +31,8 @@ for (const theme of ['dark', 'light'] as const) {
       await phone.fill('+7 222 222-22-22');
       await page.getByRole('button', { name: 'Сохранить для проверки' }).click();
       await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.calls)).toEqual(['+7 111 111-11-11']);
-      const nav = page.locator(width <= 800 ? '.bottom-nav' : '.desktop-nav');
-      await nav.getByRole('button', { name: 'Календарь', exact: true }).click();
+      // History restores a retained screen; selecting a tab starts at its root.
+      await page.evaluate(() => { location.hash = '/student/calendar'; });
       await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
       const errorLog = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-ui-errors-v1') ?? '[]'));
       expect(errorLog.at(-1)).toMatchObject({ routeArea: 'student/calendar', name: 'Error' });
@@ -48,7 +48,8 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(page.getByRole('button', { name: 'Перезагрузить', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Вернуться на главную' }).click();
       await expect(page).toHaveURL(/#\/student$/);
-      await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
+      await page.evaluate(() => history.go(-2));
+      await expect(page).toHaveURL(/#\/student\/profile$/);
       await expect(phone).toHaveValue('+7 222 222-22-22');
       await page.evaluate(() => window.routeRecoveryQa.release());
       await expect.poll(() => page.evaluate(() => window.routeRecoveryQa.controller?.persistencePhase)).toBe('idle');
@@ -57,6 +58,9 @@ for (const theme of ['dark', 'light'] as const) {
         calls: ['+7 111 111-11-11', '+7 222 222-22-22'], confirmedPhone: '+7 222 222-22-22', mounts: 1, unmounts: 0,
       });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
+      await expect(phone).toHaveValue('');
+      expect(await page.evaluate(() => window.routeRecoveryQa.confirmedPhone)).toBe('+7 222 222-22-22');
     });
   }
 }

@@ -168,7 +168,7 @@ test('светлая тема переключается из профиля, с
   await page.goto('/#/trainer/profile');
   await expect(page.getByRole('button', { name: 'Включить тёмную тему' })).toBeVisible();
   await page.goto('/#/trainer');
-  await expect(page.locator('.today-schedule')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('.today-schedule .plan-session-row').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   const allDaysToggle = page.getByRole('switch', { name: /Все дни/ });
   await expect(allDaysToggle.locator('.schedule-view-icon .ui-icon')).toHaveCSS('width', '19px');
   await expect(allDaysToggle.locator('.toggle-track')).toHaveCSS('background-color', 'rgb(213, 219, 209)');
@@ -514,7 +514,7 @@ test('нижнее меню остаётся кликабельным после
   await page.goto('/#/trainer/clients/artem/subscription');
   await bottomNav.getByRole('button', { name: 'Главная' }).tap();
   await bottomNav.getByRole('button', { name: 'Ученики' }).tap();
-  await expect(page).toHaveURL(/#\/trainer\/clients\/artem\/subscription$/);
+  await expect(page).toHaveURL(/#\/trainer\/clients$/);
 });
 
 test('устаревшие маршруты общих тренировок больше не открываются', async ({ page }) => {
@@ -608,8 +608,8 @@ test('в редакторе можно удалить последнее упр�
   await picker.getByRole('button', { name: 'Готово' }).click();
 
   const card = page.locator('.plan-exercise-card').first();
-  await card.getByRole('button', { name: 'Действия — Жим лёжа' }).click();
-  const deleteExercise = page.getByRole('dialog', { name: 'Действия — Жим лёжа' }).getByRole('button', { name: 'Удалить упражнение' });
+  await card.getByRole('button', { name: 'Удалить упражнение — Жим лёжа' }).click();
+  const deleteExercise = page.getByRole('alertdialog', { name: 'Удалить упражнение?' }).getByRole('button', { name: 'Удалить упражнение' });
   await expect(deleteExercise).toBeEnabled();
   await deleteExercise.click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(0);
@@ -668,10 +668,10 @@ test('тренер назначает тренировку из профиля �
   await page.getByRole('button', { name: 'Закрыть описание' }).click();
   await expect(page.locator('.bottom-nav')).toBeVisible();
 
-  await firstExercise.getByRole('button', { name: 'Действия — Жим лёжа' }).click();
-  await expect(page.getByRole('dialog', { name: 'Действия — Жим лёжа' })).toBeVisible();
+  await firstExercise.getByRole('button', { name: 'Удалить упражнение — Жим лёжа' }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Удалить упражнение?' })).toBeVisible();
   await expect(page.locator('.bottom-nav')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Закрыть действия' }).click();
+  await page.getByRole('button', { name: 'Закрыть', exact: true }).click();
   await expect(page.locator('.bottom-nav')).toBeVisible();
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
@@ -799,7 +799,7 @@ test('онлайн-тренировка переиспользует назна�
   expect(assignment.workoutSnapshot.exercises[0].instructionVideo.name).toBe('bench-technique.mp4');
 
   await page.goto(`/#/trainer/assignments/${assignment.id}`);
-  await expect(page.getByRole('button', { name: 'Начать тренировку' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Начать тренировку' })).toBeVisible();
   await page.getByRole('button', { name: 'Повторить на другую дату' }).click();
   await expect(page.getByRole('button', { name: 'Онлайн', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.plan-context-card input[type="time"]')).toHaveCount(0);
@@ -892,10 +892,11 @@ test('тренер пополняет и исправляет абонемент
   await expect(page.locator('.subscription-entry-list > button').first()).toContainText('Исправлено тренером');
 
   await profileAction(page, 'Переключиться в роль ученика');
-  await expect(page.getByLabel('Остаток абонемента')).toContainText('Осталось 17 занятий');
+  await expect(page.getByRole('button', { name: 'Абонемент: открыть профиль' })).toContainText('Осталось 17 занятий');
   await page.goto('/#/student/profile');
-  await expect(page.getByRole('region', { name: 'Абонемент', exact: true })).toContainText('Осталось 17 занятий');
-  await expect(page.getByLabel('Последние пополнения')).toContainText('12 000 ₽ · наличные');
+  const updatedSubscription = page.getByRole('region', { name: 'Абонемент', exact: true }).filter({ hasText: 'Осталось 17 занятий' });
+  await expect(updatedSubscription).toHaveCount(1);
+  await expect(updatedSubscription.getByLabel('Последние пополнения')).toContainText('12 000 ₽ · наличные');
 });
 
 test('выход из истории абонемента не зацикливается между историей и платежом', async ({ page }) => {
@@ -977,7 +978,7 @@ test('тренер может завершить занятие в долг и �
   await finishDialog.getByRole('button', { name: 'Завершить и списать занятие' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
-  await expect(page.getByText('Одно занятие списано')).toBeVisible();
+  await expect(page.getByRole('main').getByText('Одно занятие списано')).toBeVisible();
   await page.getByRole('button', { name: 'Назад' }).click();
   await expect(page.getByRole('main').getByText('1 занятие в долг', { exact: true })).toBeVisible();
 });
@@ -987,7 +988,7 @@ test('результат ученика виден тренеру и не мен
 
   await profileAction(page, 'Переключиться в роль ученика');
   await expect(page).toHaveURL(/#\/student$/);
-  await expect(page.getByLabel('Остаток абонемента')).toContainText('Осталось 11 занятий');
+  await expect(page.getByRole('button', { name: 'Абонемент: открыть профиль' })).toContainText('Осталось 11 занятий');
   await page.getByRole('button', { name: 'Посмотреть тренировку' }).click();
   await expect(page).toHaveURL(/#\/student\/assignments\/assignment-artem-push-today$/);
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
@@ -1183,8 +1184,8 @@ test('тренер ведёт занятие, правит его в момен�
 
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
   await expect(page.getByText('РЕЗУЛЬТАТ ЗАПОЛНИЛ')).toHaveCount(0);
-  await expect(page.getByText('Занятие не списано')).toBeVisible();
-  await expect(page.getByText('Колени держи по линии стоп')).toBeVisible();
+  await expect(page.getByRole('main').getByText('Занятие не списано')).toBeVisible();
+  await expect(page.getByRole('main').getByText('Колени держи по линии стоп')).toBeVisible();
 
   await page.getByRole('button', { name: 'Повторить на другую дату' }).click();
   await expect(page.getByRole('heading', { name: 'ПОВТОРИТЬ ТРЕНИРОВКУ' })).toBeVisible();

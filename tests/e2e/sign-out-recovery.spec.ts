@@ -45,6 +45,16 @@ for (const account of ['trainer', 'student', 'missing']) {
         await expect(exit).toBeVisible();
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await exit.click();
+        if (account !== 'missing') {
+          const confirmation = page.getByRole('alertdialog', { name: 'Выйти из аккаунта?', exact: true });
+          await expect(confirmation).toBeVisible();
+          expect(await page.evaluate(() => window.signOutQa.calls)).toBe(0);
+          await confirmation.getByRole('button', { name: 'Остаться', exact: true }).click();
+          await expect(confirmation).not.toBeVisible();
+          expect(await page.evaluate(() => window.signOutQa.calls)).toBe(0);
+          await exit.click();
+          await confirmation.getByRole('button', { name: 'Выйти', exact: true }).click();
+        }
         await expect.poll(() => page.evaluate(() => window.signOutQa.calls)).toBe(1);
         // Fail before testing loading UI too, so the original unhandled rejection is captured.
         await page.evaluate(() => window.signOutQa.fail());
@@ -61,6 +71,10 @@ for (const account of ['trainer', 'student', 'missing']) {
         expect(bounds!.height).toBeGreaterThanOrEqual(44);
         expect(bounds!.width).toBeGreaterThanOrEqual(44);
         await page.keyboard.press('Enter');
+        if (account !== 'missing') {
+          await page.getByRole('alertdialog', { name: 'Выйти из аккаунта?', exact: true })
+            .getByRole('button', { name: 'Выйти', exact: true }).click();
+        }
         const pending = page.getByRole('button', { name: 'Выходим…', exact: true });
         await expect(pending).toBeDisabled();
         await page.evaluate(() => {
