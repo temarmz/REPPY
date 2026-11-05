@@ -292,6 +292,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
       const assignment = data.assignments.find((item) => item.id === assignmentMatch[1]);
       const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
       content = completedSession ? <SessionResult data={data} session={completedSession} trainerView
+        onChargeChange={(charged) => dispatch({ type: 'session.charge', sessionId: completedSession.id, charged })}
         onRepeat={() => go(`/trainer/assignments/${completedSession.assignmentId}/repeat`)}
         onDelete={() => {
           dispatch({ type: 'session.archive', session: completedSession, workoutName: completedSession.workoutSnapshot.name });
@@ -352,6 +353,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
         data={data}
         session={session}
         trainerView
+        onChargeChange={(charged) => dispatch({ type: 'session.charge', sessionId: session.id, charged })}
         onRepeat={() => go(`/trainer/assignments/${session.assignmentId}/repeat`)}
         onDelete={() => {
           dispatch({ type: 'session.archive', session, workoutName: session.workoutSnapshot.name });

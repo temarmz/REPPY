@@ -17,12 +17,14 @@ export default function SessionResult({
   data,
   session,
   trainerView = false,
+  onChargeChange,
   onRepeat,
   onDelete,
 }: {
   data: DemoState;
   session: WorkoutSession;
   trainerView?: boolean;
+  onChargeChange?: (charged: boolean) => void;
   onRepeat?: () => void;
   onDelete?: () => void;
 }) {
@@ -46,10 +48,12 @@ export default function SessionResult({
         <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{completedSets} из {session.results.length}</DefinitionValue></Box>
         <Box><DefinitionTerm>УПРАЖНЕНИЯ</DefinitionTerm><DefinitionValue>{workout.exercises.length}</DefinitionValue></Box>
       </DefinitionList>
+      {session.autoCompleted && <Paragraph>Тренировка завершена автоматически.</Paragraph>}
       {session.completedAt && completedSets === 0 && <Paragraph>Тренировка завершена без отмеченных подходов.</Paragraph>}
       {trainerView && chargeStatus && <Section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><Inline><Small>АБОНЕМЕНТ</Small><Strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</Strong></Inline></Section>}
       {(session.mood || session.comment) && <Section className="session-feedback"><Inline>ОБРАТНАЯ СВЯЗЬ УЧЕНИКА</Inline>{session.mood && <Strong><Icon name="sun" /> {moodLabel(session.mood)}</Strong>}{session.comment && <Paragraph>{session.comment}</Paragraph>}</Section>}
       {trainerView && <Box className="session-result-actions">
+        {session.completedAt && <ActionButton variant="secondary" icon="check" onClick={() => onChargeChange?.(!charged)}>{charged ? 'Сделать бесплатной' : 'Списать занятие'}</ActionButton>}
         <ActionButton variant="secondary" icon="copy" onClick={onRepeat}>Повторить на другую дату</ActionButton>
         <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить тренировку</ActionButton>
       </Box>}

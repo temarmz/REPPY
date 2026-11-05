@@ -76,7 +76,7 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
           return (
             <Button key={assignment.id} type="button" onClick={() => go(target)}>
               <Badge className={`agenda-status ${assignment.status}`}><Icon name={assignment.status === 'completed' ? 'check' : 'workout'} /></Badge>
-              <Box><Strong>{area === 'trainer' ? student?.name : workout?.name}</Strong><Small>{assignmentTimeLabel(assignment)} · {area === 'trainer' ? workout?.name : exercisePreview(workout)}</Small>{session?.comment && <Paragraph>«{session.comment}»</Paragraph>}</Box>
+              <Box><Strong>{area === 'trainer' ? student?.name : workout?.name}</Strong><Small>{assignmentTimeLabel(assignment)} · {area === 'trainer' ? workout?.name : assignment.trainerName ?? exercisePreview(workout)}</Small>{session?.comment && <Paragraph>«{session.comment}»</Paragraph>}</Box>
               <Inline className="agenda-tail">{assignment.status === 'completed' && <Bold>{session?.mood ? moodLabel(session.mood) : 'Готово'}</Bold>}<Icon name="chevron-right" /></Inline>
             </Button>
           );

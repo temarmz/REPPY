@@ -8,22 +8,27 @@ struct SessionDraft: Codable {
 struct ActiveWorkoutScreen: View {
     @EnvironmentObject private var store: AppStore
     var sessionID: String
+    var onCompleted: (() -> Void)? = nil
     @State private var draft: SessionDraft?
+    @State private var baseResults: [SetResult] = []
     @State private var revision = 0
     @State private var savedRevision = 0
     @State private var saving = false
+    @State private var restoringRemote = false
     @State private var status = "Все изменения сохранены"
     @State private var debounce: Task<Void, Never>?
     @State private var finish = false
     @State private var structure = false
+    @State private var picker = false
     @State private var charge = true
     @State private var completed = false
+    @State private var didFinish = false
     @State private var instruction: WorkoutExercise?
     @State private var confirmReload = false
     @State private var draftAccount = ""
     private var draftKey: String { "active:\(sessionID)" }
     var body: some View {
-        ReppyPage(back: true) {
+        ReppyPage(back: true, onConflictReload: { Task { await loadServerVersion() } }) {
             if let value = draft {
                 if let assignment = store.data.assignments.first(where: { $0.id == value.session.assignment_id }) { ReppyCaption(text: "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)") }
                 ReppyTitle(text: value.workout.name)
@@ -33,8 +38,20 @@ struct ActiveWorkoutScreen: View {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     ReppyWorkoutOverview(elapsed: elapsed(from: value.session.started_at, now: context.date), completed: value.results.filter(\.completed).count, total: value.results.count)
                 }
+                ReppyExerciseSectionHeader(reorder: value.workout.exercises.count > 1 ? { structure = true } : nil) { picker = true }
                 ForEach(Array(value.workout.exercises.enumerated()), id: \.element.id) { index, exercise in
-                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1) { instruction = exercise }
+                    ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1,
+                        onInstruction: { instruction = exercise },
+                        onAddSet: { addSet(to: exercise.id) },
+                        onRemoveSet: { removeLastSet(from: exercise.id) },
+                        canRemoveSet: exercise.plannedSets.count > 0 && !value.results.contains { $0.exercise_instance_id == exercise.id && $0.set_number == exercise.plannedSets.count && $0.completed },
+                        onMoveUp: { moveExercise(exercise.id, by: -1) }, onMoveDown: { moveExercise(exercise.id, by: 1) }, onEditPlan: { structure = true },
+                        canMoveUp: index > 0, canMoveDown: index + 1 < value.workout.exercises.count,
+                        onDelete: { draft?.workout.exercises.removeAll { $0.id == exercise.id } },
+                        canDelete: !value.results.contains { $0.exercise_instance_id == exercise.id && $0.completed },
+                        onNoteChange: { note in
+                            if let position = draft?.workout.exercises.firstIndex(where: { $0.id == exercise.id }) { draft?.workout.exercises[position].coachNote = note }
+                        })
                 }
                 ReppyButton(title: "Завершить тренировку", icon: "checkmark", kind: .primary, disabled: saving || store.busy) { finish = true }
             } else { ReppyEmpty(title: "Не удалось открыть тренировку", message: "Вернись к плану и обнови данные.") }
@@ -49,14 +66,20 @@ struct ActiveWorkoutScreen: View {
         }
             .onAppear { initialize() }
             .onChange(of: draft?.results) { _, _ in changed() }
-            .onChange(of: draft?.workout) { old, _ in reconcileResults(previous: old); changed() }
+            .onChange(of: draft?.workout) { old, _ in
+                if draft?.workout != draft?.session.workout_snapshot { reconcileResults(previous: old) }
+                changed()
+            }
             .onChange(of: store.busy) { _, busy in
-                if !busy, !saving, store.error == nil, !store.conflict, revision != savedRevision { Task { await flush() } }
+                if !busy, !saving, !restoringRemote, store.error == nil, !store.conflict, revision != savedRevision { Task { await flush() } }
             }
             .onChange(of: store.networkAvailable) { _, available in if available { Task { await flush() } } }
+            .onChange(of: store.data.sessions.first(where: { $0.id == sessionID })?.revision) { _, _ in
+                syncServerVersionIfClean()
+            }
             .onDisappear {
                 debounce?.cancel()
-                if !completed, revision != savedRevision, !draftAccount.isEmpty, let draft { do { try DraftStorage.save(draft, account: draftAccount, key: draftKey) } catch { store.present(error) } }
+                if !completed, !didFinish, revision != savedRevision, !draftAccount.isEmpty, let draft { do { try DraftStorage.save(draft, account: draftAccount, key: draftKey) } catch { store.present(error) } }
             }
             .sheet(isPresented: $finish) {
                 NavigationStack {
@@ -75,20 +98,66 @@ struct ActiveWorkoutScreen: View {
             .sheet(isPresented: $structure) {
                 if draft != nil { NavigationStack { ActiveStructureScreen(workout: Binding(get: { draft!.workout }, set: { draft?.workout = $0 }), relationshipID: relationshipID) } }
             }
+            .sheet(isPresented: $picker) {
+                NavigationStack { ExercisePickerScreen(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }
+            }
             .navigationDestination(isPresented: $completed) { SessionResultScreen(sessionID: sessionID) }
-            .confirmationDialog("Отбросить несохранённые изменения этого iPhone и загрузить данные сервера?", isPresented: $confirmReload, titleVisibility: .visible) {
-                Button("Загрузить данные сервера", role: .destructive) { Task {
+            .confirmationDialog("Изменения тренировки отличаются на двух устройствах. Выбери, какой вариант сохранить.", isPresented: $confirmReload, titleVisibility: .visible) {
+                Button("Сохранить мой вариант") { Task {
+                    guard let local = draft else { return }
                     await store.reload()
-                    guard store.error == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
-                    draft = SessionDraft(session: session, workout: session.workout_snapshot, results: store.data.sessionResults(sessionID))
-                    revision = 0; savedRevision = 0; status = "Все изменения сохранены"
-                    do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
-                    if session.completed_at != nil { completed = true }
+                    guard store.error == nil, let remote = store.data.sessions.first(where: { $0.id == sessionID }), remote.completed_at == nil else { return }
+                    baseResults = store.data.sessionResults(sessionID)
+                    draft = SessionDraft(session: remote, workout: local.workout, results: local.results)
+                    revision += 1; savedRevision = 0
+                    await flush()
                 } }
+                Button("Загрузить данные сервера", role: .destructive) { Task { await loadServerVersion() } }
                 Button("Оставить черновик", role: .cancel) {}
             }
     }
     private var relationshipID: String { store.data.assignments.first { $0.id == draft?.session.assignment_id }?.relationship_id ?? "" }
+    private func addSet(to id: String) {
+        guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }) else { return }
+        let last = draft!.workout.exercises[index].plannedSets.last ?? SetPlan()
+        draft?.workout.exercises[index].plannedSets.append(SetPlan(targetReps: last.targetReps, targetWeight: last.targetWeight))
+    }
+    private func removeLastSet(from id: String) {
+        guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
+              let count = draft?.workout.exercises[index].plannedSets.count, count > 0,
+              draft?.results.contains(where: { $0.exercise_instance_id == id && $0.set_number == count && $0.completed }) == false else { return }
+        draft?.workout.exercises[index].plannedSets.removeLast()
+    }
+    private func moveExercise(_ id: String, by offset: Int) {
+        guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
+              let count = draft?.workout.exercises.count, (0..<count).contains(index + offset) else { return }
+        draft?.workout.exercises.swapAt(index, index + offset)
+    }
+    private func syncServerVersionIfClean() {
+        guard !saving, !restoringRemote, revision == savedRevision,
+              let current = draft?.session,
+              let session = store.data.sessions.first(where: { $0.id == sessionID }),
+              session.revision != current.revision else { return }
+        let results = store.data.sessionResults(sessionID)
+        draft = SessionDraft(session: session, workout: session.workout_snapshot, results: results)
+        baseResults = results
+        status = "Все изменения сохранены"
+        if session.completed_at != nil { completed = true }
+    }
+    private func loadServerVersion() async {
+        guard !saving, !store.busy else { return }
+        restoringRemote = true
+        defer { restoringRemote = false }
+        debounce?.cancel()
+        await store.reload()
+        guard store.error == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
+        let results = store.data.sessionResults(sessionID)
+        draft = SessionDraft(session: session, workout: session.workout_snapshot, results: results)
+        baseResults = results
+        revision = 0; savedRevision = 0; status = "Все изменения сохранены"
+        do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
+        if session.completed_at != nil { completed = true }
+    }
     private func resultBinding(_ fallback: SetResult) -> Binding<SetResult> {
         Binding(get: { draft?.results.first { $0.id == fallback.id } ?? fallback }, set: { result in
             if let index = draft?.results.firstIndex(where: { $0.id == fallback.id }) { draft?.results[index] = result }
@@ -98,6 +167,7 @@ struct ActiveWorkoutScreen: View {
         guard draft == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
         draftAccount = store.accountKey
         if session.completed_at != nil { completed = true; return }
+        baseResults = store.data.sessionResults(sessionID)
         if let restored: SessionDraft = store.restoreDraft(key: draftKey) {
             draft = restored; revision = 1; savedRevision = 0
             if restored.session.revision != session.revision { store.present(APIError.conflict); status = "Нужна проверка изменений на другом устройстве" }
@@ -122,14 +192,17 @@ struct ActiveWorkoutScreen: View {
         debounce = Task { try? await Task.sleep(for: .milliseconds(700)); guard !Task.isCancelled else { return }; await flush() }
     }
     private func flush() async {
-        guard let value = draft, !saving, !store.busy, revision != savedRevision else { return }
+        guard let value = draft, !saving, !restoringRemote, !store.busy, revision != savedRevision else { return }
         guard !store.conflict else { status = "Конфликт изменений"; return }
         saving = true; status = "Сохраняем…"; let version = revision
-        let success = await store.run { try await store.saveProgress(value.session, workout: value.workout, results: value.results) }
+        let success = await store.run { try await store.saveProgress(value.session, workout: value.workout, results: value.results, baseResults: baseResults) }
         saving = false
         if success, let session = store.data.sessions.first(where: { $0.id == sessionID }) {
             draft?.session = session; savedRevision = version
             if revision == version {
+                draft?.workout = session.workout_snapshot
+                draft?.results = store.data.sessionResults(sessionID)
+                baseResults = store.data.sessionResults(sessionID)
                 status = "Все изменения сохранены"
                 do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
             } else {
@@ -143,7 +216,8 @@ struct ActiveWorkoutScreen: View {
         guard savedRevision == revision, let session = store.data.sessions.first(where: { $0.id == sessionID }), !saving else { return }
         if await store.run({ try await store.completeSession(session, charge: charge) }) {
             do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
-            completed = true
+            didFinish = true
+            if let onCompleted { onCompleted() } else { completed = true }
         }
     }
     private func elapsed(from: String, now: Date) -> String {
@@ -166,6 +240,6 @@ struct ActiveStructureScreen: View {
             }
         }.reppyFormActions(saveTitle: "Готово", showsCancel: false, hasChanges: false, save: { dismiss() }, discard: {})
         .sheet(isPresented: $reorder) { NavigationStack { ReppyExerciseOrderEditor(exercises: $workout.exercises) } }
-        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen { workout.exercises.append(WorkoutExercise(definition: $0)); picker = false } } }
+        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen(exercises: $workout.exercises) } }
     }
 }

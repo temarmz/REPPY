@@ -3,20 +3,22 @@ import SwiftUI
 struct DashboardScreen: View {
     @EnvironmentObject private var store: AppStore
     @AppStorage("showAllScheduleDays") private var showAllDays = false
-    private var upcoming: [Assignment] {
-        let today = ReppyDate.day()
-        let horizon = ReppyDate.day(Calendar.current.date(byAdding: .day, value: 14, to: Date())!)
+    private func upcoming(today: String, horizon: String) -> [Assignment] {
+        let activeSessionAssignments = Set(store.data.sessions.map(\.assignment_id))
+        let ownRelationshipIDs = store.ownRelationshipIDs
+        let isTrainer = store.isTrainer
         return store.data.assignments.filter { assignment in
-            (store.isTrainer || assignment.status == "assigned") && (store.isTrainer || store.ownRelationshipIDs.contains(assignment.relationship_id)) &&
-            (assignment.scheduled_for >= today || assignment.format == .online || store.data.session(for: assignment.id) != nil) && assignment.scheduled_for <= horizon
+            (isTrainer || assignment.status == "assigned") && (isTrainer || ownRelationshipIDs.contains(assignment.relationship_id)) &&
+            (assignment.scheduled_for >= today || assignment.format == .online || activeSessionAssignments.contains(assignment.id)) && assignment.scheduled_for <= horizon
         }.sorted { ($0.scheduled_for + ($0.scheduled_time ?? "")) < ($1.scheduled_for + ($1.scheduled_time ?? "")) }
-    }
-    private var studentUpcoming: [Assignment] {
-        let today = ReppyDate.day()
-        return upcoming.filter { $0.scheduled_for >= today } + upcoming.filter { $0.scheduled_for < today }
     }
     var body: some View {
         ReppyPage(lazyContent: true) {
+            let todayDate = Date()
+            let today = ReppyDate.day(todayDate)
+            let horizon = ReppyDate.day(Calendar.current.date(byAdding: .day, value: 14, to: todayDate)!)
+            let upcoming = upcoming(today: today, horizon: horizon)
+            let byDay = Dictionary(grouping: upcoming, by: \.scheduled_for)
             if store.isTrainer {
                 ForEach(store.data.assignments.filter { $0.reschedule_requested_at != nil }) { assignment in
                     ReppyCard {
@@ -26,19 +28,19 @@ struct DashboardScreen: View {
                         ReppyLink(title: assignment.workout_snapshot.name) { AssignmentScreen(assignmentID: assignment.id) }
                     }
                 }
-                ReppyScheduleHeader(date: Date(), today: true) { AssignmentEditorScreen() }
-                if !upcoming.contains(where: { $0.scheduled_for == ReppyDate.day() }) { ReppyCaption(text: "Тренировок нет") }
-                ForEach(upcoming.filter { $0.scheduled_for == ReppyDate.day() }) { AssignmentAgendaRow(assignment: $0, schedule: true) }
+                ReppyScheduleHeader(date: todayDate, today: true) { AssignmentEditorScreen() }
+                if byDay[today, default: []].isEmpty { ReppyCaption(text: "Тренировок нет") }
+                ForEach(byDay[today, default: []]) { AssignmentAgendaRow(assignment: $0, schedule: true) }
                 ReppyRow {
                     ReppyStack(compact: true) { ReppyHeading(text: "Дальше"); ReppyCaption(text: "Ближайшие две недели") }
-                    ReppyToggle(title: "Все дни", value: $showAllDays)
+                    ReppyToggle(title: "Все дни", value: $showAllDays).fixedSize(horizontal: true, vertical: false)
                 }
-                if !showAllDays && !upcoming.contains(where: { $0.scheduled_for > ReppyDate.day() }) {
+                if !showAllDays && !upcoming.contains(where: { $0.scheduled_for > today }) {
                     ReppyEmpty(title: "Остальные дни свободны", message: "На ближайшие две недели больше ничего не назначено.", icon: "calendar")
                 }
                 ForEach(1...14, id: \.self) { offset in
-                    let day = Calendar.current.date(byAdding: .day, value: offset, to: Date())!
-                    let planned = upcoming.filter { $0.scheduled_for == ReppyDate.day(day) }
+                    let day = Calendar.current.date(byAdding: .day, value: offset, to: todayDate)!
+                    let planned = byDay[ReppyDate.day(day), default: []]
                     if showAllDays || !planned.isEmpty {
                         ReppyStack {
                             ReppyScheduleHeader(date: day, actionLabel: "Назначить ученика на \(ReppyDate.display(ReppyDate.day(day)))") { AssignmentEditorScreen(initialDate: day) }
@@ -47,8 +49,22 @@ struct DashboardScreen: View {
                     }
                 }
             } else {
-                if !store.ownSubscriptions.isEmpty {
+                let studentUpcoming = upcoming.filter { $0.scheduled_for >= today } + upcoming.filter { $0.scheduled_for < today }
+                if store.ownRelationshipIDs.count == 1 && !store.ownSubscriptions.isEmpty {
                     NavigationLink { ProfileScreen() } label: { ReppyBalanceSummary(balance: store.ownBalance) }.buttonStyle(.plain).accessibilityLabel("Абонемент: открыть профиль")
+                }
+                if store.ownRelationshipIDs.count > 1 {
+                    ReppyCard {
+                        ReppyCaption(text: "АБОНЕМЕНТЫ ПО ТРЕНЕРАМ")
+                        ForEach(store.data.relationships.filter { store.ownRelationshipIDs.contains($0.id) }) { relationship in
+                            ReppyStack(compact: true) {
+                                ReppyHeading(text: store.data.trainerName(for: relationship.id) ?? "Тренер")
+                                ReppyText(text: ReppySubscriptionSummary.balanceLabel(store.data.balance(relationship.id),
+                                    hasEntries: store.data.subscriptions.contains { $0.relationship_id == relationship.id }))
+                            }
+                        }
+                        ReppyLink(title: "Подробнее", icon: "chevron.right") { ProfileScreen() }
+                    }
                 }
                 if let first = studentUpcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }
@@ -69,7 +85,7 @@ struct AssignmentAgendaRow: View {
     var dayContext = false
     private var subtitle: String {
         let when = dayContext ? (assignment.format == .online ? "Онлайн · в удобное время" : String((assignment.scheduled_time ?? "—").prefix(5))) : assignment.scheduleLabel
-        return store.isTrainer ? "\(when) · \(assignment.workout_snapshot.name)" : when
+        return store.isTrainer ? "\(when) · \(assignment.workout_snapshot.name)" : "\(when) · \(store.data.trainerName(for: assignment.relationship_id) ?? "Тренер")"
     }
     var body: some View {
         if schedule {
@@ -100,7 +116,7 @@ struct AssignmentCard: View {
     }
     var body: some View {
         if focus {
-        ReppyWorkoutFocus(name: assignment.workout_snapshot.name, schedule: assignment.scheduleLabel,
+        ReppyWorkoutFocus(name: assignment.workout_snapshot.name, schedule: assignment.scheduleLabel + (store.ownRelationshipIDs.count > 1 ? " · \(store.data.trainerName(for: assignment.relationship_id) ?? "Тренер")" : ""),
             preview: assignment.workout_snapshot.exercises.prefix(3).map(\.name).joined(separator: " · "), completed: assignment.status == "completed", progress: progress) {
             if let session = store.data.session(for: assignment.id), session.completed_at != nil { SessionResultScreen(sessionID: session.id) }
             else { AssignmentScreen(assignmentID: assignment.id) }

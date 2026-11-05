@@ -29,7 +29,7 @@ enum NativeComponentCatalog {
         ("Caption", ReppyCaption.self), ("Number", ReppyNumber.self), ("Button", ReppyButton.self),
         ("Link", ReppyLink<EmptyView>.self), ("Field", ReppyField.self), ("NumericField", ReppyNumericField.self),
         ("DateField", ReppyDateField.self), ("Toggle", ReppyToggle.self), ("Empty", ReppyEmpty.self),
-        ("Status", ReppyStatus.self), ("ProgressBar", ReppyProgressBar.self),
+        ("Status", ReppyStatus.self), ("Toast", ReppyToast.self), ("ProgressBar", ReppyProgressBar.self),
         ("StudentEditButton", ReppyStudentEditButton.self),
         ("WorkoutChoiceLink", ReppyWorkoutChoiceLink<EmptyView>.self),
         ("ActionGroup", ReppyActionGroup<EmptyView>.self),

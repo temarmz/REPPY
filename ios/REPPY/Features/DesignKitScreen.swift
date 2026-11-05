@@ -99,11 +99,11 @@ struct DesignKitScreen: View {
                 ReppyProgressBar(completed: 3, total: 8)
             }
             ReppyStatus(message: "Ошибка сохранения. Повтори попытку.", error: true, actionTitle: "Повторить") {}
+            ReppyToast(message: "Не удалось сохранить заметку", actionTitle: "Повторить") {}
             ReppyEmpty(title: "Пустое состояние", message: "Описание следующего действия")
             NoteDayCard(day: ReppyDate.day(), text: $text)
             NoteDayCard(day: ReppyDate.day(), text: .constant(""), loaded: false)
-            NoteDayCard(day: ReppyDate.day(), text: .constant("Несохранённый текст"), pending: true)
-            NoteDayCard(day: ReppyDate.day(), text: .constant("Моя версия"), error: "Заметка изменена на другом устройстве. Выбери версию.", conflict: true)
+            NoteDayCard(day: ReppyDate.day(), text: .constant("Несохранённый текст"))
             MonthCalendar(date: $date, counts: [ReppyDate.day(): 2])
             ReppyActionGroup { ReppyButton(title: "Продлить", icon: "plus", kind: .primary) {}; ReppyButton(title: "История", icon: "clock.arrow.circlepath") {} }
             ReppyCard { ReppyChoiceRow(title: "Жим лёжа", subtitle: "Штанга") {} }

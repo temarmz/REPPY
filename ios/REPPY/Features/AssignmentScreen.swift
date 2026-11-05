@@ -10,17 +10,24 @@ struct AssignmentScreen: View {
     @State private var date = Date()
     @State private var time = Date()
     @State private var confirmDelete = false
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if let session = store.data.session(for: assignmentID), session.completed_at != nil {
+            SessionResultScreen(sessionID: session.id)
+        } else { assignmentContent }
+    }
+    private var assignmentContent: some View {
         ReppyPage(back: true, title: "Тренировка") {
             if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) {
                 let session = store.data.session(for: assignment.id)
                 ReppyCaption(text: store.isTrainer ? "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.statusLabel(sessions: store.data.sessions))" : assignment.statusLabel(sessions: store.data.sessions))
+                if !store.isTrainer, let trainer = store.data.trainerName(for: assignment.relationship_id) { ReppyCaption(text: "Тренер: \(trainer)") }
+                if !store.isTrainer && !store.data.overlappingAssignments(for: assignment).isEmpty { ReppyStatus(message: "На это время назначена ещё одна тренировка. Уточни расписание у тренеров.") }
                 ReppyTitle(text: assignment.workout_snapshot.name)
                 ReppyCaption(text: assignment.scheduleLabel)
-                if let session, session.completed_at != nil {
-                    ReppyLink(title: "Посмотреть результат", icon: "checkmark.circle") { SessionResultScreen(sessionID: session.id) }
+                if assignment.status == "completed" || session?.completed_at != nil {
+                    if let session { ReppyLink(title: "Посмотреть результат", icon: "checkmark.circle") { SessionResultScreen(sessionID: session.id) } }
                 } else {
-                    if store.data.balance(assignment.relationship_id) <= 0 { ReppyStatus(message: "Тренировку можно завершить в долг. Одно занятие спишется как обычно.") }
+                    if assignment.canStart(as: store.profile?.role ?? .student, sessions: store.data.sessions) && store.data.balance(assignment.relationship_id) <= 0 { ReppyStatus(message: "Тренировку можно завершить в долг. Одно занятие спишется как обычно.") }
                     if assignment.reschedule_requested_at != nil {
                         ReppyCard {
                             ReppyHeading(text: "Запрошен перенос")
@@ -37,10 +44,10 @@ struct AssignmentScreen: View {
                         }
                     } else {
                         ReppyCaption(text: assignment.scheduled_for < ReppyDate.day()
-                            ? "Назначенный день уже прошёл. Предложи другое время тренеру."
+                            ? "Назначенный день уже прошёл. Свяжись с тренером, чтобы выбрать новое время."
                             : "Очную тренировку можно начать в назначенный день.")
                     }
-                    if !store.isTrainer && assignment.format == .inPerson && assignment.reschedule_requested_at == nil {
+                    if !store.isTrainer && session == nil && assignment.format == .inPerson && assignment.scheduled_for >= ReppyDate.day() && assignment.reschedule_requested_at == nil {
                         ReppyButton(title: "Предложить другое время", icon: "calendar", disabled: store.busy) {
                             date = ReppyDate.fromDay(assignment.scheduled_for)
                             let parts = (assignment.scheduled_time ?? "18:00").split(separator: ":").compactMap { Int($0) }
@@ -61,7 +68,7 @@ struct AssignmentScreen: View {
                     ReppyButton(title: "Удалить тренировку", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
             } else { ReppyEmpty(title: "Тренировка не найдена", message: "Возможно, она была удалена на другом устройстве.") }
-        }.navigationDestination(isPresented: $showActive) { if let activeID { ActiveWorkoutScreen(sessionID: activeID) } }
+        }.navigationDestination(isPresented: $showActive) { if let activeID { ActiveWorkoutScreen(sessionID: activeID, onCompleted: { showActive = false }) } }
             .sheet(isPresented: $reschedule) {
                 NavigationStack {
                     ReppyPage(back: true, title: "Перенос") {
@@ -70,18 +77,18 @@ struct AssignmentScreen: View {
                             ReppyDateField(title: "Новая дата", date: $date)
                             ReppyDateField(title: "Новое время", date: $time, time: true)
                         }
-                    }.reppyFormActions(saveTitle: "Отправить", saveLabel: "Отправить тренеру", busy: store.busy, hasChanges: false, save: {
+                    }.reppyFormActions(saveTitle: "Отправить", saveLabel: "Отправить тренеру", cancelIcon: true, disabled: ReppyDate.day(date) < ReppyDate.day(), busy: store.busy, hasChanges: false, save: {
                         guard let assignment = store.data.assignments.first(where: { $0.id == assignmentID }) else { return }
                         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "HH:mm"
                         Task { if await store.run({ try await store.requestReschedule(assignment, date: date, time: formatter.string(from: time)) }) { reschedule = false } }
                     }, discard: { reschedule = false })
                 }
             }
-            .confirmationDialog("Удалить тренировку? Если занятие было списано, оно вернётся в абонемент.", isPresented: $confirmDelete, titleVisibility: .visible) {
+            .alert("Удалить тренировку?", isPresented: $confirmDelete) {
                 Button("Удалить", role: .destructive) { Task {
                     if let assignment = store.data.assignments.first(where: { $0.id == assignmentID }), await store.run({ try await store.deleteAssignment(assignment) }) { dismiss() }
                 } }
                 Button("Отмена", role: .cancel) {}
-            }
+            } message: { Text("Если занятие было списано, оно вернётся в абонемент.") }
     }
 }

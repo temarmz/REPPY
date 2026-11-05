@@ -52,6 +52,8 @@ export type Workout = {
 
 export type Assignment = {
   id: string;
+  relationshipId?: string;
+  trainerName?: string;
   studentId: string;
   assignedAt: string;
   scheduledFor: string;
@@ -83,6 +85,7 @@ export type WorkoutSession = {
   startedAt: string;
   recordedBy: Role;
   completedAt?: string;
+  autoCompleted?: boolean;
   mood?: MoodRating;
   comment?: string;
   subscriptionChargeStatus?: 'charged' | 'waived';
@@ -93,6 +96,8 @@ export type PaymentMethod = 'cash' | 'transfer';
 
 export type SubscriptionEntry = {
   id: string;
+  relationshipId?: string;
+  trainerName?: string;
   trainerId: string;
   studentId: string;
   kind: 'payment' | 'session-charge' | 'session-refund';

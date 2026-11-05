@@ -74,6 +74,9 @@ public enum BackendHTTP {
         guard !(200..<300).contains(http.statusCode) else { return data }
         let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         if payload?["code"] as? String == "40001" { throw APIError.conflict }
+        if http.statusCode == 429, let retry = payload?["retryAfterSeconds"] as? Int {
+            throw APIError.message("Слишком много попыток входа. Подожди \(max(1, retry)) секунд и попробуй снова.")
+        }
         if http.statusCode == 401 && requiresSession { throw APIError.signedOut }
         let message = ["error_description", "message", "error"].compactMap { payload?[$0] as? String }.first { !$0.isEmpty }
         throw APIError.message(message ?? "Ошибка сервера (\(http.statusCode)).")

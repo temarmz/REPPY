@@ -10,10 +10,18 @@ struct ExerciseEditorCard: View {
     @State private var replacement = false
     var body: some View {
         ReppyCard {
-            ReppyExerciseHeader(exercise: exercise) { exerciseMenu }
+            ReppyExerciseHeader(exercise: exercise) {
+                HStack(spacing: ReppyMetrics.space8) {
+                    if store.isTrainer {
+                        Button { instructionOpen = true } label: { ReppyToolbarIcon(icon: "video") }
+                            .accessibilityLabel("Инструкция и видео: \(exercise.name)")
+                    }
+                    exerciseMenu
+                }
+            }
             ReppyExerciseModes(exercise: $exercise)
             ReppyStack(compact: true) {
-                SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit)
+                if !exercise.plannedSets.isEmpty { SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit) }
                 ForEach($exercise.plannedSets) { $set in
                     PlanSetRow(number: (exercise.plannedSets.firstIndex { $0.id == set.id } ?? 0) + 1, loadMode: exercise.loadMode, unit: exercise.unit, set: $set) { exercise.plannedSets.removeAll { $0.id == set.id } }
                 }
@@ -24,9 +32,6 @@ struct ExerciseEditorCard: View {
             }
             ReppyDisclosure(title: "Комментарий тренера") {
                 ReppyField(title: "Комментарий тренера", text: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }), multiline: true)
-            }
-            if store.isTrainer {
-                ReppyButton(title: "Инструкция и видео", icon: "video", compact: true, disabled: store.busy) { instructionOpen = true }
             }
         }.sheet(isPresented: $instructionOpen) {
             NavigationStack { InstructionEditorScreen(exercise: $exercise, relationshipID: relationshipID) }.presentationCornerRadius(ReppyMetrics.modalRadius)

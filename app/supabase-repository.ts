@@ -67,6 +67,7 @@ type SessionRow = {
   mood: WorkoutSession['mood'] | null;
   comment: string | null;
   charge_status: WorkoutSession['subscriptionChargeStatus'] | null;
+  auto_completed?: boolean;
   revision: number;
 };
 
@@ -268,16 +269,17 @@ export function createSupabaseRepository(
     const subscriptionsQuery = profile.role === 'trainer'
       ? client.rpc('get_trainer_subscription_entries')
       : client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision');
-    const [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult] = await Promise.all([
+    const [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult, profilesResult] = await Promise.all([
       client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color, updated_at'),
       client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications, updated_at'),
       client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at, revision'),
-      client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, revision'),
+      client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, auto_completed, revision'),
       client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
       subscriptionsQuery,
       client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, muscle_groups, equipment, measure_type, load_mode, archived_at'),
+      client.from('profiles').select('id, display_name'),
     ]);
-    for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult]) {
+    for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, definitionsResult, profilesResult]) {
       throwIfError(result);
     }
 
@@ -337,6 +339,7 @@ export function createSupabaseRepository(
     }
 
     const relationshipById = new Map(relationships.map((row) => [row.id, row]));
+    const trainerNames = new Map(((profilesResult.data ?? []) as { id: string; display_name: string }[]).map((row) => [row.id, row.display_name]));
     const assignmentById = new Map(assignmentRows.map((row) => [row.id, row]));
     const resultsBySession = new Map<string, ResultRow[]>();
     for (const result of resultRows) {
@@ -374,6 +377,8 @@ export function createSupabaseRepository(
         : undefined;
       return [{
         id: assignment.id,
+        relationshipId: relationship.id,
+        trainerName: trainerNames.get(relationship.trainer_id),
         studentId: relationship.student_id,
         assignedAt: assignment.assigned_at,
         scheduledFor: assignment.scheduled_for,
@@ -400,6 +405,7 @@ export function createSupabaseRepository(
         startedAt: session.started_at,
         recordedBy: session.recorded_by_role,
         completedAt: session.completed_at ?? undefined,
+        autoCompleted: session.auto_completed,
         mood: session.mood ?? undefined,
         comment: session.comment ?? undefined,
         subscriptionChargeStatus: session.charge_status ?? undefined,
@@ -418,6 +424,8 @@ export function createSupabaseRepository(
       if (!relationship) return [];
       return [{
         id: entry.id,
+        relationshipId: relationship.id,
+        trainerName: trainerNames.get(relationship.trainer_id),
         // DemoState uses one stable local trainer id. Remote relationship UUIDs
         // are kept in the repository maps and must not leak into ledger filters.
         trainerId: TRAINER_ID,
@@ -784,6 +792,10 @@ export function createSupabaseRepository(
       throwIfError(completed);
       sessionRevision.set(command.sessionId, (completed.data as SessionRow).revision);
       telegramNotificationCreated = profile.role === 'student';
+    } else if (command.type === 'session.charge') {
+      const updated = await client.rpc('set_session_charge', { p_session_id: getRemoteId(remoteSessionId, command.sessionId), p_charged: command.charged });
+      throwIfError(updated);
+      sessionRevision.set(command.sessionId, (updated.data as SessionRow).revision);
     } else if (command.type === 'session.feedback') {
       throwIfError(await client.rpc('save_session_feedback', {
         p_session_id: getRemoteId(remoteSessionId, command.sessionId),

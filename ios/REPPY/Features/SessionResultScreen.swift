@@ -24,12 +24,16 @@ struct SessionResultScreen: View {
                 ReppyCaption(text: assignment?.scheduleLabel ?? ReppyDate.display(displayDate))
                 let results = store.data.sessionResults(sessionID)
                 ReppySessionSummary(session: session, results: results)
+                if session.auto_completed == true { ReppyCaption(text: "Тренировка завершена автоматически.") }
                 if session.completed_at != nil && !results.contains(where: \.completed) {
                     ReppyCaption(text: "Тренировка завершена без отмеченных подходов.")
                 }
                 let charged = store.data.isSessionCharged(sessionID)
                 if store.isTrainer, charged || session.charge_status == "waived" {
                     ReppyChargeSummary(charged: charged)
+                    ReppyButton(title: charged ? "Сделать бесплатной" : "Списать занятие", icon: "checkmark", disabled: store.busy) {
+                        Task { await store.run { try await store.setSessionCharge(session, charged: !charged) } }
+                    }
                 }
                 if session.mood != nil || !(session.comment ?? "").isEmpty { ReppyFeedbackSummary(mood: session.mood, comment: session.comment) }
                 if !store.isTrainer {
@@ -42,7 +46,6 @@ struct SessionResultScreen: View {
                     ReppyResultExerciseCard(exercise: exercise, results: results, number: index + 1, relationshipID: progressKeys.contains(exercise.progressKey) ? assignment?.relationship_id : nil)
                 }
                 if store.isTrainer, let assignment {
-                    ReppyLink(title: "Открыть тренировку") { AssignmentScreen(assignmentID: assignment.id) }
                     ReppyLink(title: "Прогресс по упражнениям", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: assignment.relationship_id) }
                     ReppyButton(title: "Удалить тренировку", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
@@ -70,13 +73,13 @@ struct SessionResultScreen: View {
                             do { try DraftStorage.remove(account: store.accountKey, key: "feedback:\(sessionID)") } catch { store.present(error) }})
                 }.presentationCornerRadius(ReppyMetrics.modalRadius)
             }
-            .confirmationDialog("Удалить завершённую тренировку? Если занятие списано, оно вернётся в абонемент ученика.", isPresented: $confirmDelete, titleVisibility: .visible) {
+            .alert("Удалить завершённую тренировку?", isPresented: $confirmDelete) {
                 Button("Удалить тренировку", role: .destructive) { Task {
                     guard let assignment = store.data.assignments.first(where: { $0.id == store.data.sessions.first(where: { $0.id == sessionID })?.assignment_id }) else { return }
                     if await store.run({ try await store.deleteAssignment(assignment) }) { dismiss() }
                 } }
                 Button("Отмена", role: .cancel) {}
-            }
+            } message: { Text("Если занятие списано, оно вернётся в абонемент ученика.") }
     }
     private func saveDraft() {
         guard initialized, !store.isTrainer, feedbackEditing else { return }

@@ -23,6 +23,10 @@ extension AppStore {
         }
         guard let api else { throw APIError.signedOut }
         if let original {
+            guard original.relationship_id == relationshipID else {
+                throw APIError.message("Нельзя перенести существующую тренировку к другому ученику. Создай новую тренировку.")
+            }
+            values.removeValue(forKey: "relationship_id")
             let row: Assignment = try await api.update("assignments", id: id, revision: original.revision, values: values)
             data.assignments.removeAll { $0.id == id }; data.assignments.append(row)
         } else {
@@ -48,7 +52,8 @@ extension AppStore {
         if !isDemo { try await loadData() }
     }
     func requestReschedule(_ assignment: Assignment, date: Date, time: String) async throws {
-        guard assignment.format == .inPerson, assignment.status == "assigned" else { throw APIError.message("Перенос для этой тренировки недоступен.") }
+        guard assignment.format == .inPerson, assignment.status == "assigned", assignment.scheduled_for >= ReppyDate.day(), data.session(for: assignment.id) == nil else { throw APIError.message("Перенос для этой тренировки недоступен. Свяжись с тренером.") }
+        guard ReppyDate.day(date) >= ReppyDate.day() else { throw APIError.message("Выбери сегодняшнюю или будущую дату.") }
         if isDemo {
             guard let index = data.assignments.firstIndex(where: { $0.id == assignment.id }) else { return }
             data.assignments[index].reschedule_scheduled_for = ReppyDate.day(date)
@@ -89,11 +94,12 @@ extension AppStore {
         try DraftStorage.remove(account: accountKey, key: key)
         return session.id
     }
-    func saveProgress(_ session: WorkoutSession, workout: Workout, results: [SetResult]) async throws {
+    func saveProgress(_ session: WorkoutSession, workout: Workout, results: [SetResult], baseResults: [SetResult]? = nil) async throws {
         guard session.completed_at == nil else { throw APIError.message("Завершённая тренировка доступна только для просмотра.") }
         if let message = ReppyValidation.workout(workout) { throw APIError.message(message) }
         guard WorkoutExecution.validate(sessionID: session.id, workout: workout, results: results) else { throw APIError.message("Проверь фактические значения подходов.") }
         var saved = session; saved.workout_snapshot = workout
+        var persistedResults = results
         if !isDemo, let api {
             let payload: [[String: Any]] = results.map { ["exerciseInstanceId": $0.exercise_instance_id, "setNumber": $0.set_number,
                 "actualReps": $0.actual_reps, "actualWeight": $0.actual_weight, "completed": $0.completed] }
@@ -103,13 +109,40 @@ extension AppStore {
             } catch APIError.conflict {
                 let rows: [WorkoutSession] = try await api.rows("workout_sessions", query: ["id": "eq.\(session.id)"])
                 let stored: [SetResult] = try await api.rows("set_results", query: ["session_id": "eq.\(session.id)"])
-                guard let remote = rows.first, remote.completed_at == nil, remote.workout_snapshot == workout,
-                    stored.sorted(by: { $0.id < $1.id }) == results.sorted(by: { $0.id < $1.id }) else { throw APIError.conflict }
-                saved = remote
+                guard let remote = rows.first, remote.completed_at == nil else { throw APIError.conflict }
+                if remote.workout_snapshot == workout && stored.sorted(by: { $0.id < $1.id }) == results.sorted(by: { $0.id < $1.id }) {
+                    saved = remote
+                    persistedResults = stored
+                } else {
+                    guard let baseResults, remote.workout_snapshot == workout,
+                          session.workout_snapshot == workout,
+                          let merged = Self.mergeResults(base: baseResults, local: results, remote: stored) else { throw APIError.conflict }
+                    if merged.sorted(by: { $0.id < $1.id }) == stored.sorted(by: { $0.id < $1.id }) { saved = remote }
+                    else {
+                        let mergedPayload: [[String: Any]] = merged.map { ["exerciseInstanceId": $0.exercise_instance_id, "setNumber": $0.set_number,
+                            "actualReps": $0.actual_reps, "actualWeight": $0.actual_weight, "completed": $0.completed] }
+                        saved = try await api.rpc("save_session_progress", ["p_session_id": session.id, "p_expected_revision": remote.revision,
+                            "p_workout_snapshot": try jsonObject(workout), "p_results": mergedPayload])
+                    }
+                    persistedResults = merged
+                }
             }
         } else { saved.revision += 1 }
         data.sessions.removeAll { $0.id == session.id }; data.sessions.append(saved)
-        data.results.removeAll { $0.session_id == session.id }; data.results += results
+        data.results.removeAll { $0.session_id == session.id }; data.results += persistedResults
+    }
+    private static func mergeResults(base: [SetResult], local: [SetResult], remote: [SetResult]) -> [SetResult]? {
+        let old = Dictionary(uniqueKeysWithValues: base.map { ($0.id, $0) })
+        let incoming = Dictionary(uniqueKeysWithValues: remote.map { ($0.id, $0) })
+        guard old.count == local.count, old.count == incoming.count, Set(old.keys) == Set(incoming.keys) else { return nil }
+        var merged: [SetResult] = []
+        for result in local {
+            guard let previous = old[result.id], let current = incoming[result.id] else { return nil }
+            if result == previous { merged.append(current) }
+            else if current == previous || current == result { merged.append(result) }
+            else { return nil }
+        }
+        return merged
     }
     func completeSession(_ session: WorkoutSession, charge: Bool) async throws {
         if session.completed_at != nil { return }
@@ -127,6 +160,21 @@ extension AppStore {
         data.sessions.removeAll { $0.id == saved.id }; data.sessions.append(saved)
         if let index = data.assignments.firstIndex(where: { $0.id == session.assignment_id }) { data.assignments[index].status = "completed" }
         if !isDemo { try await loadData() }
+    }
+    func setSessionCharge(_ session: WorkoutSession, charged: Bool) async throws {
+        guard isTrainer, session.completed_at != nil else { return }
+        if !isDemo, let api {
+            let _: WorkoutSession = try await api.rpc("set_session_charge", ["p_session_id": session.id, "p_charged": charged])
+            try await loadData()
+        } else if let assignment = data.assignments.first(where: { $0.id == session.assignment_id }) {
+            data.subscriptions.removeAll { $0.session_id == session.id && ($0.kind == "session-charge" || $0.kind == "session-refund") }
+            if charged {
+                data.subscriptions.append(try decodeObject(["id": UUID().uuidString.lowercased(), "relationship_id": assignment.relationship_id,
+                    "kind": "session-charge", "lesson_delta": -1, "occurred_at": session.completed_at!, "created_at": ReppyDate.timestamp(),
+                    "session_id": session.id, "workout_name": session.workout_snapshot.name, "revision": 1]))
+            }
+            if let index = data.sessions.firstIndex(where: { $0.id == session.id }) { data.sessions[index].charge_status = charged ? "charged" : "waived" }
+        }
     }
     func saveFeedback(_ session: WorkoutSession, mood: Mood, comment: String) async throws {
         if !isDemo, let api { try await api.call("save_session_feedback", ["p_session_id": session.id, "p_mood": mood.rawValue, "p_comment": comment.trimmingCharacters(in: .whitespacesAndNewlines)]) }
