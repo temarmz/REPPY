@@ -226,7 +226,7 @@ export default function ActiveWorkout({
       <Box className="active-sticky-header">
         <Header className="active-header">
           <Button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></Button>
-          <Box className="active-header-copy"><Inline>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</Inline><Strong>{workout.name} · <Badge as="i" className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</Badge></Strong></Box>
+          <Box className="active-header-copy"><Inline>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</Inline><Strong><Badge as="i" className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</Badge></Strong></Box>
           <Button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
           <Box className="active-timing"><Time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</Time><Bold>{progress}%</Bold></Box>
         </Header>

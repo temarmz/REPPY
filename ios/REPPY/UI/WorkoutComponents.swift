@@ -124,15 +124,17 @@ struct ReppyActiveExerciseCard: View {
                     } label: { ReppyToolbarIcon(icon: "ellipsis") }.accessibilityLabel("Действия с упражнением: \(exercise.name)")
                 }
             }
-            ReppyDisclosure(title: "Комментарий к упражнению") {
-                ReppyField(title: "Комментарий", text: Binding(get: { exercise.coachNote ?? "" }, set: { onNoteChange($0) }), multiline: true)
-            }
             ReppyStack(compact: true) {
-                SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit)
+                if results.contains(where: { $0.exercise_instance_id == exercise.id }) {
+                    SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit)
+                }
                 ForEach($results) { $result in
                     if result.exercise_instance_id == exercise.id { ActiveSetRow(exercise: exercise, result: $result, onChange: {}) }
                 }
                 if !results.contains(where: { $0.exercise_instance_id == exercise.id }) { ReppyCaption(text: "Подходы не заданы") }
+            }
+            ReppyDisclosure(title: "Комментарий к упражнению") {
+                ReppyField(title: "Комментарий", text: Binding(get: { exercise.coachNote ?? "" }, set: { onNoteChange($0) }), multiline: true)
             }
             HStack(spacing: ReppyMetrics.space8) {
                 ReppyButton(title: "Добавить подход", icon: "plus", compact: true, action: onAddSet)

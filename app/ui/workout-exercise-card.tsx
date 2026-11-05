@@ -195,9 +195,16 @@ export function PlanExerciseCard({
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
       {plans.length > 0 && <Section className="active-card-sets plan-card-sets">
+        <Box className="set-columns" aria-hidden="true">
+          <Inline>№</Inline>
+          <Box className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
+            {!bodyweight && <Inline>КГ</Inline>}
+            <Inline>{exercise.measureType === 'duration' ? 'СЕК.' : 'ПОВТ.'}</Inline>
+          </Box>
+        </Box>
         {plans.map((set, setIndex) => (
           <Card className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
-            <Box className="set-number"><Inline>ПОДХОД</Inline><Strong>{setIndex + 1}</Strong></Box>
+            <Box className="set-number"><Strong>{setIndex + 1}</Strong></Box>
             <Box className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
               {!bodyweight && <Field label={<>КГ</>} ><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></Field>}
               <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={set.targetReps} inputMode="numeric" min={1} emptyWhenZero onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></Field>
@@ -247,9 +254,16 @@ export function ActiveExerciseCard({
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
       {results.length > 0 && <Section className="active-card-sets">
+        <Box className="set-columns" aria-hidden="true">
+          <Inline>№</Inline>
+          <Box className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
+            {exercise.loadMode !== 'bodyweight' && <Inline>КГ</Inline>}
+            <Inline>{exercise.measureType === 'duration' ? 'СЕК.' : 'ПОВТ.'}</Inline>
+          </Box>
+        </Box>
         {results.map((result) => (
           <Card className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
-            <Box className="set-number"><Inline>ПОДХОД</Inline><Strong>{result.setNumber}</Strong></Box>
+            <Box className="set-number"><Strong>{result.setNumber}</Strong></Box>
             <Box className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
               {exercise.loadMode !== 'bodyweight' && <Field label={<>КГ</>} ><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></Field>}
               <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={result.actualReps} inputMode="numeric" emptyWhenZero onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></Field>
