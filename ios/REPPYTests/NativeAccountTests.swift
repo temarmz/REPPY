@@ -57,7 +57,8 @@ private final class SnapshotTestServer {
     init(data: AppData, onFirstRequest: @escaping () -> Void) throws {
         func json<T: Encodable>(_ value: T) throws -> Any { try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) }
         responses = try [
-            "/rest/v1/students": json(data.students), "/rest/v1/trainer_student_relationships": json(data.relationships),
+            "/rest/v1/students": json(data.students), "/rest/v1/profiles": json(data.profiles),
+            "/rest/v1/trainer_student_relationships": json(data.relationships),
             "/rest/v1/assignments": json(data.assignments), "/rest/v1/workout_sessions": json(data.sessions),
             "/rest/v1/set_results": json(data.results), "/rest/v1/exercise_definitions": json(data.definitions),
             "/rest/v1/rpc/get_trainer_subscription_entries": json(data.subscriptions),

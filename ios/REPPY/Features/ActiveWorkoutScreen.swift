@@ -198,6 +198,17 @@ struct ActiveWorkoutScreen: View {
         let success = await store.run { try await store.saveProgress(value.session, workout: value.workout, results: value.results, baseResults: baseResults) }
         saving = false
         if success, let session = store.data.sessions.first(where: { $0.id == sessionID }) {
+            let confirmed = store.data.sessionResults(sessionID)
+            if revision != version, let current = draft {
+                guard let merged = WorkoutExecution.merge(
+                    base: ExecutionSnapshot(workout: value.workout, results: value.results),
+                    local: ExecutionSnapshot(workout: current.workout, results: current.results),
+                    remote: ExecutionSnapshot(workout: session.workout_snapshot, results: confirmed)) else {
+                    store.present(APIError.conflict); status = "Конфликт изменений"; return
+                }
+                draft?.workout = merged.workout; draft?.results = merged.results
+            }
+            baseResults = confirmed
             draft?.session = session; savedRevision = version
             if revision == version {
                 draft?.workout = session.workout_snapshot

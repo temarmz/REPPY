@@ -444,6 +444,23 @@ final class SmokeTests: XCTestCase {
             app.terminate()
         }
     }
+    @MainActor func testNamedEmptyAssignmentCannotBePublished() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-trainer", "-appearance", theme, "--audit-screen", "new-editor"]
+            app.launch()
+            let name = app.textFields["Название тренировки"]
+            XCTAssertTrue(name.waitForExistence(timeout: 15)); name.tap(); name.typeText("Empty publication test")
+            let publish = app.navigationBars.buttons["Назначить"]
+            XCTAssertTrue(publish.exists); XCTAssertFalse(publish.isEnabled)
+            let message = app.staticTexts["Добавь упражнения перед назначением. До назначения черновик виден только тебе."]
+            XCTAssertTrue(message.exists)
+            if app.buttons["dismiss-keyboard"].firstMatch.exists { app.buttons["dismiss-keyboard"].firstMatch.tap() }
+            app.swipeUp()
+            capture(app, "empty-assignment-disabled-" + theme)
+            app.terminate()
+        }
+    }
     @MainActor func testWorkoutEditorSetRows() {
         for theme in ["light", "dark"] {
             let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()

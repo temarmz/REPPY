@@ -186,8 +186,8 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(DatabaseAcknowledgement.matches(row: ["name": NSNull()], intended: ["name": "План"]))
         XCTAssertFalse(DatabaseAcknowledgement.matches(row: ["occurred_at": "2026-10-29T09:00:00.100Z"], intended: ["occurred_at": "2026-10-29T09:00:00.200Z"]))
     }
-    func testEmptyPlansAreSupportedAndInvalidSetsAreRejected() throws {
-        XCTAssertNil(ReppyValidation.workout(Workout(name: "Пустой план")))
+    func testEmptyAssignmentsAndInvalidSetsAreRejected() throws {
+        XCTAssertNotNil(ReppyValidation.workout(Workout(name: "Пустой план")))
         var workout = try XCTUnwrap(fixture().assignments.first).workout_snapshot
         workout.exercises[0].plannedSets[0].targetReps = 0
         XCTAssertNotNil(ReppyValidation.workout(workout))

@@ -9,6 +9,7 @@ const UI_DRAFT_PREFERENCE = 'reppy-ui:draft';
 const UI_STATE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 export type WorkoutComposerDraft = {
+  submissionId?: string;
   name: string;
   scheduledFor?: string;
   scheduledTime?: string;
@@ -73,7 +74,8 @@ export function isDraftTimeString(value: unknown): value is string {
 
 function isWorkoutDraft(value: unknown): value is WorkoutComposerDraft {
   if (!isRecord(value) || !Array.isArray(value.exercises) || !value.exercises.every(isWorkoutExercise)) return false;
-  return typeof value.name === 'string' && (value.format === 'in-person' || value.format === 'online')
+  return (value.submissionId === undefined || (typeof value.submissionId === 'string' && /^[0-9a-f-]{36}$/i.test(value.submissionId)))
+    && typeof value.name === 'string' && (value.format === 'in-person' || value.format === 'online')
     && isDraftDate(value.scheduledFor)
     && (value.scheduledTime === undefined || isDraftTimeString(value.scheduledTime))
     && new Set(value.exercises.map(exercise => exercise.id)).size === value.exercises.length;

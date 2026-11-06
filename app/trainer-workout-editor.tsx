@@ -1,3 +1,4 @@
+import { validateAssignedWorkout } from './workout-validation';
 import { SectionHeading } from './ui/patterns';
 import { Fieldset, Legend, Box, Paragraph, Page, Section, Inline, Strong, Heading, Time, Small } from './ui/elements';
 import { useEffect, useRef, useState } from 'react';
@@ -145,7 +146,7 @@ function WorkoutComposer({
   const [error, setError] = useState('');
   const [dangerOpen, setDangerOpen] = useState(false);
   const submittingRef = useRef(false);
-  const submissionIdRef = useRef(makeId('assignment'));
+  const submissionIdRef = useRef(restoredDraft?.submissionId ?? crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
   const [initialFormState] = useState(baseline);
   const currentFormState = JSON.stringify({ name, scheduledFor, scheduledTime, format, exercises });
@@ -155,7 +156,7 @@ function WorkoutComposer({
 
   useEffect(() => {
     if (isDirty) {
-      saveWorkoutComposerDraft(draftKey, initialFormState, { name, scheduledFor, scheduledTime, format, exercises });
+      saveWorkoutComposerDraft(draftKey, initialFormState, { submissionId: submissionIdRef.current, name, scheduledFor, scheduledTime, format, exercises });
     } else {
       clearWorkoutComposerDraft(draftKey);
     }
@@ -170,9 +171,9 @@ function WorkoutComposer({
     if (!exercises.length) return setError('Добавь хотя бы одно упражнение.');
     submittingRef.current = true;
     setSubmitting(true);
-    clearWorkoutComposerDraft(draftKey);
-    allowNextNavigation();
     try {
+      validateAssignedWorkout({ name: name.trim(), exercises });
+      allowNextNavigation();
       onSubmit({
         submissionId: submissionIdRef.current,
         name: name.trim(),
@@ -181,6 +182,7 @@ function WorkoutComposer({
         format,
         exercises: exercises.map((exercise) => ({ ...exercise })),
       });
+      clearWorkoutComposerDraft(draftKey);
     } catch (submitError) {
       submittingRef.current = false;
       setSubmitting(false);

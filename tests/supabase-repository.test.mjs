@@ -34,12 +34,18 @@ function assignedWorkoutClient({ active = false } = {}) {
   const client = {
     from(table) {
       return {
-        select: async () => ({ data: tables[table], error: null }),
+        select: () => Object.assign(Promise.resolve({ data: tables[table], error: null }), { eq: () => Promise.resolve({ data: tables[table], error: null }) }),
         insert: async () => { throw new Error(`Unexpected insert into ${table}`); },
       };
     },
     rpc: async (name, payload) => {
       calls.push({ name, payload });
+      if (name === 'start_workout_session_with_id') {
+        tables.set_results = workout.exercises.flatMap(exercise => exercise.plannedSets.map((plan, index) => ({
+          exercise_instance_id: exercise.id, set_number: index + 1, actual_reps: plan.targetReps, actual_weight: plan.targetWeight, completed: false,
+        })));
+        return { data: { id: payload.p_session_id, revision: 1, workout_snapshot: workout }, error: null };
+      }
       return { data: { id: payload.p_session_id, revision: calls.length + 1 }, error: null };
     },
     functions: { invoke: async () => ({ error: null }) },
@@ -54,11 +60,10 @@ test('ученик запускает тренировку с личным уп�
   const session = createWorkoutSession(assignment, assignment.workoutSnapshot, 'student');
   data.sessions.push(session);
   await repository.execute({ type: 'session.start', session }, data);
-  const save = calls.find((call) => call.name === 'save_session_progress');
-  assert.equal(save.payload.p_workout_snapshot.exercises[0].exerciseId, definitionId);
-  assert.equal(save.payload.p_workout_snapshot.exercises[0].id, instanceId);
-  assert.equal(save.payload.p_results.length, 3);
-  assert.ok(save.payload.p_results.every((result) => result.exerciseInstanceId === instanceId));
+  assert.equal(calls.length, 1, 'start does not resave default results over another participant');
+  assert.equal(calls[0].name, 'start_workout_session_with_id');
+  assert.equal(session.workoutSnapshot.exercises[0].exerciseId, definitionId);
+  assert.equal(session.workoutSnapshot.exercises[0].id, instanceId);
 });
 
 for (const changedElsewhere of [false, true]) {
@@ -66,6 +71,7 @@ for (const changedElsewhere of [false, true]) {
     const { client, tables, repository } = assignedWorkoutClient({ active: true });
     const data = await repository.load();
     const session = data.sessions[0];
+    session.workoutSnapshot.name = 'Local name';
     let writes = 0;
     client.rpc = async (_, payload) => {
       writes++;
@@ -91,7 +97,12 @@ test('загрузка, перекрытая локальной правкой, 
   const { client, tables, repository } = assignedWorkoutClient({ active: true });
   const data = await repository.load();
   tables.workout_sessions[0].revision = 2; // A real update from the trainer.
+  tables.workout_sessions[0].workout_snapshot.name = 'Remote';
+  data.sessions[0].workoutSnapshot.name = 'Local';
   await repository.load({ accept: () => false });
+  client.from = table => ({ select: () => ({ eq: () => table === 'workout_sessions'
+    ? { single: async () => ({ data: tables[table][0], error: null }) }
+    : Promise.resolve({ data: tables[table], error: null }) }) });
   client.rpc = async (_, payload) => {
     assert.equal(payload.p_expected_revision, 1);
     return { data: null, error: { code: '40001', message: 'Session revision conflict' } };
@@ -103,6 +114,7 @@ test('после потерянного ответа и конфликта пр�
   const { client, tables, repository } = assignedWorkoutClient({ active: true });
   const data = await repository.load();
   const sessionId = data.sessions[0].id;
+  data.sessions[0].workoutSnapshot.name = 'Local pending name';
   client.rpc = async () => ({ data: null, error: { message: 'Failed to fetch' } });
   await assert.rejects(repository.execute({ type: 'session.progress', sessionId }, data), { code: 'REPPY_NETWORK' });
   tables.workout_sessions[0].revision = 2;
@@ -389,4 +401,176 @@ test('удаление приглашения отправляет атомар�
   assert.deepEqual(payload, { name: 'delete_pending_student', values: { p_student_id: studentId } });
   client.rpc = async () => ({ error: { code: '40001', message: 'Student already accepted invitation' } });
   await assert.rejects(repository.execute({ type: 'student.invitation.delete', studentId }, data), { code: 'REPPY_CONFLICT' });
+});
+
+function concurrentProgressFixture() {
+  const f = assignedWorkoutClient({ active: true });
+  const sessionID = f.tables.workout_sessions[0].id;
+  const row = f.tables.workout_sessions[0];
+  f.tables.set_results = row.workout_snapshot.exercises[0].plannedSets.map((plan, index) => ({
+    session_id: sessionID, exercise_instance_id: f.instanceId, set_number: index + 1,
+    actual_reps: plan.targetReps, actual_weight: plan.targetWeight, completed: false,
+  }));
+  f.client.from = table => ({ select: () => Object.assign(Promise.resolve({ data: structuredClone(f.tables[table]), error: null }), {
+    eq: () => table === 'workout_sessions'
+      ? { single: async () => ({ data: structuredClone(row), error: null }) }
+      : Promise.resolve({ data: structuredClone(f.tables[table]), error: null }),
+  }) });
+  f.client.rpc = async (name, payload) => {
+    f.calls.push({ name, payload });
+    if (payload.p_expected_revision !== row.revision) return { data: null, error: { code: '40001', message: 'Session revision conflict' } };
+    row.revision++;
+    row.workout_snapshot = structuredClone(payload.p_workout_snapshot);
+    f.tables.set_results = payload.p_results.map(result => ({ session_id: sessionID,
+      exercise_instance_id: result.exerciseInstanceId, set_number: result.setNumber,
+      actual_reps: result.actualReps, actual_weight: result.actualWeight, completed: result.completed }));
+    return { data: structuredClone(row), error: null };
+  };
+  return { ...f, row };
+}
+
+for (const localNote of [true, false]) {
+  test(`concurrent coach note and student sets merge, local note: ${localNote}`, async () => {
+    const f = concurrentProgressFixture();
+    const data = await f.repository.load();
+    const session = data.sessions[0];
+    if (localNote) session.workoutSnapshot.exercises[0].coachNote = 'Keep your back straight';
+    else { session.results[0].completed = true; session.results[1].completed = true; }
+    f.row.revision++;
+    if (localNote) { f.tables.set_results[0].completed = true; f.tables.set_results[1].completed = true; }
+    else f.row.workout_snapshot.exercises[0].coachNote = 'Keep your back straight';
+    await f.repository.execute({ type: 'session.progress', sessionId: session.id }, data);
+    assert.equal(f.row.workout_snapshot.exercises[0].coachNote, 'Keep your back straight');
+    assert.deepEqual(f.tables.set_results.map(r => r.completed), [true, true, false]);
+    // A queued snapshot still lacks the remote edits. It must preserve them too.
+    session.results[2].actualWeight = 55;
+    await f.repository.execute({ type: 'session.progress', sessionId: session.id }, data);
+    assert.equal(f.row.workout_snapshot.exercises[0].coachNote, 'Keep your back straight');
+    assert.deepEqual(f.tables.set_results.map(r => r.completed), [true, true, false]);
+    assert.equal(f.tables.set_results[2].actual_weight, 55);
+  });
+}
+
+test('same-field conflict stops the queue with a recoverable error', async t => {
+  const f = concurrentProgressFixture();
+  const data = await f.repository.load();
+  data.sessions[0].results[0].actualWeight = 60;
+  f.tables.set_results[0].actual_weight = 70;
+  f.row.revision++;
+  const phases = [];
+  const queue = createPersistenceQueue(f.repository, phase => phases.push(phase), { debounceMs: 0 });
+  t.after(() => queue.dispose());
+  queue.enqueue({ type: 'session.progress', sessionId: data.sessions[0].id }, data);
+  queue.flush();
+  await new Promise(setImmediate);
+  assert.equal(phases.at(-1), 'error');
+  assert.equal(queue.pendingCount, 1);
+  assert.equal(f.tables.set_results[0].actual_weight, 70);
+  assert.equal(f.calls.length, 1);
+});
+
+test('empty assignment fails before any repository write or session start', async () => {
+  const f = assignedWorkoutClient();
+  const data = await f.repository.load();
+  const assignment = structuredClone(data.assignments[0]);
+  assignment.workoutSnapshot.exercises = [];
+  const trainer = createSupabaseRepository(f.client, { id: f.tables.trainer_student_relationships[0].trainer_id, role: 'trainer' });
+  await assert.rejects(trainer.execute({ type: 'assignment.create', assignment }, data), /хотя бы одно/);
+  const session = createWorkoutSession(assignment, assignment.workoutSnapshot, 'student');
+  await assert.rejects(f.repository.execute({ type: 'session.start', session }, data), /хотя бы одно/);
+  assert.equal(f.calls.length, 0);
+});
+
+test('student calendar excludes legacy empty assignments and empty active sessions', async () => {
+  const f = assignedWorkoutClient({ active: true });
+  f.tables.assignments[0].workout_snapshot = { name: 'Incomplete draft', exercises: [] };
+  f.tables.workout_sessions[0].workout_snapshot = { name: 'Incomplete draft', exercises: [] };
+  const data = await f.repository.load();
+  assert.equal(data.assignments.length, 0);
+  assert.equal(data.sessions.length, 0);
+});
+
+test('assignment UUID survives repository recreation after a lost creation response', async () => {
+  const f = assignedWorkoutClient();
+  f.client.rpc = async () => ({ data: [], error: null });
+  const profile = { id: f.tables.trainer_student_relationships[0].trainer_id, role: 'trainer' };
+  const first = createSupabaseRepository(f.client, profile);
+  const initial = await first.load();
+  const assignment = { ...initial.assignments[0], id: crypto.randomUUID() };
+  let stored;
+  let attempts = 0;
+  const select = f.client.from.bind(f.client);
+  f.client.from = table => table !== 'assignments' ? select(table) : { ...select(table), upsert: async (row, options) => {
+    assert.equal(options.ignoreDuplicates, true);
+    assert.equal(row.id, assignment.id);
+    attempts++;
+    stored ??= structuredClone(row);
+    return { error: attempts === 1 ? { message: 'Failed to fetch' } : null };
+  } };
+  await assert.rejects(first.execute({ type: 'assignment.create', assignment }, initial), { code: 'REPPY_NETWORK' });
+  const reopened = createSupabaseRepository(f.client, profile);
+  const fresh = await reopened.load();
+  await reopened.execute({ type: 'assignment.create', assignment }, fresh);
+  assert.equal(stored.id, assignment.id);
+  assert.equal(attempts, 2);
+});
+
+for (const committed of [true, false]) {
+  test(`lost progress response and concurrent coach note merge: committed=${committed}`, async () => {
+    const f = concurrentProgressFixture();
+    const data = await f.repository.load();
+    const session = data.sessions[0];
+    session.results[0].completed = true;
+    const save = f.client.rpc;
+    let first = true;
+    f.client.rpc = async (name, payload) => {
+      if (!first) return save(name, payload);
+      first = false;
+      if (committed) await save(name, payload);
+      f.row.workout_snapshot.exercises[0].coachNote = 'Concurrent note';
+      f.row.revision++;
+      return { data: null, error: { message: 'Failed to fetch' } };
+    };
+    await assert.rejects(f.repository.execute({ type: 'session.progress', sessionId: session.id }, data), { code: 'REPPY_NETWORK' });
+    await f.repository.execute({ type: 'session.progress', sessionId: session.id }, data);
+    assert.equal(f.row.workout_snapshot.exercises[0].coachNote, 'Concurrent note');
+    assert.equal(f.tables.set_results[0].completed, true);
+    session.results[1].completed = true;
+    await f.repository.execute({ type: 'session.progress', sessionId: session.id }, data);
+    assert.equal(f.row.workout_snapshot.exercises[0].coachNote, 'Concurrent note');
+    assert.equal(f.tables.set_results[0].completed, true);
+    assert.equal(f.tables.set_results[1].completed, true);
+  });
+}
+
+test('repeated server conflicts are bounded and leave remote results unchanged', async () => {
+  const f = concurrentProgressFixture();
+  const data = await f.repository.load();
+  data.sessions[0].results[0].completed = true;
+  let writes = 0;
+  f.client.rpc = async () => { writes++; return { data: null, error: { code: '40001', message: 'Session revision conflict' } }; };
+  await assert.rejects(f.repository.execute({ type: 'session.progress', sessionId: data.sessions[0].id }, data), { code: 'REPPY_CONFLICT' });
+  assert.equal(writes, 3);
+  assert.equal(f.tables.set_results[0].completed, false);
+});
+
+test('joining a canonical session keeps existing results and targets later writes to its server ID', async () => {
+  const f = concurrentProgressFixture();
+  const data = await f.repository.load();
+  const local = createWorkoutSession(data.assignments[0], data.assignments[0].workoutSnapshot, 'student');
+  data.sessions.push(local);
+  f.tables.set_results[0].completed = true;
+  const save = f.client.rpc;
+  f.client.rpc = async (name, payload) => {
+    if (name === 'start_workout_session_with_id') return { data: structuredClone(f.row), error: null };
+    assert.equal(payload.p_session_id, f.row.id);
+    return save(name, payload);
+  };
+  await f.repository.execute({ type: 'session.start', session: local }, data);
+  assert.equal(f.tables.set_results[0].completed, true);
+  assert.equal(f.calls.length, 0, 'joining does not save defaults');
+  local.results[1].completed = true;
+  await f.repository.execute({ type: 'session.progress', sessionId: local.id }, data);
+  assert.equal(f.tables.set_results[0].completed, true);
+  assert.equal(f.tables.set_results[1].completed, true);
 });

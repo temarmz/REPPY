@@ -76,3 +76,69 @@ public enum WorkoutExecution {
                   actual_weight: exercise.loadMode == .bodyweight ? 0 : plan.targetWeight, completed: false)
     }
 }
+
+
+extension WorkoutExecution {
+    private enum MergeError: Error { case conflict }
+
+    /// Apply only edits relative to the acknowledged base; overlapping edits stop.
+    public static func merge(base: ExecutionSnapshot, local: ExecutionSnapshot, remote: ExecutionSnapshot) -> ExecutionSnapshot? {
+        do {
+            let encoder = JSONEncoder()
+            let old = try JSONSerialization.jsonObject(with: encoder.encode(base))
+            let outgoing = try JSONSerialization.jsonObject(with: encoder.encode(local))
+            let incoming = try JSONSerialization.jsonObject(with: encoder.encode(remote))
+            guard let merged = try mergeJSON(base: old, local: outgoing, remote: incoming) else { return nil }
+            return try JSONDecoder().decode(ExecutionSnapshot.self, from: JSONSerialization.data(withJSONObject: merged))
+        } catch { return nil }
+    }
+    private static func sameJSON(_ lhs: Any?, _ rhs: Any?) -> Bool {
+        if lhs == nil && rhs == nil { return true }
+        guard let lhs = lhs as? NSObject, let rhs = rhs as? NSObject else { return false }
+        return lhs.isEqual(rhs)
+    }
+    private static func mergeJSON(base: Any?, local: Any?, remote: Any?) throws -> Any? {
+        if sameJSON(local, base) { return remote }
+        if sameJSON(remote, base) || sameJSON(local, remote) { return local }
+        if let base = base as? [String: Any], let local = local as? [String: Any], let remote = remote as? [String: Any] {
+            var result: [String: Any] = [:]
+            for key in Set(base.keys).union(local.keys).union(remote.keys) {
+                if key == "updatedAt", let localTime = local[key] as? String, let remoteTime = remote[key] as? String {
+                    result[key] = max(localTime, remoteTime)
+                } else { result[key] = try mergeJSON(base: base[key], local: local[key], remote: remote[key]) }
+            }
+            return result
+        }
+        if let base = base as? [Any], let local = local as? [Any], let remote = remote as? [Any] {
+            func identity(_ item: Any) -> String? {
+                guard let item = item as? [String: Any] else { return nil }
+                if let id = item["id"] as? String { return id }
+                if let exercise = item["exercise_instance_id"] as? String, let number = item["set_number"] as? Int {
+                    return exercise + ":" + String(number)
+                }
+                return nil
+            }
+            if (base + local + remote).allSatisfy({ identity($0) != nil }) {
+                func index(_ items: [Any]) throws -> [String: Any] {
+                    var result: [String: Any] = [:]
+                    for item in items {
+                        guard let id = identity(item), result[id] == nil else { throw MergeError.conflict }
+                        result[id] = item
+                    }
+                    return result
+                }
+                let b = try index(base), l = try index(local), r = try index(remote)
+                var items: [String: Any] = [:]
+                for id in Set(b.keys).union(l.keys).union(r.keys) {
+                    items[id] = try mergeJSON(base: b[id], local: l[id], remote: r[id])
+                }
+                guard let order = try mergeJSON(base: base.compactMap(identity), local: local.compactMap(identity), remote: remote.compactMap(identity)) as? [String] else { throw MergeError.conflict }
+                return order.compactMap { items[$0] }
+            }
+            if base.count == local.count && base.count == remote.count {
+                return try base.indices.map { try mergeJSON(base: base[$0], local: local[$0], remote: remote[$0]) ?? NSNull() }
+            }
+        }
+        throw MergeError.conflict
+    }
+}

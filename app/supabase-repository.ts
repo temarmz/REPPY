@@ -1,3 +1,5 @@
+import { mergeProgress } from './merge-progress.ts';
+import { validateAssignedWorkout } from './workout-validation.ts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   TRAINER_ID,
@@ -202,7 +204,7 @@ export function createSupabaseRepository(
   const getRemoteId = (mapping: Map<string, string>, localId: string) => {
     const existing = mapping.get(localId);
     if (existing) return existing;
-    const next = uuid();
+    const next = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(localId) ? localId : uuid();
     mapping.set(localId, next);
     return next;
   };
@@ -368,6 +370,7 @@ export function createSupabaseRepository(
     const assignments: Assignment[] = assignmentRows.flatMap((assignment) => {
       const relationship = relationshipById.get(assignment.relationship_id);
       if (!relationship) return [];
+      if (profile.role === 'student' && assignment.status === 'assigned' && !assignment.workout_snapshot.exercises.length) return [];
       const rescheduleRequest = assignment.reschedule_scheduled_for && assignment.reschedule_scheduled_time && assignment.reschedule_requested_at
         ? {
             scheduledFor: assignment.reschedule_scheduled_for,
@@ -395,6 +398,7 @@ export function createSupabaseRepository(
       const assignment = assignmentById.get(session.assignment_id);
       const relationship = assignment && relationshipById.get(assignment.relationship_id);
       if (!relationship) return [];
+      if (profile.role === 'student' && !session.completed_at && !session.workout_snapshot.exercises.length) return [];
       const workout = deserializeWorkout(session.workout_snapshot, slugByDefinition);
       for (const exercise of workout.exercises) remoteExerciseInstanceId.set(exercise.id, exercise.id);
       return [{
@@ -461,6 +465,11 @@ export function createSupabaseRepository(
     // a lost acknowledgement followed by a conflict. A superseded background
     // read must leave the original uncertain write available for reconciliation.
     if (acceptRevisions) {
+      progressBases.clear();
+      for (const session of state.sessions) {
+        const payload = progressPayload(session);
+        progressBases.set(session.id, { local: clone(payload), remote: clone(payload) });
+      }
       uncertainProgress.clear();
       uncertainUpdates.clear();
       uncertainProfileUpdates.clear();
@@ -574,15 +583,24 @@ export function createSupabaseRepository(
     }
   }
 
+  function progressPayload(session: WorkoutSession) {
+    return { snapshot: serializeWorkout(session.workoutSnapshot), results: session.results.map(result => ({
+      exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId), setNumber: result.setNumber,
+      actualReps: result.actualReps, actualWeight: result.actualWeight, completed: result.completed,
+    })) };
+  }
+  type ProgressPayload = ReturnType<typeof progressPayload>;
+  const progressBases = new Map<string, { local: ProgressPayload; remote: ProgressPayload }>();
+
   async function saveProgress(session: WorkoutSession) {
     const sessionId = getRemoteId(remoteSessionId, session.id);
+    const baseline = progressBases.get(session.id);
+    let observed: { revision: number; payload: ProgressPayload } | undefined;
     const uncertain = uncertainProgress.get(session.id);
     if (uncertain) {
-      const [remote, results] = await Promise.all([
-        client.from('workout_sessions').select('revision, workout_snapshot').eq('id', sessionId).single(),
-        client.from('set_results').select('exercise_instance_id, set_number, actual_reps, actual_weight, completed').eq('session_id', sessionId),
-      ]);
+      const remote = await client.from('workout_sessions').select('revision, workout_snapshot, completed_at').eq('id', sessionId).single();
       throwIfError(remote);
+      const results = await client.from('set_results').select('exercise_instance_id, set_number, actual_reps, actual_weight, completed').eq('session_id', sessionId);
       throwIfError(results);
       if (!remote.data) throw new Error('Не удалось проверить сохранение тренировки.');
       const saved = (results.data as ResultRow[]).map((row) => ({ exerciseInstanceId: row.exercise_instance_id,
@@ -594,28 +612,44 @@ export function createSupabaseRepository(
         // Server committed, but its response was lost. Acknowledge the original
         // queued write instead of sending it again or reporting a false conflict.
         sessionRevision.set(session.id, remote.data.revision);
+        progressBases.set(session.id, { local: clone(progressPayload(session)), remote: { snapshot: clone(uncertain.snapshot), results: clone(uncertain.results) } });
         uncertainProgress.delete(session.id);
         return;
       }
-      if (remote.data.revision !== uncertain.revision) throw revisionConflict('Тренировка');
+      if (remote.data.revision !== uncertain.revision) {
+        if (!baseline || remote.data.completed_at) throw revisionConflict('Тренировка');
+        observed = { revision: remote.data.revision, payload: { snapshot: remote.data.workout_snapshot as Workout, results: saved } };
+      }
     }
-    const attempt = {
-      revision: sessionRevision.get(session.id) ?? 1,
-      snapshot: serializeWorkout(session.workoutSnapshot),
-      results: session.results.map((result) => ({
-        exerciseInstanceId: getRemoteId(remoteExerciseInstanceId, result.exerciseId), setNumber: result.setNumber,
-        actualReps: result.actualReps, actualWeight: result.actualWeight, completed: result.completed,
-      })),
-    };
-    try {
-      const progress = await client.rpc('save_session_progress', { p_session_id: sessionId,
-        p_expected_revision: attempt.revision, p_workout_snapshot: attempt.snapshot, p_results: attempt.results });
-      throwIfError(progress);
-      sessionRevision.set(session.id, (progress.data as SessionRow).revision);
-      uncertainProgress.delete(session.id);
-    } catch (reason) {
-      if (isTransientPersistenceError(reason)) uncertainProgress.set(session.id, attempt);
-      throw reason;
+    const local = progressPayload(session);
+    let payload = baseline ? mergeProgress(baseline.local, local, observed?.payload ?? baseline.remote) : local;
+    let revision = observed?.revision ?? sessionRevision.get(session.id) ?? 1;
+    for (let retry = 0; ; retry++) {
+      const attempt = { revision, ...payload };
+      try {
+        const progress = await client.rpc('save_session_progress', { p_session_id: sessionId,
+          p_expected_revision: revision, p_workout_snapshot: payload.snapshot, p_results: payload.results });
+        throwIfError(progress);
+        sessionRevision.set(session.id, (progress.data as SessionRow).revision);
+        progressBases.set(session.id, { local: clone(local), remote: clone(payload) });
+        uncertainProgress.delete(session.id);
+        return;
+      } catch (reason) {
+        if (isTransientPersistenceError(reason)) uncertainProgress.set(session.id, attempt);
+        if (!(reason instanceof ReppyConflictError) || !baseline || retry >= 2) throw reason;
+        // Read the revision BEFORE the results. Any intervening write then fails
+        // the next CAS instead of letting a mixed snapshot overwrite newer data.
+        const row = await client.from('workout_sessions').select('revision, workout_snapshot, completed_at').eq('id', sessionId).single();
+        throwIfError(row);
+        if (!row.data || row.data.completed_at) throw reason;
+        const results = await client.from('set_results').select('exercise_instance_id, set_number, actual_reps, actual_weight, completed').eq('session_id', sessionId);
+        throwIfError(results);
+        const remote = { snapshot: row.data.workout_snapshot as Workout,
+          results: (results.data as ResultRow[]).map(result => ({ exerciseInstanceId: result.exercise_instance_id,
+            setNumber: result.set_number, actualReps: result.actual_reps, actualWeight: Number(result.actual_weight), completed: result.completed })) };
+        payload = mergeProgress(baseline.local, local, remote);
+        revision = row.data.revision;
+      }
     }
   }
 
@@ -712,6 +746,7 @@ export function createSupabaseRepository(
     } else if (command.type === 'assignment.create') {
       if (profile.role !== 'trainer') throw new Error('Только тренер может назначить тренировку.');
       const assignment = command.assignment;
+      validateAssignedWorkout(assignment.workoutSnapshot);
       await ensureExerciseDefinitions([assignment.workoutSnapshot]);
       const relationshipId = relationshipByStudent.get(assignment.studentId);
       if (!relationshipId) throw new Error('Не найдена связь тренера с учеником.');
@@ -770,6 +805,7 @@ export function createSupabaseRepository(
       telegramNotificationCreated = true;
     } else if (command.type === 'session.start') {
       const session = command.session;
+      validateAssignedWorkout(session.workoutSnapshot);
       await ensureExerciseDefinitions([session.workoutSnapshot]);
       const sessionId = getRemoteId(remoteSessionId, session.id);
       const started = await client.rpc('start_workout_session_with_id', {
@@ -777,8 +813,17 @@ export function createSupabaseRepository(
         p_session_id: sessionId,
       });
       throwIfError(started);
-      sessionRevision.set(session.id, (started.data as SessionRow).revision);
-      await saveProgress(session);
+      const saved = started.data as SessionRow;
+      remoteSessionId.set(session.id, saved.id);
+      sessionRevision.set(session.id, saved.revision);
+      const results = await client.from('set_results').select('exercise_instance_id, set_number, actual_reps, actual_weight, completed').eq('session_id', saved.id);
+      throwIfError(results);
+      progressBases.set(session.id, { local: clone(progressPayload(session)), remote: {
+        snapshot: clone(saved.workout_snapshot), results: (results.data as ResultRow[]).map(result => ({
+          exerciseInstanceId: result.exercise_instance_id, setNumber: result.set_number,
+          actualReps: result.actual_reps, actualWeight: Number(result.actual_weight), completed: result.completed,
+        })),
+      } });
     } else if (command.type === 'session.progress') {
       const session = state.sessions.find((item) => item.id === command.sessionId);
       if (!session) throw new Error('Сессия не найдена.');
@@ -950,6 +995,7 @@ export function createSupabaseRepository(
       };
     },
     async clear() {
+      progressBases.clear();
       uncertainProfileUpdates.clear();
       acceptedProfileSteps.clear();
       uncertainPaymentDeletes.clear();

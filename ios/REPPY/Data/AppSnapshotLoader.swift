@@ -31,6 +31,10 @@ import Foundation
         snapshot.results = try await results
         snapshot.definitions = try await definitions
         snapshot.subscriptions = subscriptions
+        if role == .student {
+            snapshot.assignments.removeAll { $0.status == "assigned" && $0.workout_snapshot.exercises.isEmpty }
+            snapshot.sessions.removeAll { $0.completed_at == nil && $0.workout_snapshot.exercises.isEmpty }
+        }
         try Task.checkCancellation()
         return snapshot
     }

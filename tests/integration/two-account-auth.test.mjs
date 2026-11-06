@@ -449,6 +449,23 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
     assert.deepEqual(assertSuccess(await outsider.from('subscription_entries').select('id').eq('id', paymentId), 'outsider cannot inspect recovered payment'), []);
   }
 
+  // Independent clients save a coach note and a result from the same base.
+  const noteRepository = createSupabaseRepository(trainer, { id: trainerUser.id, role: 'trainer' });
+  const resultRepository = createSupabaseRepository(student, { id: createdStudent.id, role: 'student' });
+  const noteState = await noteRepository.load();
+  const resultState = await resultRepository.load();
+  const noteSession = noteState.sessions.find(item => item.id === sessionId);
+  const resultSession = resultState.sessions.find(item => item.id === sessionId);
+  noteSession.workoutSnapshot.exercises[0].coachNote = 'Concurrent coach instruction';
+  resultSession.results.find(item => item.exerciseId === exerciseInstanceId).actualWeight += 1;
+  const mergedWeight = resultSession.results.find(item => item.exerciseId === exerciseInstanceId).actualWeight;
+  await noteRepository.execute({ type: 'session.progress', sessionId }, noteState);
+  await resultRepository.execute({ type: 'session.progress', sessionId }, resultState);
+  const mergedSession = assertSuccess(await trainer.from('workout_sessions').select('workout_snapshot').eq('id', sessionId).single(), 'read merged coach instruction');
+  assert.equal(mergedSession.workout_snapshot.exercises[0].coachNote, 'Concurrent coach instruction');
+  assert.equal(Number(assertSuccess(await trainer.from('set_results').select('actual_weight').eq('session_id', sessionId)
+    .eq('exercise_instance_id', exerciseInstanceId).single(), 'read merged student result').actual_weight), mergedWeight);
+
   const trainerSession = trainerState.sessions.find((item) => item.id === sessionId);
   trainerSession.results = trainerSession.results.map((item) => item.exerciseId === privateExerciseInstanceId
     ? { ...item, actualWeight: 5.5 } : item);
@@ -469,6 +486,11 @@ test('trainer invitation, student registration and workout lifecycle obey RLS', 
   }), 'student completes workout');
   assert.equal(completed.status, 'completed');
   assert.equal(completed.charge_status, 'charged');
+  const completedAgain = assertSuccess(await trainer.rpc('complete_workout_session', { p_session_id: sessionId, p_charge_subscription: false }), 'repeat completion from the other account');
+  assert.equal(completedAgain.id, sessionId);
+  assert.equal(completedAgain.charge_status, 'charged');
+  const charges = assertSuccess(await trainer.from('subscription_entries').select('id').eq('session_id', sessionId).eq('kind', 'session-charge'), 'one charge across both completions');
+  assert.equal(charges.length, 1);
 
   const trainerResult = assertSuccess(
     await trainer.from('set_results').select('actual_reps, completed').eq('session_id', sessionId).eq('exercise_instance_id', exerciseInstanceId).single(),
