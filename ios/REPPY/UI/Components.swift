@@ -398,7 +398,7 @@ struct ReppyFormActions: ViewModifier {
                             if cancelIcon { Image(systemName: "chevron.left") }
                             else { Text(cancelTitle) }
                         }.accessibilityLabel(cancelIcon ? "Назад" : cancelTitle)
-                            .modifier(ReppySecondaryToolbarStyle()).disabled(busy)
+                            .modifier(ReppySecondaryToolbarStyle()).disabled(busy).accessibilityIdentifier("form-cancel")
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {

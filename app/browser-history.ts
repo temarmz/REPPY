@@ -8,7 +8,13 @@ export function historyIndex() {
 }
 
 export function replaceHistoryEntry(state: Record<string, unknown>, url = window.location.href, index = historyIndex() ?? 0) {
-  window.history.replaceState({ ...state, reppyIndex: index }, '', url);
+  const next = { ...state, reppyIndex: index };
+  // hashchange and popstate can describe the same entry. Avoid charging
+  // WebKit's History API rate limit for an unchanged state.
+  if (url === window.location.href) {
+    try { if (JSON.stringify(window.history.state) === JSON.stringify(next)) return; } catch { /* Non-JSON history states still use the browser's structured clone. */ }
+  }
+  window.history.replaceState(next, '', url);
 }
 
 export function pushHistoryEntry(state: Record<string, unknown>, url = window.location.href) {

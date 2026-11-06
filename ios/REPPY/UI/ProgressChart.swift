@@ -47,11 +47,11 @@ struct ReppyProgressChart: View {
         if let selected {
             HStack(spacing: ReppyMetrics.space12) {
                 Button { move(-1) } label: { ReppyToolbarIcon(icon: "chevron.left") }
-                    .disabled(selected.id == ordered.first?.id).accessibilityLabel("Предыдущее занятие")
+                    .disabled(selected.id == ordered.first?.id).accessibilityLabel("Предыдущее занятие").accessibilityIdentifier("progress-previous-session")
                 Text(monthly ? selected.date.formatted(.dateTime.month(.wide).year()) : selected.date.formatted(date: .abbreviated, time: .shortened))
                     .font(.subheadline.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity).accessibilityIdentifier("progress-selected-date")
                 Button { move(1) } label: { ReppyToolbarIcon(icon: "chevron.right") }
-                    .disabled(selected.id == ordered.last?.id).accessibilityLabel("Следующее занятие")
+                    .disabled(selected.id == ordered.last?.id).accessibilityLabel("Следующее занятие").accessibilityIdentifier("progress-next-session")
             }.buttonStyle(.plain)
             if monthly { ReppyCaption(text: selected.date.formatted(date: .abbreviated, time: .shortened)) }
             ForEach(selected.results.sorted { $0.exercise_instance_id == $1.exercise_instance_id ? $0.set_number < $1.set_number : $0.exercise_instance_id < $1.exercise_instance_id }) { result in

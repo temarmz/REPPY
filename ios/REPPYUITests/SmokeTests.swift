@@ -30,10 +30,10 @@ final class SmokeTests: XCTestCase {
         app.navigationBars.buttons["Готово"].tap()
         revealAndTap(name, in: app); name.typeText(" native-draft")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
-        app.navigationBars.buttons["Отмена"].tap(); app.buttons["Сохранить черновик и выйти"].tap()
+        app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch.tap(); app.buttons["Сохранить черновик и выйти"].tap()
         revealAndTap(previous, in: app)
         XCTAssertTrue(name.waitForExistence(timeout: 5)); XCTAssertTrue((name.value as? String ?? "").contains("native-draft"))
-        app.navigationBars.buttons["Отмена"].tap(); app.buttons["Удалить изменения"].tap()
+        app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch.tap(); app.buttons["Удалить изменения"].tap()
         revealAndTap(previous, in: app)
         XCTAssertTrue(name.waitForExistence(timeout: 5), app.debugDescription); XCTAssertEqual(name.value as? String, original)
         capture(app, "native-editor-dark")
@@ -87,19 +87,19 @@ final class SmokeTests: XCTestCase {
         revealAndTap(app.buttons["Закрыть"], in: app)
         if role == "trainer" {
             revealAndTap(app.buttons["Редактировать план"], in: app)
-            revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+            revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
             XCTAssertTrue(app.buttons["Сохранить инструкцию"].waitForExistence(timeout: 5)); capture(app, "instruction-editor-" + suffix)
             let text = app.textFields["Подробное описание упражнения"]
             revealAndTap(text, in: app); text.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 200) + "Проверка техники")
             app.buttons["dismiss-keyboard"].firstMatch.tap()
             revealAndTap(app.buttons["Сохранить инструкцию"], in: app)
-            revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+            revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
             XCTAssertTrue(text.waitForExistence(timeout: 5)); XCTAssertTrue((text.value as? String ?? "").contains("Проверка техники"))
-            tapVisibleButton("Отмена", in: app)
+            revealAndTap(app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch, in: app)
             if app.buttons["Удалить изменения"].exists { app.buttons["Удалить изменения"].tap() }
             let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: text)
             XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed)
-            tapVisibleButton("Отмена", in: app)
+            revealAndTap(app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch, in: app)
             XCTAssertTrue(app.buttons["Удалить изменения"].waitForExistence(timeout: 5)); app.buttons["Удалить изменения"].tap()
         }
         app.terminate()
@@ -154,16 +154,16 @@ final class SmokeTests: XCTestCase {
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         let lessons = app.textFields["Количество занятий"]
         XCTAssertTrue(lessons.waitForExistence(timeout: 5)); capture(app, "new-\(suffix)")
-        revealAndTap(lessons, in: app); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "0")
+        revealAndTap(lessons, in: app); lessons.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap(); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "0")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         XCTAssertTrue(app.staticTexts["Укажи целое количество занятий больше нуля."].exists)
-        revealAndTap(lessons, in: app); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "8")
+        revealAndTap(lessons, in: app); lessons.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap(); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "8")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         XCTAssertTrue(app.staticTexts["Осталось 11 занятий"].waitForExistence(timeout: 5))
         revealAndTap(app.buttons["Удалить полностью"], in: app)
-        XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5)); app.buttons["Отмена"].tap()
+        XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5), app.debugDescription); app.buttons["Отмена"].tap()
         app.terminate(); app.launch()
         XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
         revealAndTap(app.buttons["Пригласить ученика"], in: app)
@@ -222,11 +222,11 @@ final class SmokeTests: XCTestCase {
                     revealAndTap(app.buttons["Изменить отзыв"], in: app)
                     let comment = app.textFields["Комментарий тренеру"]
                     XCTAssertTrue(comment.waitForExistence(timeout: 5)); capture(app, "feedback-\(theme)")
-                    revealAndTap(app.buttons["Отмена"], in: app)
+                    revealAndTap(app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch, in: app)
                     XCTAssertTrue(app.buttons["Изменить отзыв"].waitForExistence(timeout: 5))
                 } else {
                     revealAndTap(app.buttons["Удалить тренировку"], in: app)
-                    XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5)); app.buttons["Отмена"].tap()
+                    XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5), app.debugDescription); app.buttons["Отмена"].tap()
                     XCTAssertTrue(app.staticTexts["Длительность"].exists)
                 }
                 app.terminate()
@@ -293,18 +293,18 @@ final class SmokeTests: XCTestCase {
         revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
         revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Грудь и плечи")).firstMatch, in: app)
         revealAndTap(app.buttons["Редактировать план"], in: app)
-        revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
         let field = app.textFields["Подробное описание упражнения"]
         revealAndTap(field, in: app); field.typeText(" нативная проверка")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         tapVisibleButton("Сохранить инструкцию", in: app)
-        revealAndTap(app.buttons["Инструкция и видео"].firstMatch, in: app)
+        revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
         XCTAssertTrue(field.waitForExistence(timeout: 5)); XCTAssertTrue((field.value as? String ?? "").contains("нативная проверка"))
         capture(app, "native-instruction-largest")
-        tapVisibleButton("Отмена", in: app)
+        revealAndTap(app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch, in: app)
         let closed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: field)
         XCTAssertEqual(XCTWaiter.wait(for: [closed], timeout: 5), .completed)
-        tapVisibleButton("Отмена", in: app)
+        revealAndTap(app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch, in: app)
         XCTAssertTrue(app.buttons["Удалить изменения"].waitForExistence(timeout: 5)); app.buttons["Удалить изменения"].tap()
         app.terminate()
     }
@@ -386,7 +386,7 @@ final class SmokeTests: XCTestCase {
         name.tap(); name.typeText(" тест")
         XCTAssertTrue(app.keyboards.firstMatch.exists)
         app.buttons["dismiss-keyboard"].firstMatch.tap()
-        let cancel = app.buttons["Отмена"]
+        let cancel = app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch
         for _ in 0..<12 { if cancel.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(cancel.isHittable); cancel.tap()
         app.buttons["Удалить изменения"].tap()
@@ -463,16 +463,20 @@ final class SmokeTests: XCTestCase {
     }
     @MainActor func testWorkoutEditorSetRows() {
         for theme in ["light", "dark"] {
-            let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme]; app.launch()
-            let assign = app.buttons["Назначить тренировку"]
-            XCTAssertTrue(assign.waitForExistence(timeout: 15)); assign.tap()
+            let app = XCUIApplication(); app.launchArguments = ["--demo-trainer", "-appearance", theme, "--audit-screen", "new-editor", "--audit-namespace", UUID().uuidString]; app.launch()
+            XCTAssertTrue(app.textFields["Название тренировки"].waitForExistence(timeout: 15))
             let addExercise = app.buttons["Добавить упражнение"]
             for _ in 0..<6 { if addExercise.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(addExercise.isHittable); addExercise.tap()
             let search = app.searchFields["Поиск"]
             XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Жим")
-            let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим")).firstMatch
+            let choice = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Добавить Жим")).firstMatch
             XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+            // Native search temporarily replaces the picker toolbar with its cancel action.
+            if app.buttons["Отменить"].exists { app.buttons["Отменить"].tap() }
+            else if app.buttons["Закрыть"].exists { app.buttons["Закрыть"].tap() }
+            let closePicker = app.buttons["Готово"]
+            XCTAssertTrue(closePicker.waitForExistence(timeout: 5)); closePicker.tap()
             let set = app.buttons["Добавить подход"].firstMatch
             for _ in 0..<8 { if set.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(set.isHittable); set.tap()
@@ -497,7 +501,7 @@ final class SmokeTests: XCTestCase {
                     XCTAssertTrue(app.buttons["Изменить личные данные"].exists)
                     app.buttons["Изменить личные данные"].tap()
                     XCTAssertTrue(app.textFields["Имя"].waitForExistence(timeout: 5))
-                    app.navigationBars.allElementsBoundByIndex.last!.buttons["Отмена"].tap()
+                    app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch.tap()
                     if app.buttons["Удалить изменения"].exists { app.buttons["Удалить изменения"].tap() }
                 }
                 app.buttons["Календарь"].tap()

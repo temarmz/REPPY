@@ -20,7 +20,7 @@ import Foundation
         async let results: [SetResult] = api.rows("set_results")
         async let definitions: [ExerciseDefinition] = api.rows("exercise_definitions", query: ["archived_at": "is.null"])
         let subscriptions: [SubscriptionEntry]
-        if role == .trainer { subscriptions = try await api.rpc("get_trainer_subscription_entries") }
+        if role == .trainer { subscriptions = try await api.rows("rpc/get_trainer_subscription_entries") }
         else { subscriptions = try await api.rows("subscription_entries") }
         var snapshot = AppData()
         snapshot.students = try await students

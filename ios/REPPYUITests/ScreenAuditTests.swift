@@ -10,8 +10,12 @@ final class ScreenAuditTests: XCTestCase {
             let first = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "progress-summary-")).firstMatch
             for _ in 0..<10 { if first.exists && first.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(first.waitForExistence(timeout: 10)); first.tap()
-            let previous = app.buttons["Предыдущее занятие"], next = app.buttons["Следующее занятие"]
-            for _ in 0..<5 { if previous.exists && previous.isHittable { break }; app.swipeUp() }
+            let previous = app.buttons["progress-previous-session"], next = app.buttons["progress-next-session"]
+            for _ in 0..<12 {
+                let bottom = app.tabBars.firstMatch.frame.minY
+                if previous.exists && previous.isHittable && previous.frame.maxY < bottom { break }
+                app.swipeUp()
+            }
             XCTAssertTrue(previous.waitForExistence(timeout: 5))
             XCTAssertTrue(app.staticTexts["По месяцам · последнее занятие месяца"].exists)
             for _ in 0..<3 {
@@ -101,9 +105,9 @@ final class ScreenAuditTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Прогресс"].waitForExistence(timeout: 15))
         let exercise = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим ногами")).firstMatch
         XCTAssertTrue(exercise.waitForExistence(timeout: 5)); exercise.tap()
-        for _ in 0..<5 { if app.buttons["Предыдущее занятие"].exists && app.buttons["Предыдущее занятие"].isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(app.buttons["Предыдущее занятие"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["Предыдущее занятие"].isEnabled)
-        app.buttons["Предыдущее занятие"].tap(); XCTAssertTrue(app.buttons["Следующее занятие"].isEnabled)
+        for _ in 0..<5 { if app.buttons["progress-previous-session"].exists && app.buttons["progress-previous-session"].isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(app.buttons["progress-previous-session"].waitForExistence(timeout: 5)); XCTAssertTrue(app.buttons["progress-previous-session"].isEnabled)
+        app.buttons["progress-previous-session"].tap(); XCTAssertTrue(app.buttons["progress-next-session"].isEnabled)
         app.terminate(); app.launchArguments = ["--demo-student", "-appearance", "light"]; app.launch()
         XCTAssertTrue(app.buttons["Посмотреть тренировку"].firstMatch.waitForExistence(timeout: 15)); app.buttons["Посмотреть тренировку"].firstMatch.tap()
         let start = app.buttons["Начать тренировку"], reschedule = app.buttons["Предложить другое время"]

@@ -30,7 +30,10 @@
     "backend:health": "node --env-file-if-exists=.env.admin.local scripts/check-backend-health.mjs",
     "backup:create": "node --env-file-if-exists=.env.admin.local scripts/create-supabase-backup.mjs",
     "backup:verify": "node scripts/verify-supabase-backup.mjs",
-    "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs"
+    "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs",
+    "test:stress:preview": "node --experimental-strip-types scripts/stress-preview.mjs --isolated-preview",
+    "test:stress:web": "playwright test --config tests/stress/playwright.config.ts",
+    "test:stress:drafts": "node scripts/stress-native-drafts.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

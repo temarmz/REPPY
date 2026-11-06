@@ -267,21 +267,37 @@ export function createSupabaseRepository(
     }
   }
 
+  // Real PostgREST reads are capped per response. In-memory repository adapters
+  // return their complete result directly and do not expose range/order.
+  type SnapshotResult = { data: unknown[] | null; error: { message: string; code?: string } | null };
+  interface SnapshotQuery extends PromiseLike<SnapshotResult> { order(column: string): SnapshotQuery; range(from: number, to: number): SnapshotQuery }
+  async function allRows(query: SnapshotQuery, order = 'id'): Promise<SnapshotResult> {
+    if (typeof query.range !== 'function') return await query;
+    for (const column of order.split(',')) query = query.order(column);
+    const rows: unknown[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const result = await query.range(offset, offset + 999);
+      if (result.error) return { ...result, data: null };
+      rows.push(...(result.data ?? []));
+      if ((result.data?.length ?? 0) < 1000) return { ...result, data: rows };
+    }
+  }
+
   async function load(options?: { accept?: () => boolean }): Promise<DemoState> {
     const subscriptionsQuery = profile.role === 'trainer'
-      ? client.rpc('get_trainer_subscription_entries')
-      : client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision');
+      ? allRows(client.rpc('get_trainer_subscription_entries'))
+      : allRows(client.from('subscription_entries').select('id, relationship_id, kind, lesson_delta, occurred_at, created_at, updated_at, amount_rub, payment_method, comment, session_id, workout_name, revision'));
     const [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult, profilesResult] = await Promise.all([
-      client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color, updated_at'),
-      client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications, updated_at'),
-      client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at, revision'),
-      client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, auto_completed, revision'),
-      client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'),
+      allRows(client.from('trainer_student_relationships').select('id, trainer_id, student_id, status, color, updated_at')),
+      allRows(client.from('students').select('id, account_id, name, phone, height_cm, weight_kg, gender, contraindications, updated_at')),
+      allRows(client.from('assignments').select('id, relationship_id, assigned_at, scheduled_for, scheduled_time, format, status, workout_snapshot, repeated_from_assignment_id, reschedule_scheduled_for, reschedule_scheduled_time, reschedule_requested_at, revision')),
+      allRows(client.from('workout_sessions').select('id, assignment_id, workout_snapshot, recorded_by_role, started_at, completed_at, mood, comment, charge_status, auto_completed, revision')),
+      allRows(client.from('set_results').select('session_id, exercise_instance_id, set_number, actual_reps, actual_weight, completed'), 'session_id,exercise_instance_id,set_number'),
       subscriptionsQuery,
-      client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, muscle_groups, equipment, measure_type, load_mode, archived_at'),
-      client.from('profiles').select('id, display_name'),
+      allRows(client.from('exercise_definitions').select('id, slug, owner_id, name, primary_muscle, muscle_groups, equipment, measure_type, load_mode, archived_at')),
+      allRows(client.from('profiles').select('id, display_name')),
     ]);
-    for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, definitionsResult, profilesResult]) {
+    for (const result of [relationshipsResult, studentsResult, assignmentsResult, sessionsResult, resultsResult, subscriptionsResult, definitionsResult, profilesResult]) {
       throwIfError(result);
     }
 
