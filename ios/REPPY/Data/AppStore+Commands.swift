@@ -89,13 +89,13 @@ extension AppStore {
             guard let api else { throw APIError.signedOut }
             session = try await api.rpc("start_workout_session_with_id", ["p_assignment_id": assignment.id, "p_session_id": id])
         }
-        data.sessions.removeAll { $0.id == session.id }; data.sessions.append(session)
         let results: [SetResult]
         if isDemo { results = WorkoutExecution.initialResults(sessionID: session.id, workout: session.workout_snapshot) }
         else {
             guard let api else { throw APIError.signedOut }
             results = try await api.rows("set_results", query: ["session_id": "eq.\(session.id)"])
         }
+        data.sessions.removeAll { $0.id == session.id }; data.sessions.append(session)
         data.results.removeAll { $0.session_id == session.id }; data.results += results
         try DraftStorage.remove(account: accountKey, key: key)
         return session.id
