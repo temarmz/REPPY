@@ -119,7 +119,7 @@ select throws_ok(
     '{"name":"Test workout","exercises":[{"id":"50000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":8,"targetWeight":50}]}]}',
     '[{"exerciseInstanceId":"50000000-0000-4000-8000-000000000001","setNumber":1,"actualReps":8,"actualWeight":50,"completed":true}]'
   )$$,
-  '40001',
+  'PT409',
   'Session revision conflict',
   'stale progress writes are rejected'
 );

@@ -133,7 +133,7 @@ function numberOrUndefined(value: number | string | null) {
 
 function throwIfError(result: { error: { message: string; code?: string } | null }) {
   if (!result.error) return;
-  if (result.error.code === '40001' || /revision conflict/i.test(result.error.message)) {
+  if (result.error.code === '40001' || result.error.code === 'PT409' || /revision conflict/i.test(result.error.message)) {
     throw new ReppyConflictError('Тренировка уже изменена на другом устройстве.');
   }
   const code = /Сервер долго не отвечает/.test(result.error.message) ? 'REPPY_TIMEOUT'

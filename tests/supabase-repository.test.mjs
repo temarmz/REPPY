@@ -574,3 +574,17 @@ test('joining a canonical session keeps existing results and targets later write
   assert.equal(f.tables.set_results[0].completed, true);
   assert.equal(f.tables.set_results[1].completed, true);
 });
+
+test('HTTP 409 revision conflicts merge without being treated as network retries', async () => {
+  const f = concurrentProgressFixture();
+  const data = await f.repository.load();
+  data.sessions[0].results[0].completed = true;
+  f.row.revision++;
+  f.row.workout_snapshot.exercises[0].coachNote = 'Remote note';
+  const save = f.client.rpc;
+  f.client.rpc = async (name, payload) => payload.p_expected_revision !== f.row.revision
+    ? { data: null, error: { code: 'PT409', message: 'Session revision conflict' } } : save(name, payload);
+  await f.repository.execute({ type: 'session.progress', sessionId: data.sessions[0].id }, data);
+  assert.equal(f.tables.set_results[0].completed, true);
+  assert.equal(f.row.workout_snapshot.exercises[0].coachNote, 'Remote note');
+});

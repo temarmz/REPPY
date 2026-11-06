@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createLocalTrainerNotes, notesDay, noteListEdit, continueNoteList } from '../app/trainer-notes.ts';
+import { createLocalTrainerNotes, createSupabaseTrainerNotes, notesDay, noteListEdit, continueNoteList } from '../app/trainer-notes.ts';
 import { createTrainerNotesController } from '../app/trainer-notes-controller.ts';
 import { ReppyConflictError } from '../app/reppy-repository.ts';
 
@@ -110,4 +110,10 @@ test('conflicts keep both texts until the trainer explicitly selects a version',
   assert.equal((await base.load(day, day))[0].content, 'Мой текст');
   assert.equal((await base.load(day, day))[0].revision, 2);
   await assert.rejects(() => base.save({ date: day, content: 'Устарело', revision: 1, mutationId: crypto.randomUUID() }), ReppyConflictError);
+});
+
+
+test('hosted HTTP conflict keeps notes in explicit recovery instead of network retry', async () => {
+  const repository = createSupabaseTrainerNotes({ rpc: async () => ({ data: null, error: { code: 'PT409', message: 'Note revision conflict' } }) }, 'trainer');
+  await assert.rejects(repository.save({ date: day, content: 'Local note', revision: 1, mutationId: crypto.randomUUID() }), { code: 'REPPY_CONFLICT' });
 });

@@ -19,7 +19,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '18000000-0000-4000-8000-000000000002', true);
 select throws_ok($$select public.delete_pending_student('28000000-0000-4000-8000-000000000001')$$, '42501', 'Invitation is not available', 'another trainer cannot delete');
 select set_config('request.jwt.claim.sub', '18000000-0000-4000-8000-000000000001', true);
-select throws_ok($$select public.delete_pending_student('28000000-0000-4000-8000-000000000002')$$, '40001', 'Student already accepted invitation', 'active student is protected');
+select throws_ok($$select public.delete_pending_student('28000000-0000-4000-8000-000000000002')$$, 'PT409', 'Student already accepted invitation', 'active student is protected');
 select lives_ok($$select public.delete_pending_student('28000000-0000-4000-8000-000000000001')$$, 'owner can remove pending student');
 select lives_ok($$select public.delete_pending_student('28000000-0000-4000-8000-000000000001')$$, 'retry is idempotent');
 select is((select count(*)::integer from public.trainer_student_relationships where id = '38000000-0000-4000-8000-000000000001'), 0, 'archived relationship hidden by RLS');

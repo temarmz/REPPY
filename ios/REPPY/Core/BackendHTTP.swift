@@ -73,7 +73,7 @@ public enum BackendHTTP {
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard !(200..<300).contains(http.statusCode) else { return data }
         let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-        if payload?["code"] as? String == "40001" { throw APIError.conflict }
+        if let code = payload?["code"] as? String, code == "40001" || code == "PT409" { throw APIError.conflict }
         if http.statusCode == 429, let retry = payload?["retryAfterSeconds"] as? Int {
             throw APIError.message("Слишком много попыток входа. Подожди \(max(1, retry)) секунд и попробуй снова.")
         }
