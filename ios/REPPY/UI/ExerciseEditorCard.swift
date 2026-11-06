@@ -148,6 +148,6 @@ struct ReppyExerciseOrderEditor: View {
         }
         .environment(\.editMode, .constant(.active))
         .navigationTitle("Порядок упражнений").navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Готово") { dismiss() }.buttonStyle(.bordered) } }
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Готово") { dismiss() }.modifier(ReppySecondaryToolbarStyle()) } }
     }
 }

@@ -35,6 +35,7 @@ enum NativeComponentCatalog {
         ("ActionGroup", ReppyActionGroup<EmptyView>.self),
         ("ChoiceRow", ReppyChoiceRow.self),
         ("DismissAction", ReppyDismissAction.self),
+        ("SecondaryToolbarStyle", ReppySecondaryToolbarStyle.self),
         ("FormActions", ReppyFormActions.self), ("InvitationInput", ReppyInvitationInput.self), ("ExerciseOrderEditor", ReppyExerciseOrderEditor.self),
         ("MonthCalendar", MonthCalendar.self), ("PlanSetRow", PlanSetRow.self), ("ActiveSetRow", ActiveSetRow.self),
         ("ReadOnlyExerciseCard", ReadOnlyExerciseCard.self), ("ExerciseEditorCard", ExerciseEditorCard.self),

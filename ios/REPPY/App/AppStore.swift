@@ -40,7 +40,11 @@ struct FailedDraft {
     private let network = NWPathMonitor()
     var accountKey: String {
 #if DEBUG
-        if isDemo && ProcessInfo.processInfo.arguments.contains("--audit-screen") { return "visual-audit-" + (profile?.role.rawValue ?? "demo") }
+        if isDemo && ProcessInfo.processInfo.arguments.contains("--audit-screen") {
+            let arguments = ProcessInfo.processInfo.arguments
+            let namespace = arguments.firstIndex(of: "--audit-namespace").flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
+            return "visual-audit-" + (profile?.role.rawValue ?? "demo") + (namespace.map { ":" + $0 } ?? "")
+        }
 #endif
         return isDemo ? "demo" : (profile?.id ?? "anonymous")
     }

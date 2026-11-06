@@ -398,7 +398,7 @@ struct ReppyFormActions: ViewModifier {
                             if cancelIcon { Image(systemName: "chevron.left") }
                             else { Text(cancelTitle) }
                         }.accessibilityLabel(cancelIcon ? "Назад" : cancelTitle)
-                            .buttonStyle(.bordered).disabled(busy)
+                            .modifier(ReppySecondaryToolbarStyle()).disabled(busy)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -433,19 +433,26 @@ struct ReppyInvitationInput: View {
 }
 
 // Read-only sheets and pickers always expose a reachable native close action.
+struct ReppySecondaryToolbarStyle: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) { content.buttonStyle(.automatic) }
+        else { content.buttonStyle(.bordered) }
+    }
+}
 struct ReppyDismissAction: ViewModifier {
     var title = "Закрыть"
+    var disabled = false
     @Environment(\.dismiss) private var dismiss
     func body(content: Content) -> some View {
         content.toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(title) { dismiss() }.buttonStyle(.bordered)
+                Button(title) { dismiss() }.modifier(ReppySecondaryToolbarStyle()).disabled(disabled)
             }
         }
     }
 }
 extension View {
-    func reppyDismissAction(title: String = "Закрыть") -> some View { modifier(ReppyDismissAction(title: title)) }
+    func reppyDismissAction(title: String = "Закрыть", disabled: Bool = false) -> some View { modifier(ReppyDismissAction(title: title, disabled: disabled)) }
 }
 
 struct ReppyActionGroup<Content: View>: View {

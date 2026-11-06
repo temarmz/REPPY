@@ -41,18 +41,15 @@ struct NotesScreen: View {
         }.refreshable { await notes.refresh() }
             .onDisappear { Task { await notes.flush() } }
             .sheet(isPresented: $calendarOpen) {
-                NavigationStack { ReppyPage(back: true) {
-                    ReppyTitle(text: "Выбрать день")
+                NavigationStack { ReppyPage(back: true, title: "Выбрать день") {
                     ReppyText(text: "Выбранный день и три следующих останутся рядом.", tone: .secondary)
                     MonthCalendar(date: Binding(get: { date }, set: { notes.selectDay($0); calendarOpen = false }), counts: notes.markedDays, countLabel: "заметка")
                     ReppyButton(title: "Перейти к сегодня") { notes.selectDay(Date()); calendarOpen = false }
-                    ReppyButton(title: "Закрыть") { calendarOpen = false }
-                } }.presentationCornerRadius(ReppyMetrics.modalRadius)
+                }.reppyDismissAction() }.presentationCornerRadius(ReppyMetrics.modalRadius)
             }
             .sheet(isPresented: Binding(get: { conflictDay != nil }, set: { if !$0 { conflictDay = nil } })) {
-                ReppyPage {
+                NavigationStack { ReppyPage(back: true, title: "Версия заметки") {
                     if let day = conflictDay {
-                        ReppyTitle(text: "Выбрать версию заметки")
                         ReppyText(text: "Эта запись изменилась на другом устройстве. Выбери, какой текст оставить.", tone: .secondary)
                         ReppyHeading(text: "Твой текст"); ReppyText(text: notes.text(day))
                         ReppyHeading(text: "Текст на сервере"); ReppyText(text: notes.conflicts[day]?.content ?? "")
@@ -60,7 +57,7 @@ struct NotesScreen: View {
                         ReppyButton(title: "Оставить мой текст", kind: .primary, disabled: resolving) { resolve(day, true) }
                         ReppyButton(title: "Использовать серверный", disabled: resolving) { resolve(day, false) }
                     }
-                }.interactiveDismissDisabled(resolving)
+                }.reppyDismissAction(disabled: resolving) }.interactiveDismissDisabled(resolving)
             }
     }
     private func shift(_ amount: Int) { notes.selectDay(Calendar.current.date(byAdding: .day, value: amount, to: date)!) }

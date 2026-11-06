@@ -81,7 +81,7 @@ final class ScreenAuditTests: XCTestCase {
             XCTAssertTrue(app.textFields["Приглашение"].waitForExistence(timeout: 5)); capture(app, "auth-" + theme + "-invitation")
             app.textFields["Приглашение"].tap(); app.textFields["Приглашение"].typeText("draft-token")
             app.buttons["dismiss-keyboard"].firstMatch.tap()
-            app.navigationBars.buttons["Отмена"].tap()
+            app.navigationBars.buttons["Назад"].tap()
             XCTAssertTrue(app.buttons["У меня есть приглашение"].waitForExistence(timeout: 5))
             app.buttons["Посмотреть демо"].tap()
             XCTAssertTrue(app.buttons["Демо тренера"].waitForExistence(timeout: 5)); capture(app, "auth-" + theme + "-demo")
@@ -121,7 +121,7 @@ final class ScreenAuditTests: XCTestCase {
     }
     @MainActor private func captureRoute(_ route: String, role: String, theme: String) {
         let app = XCUIApplication()
-        app.launchArguments = ["--demo-" + role, "-appearance", theme, "--audit-screen", route]
+        app.launchArguments = ["--demo-" + role, "-appearance", theme, "--audit-screen", route, "--audit-namespace", UUID().uuidString]
         app.launch()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
         // Querying the hierarchy waits for presentation and SwiftUI layout to settle.

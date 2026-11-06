@@ -2331,8 +2331,8 @@ textarea::placeholder { color: var(--palette-747b72); opacity: 1; }
 }
 
 @media (max-width: 380px) {
-  .app-shell:not(.focus-mode) .calendar-page { padding-right: var(--space-6); padding-left: var(--space-6); }
-  .calendar-page .calendar-card { padding-right: var(--space-8); padding-left: var(--space-8); }
+  .calendar-page .calendar-card { padding-right: var(--space-2); padding-left: var(--space-2); }
+  .calendar-page :is(.calendar-grid, .calendar-weekdays) { column-gap: var(--space-2); }
   .active-exercise-footer-actions { grid-template-columns: 1fr; border-top: 0; padding-top: var(--space-6); margin-top: var(--space-8); gap: var(--space-8); }
   .set-count-control { width: 100%; justify-content: space-between; min-height: var(--control-height-small); }
   .active-exercise-footer-actions > button { width: 100%; }
