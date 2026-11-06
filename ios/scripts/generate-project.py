@@ -66,9 +66,45 @@ for name, sources, kind in [('REPPY', app_sources, 'application'), ('REPPYTests'
 product_group = add('products', 'PBXGroup', children=products, name='Products', sourceTree='<group>')
 files = [identifier for identifier, value in objects.items() if value['isa'] == 'PBXFileReference' and identifier not in products]
 group = add('main', 'PBXGroup', children=files + [product_group], sourceTree='<group>')
-project_configs = [add('projectconfig:' + name, 'XCBuildConfiguration', buildSettings={'CLANG_ENABLE_MODULES': 'YES', 'CLANG_ENABLE_OBJC_ARC': 'YES', 'SDKROOT': 'iphoneos'}, name=name) for name in ['Debug', 'Release']]
+# Preserve the recommended build settings added by Xcode 26.6.
+project_settings = {'CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED': 'YES',
+ 'CLANG_ENABLE_MODULES': 'YES',
+ 'CLANG_ENABLE_OBJC_ARC': 'YES',
+ 'CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING': 'YES',
+ 'CLANG_WARN_BOOL_CONVERSION': 'YES',
+ 'CLANG_WARN_COMMA': 'YES',
+ 'CLANG_WARN_CONSTANT_CONVERSION': 'YES',
+ 'CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS': 'YES',
+ 'CLANG_WARN_EMPTY_BODY': 'YES',
+ 'CLANG_WARN_ENUM_CONVERSION': 'YES',
+ 'CLANG_WARN_INFINITE_RECURSION': 'YES',
+ 'CLANG_WARN_INT_CONVERSION': 'YES',
+ 'CLANG_WARN_NON_LITERAL_NULL_CONVERSION': 'YES',
+ 'CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF': 'YES',
+ 'CLANG_WARN_OBJC_LITERAL_CONVERSION': 'YES',
+ 'CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER': 'YES',
+ 'CLANG_WARN_RANGE_LOOP_ANALYSIS': 'YES',
+ 'CLANG_WARN_STRICT_PROTOTYPES': 'YES',
+ 'CLANG_WARN_SUSPICIOUS_MOVE': 'YES',
+ 'CLANG_WARN_UNREACHABLE_CODE': 'YES',
+ 'CLANG_WARN__DUPLICATE_METHOD_MATCH': 'YES',
+ 'ENABLE_STRICT_OBJC_MSGSEND': 'YES',
+ 'ENABLE_USER_SCRIPT_SANDBOXING': 'YES',
+ 'GCC_NO_COMMON_BLOCKS': 'YES',
+ 'GCC_WARN_64_TO_32_BIT_CONVERSION': 'YES',
+ 'GCC_WARN_ABOUT_RETURN_TYPE': 'YES',
+ 'GCC_WARN_UNDECLARED_SELECTOR': 'YES',
+ 'GCC_WARN_UNINITIALIZED_AUTOS': 'YES',
+ 'GCC_WARN_UNUSED_FUNCTION': 'YES',
+ 'GCC_WARN_UNUSED_VARIABLE': 'YES',
+ 'SDKROOT': 'iphoneos',
+ 'STRING_CATALOG_GENERATE_SYMBOLS': 'YES'}
+project_configuration_settings = {'Debug': {'ENABLE_TESTABILITY': 'YES', 'ONLY_ACTIVE_ARCH': 'YES'},
+ 'Release': {'SWIFT_COMPILATION_MODE': 'wholemodule'}}
+project_configs = [add('projectconfig:' + name, 'XCBuildConfiguration',
+    buildSettings={**project_settings, **project_configuration_settings[name]}, name=name) for name in ['Debug', 'Release']]
 project_config_list = add('projectconfigs', 'XCConfigurationList', buildConfigurations=project_configs, defaultConfigurationIsVisible=0, defaultConfigurationName='Release')
-project = add('project', 'PBXProject', attributes={'LastUpgradeCheck': '1600', 'BuildIndependentTargetsInParallel': 'YES'}, buildConfigurationList=project_config_list,
+project = add('project', 'PBXProject', attributes={'LastUpgradeCheck': '2660', 'BuildIndependentTargetsInParallel': 'YES'}, buildConfigurationList=project_config_list,
               compatibilityVersion='Xcode 14.0', developmentRegion='ru', hasScannedForEncodings=0, knownRegions=['ru', 'en', 'Base'], mainGroup=group, productRefGroup=product_group, projectDirPath='', projectRoot='', targets=targets)
 
 def serialize(value, indent=0):
@@ -82,13 +118,13 @@ def serialize(value, indent=0):
 
 content = '// !$*UTF8*$!\n' + serialize({'archiveVersion': 1, 'classes': {}, 'objectVersion': 56, 'objects': objects, 'rootObject': project}) + '\n'
 scheme = f'''<?xml version="1.0" encoding="UTF-8"?>
-<Scheme LastUpgradeVersion="1600" version="1.3">
+<Scheme LastUpgradeVersion="2660" version="1.3">
  <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identity('target:REPPY')}" BuildableName="REPPY.app" BlueprintName="REPPY" ReferencedContainer="container:REPPY.xcodeproj"/></BuildActionEntry></BuildActionEntries></BuildAction>
- <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"><Testables>'''
+ <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"><Testables>'''
 for name in ['REPPYTests', 'REPPYUITests']:
     scheme += f'<TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identity("target:" + name)}" BuildableName="{name}.xctest" BlueprintName="{name}" ReferencedContainer="container:REPPY.xcodeproj"/></TestableReference>'
 scheme += f'''</Testables></TestAction>
- <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identity('target:REPPY')}" BuildableName="REPPY.app" BlueprintName="REPPY" ReferencedContainer="container:REPPY.xcodeproj"/></BuildableProductRunnable></LaunchAction>
+ <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES"><BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{identity('target:REPPY')}" BuildableName="REPPY.app" BlueprintName="REPPY" ReferencedContainer="container:REPPY.xcodeproj"/></BuildableProductRunnable></LaunchAction>
  <ProfileAction buildConfiguration="Release" shouldUseLaunchSchemeArgsEnv="YES" savedToolIdentifier="" useCustomWorkingDirectory="NO" debugDocumentVersioning="YES"/>
  <AnalyzeAction buildConfiguration="Debug"/><ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
 </Scheme>

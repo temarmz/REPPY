@@ -57,7 +57,8 @@ private final class SnapshotTestServer {
     init(data: AppData, onFirstRequest: @escaping () -> Void) throws {
         func json<T: Encodable>(_ value: T) throws -> Any { try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) }
         responses = try [
-            "/rest/v1/students": json(data.students), "/rest/v1/trainer_student_relationships": json(data.relationships),
+            "/rest/v1/students": json(data.students), "/rest/v1/profiles": json(data.profiles),
+            "/rest/v1/trainer_student_relationships": json(data.relationships),
             "/rest/v1/assignments": json(data.assignments), "/rest/v1/workout_sessions": json(data.sessions),
             "/rest/v1/set_results": json(data.results), "/rest/v1/exercise_definitions": json(data.definitions),
             "/rest/v1/rpc/get_trainer_subscription_entries": json(data.subscriptions),
@@ -76,6 +77,26 @@ private final class SnapshotTestServer {
     }
     private func recordCancellation() { lock.lock(); cancellations += 1; lock.unlock() }
     func release() { lock.lock(); holding = false; let requests = held; held = []; lock.unlock(); for (stub, response) in requests { stub.respond(response) } }
+}
+
+private final class StartTestServer {
+    private let lock = NSLock()
+    private var failRead = true
+    private let snapshot: Any
+    private let results: Any
+    init(session: WorkoutSession, results: [SetResult]) throws {
+        snapshot = try JSONSerialization.jsonObject(with: JSONEncoder().encode(session))
+        self.results = try JSONSerialization.jsonObject(with: JSONEncoder().encode(results))
+    }
+    func handle(_ stub: NativeHTTPStub) {
+        if stub.request.url?.path == "/rest/v1/rpc/start_workout_session_with_id" { stub.respond(snapshot); return }
+        if stub.request.url?.path == "/rest/v1/set_results" {
+            lock.lock(); let failing = failRead; failRead = false; lock.unlock()
+            if failing { stub.fail(URLError(.networkConnectionLost)) } else { stub.respond(results) }
+            return
+        }
+        stub.fail(URLError(.unsupportedURL))
+    }
 }
 
 private final class NotesTestServer {
@@ -149,6 +170,33 @@ private final class NotesTestServer {
         notes.stop(); transport.invalidateAndCancel(); NativeHTTPStub.configure(nil)
         try? DraftStorage.remove(account: account, key: "personal-notes")
         try? DraftStorage.remove(account: account, key: "notes-range")
+    }
+    func testStartingSessionInstallsSnapshotAndResultsTogetherAfterAReadFailure() async throws {
+        let source = try nativeSnapshotFixture()
+        let assignment = try XCTUnwrap(source.assignments.first { $0.status == "assigned" && !$0.workout_snapshot.exercises.isEmpty })
+        let saved = WorkoutSession(id: "canonical-session", assignment_id: assignment.id, workout_snapshot: assignment.workout_snapshot,
+            recorded_by_role: .student, started_at: ReppyDate.timestamp(), completed_at: nil, mood: nil, comment: nil, charge_status: nil, revision: 7)
+        var recorded = WorkoutExecution.initialResults(sessionID: saved.id, workout: saved.workout_snapshot)
+        recorded[0].completed = true; recorded[0].actual_reps = 22
+        let server = try StartTestServer(session: saved, results: recorded)
+        let account = "native-start-" + UUID().uuidString.lowercased()
+        let configuration = URLSessionConfiguration.ephemeral; configuration.protocolClasses = [NativeHTTPStub.self]
+        let transport = URLSession(configuration: configuration)
+        NativeHTTPStub.configure(server.handle)
+        let store = AppStore(configuration: AppConfiguration(url: URL(string: "https://native-tests.supabase.co")!, key: "sb_publishable_test"), transport: transport, vault: MemorySessionVault(), observeChanges: false)
+        store.profile = Profile(id: account, role: .trainer, display_name: "Start test")
+        try store.api!.accept(session(account))
+        defer {
+            transport.invalidateAndCancel(); NativeHTTPStub.configure(nil)
+            try? DraftStorage.remove(account: account, key: "session-start:" + assignment.id)
+        }
+        do { _ = try await store.startSession(assignment); XCTFail("Expected a result read failure") } catch { }
+        XCTAssertTrue(store.data.sessions.isEmpty)
+        XCTAssertTrue(store.data.results.isEmpty)
+        let id = try await store.startSession(assignment)
+        XCTAssertEqual(id, saved.id)
+        XCTAssertEqual(store.data.sessions.first?.id, saved.id)
+        XCTAssertEqual(store.data.sessionResults(id), recorded)
     }
     func testKeychainRoundTripUsesAnIsolatedService() throws {
         let vault = SessionKeychain(service: "app.reppy.tests." + UUID().uuidString)

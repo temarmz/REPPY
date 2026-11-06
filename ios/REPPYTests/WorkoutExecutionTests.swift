@@ -58,3 +58,52 @@ final class WorkoutExecutionTests: XCTestCase {
         XCTAssertTrue(next.results.allSatisfy { $0.session_id == "session" && !$0.completed })
     }
 }
+
+
+extension WorkoutExecutionTests {
+    func testCoachNotesAndStudentSetsMergeInBothDirections() throws {
+        let workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
+        let base = ExecutionSnapshot(workout: workout, results: WorkoutExecution.initialResults(sessionID: "session", workout: workout))
+        var coach = base; coach.workout.exercises[0].coachNote = "Keep your back straight"
+        var student = base; student.results[0].completed = true; student.results[1].completed = true
+        for (local, remote) in [(coach, student), (student, coach)] {
+            let merged = try XCTUnwrap(WorkoutExecution.merge(base: base, local: local, remote: remote))
+            XCTAssertEqual(merged.workout.exercises[0].coachNote, coach.workout.exercises[0].coachNote)
+            XCTAssertTrue(merged.results[0].completed); XCTAssertTrue(merged.results[1].completed)
+        }
+    }
+    func testIndependentEditsCanShareTheLastEditTimestamp() throws {
+        var workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
+        workout.updatedAt = "2026-11-05T10:00:00Z"
+        let base = ExecutionSnapshot(workout: workout, results: [])
+        var local = base; local.workout.name = "Renamed"; local.workout.updatedAt = "2026-11-05T10:01:00Z"
+        var remote = base; remote.workout.exercises[0].coachNote = "Remote"; remote.workout.updatedAt = "2026-11-05T10:02:00Z"
+        let merged = try XCTUnwrap(WorkoutExecution.merge(base: base, local: local, remote: remote))
+        XCTAssertEqual(merged.workout.name, "Renamed")
+        XCTAssertEqual(merged.workout.exercises[0].coachNote, "Remote")
+        XCTAssertEqual(merged.workout.updatedAt, remote.workout.updatedAt)
+    }
+    func testConflictingResultEditsRequireRecovery() throws {
+        let workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
+        let base = ExecutionSnapshot(workout: workout, results: WorkoutExecution.initialResults(sessionID: "session", workout: workout))
+        var local = base; local.results[0].actual_weight += 10
+        var remote = base; remote.results[0].actual_weight += 20
+        XCTAssertNil(WorkoutExecution.merge(base: base, local: local, remote: remote))
+    }
+    func testDeletingAnExerciseCannotDiscardConcurrentEdits() throws {
+        let workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
+        let base = ExecutionSnapshot(workout: workout, results: WorkoutExecution.initialResults(sessionID: "session", workout: workout))
+        var local = base; local.workout.exercises.removeFirst()
+        var remote = base; remote.workout.exercises[0].coachNote = "Remote instruction"
+        XCTAssertNil(WorkoutExecution.merge(base: base, local: local, remote: remote))
+    }
+    func testEditsQueuedDuringSavingKeepMergedRemoteValues() throws {
+        let workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
+        let sent = ExecutionSnapshot(workout: workout, results: WorkoutExecution.initialResults(sessionID: "session", workout: workout))
+        var pending = sent; pending.results[1].completed = true
+        var acknowledged = sent; acknowledged.workout.exercises[0].coachNote = "Remote instruction"; acknowledged.results[0].completed = true
+        let merged = try XCTUnwrap(WorkoutExecution.merge(base: sent, local: pending, remote: acknowledged))
+        XCTAssertEqual(merged.workout.exercises[0].coachNote, "Remote instruction")
+        XCTAssertTrue(merged.results[0].completed); XCTAssertTrue(merged.results[1].completed)
+    }
+}

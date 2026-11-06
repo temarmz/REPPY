@@ -18,7 +18,7 @@ select set_config('request.jwt.claim.sub', '17000000-0000-4000-8000-000000000001
 select is((select revision from public.save_trainer_note('2026-10-31', 'Private text', 0, '47000000-0000-4000-8000-000000000001')), 1, 'first write creates revision one');
 select is((select revision from public.save_trainer_note('2026-10-31', 'Private text', 0, '47000000-0000-4000-8000-000000000001')), 1, 'retry is idempotent');
 select is((select revision from public.save_trainer_note('2026-10-31', '', 1, '47000000-0000-4000-8000-000000000002')), 2, 'clearing text keeps its revision');
-select throws_ok($$select public.save_trainer_note('2026-10-31', 'Old text', 1, '47000000-0000-4000-8000-000000000003')$$, '40001', 'Note revision conflict', 'stale writes cannot resurrect cleared text');
+select throws_ok($$select public.save_trainer_note('2026-10-31', 'Old text', 1, '47000000-0000-4000-8000-000000000003')$$, 'PT409', 'Note revision conflict', 'stale writes cannot resurrect cleared text');
 select set_config('request.jwt.claim.sub', '17000000-0000-4000-8000-000000000002', true);
 select is((select count(*)::integer from public.trainer_notes), 0, 'another trainer cannot read the owner diary');
 select is((select revision from public.save_trainer_note('2026-10-31', 'Independent diary', 0, '47000000-0000-4000-8000-000000000004')), 1, 'another trainer has an independent diary');

@@ -12,6 +12,7 @@ import type {
   Workout,
   WorkoutSession,
 } from './reppy-data.ts';
+import { validateAssignedWorkout } from './workout-validation.ts';
 import { updateSessionWorkout } from './reppy-data.ts';
 
 export type ReppyCommand =
@@ -76,10 +77,12 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
         students: state.students.map((student) => student.id === command.student.id ? command.student : student),
       };
     case 'assignment.create':
+      validateAssignedWorkout(command.assignment.workoutSnapshot);
       return state.assignments.some((assignment) => assignment.id === command.assignment.id)
         ? state
         : { ...state, assignments: [...state.assignments, command.assignment] };
     case 'assignment.update':
+      validateAssignedWorkout(command.assignment.workoutSnapshot);
       return {
         ...state,
         assignments: state.assignments.map((assignment) => (
@@ -93,6 +96,7 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
         sessions: state.sessions.filter((session) => session.assignmentId !== command.assignmentId),
       };
     case 'session.start':
+      validateAssignedWorkout(command.session.workoutSnapshot);
       return state.sessions.some((session) => session.id === command.session.id)
         ? state
         : { ...state, sessions: [...state.sessions, command.session] };

@@ -76,6 +76,7 @@ export function useReppyData(
       if (cancelled) return;
       setPersistenceError(error ?? null);
       setPersistencePhase(phase);
+      if (phase === 'idle') setReloadAttempt(current => current + 1);
     }) : null;
     remoteQueueRef.current = queue;
 

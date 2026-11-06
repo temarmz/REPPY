@@ -84,7 +84,7 @@ values
     current_date,
     '18:00',
     'completed',
-    '{"name":"Workout A","exercises":[{"id":"61000000-0000-4000-8000-000000000001","exerciseId":"01000000-0000-4000-8000-000000000001","plannedSets":[{}]}]}'
+    '{"name":"Workout A","exercises":[{"id":"61000000-0000-4000-8000-000000000001","exerciseId":"01000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":8,"targetWeight":0}]}]}'
   ),
   (
     '41000000-0000-4000-8000-000000000002',
@@ -92,7 +92,7 @@ values
     current_date,
     '19:00',
     'completed',
-    '{"name":"Workout B","exercises":[{"id":"61000000-0000-4000-8000-000000000002","exerciseId":"01000000-0000-4000-8000-000000000002","plannedSets":[{}]}]}'
+    '{"name":"Workout B","exercises":[{"id":"61000000-0000-4000-8000-000000000002","exerciseId":"01000000-0000-4000-8000-000000000002","plannedSets":[{"targetReps":8,"targetWeight":0}]}]}'
   );
 
 insert into public.workout_sessions (
@@ -110,7 +110,7 @@ values
   (
     '51000000-0000-4000-8000-000000000001',
     '41000000-0000-4000-8000-000000000001',
-    '{"name":"Workout A","exercises":[{"id":"61000000-0000-4000-8000-000000000001","exerciseId":"01000000-0000-4000-8000-000000000001","plannedSets":[{}]}]}',
+    '{"name":"Workout A","exercises":[{"id":"61000000-0000-4000-8000-000000000001","exerciseId":"01000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":8,"targetWeight":0}]}]}',
     'completed',
     '11000000-0000-4000-8000-000000000002',
     'student',
@@ -121,7 +121,7 @@ values
   (
     '51000000-0000-4000-8000-000000000002',
     '41000000-0000-4000-8000-000000000002',
-    '{"name":"Workout B","exercises":[{"id":"61000000-0000-4000-8000-000000000002","exerciseId":"01000000-0000-4000-8000-000000000002","plannedSets":[{}]}]}',
+    '{"name":"Workout B","exercises":[{"id":"61000000-0000-4000-8000-000000000002","exerciseId":"01000000-0000-4000-8000-000000000002","plannedSets":[{"targetReps":8,"targetWeight":0}]}]}',
     'completed',
     '11000000-0000-4000-8000-000000000004',
     'student',
@@ -353,7 +353,7 @@ select throws_ok(
     '31000000-0000-4000-8000-000000000001',
     current_date,
     '20:00',
-    '{"name":"Invalid repeat","exercises":[]}',
+    '{"name":"Invalid repeat","exercises":[{"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}',
     '41000000-0000-4000-8000-000000000002'
   )$$,
   '23514',

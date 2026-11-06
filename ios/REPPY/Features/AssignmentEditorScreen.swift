@@ -88,12 +88,12 @@ struct AssignmentEditorScreen: View {
                 if draft.format == .inPerson { ReppyDateField(title: "Время", date: $timeDate, time: true, compact: true) }
             }
             ReppyExerciseSectionHeader(disabled: store.busy, reorder: draft.workout.exercises.count > 1 ? { reorder = true } : nil) { picker = true }
-            if draft.workout.exercises.isEmpty { ReppyEmpty(title: "Упражнения не добавлены", message: "Можно сохранить пустой план и заполнить его позже.") }
+            if draft.workout.exercises.isEmpty { ReppyEmpty(title: "Упражнения не добавлены", message: "Добавь упражнения перед назначением. До назначения черновик виден только тебе.") }
             ForEach($draft.workout.exercises) { $exercise in
                 ExerciseEditorCard(exercise: $exercise, relationshipID: draft.relationshipID,
                     onDelete: { draft.workout.exercises.removeAll { $0.id == exercise.id } })
             }
-        }.reppyFormActions(saveTitle: original == nil ? "Назначить" : "Сохранить", cancelTitle: "Отмена", disabled: draft.relationshipID.isEmpty || draft.workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, busy: store.busy, hasChanges: hasChanges, save: {
+        }.reppyFormActions(saveTitle: original == nil ? "Назначить" : "Сохранить", cancelTitle: "Отмена", disabled: draft.relationshipID.isEmpty || draft.workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.workout.exercises.isEmpty, busy: store.busy, hasChanges: hasChanges, save: {
                 Task {
                     if await store.run({
                         try await store.saveAssignment(id: draft.id, relationshipID: draft.relationshipID, workout: draft.workout, date: draft.date,

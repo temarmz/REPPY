@@ -402,8 +402,9 @@ struct ReppyFormActions: ViewModifier {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(saveTitle, action: save).accessibilityLabel(saveLabel ?? saveTitle).buttonStyle(.borderedProminent)
-                        .tint(ReppyTheme.lime).foregroundStyle(disabled || busy ? ReppyTheme.secondary : ReppyTheme.selectedText).disabled(disabled || busy)
+                    Button(action: save) { Text(saveTitle).foregroundStyle(disabled || busy ? ReppyTheme.secondary : ReppyTheme.selectedText) }
+                        .accessibilityLabel(saveLabel ?? saveTitle).buttonStyle(.borderedProminent)
+                        .tint(disabled || busy ? ReppyTheme.button : ReppyTheme.lime).disabled(disabled || busy)
                 }
             }
             .alert("Выйти из редактора?", isPresented: $confirmExit) {

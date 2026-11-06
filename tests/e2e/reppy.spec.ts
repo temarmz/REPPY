@@ -564,7 +564,7 @@ test('тренер повторяет назначение тому же уче�
   await firstCard.locator('.active-comment-field textarea').fill('Держи лопатки сведёнными');
   await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
-  await expect(page).toHaveURL(/#\/trainer\/assignments\/assignment-/);
+  await expect(page).toHaveURL(/#\/trainer\/assignments\/[0-9a-f-]{36}$/);
   await expect(page.getByText('Скопировано из предыдущей тренировки этого ученика')).toHaveCount(0);
   await expect(page.locator('.readonly-exercise-card:visible').first()).toContainText('82.5 кг × 8');
   await expect(page.getByRole('main').getByText('Держи лопатки сведёнными')).toBeVisible();

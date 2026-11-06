@@ -83,7 +83,7 @@ export function createSupabaseTrainerNotes(client: SupabaseClient, trainerId: st
       const { data, error } = await client.rpc('save_trainer_note', {
         p_note_date: write.date, p_content: write.content, p_expected_revision: write.revision, p_mutation_id: write.mutationId,
       });
-      if (error?.code === '40001') throw new ReppyConflictError('Заметка изменена на другом устройстве.');
+      if ((error?.code === '40001' || error?.code === 'PT409')) throw new ReppyConflictError('Заметка изменена на другом устройстве.');
       if (error) throw error;
       const row = (data as NoteRow[])[0];
       if (!row) throw new Error('Сервер не подтвердил сохранение заметки.');

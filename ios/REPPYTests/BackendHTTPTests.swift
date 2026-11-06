@@ -63,6 +63,7 @@ final class BackendHTTPTests: XCTestCase {
         XCTAssertThrowsError(try BackendHTTP.validate(payload, response: denied, requiresSession: false)) { XCTAssertEqual($0 as? APIError, .message("Telegram не подтвердил вход")) }
         let conflict = HTTPURLResponse(url: url, statusCode: 409, httpVersion: nil, headerFields: nil)!
         XCTAssertThrowsError(try BackendHTTP.validate(Data("{\"code\":\"40001\"}".utf8), response: conflict, requiresSession: true)) { XCTAssertEqual($0 as? APIError, .conflict) }
+        XCTAssertThrowsError(try BackendHTTP.validate(Data("{\"code\":\"PT409\"}".utf8), response: conflict, requiresSession: true)) { XCTAssertEqual($0 as? APIError, .conflict) }
     }
     func testEmptySuccessAndMalformedErrorResponses() throws {
         let success = HTTPURLResponse(url: url, statusCode: 204, httpVersion: nil, headerFields: nil)!

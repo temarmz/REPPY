@@ -93,14 +93,14 @@ values
     '36000000-0000-4000-8000-000000000001',
     current_date,
     '18:00',
-    '{"name":"Referenced","exercises":[{"instructionVideo":{"id":"96000000-0000-4000-8000-000000000001"}}]}'
+    '{"name":"Referenced","exercises":[{"instructionVideo":{"id":"96000000-0000-4000-8000-000000000001"},"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}'
   ),
   (
     '46000000-0000-4000-8000-000000000002',
     '36000000-0000-4000-8000-000000000001',
     current_date,
     '19:00',
-    '{"name":"History","exercises":[]}'
+    '{"name":"History","exercises":[{"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}'
   );
 
 insert into public.workout_sessions (
@@ -113,7 +113,7 @@ insert into public.workout_sessions (
 values (
   '56000000-0000-4000-8000-000000000001',
   '46000000-0000-4000-8000-000000000002',
-  '{"name":"History","exercises":[{"instructionVideo":{"id":"96000000-0000-4000-8000-000000000003"}}]}',
+  '{"name":"History","exercises":[{"instructionVideo":{"id":"96000000-0000-4000-8000-000000000003"},"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}',
   '16000000-0000-4000-8000-000000000001',
   'trainer'
 );
@@ -174,7 +174,7 @@ select throws_ok(
       '36000000-0000-4000-8000-000000000001',
       current_date,
       '20:00',
-      '{"name":"Invalid","exercises":[{"instructionVideo":{"id":"96000000-0000-4000-8000-000000000002"}}]}'
+      '{"name":"Invalid","exercises":[{"instructionVideo":{"id":"96000000-0000-4000-8000-000000000002"},"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}'
     )$$,
   '23503',
   'Instruction video is unavailable for this relationship',

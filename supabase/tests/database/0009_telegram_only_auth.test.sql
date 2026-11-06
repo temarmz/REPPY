@@ -133,7 +133,7 @@ insert into public.assignments (
   current_date + 1,
   '18:00',
   'in-person',
-  '{"name":"Existing invitation workout","exercises":[]}'::jsonb
+  '{"name":"Existing invitation workout","exercises":[{"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}'::jsonb
 );
 
 set local role service_role;

@@ -291,6 +291,7 @@ public enum ReppyValidation {
     }
     public static func workout(_ workout: Workout) -> String? {
         if workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Укажи название тренировки." }
+        if workout.exercises.isEmpty { return "Добавь хотя бы одно упражнение." }
         for exercise in workout.exercises {
             for set in exercise.plannedSets {
                 if set.targetReps <= 0 || !set.targetWeight.isFinite || set.targetWeight < 0 { return "Проверь подходы: количество должно быть больше нуля, вес — неотрицательным." }
