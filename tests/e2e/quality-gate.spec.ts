@@ -55,7 +55,8 @@ async function auditTouchTargets(page: Page) {
     if (pageBounds && (centerY < pageBounds.top || centerY > pageBounds.bottom)) return [];
     const center = document.elementFromPoint(centerX, centerY);
     const covered = !center || center.closest('button') !== element;
-    const tooSmall = bounds.width < 44 || bounds.height < 44;
+    // Translated bounds can report 43.99999999999997 for a 44 px control.
+    const tooSmall = bounds.width < 44 - 0.01 || bounds.height < 44 - 0.01;
     const canScrollPastFloatingNav = covered
       && center instanceof Element
       && Boolean(center.closest('.bottom-nav'))
