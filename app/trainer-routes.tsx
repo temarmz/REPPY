@@ -318,8 +318,19 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
     } else if (trainerActiveMatch) {
       const assignment = data.assignments.find((item) => item.id === trainerActiveMatch[1]);
       const session = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && !item.completedAt);
+      const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
       const workout = assignment && (session ? findSessionWorkout(data, session) : findAssignmentWorkout(data, assignment));
-      content = assignment && workout && assignment.status === 'assigned' ? (
+      content = completedSession ? <SessionResult
+        data={data}
+        session={completedSession}
+        trainerView
+        onChargeChange={(charged) => dispatch({ type: 'session.charge', sessionId: completedSession.id, charged })}
+        onRepeat={() => go(`/trainer/assignments/${completedSession.assignmentId}/repeat`)}
+        onDelete={() => {
+          dispatch({ type: 'session.archive', session: completedSession, workoutName: completedSession.workoutSnapshot.name });
+          go(`/trainer/clients/${completedSession.studentId}`);
+        }}
+      /> : assignment && workout && assignment.status === 'assigned' ? (
         <ActiveWorkout
           workout={workout}
           customExercises={data.customExercises}

@@ -102,7 +102,7 @@ extension AppStore {
     }
     func saveProgress(_ session: WorkoutSession, workout: Workout, results: [SetResult], baseResults: [SetResult]? = nil) async throws {
         guard session.completed_at == nil else { throw APIError.message("Завершённая тренировка доступна только для просмотра.") }
-        if let message = ReppyValidation.workout(workout) { throw APIError.message(message) }
+        if let message = ReppyValidation.workout(workout, allowUnfilledSets: true) { throw APIError.message(message) }
         guard WorkoutExecution.validate(sessionID: session.id, workout: workout, results: results) else { throw APIError.message("Проверь фактические значения подходов.") }
         var saved = session; saved.workout_snapshot = workout
         var persistedResults = results

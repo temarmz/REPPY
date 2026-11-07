@@ -125,7 +125,24 @@ struct ScreenAuditHost: View {
         case "structure": ActiveStructureScreen(workout: $workout, relationshipID: relationship?.id ?? "")
         case "telegram": TelegramConnectionScreen()
         case "design-kit": DesignKitScreen()
+        case "numeric-sync": NumericSyncAuditScreen()
         default: EmptyView()
+        }
+    }
+}
+// Demo-only regression host: a server update must replace focused field text.
+private struct NumericSyncAuditScreen: View {
+    @State private var value: Double = 10
+    @State private var pending = false
+    var body: some View {
+        ReppyPage(title: "Проверка синхронизации") {
+            ReppyNumericField(title: "Повторы", value: $value, integer: true)
+            ReppyButton(title: "Запланировать серверное обновление") { pending = true }
+        }.task(id: pending) {
+            guard pending else { return }
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            value = 20
         }
     }
 }

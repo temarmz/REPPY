@@ -233,7 +233,11 @@ struct ReppyNumericField: View {
                 let parsed = ReppyValidation.number(text)
                 value = parsed.map { integer ? Double(ReppyValidation.integer($0)) : $0 } ?? -1
             }
-            .onChange(of: value) { _, value in if !focused && value >= 0 { text = value.reppyNumber } }
+            .onChange(of: value) { _, value in
+                // Keep local formatting while typing, but always display a new
+                // server value, including when this field still has focus.
+                if value >= 0, ReppyValidation.number(text) != value { text = value.reppyNumber }
+            }
     }
 }
 struct ReppyDateField: View {

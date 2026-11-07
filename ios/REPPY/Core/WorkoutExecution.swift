@@ -67,7 +67,7 @@ public enum WorkoutExecution {
     public static func validate(sessionID: String, workout: Workout, results: [SetResult]) -> Bool {
         let expected = Set(workout.exercises.flatMap { exercise in exercise.plannedSets.indices.map { "\(exercise.id):\($0 + 1)" } })
         return expected.count == results.count && Set(results.map { $0.id }) == expected && results.allSatisfy {
-            $0.session_id == sessionID && $0.actual_reps >= 0 && $0.actual_weight.isFinite && $0.actual_weight >= 0
+            $0.session_id == sessionID && $0.actual_reps >= ($0.completed ? 1 : 0) && $0.actual_weight.isFinite && $0.actual_weight >= 0
         }
     }
 

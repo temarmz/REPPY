@@ -1,6 +1,22 @@
 import XCTest
 
 final class ScreenAuditTests: XCTestCase {
+    @MainActor func testServerValueReplacesFocusedNumericText() {
+        for theme in ["dark", "light"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-student", "-appearance", theme, "--audit-screen", "numeric-sync", "--audit-namespace", UUID().uuidString]
+            app.launch()
+            let field = app.textFields["Повторы"]
+            XCTAssertTrue(field.waitForExistence(timeout: 15))
+            app.buttons["Запланировать серверное обновление"].tap()
+            field.tap(); field.typeText("22")
+            XCTAssertEqual(field.value as? String, "22")
+            let serverText = NSPredicate(format: "value == %@", "20")
+            expectation(for: serverText, evaluatedWith: field)
+            waitForExpectations(timeout: 10)
+            app.terminate()
+        }
+    }
     override func setUpWithError() throws { continueAfterFailure = false }
     @MainActor func testProgressLargeHistoryRemainsInteractive() {
         for (role, theme) in [("student", "dark"), ("trainer", "light")] {

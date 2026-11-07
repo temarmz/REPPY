@@ -6,6 +6,21 @@ import XCTest
 #endif
 
 final class WorkoutExecutionTests: XCTestCase {
+    func testUnfilledWebPlanCanSaveProgressButCannotCompleteAnEmptySet() throws {
+        var workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
+        workout.exercises[0].plannedSets.append(SetPlan(targetReps: 0))
+        XCTAssertNotNil(ReppyValidation.workout(workout))
+        XCTAssertNil(ReppyValidation.workout(workout, allowUnfilledSets: true))
+        var results = WorkoutExecution.initialResults(sessionID: "session", workout: workout)
+        XCTAssertTrue(WorkoutExecution.validate(sessionID: "session", workout: workout, results: results))
+        let index = try XCTUnwrap(results.firstIndex { $0.actual_reps == 0 })
+        results[index].completed = true
+        XCTAssertFalse(WorkoutExecution.validate(sessionID: "session", workout: workout, results: results))
+        results[index].actual_reps = 20
+        XCTAssertTrue(WorkoutExecution.validate(sessionID: "session", workout: workout, results: results))
+        workout.exercises[0].plannedSets[0].targetReps = -1
+        XCTAssertNotNil(ReppyValidation.workout(workout, allowUnfilledSets: true))
+    }
     private struct Transition: Decodable {
         var name: String; var sessionID: String; var previous: Workout; var proposed: Workout
         var results: [SetResult]; var expectedWorkout: Workout; var expectedResults: [SetResult]; var expectedRepeatPlan: Workout

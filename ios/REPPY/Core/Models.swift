@@ -289,12 +289,12 @@ public enum ReppyValidation {
         guard let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")), value.isFinite, value >= 0 else { return nil }
         return value
     }
-    public static func workout(_ workout: Workout) -> String? {
+    public static func workout(_ workout: Workout, allowUnfilledSets: Bool = false) -> String? {
         if workout.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Укажи название тренировки." }
         if workout.exercises.isEmpty { return "Добавь хотя бы одно упражнение." }
         for exercise in workout.exercises {
             for set in exercise.plannedSets {
-                if set.targetReps <= 0 || !set.targetWeight.isFinite || set.targetWeight < 0 { return "Проверь подходы: количество должно быть больше нуля, вес — неотрицательным." }
+                if set.targetReps < (allowUnfilledSets ? 0 : 1) || !set.targetWeight.isFinite || set.targetWeight < 0 { return "Проверь подходы: количество должно быть больше нуля, вес — неотрицательным." }
             }
         }
         return nil
