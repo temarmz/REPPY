@@ -40,7 +40,7 @@ jobs:
           RUN_ID: ${{ inputs.run_id }}
           RUN_ATTEMPT: ${{ inputs.attempt }}
         run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > source-run.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT" > source-run.json
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
           import { readFileSync } from 'node:fs';
@@ -65,6 +65,9 @@ jobs:
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: pages-dist
       - uses: actions/deploy-pages@v5
         id: deployment
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
