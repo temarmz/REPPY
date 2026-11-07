@@ -36,10 +36,19 @@ jobs:
         env:
           REPPY_BACKUP_DIR: ${{ runner.temp }}/reppy-backup
         run: npm run backup:verify
-      - name: Store temporary test backup in GitHub Actions
+      - name: Encrypt and verify backup before artifact upload
+        env:
+          REPPY_BACKUP_ENCRYPTION_KEY: ${{ secrets.PRODUCTION_BACKUP_ENCRYPTION_KEY }}
+        run: |
+          tar -czf "$RUNNER_TEMP/reppy-backup.tar.gz" -C "$RUNNER_TEMP/reppy-backup" .
+          node scripts/encrypt-backup.mjs encrypt "$RUNNER_TEMP/reppy-backup.tar.gz" "$RUNNER_TEMP/reppy-backup.tar.gz.enc"
+          node scripts/encrypt-backup.mjs decrypt "$RUNNER_TEMP/reppy-backup.tar.gz.enc" "$RUNNER_TEMP/verified-backup.tar.gz"
+          cmp "$RUNNER_TEMP/reppy-backup.tar.gz" "$RUNNER_TEMP/verified-backup.tar.gz"
+          rm "$RUNNER_TEMP/reppy-backup.tar.gz" "$RUNNER_TEMP/verified-backup.tar.gz"
+      - name: Store encrypted backup in GitHub Actions
         uses: actions/upload-artifact@v7
         with:
-          name: production-supabase-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/reppy-backup/
+          name: production-encrypted-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/reppy-backup.tar.gz.enc
           if-no-files-found: error
           retention-days: 35

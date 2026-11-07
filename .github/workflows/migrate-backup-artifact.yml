@@ -1,0 +1,52 @@
+name: Encrypt legacy backup artifact
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_id:
+        description: Existing production-supabase artifact to preserve as encrypted copy
+        required: true
+permissions:
+  contents: read
+  actions: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production-ops
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Validate and download legacy backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ inputs.artifact_id }}
+        run: |
+          [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID" > "$RUNNER_TEMP/metadata.json"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const artifact = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/metadata.json'));
+          assert.match(artifact.name, /^production-supabase-[0-9]+-[0-9]+$/);
+          assert.equal(artifact.expired, false);
+          JS
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/legacy-backup.zip"
+      - name: Encrypt and authenticate preserved copy
+        env:
+          REPPY_BACKUP_ENCRYPTION_KEY: ${{ secrets.PRODUCTION_BACKUP_ENCRYPTION_KEY }}
+        run: |
+          node scripts/encrypt-backup.mjs encrypt "$RUNNER_TEMP/legacy-backup.zip" "$RUNNER_TEMP/legacy-backup.zip.enc"
+          node scripts/encrypt-backup.mjs decrypt "$RUNNER_TEMP/legacy-backup.zip.enc" "$RUNNER_TEMP/verified.zip"
+          cmp "$RUNNER_TEMP/legacy-backup.zip" "$RUNNER_TEMP/verified.zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: preserved-encrypted-backup-${{ inputs.artifact_id }}
+          path: ${{ runner.temp }}/legacy-backup.zip.enc
+          retention-days: 35
+          if-no-files-found: error
+      - name: Remove exposed original after encrypted copy upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ inputs.artifact_id }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID"

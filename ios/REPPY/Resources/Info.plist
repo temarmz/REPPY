@@ -11,6 +11,7 @@
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>REPPY_RELEASE</key><string>$(REPPY_RELEASE)</string>
     <key>LSRequiresIPhoneOS</key><true/>
     <key>NSCameraUsageDescription</key><string>Камера нужна для записи видеоинструкции к упражнению.</string>
     <key>NSMicrophoneUsageDescription</key><string>Микрофон нужен для звука в видеоинструкции к упражнению.</string>

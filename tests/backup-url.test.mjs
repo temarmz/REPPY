@@ -22,3 +22,12 @@ test('database URL percent-encodes raw special characters in a password', () => 
   assert.equal(decodeURIComponent(parsed.password), 'p@ss[% word');
   assert.equal(parsed.hostname, 'pooler.example.com');
 });
+
+test('platform hooks export requires Auth provisioning and all four Storage policies', async () => {
+  const { extractPlatformHooks } = await import('../scripts/backup-platform-hooks.mjs');
+  const sql = 'CREATE OR REPLACE TRIGGER "on_auth_user_created" AFTER INSERT ON "auth"."users" EXECUTE FUNCTION "public"."handle_new_user"();\n' +
+    ['read', 'create', 'update', 'delete'].map(name => `CREATE POLICY "instruction_videos_storage_${name}" ON "storage"."objects" USING (true);`).join('\n');
+  assert.match(extractPlatformHooks(sql), /on_auth_user_created/);
+  assert.throws(() => extractPlatformHooks(sql.replace('storage_delete', 'unrelated')));
+  assert.ok(!extractPlatformHooks(sql + '\nCREATE TABLE secret_data (token text);').includes('secret_data'));
+});

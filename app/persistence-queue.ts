@@ -9,11 +9,11 @@ export function isTransientPersistenceError(reason: unknown) {
     || /failed to fetch|fetch failed|networkerror|network request failed|load failed/i.test(error?.message ?? '');
 }
 
-type Pending = { command: ReppyCommand; state: DemoState };
+type Pending = { createdAt: number; operationId: string; command: ReppyCommand; state: DemoState };
 
 // A single lane for reads AND writes: repository.load also updates revision maps.
 export function createPersistenceQueue(repository: ReppyRepository, notify: (phase: 'saving' | 'idle' | 'error', error?: Error) => void,
-  { debounceMs = 250, retryMs = 1000 } = {}) {
+  { debounceMs = 250, retryMs = 1000, pendingMs = 15000 } = {}) {
   let tail: Promise<unknown> = Promise.resolve();
   const pending: Pending[] = [];
   let active: Pending | undefined;
@@ -22,6 +22,7 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
   let failure: Error | undefined;
   let discardActive = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let watchdog: ReturnType<typeof setInterval> | undefined;
   let cancelRetry: (() => void) | undefined;
 
   function waitForRetry(delayMs: number) {
@@ -45,22 +46,24 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
       while (!stopped && pending.length && !failure) {
         active = pending[0];
         const entry = active;
+        const queuedAt = entry.createdAt;
+        watchdog = setInterval(() => recordPersistence(entry.command.type, 'pending', queuedAt, { code: 'REPPY_PENDING' }, entry.operationId), pendingMs);
         let retries = 0;
         for (;;) {
           const started = performance.now();
           try {
             await repository.execute!(entry.command, entry.state);
-            recordPersistence(entry.command.type, 'success', started);
+            recordPersistence(entry.command.type, 'success', entry.createdAt, undefined, entry.operationId);
             if (pending[0] === entry) pending.shift();
             break;
           } catch (reason) {
-            recordPersistence(entry.command.type, 'error', started, reason);
+            recordPersistence(entry.command.type, 'error', started, reason, entry.operationId);
             if (discardActive) { if (pending[0] === entry) pending.shift(); break; }
             // Progress reconciles a lost acknowledgement before retrying. Do not
             // blindly repeat payments, creation or other non-idempotent writes.
             if (!stopped && entry.command.type === 'session.progress' && retries < 2 && isTransientPersistenceError(reason)) {
               retries += 1;
-              recordPersistence(entry.command.type, 'retry', started, reason);
+              recordPersistence(entry.command.type, 'retry', started, reason, entry.operationId);
               await waitForRetry(retryMs * retries);
               // Reload/dispose may happen during backoff, when no request is
               // in flight. Never send that discarded snapshot again.
@@ -72,6 +75,7 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
             break;
           }
         }
+        clearInterval(watchdog);
         active = undefined;
         discardActive = false;
       }
@@ -90,7 +94,7 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
         && last.command.type === 'session.progress' && last.command.sessionId === command.sessionId) {
         last.command = { ...last.command, ...command };
         last.state = state;
-      } else pending.push({ command, state });
+      } else pending.push({ command, state, createdAt: performance.now(), operationId: crypto.randomUUID() });
       if (failure) return;
       notify('saving');
       if (command.type !== 'session.progress' || running) flush();
@@ -133,6 +137,7 @@ export function createPersistenceQueue(repository: ReppyRepository, notify: (pha
     },
     dispose() {
       stopped = true;
+      clearInterval(watchdog);
       if (timer) clearTimeout(timer);
       timer = undefined;
       pending.splice(active ? 1 : 0);

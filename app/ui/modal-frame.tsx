@@ -1,11 +1,13 @@
 import { Box, Section, Inline, Heading, Paragraph } from './elements';
 import { Button } from './controls';
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './icon';
 import { pushHistoryEntry } from '../browser-history';
 
 export const MODAL_LAYER_EVENT = 'reppy:modal-layer';
+const modalHistoryEvents = new WeakSet<Event>();
+export function isModalHistoryEvent(event: Event) { return modalHistoryEvents.has(event); }
 
 let openModalLayers = 0;
 let closingModalLayers = 0;
@@ -45,7 +47,7 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     openModalLayers += 1;
     applyModalLayerState(true);
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -96,6 +98,9 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
     };
     const handleHistoryBack = (event: PopStateEvent) => {
       if (event.state?.reppyModal === modalId) return;
+      // React can unmount the layer during capture before navigation sees this
+      // event. Preserve its meaning independently of the current DOM/layer count.
+      modalHistoryEvents.add(event);
       onCloseRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);

@@ -1,0 +1,819 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/artemhome/Documents/ChatGPT/REPPY/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "tests/ops/playwright.config.ts"
+    ],
+    "configFile": "/Users/artemhome/Documents/ChatGPT/REPPY/tests/ops/playwright.config.ts",
+    "rootDir": "/Users/artemhome/Documents/ChatGPT/REPPY/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/artemhome/Documents/ChatGPT/REPPY/work/ops-browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "ops-webkit",
+        "name": "ops-webkit",
+        "testDir": "/Users/artemhome/Documents/ChatGPT/REPPY/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/operations-history.spec.ts",
+          "**/navigation-guard.spec.ts",
+          "**/navigation-hydration.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/artemhome/Documents/ChatGPT/REPPY/work/ops-browser-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "ops-chromium",
+        "name": "ops-chromium",
+        "testDir": "/Users/artemhome/Documents/ChatGPT/REPPY/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/operations-history.spec.ts",
+          "**/navigation-guard.spec.ts",
+          "**/navigation-hydration.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "work/ops-browser-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 2,
+    "webServer": {
+      "command": "npm run preview -- --host 127.0.0.1 --port 4185",
+      "url": "http://127.0.0.1:4185",
+      "reuseExistingServer": false
+    }
+  },
+  "suites": [
+    {
+      "title": "navigation-guard.spec.ts",
+      "file": "navigation-guard.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Forward preserves the draft and future entry through cancel, Escape and reload, then discards on confirmation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 991,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:12.883Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-b84a4c7ce6b7966b7faf",
+          "file": "navigation-guard.spec.ts",
+          "line": 18,
+          "column": 1
+        },
+        {
+          "title": "Back closes a discard prompt without leaving the draft, and regular modals still consume one Back",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2007,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:14.072Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-d558f2d70be9f98ff479",
+          "file": "navigation-guard.spec.ts",
+          "line": 46,
+          "column": 1
+        },
+        {
+          "title": "a dirty editor confirms and resumes the full multi-entry Forward traversal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 559,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:16.084Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-e3b6d4cb98ee191e5a41",
+          "file": "navigation-guard.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "owned history entries protect Forward without the browser Navigation API",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 605,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:16.649Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-246415e873ed2650af12",
+          "file": "navigation-guard.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "Back to a legacy app entry without a position still protects an unsaved form",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 566,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:17.259Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-f642654fb9a147627786",
+          "file": "navigation-guard.spec.ts",
+          "line": 104,
+          "column": 1
+        },
+        {
+          "title": "Forward preserves the draft and future entry through cancel, Escape and reload, then discards on confirmation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 465,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:18.045Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-c5d48f759cae69daffbb",
+          "file": "navigation-guard.spec.ts",
+          "line": 18,
+          "column": 1
+        },
+        {
+          "title": "Back closes a discard prompt without leaving the draft, and regular modals still consume one Back",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1678,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:18.621Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-3935be083dac1ed4fbfb",
+          "file": "navigation-guard.spec.ts",
+          "line": 46,
+          "column": 1
+        },
+        {
+          "title": "a dirty editor confirms and resumes the full multi-entry Forward traversal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 338,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:20.302Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-7f7b26dabd6a5d319aa3",
+          "file": "navigation-guard.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "owned history entries protect Forward without the browser Navigation API",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 329,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:20.644Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-dbd1f786f7e3d1a7edb4",
+          "file": "navigation-guard.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "Back to a legacy app entry without a position still protects an unsaved form",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 306,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:20.977Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5422d80ec9b7e9c928b5-c53b274a48f2246402b6",
+          "file": "navigation-guard.spec.ts",
+          "line": 104,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "navigation-hydration.spec.ts",
+      "file": "navigation-hydration.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a restored dirty editor protects the first Forward traversal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 845,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:12.883Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "history-and-guard-events",
+                      "contentType": "application/json",
+                      "path": "/Users/artemhome/Documents/ChatGPT/REPPY/work/ops-browser-artifacts/navigation-hydration-a-res-2c12b-the-first-Forward-traversal-ops-webkit/attachments/history-and-guard-events-4903b333bd0728737fe35d22e3ded1c8adbdbb18.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5be59ab80d8e15f742a5-a0e9dfd948839f7f3e10",
+          "file": "navigation-hydration.spec.ts",
+          "line": 6,
+          "column": 1
+        },
+        {
+          "title": "a restored dirty editor protects the first Forward traversal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 334,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:21.290Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "history-and-guard-events",
+                      "contentType": "application/json",
+                      "path": "/Users/artemhome/Documents/ChatGPT/REPPY/work/ops-browser-artifacts/navigation-hydration-a-res-2c12b-the-first-Forward-traversal-ops-chromium/attachments/history-and-guard-events-ae156fa35deb8829e4181c92ea7bae0f5d651d4c.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5be59ab80d8e15f742a5-892db8a7a94ebd4a6216",
+          "file": "navigation-hydration.spec.ts",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "operations-history.spec.ts",
+      "file": "operations-history.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "continuous scrolling preserves position without History API writes: trainer, light",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3182,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:13.931Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-845da6ce468e19d74454",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: trainer, dark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3173,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:17.118Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-31750e2fda3dc4754dd6",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: student, light",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3137,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:20.295Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-76ec3c6706ece93a4490",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: student, dark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-webkit",
+              "projectName": "ops-webkit",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 3151,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:23.436Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-199e23cc24b1420d5912",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: trainer, light",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1583,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:21.632Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-cfd2b553a27677df37fb",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: trainer, dark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1588,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:23.219Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-1826ac2b0178480228fa",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: student, light",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1596,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:24.811Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-ca82689da1c53d492a9c",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        },
+        {
+          "title": "continuous scrolling preserves position without History API writes: student, dark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ops-chromium",
+              "projectName": "ops-chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1596,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-07T08:31:26.411Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "78498b5e28709e7a8c59-07092054da6a02a60672",
+          "file": "operations-history.spec.ts",
+          "line": 5,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-07T08:31:12.299Z",
+    "duration": 15769.460000000001,
+    "expected": 20,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

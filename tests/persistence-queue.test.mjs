@@ -213,3 +213,35 @@ test('журнал не включает сообщения, содержимо�
   assert.ok(!log.includes('secret-token'));
   assert.ok(!log.includes('weight'));
 });
+
+test('hung save is observable without allowing another write or retry', async () => {
+  const gate = deferred(); let writes = 0;
+  const queue = createPersistenceQueue({ execute: async () => { writes++; await gate.promise; } }, () => {}, { pendingMs: 5 });
+  queue.enqueue({ type: 'student.update' }, {});
+  await new Promise(r => setTimeout(r, 20));
+  queue.enqueue({ type: 'student.update' }, {}); queue.retry();
+  const pending = getPersistenceDiagnostics().findLast(e => e.operation === 'student.update' && e.outcome === 'pending');
+  assert.ok(pending?.operationId); assert.equal(writes, 1); assert.equal(queue.pendingCount, 2);
+  gate.resolve(); await tick(); queue.dispose();
+  const success = getPersistenceDiagnostics().find(e => e.operationId === pending.operationId && e.outcome === 'success');
+  assert.ok(success);
+});
+
+test('diagnostics reject free-text operation, error code and message', () => {
+  recordPersistence('student.update', 'error', performance.now(), { code: 'SECRET_TOKEN', message: 'person@example.com bearer-secret' });
+  recordPersistence('person@example.com', 'error', performance.now());
+  const serialized = JSON.stringify(getPersistenceDiagnostics());
+  assert.ok(!serialized.includes('person@example.com')); assert.ok(!serialized.includes('bearer-secret')); assert.ok(!serialized.includes('SECRET_TOKEN'));
+});
+
+test('bounded fetch preserves headers and links server response to safe request ID', async () => {
+  let headers;
+  const serverId = crypto.randomUUID();
+  const bounded = createBoundedFetch(async (_, init) => { headers = init.headers; return new Response('{}', { status: 503, headers: { 'sb-request-id': serverId } }); });
+  await bounded('https://example.test/rest/v1/profiles?email=private', { headers: { authorization: 'Bearer SECRET', apikey: 'KEY' } });
+  assert.equal(headers.get('authorization'), 'Bearer SECRET');
+  const operationId = headers.get('x-client-info').split('request/')[1];
+  const event = getPersistenceDiagnostics().findLast(e => e.requestId === serverId);
+  assert.equal(event.operationId, operationId); assert.equal(event.code, 'HTTP_503');
+  assert.ok(!JSON.stringify(event).includes('private')); assert.ok(!JSON.stringify(event).includes('SECRET'));
+});

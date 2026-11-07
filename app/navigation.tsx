@@ -1,7 +1,7 @@
 import { recordNavigation } from './activity-log';
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ConfirmationModal from './ui/confirmation-modal';
-import { hasOpenModalLayers } from './ui/modal-frame';
+import { hasOpenModalLayers, isModalHistoryEvent } from './ui/modal-frame';
 import { HISTORY_ENTRY_EVENT, historyIndex, pushHistoryEntry, replaceHistoryEntry } from './browser-history';
 
 const NAVIGATION_EVENT = 'reppy:navigate';
@@ -53,6 +53,16 @@ function scrollStorageKey(path: string) {
   return `reppy-ui:scroll:${navigationScope}:${path}`;
 }
 
+function entryScrollKey() { return `reppy-ui:entry-scroll:${navigationScope}:${historyIndex() ?? 0}:${hashPath()}`; }
+
+function loadEntryScrollPosition(): ReppyScrollPosition | null {
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(entryScrollKey()) ?? 'null');
+    if (value && Object.keys(TOP_SCROLL_POSITION).every(key => typeof value[key] === 'number' && Number.isFinite(value[key]) && value[key] >= 0)) return value;
+  } catch { /* best effort */ }
+  return null;
+}
+
 function loadRouteScrollPosition(path: string): ReppyScrollPosition {
   try {
     const raw = window.sessionStorage.getItem(scrollStorageKey(path));
@@ -69,6 +79,7 @@ function loadRouteScrollPosition(path: string): ReppyScrollPosition {
 function saveRouteScrollPosition(path: string, position = currentScrollPosition()) {
   try {
     window.sessionStorage.setItem(scrollStorageKey(path), JSON.stringify(position));
+    window.sessionStorage.setItem(entryScrollKey(), JSON.stringify(position));
   } catch {
     // The current history entry still keeps the position in memory.
   }
@@ -103,6 +114,7 @@ function performNavigation(path: string, replace = false) {
   } else {
     pushHistoryEntry({ ...previousState, reppyEntry: true, reppyScroll: nextScroll }, `#${path}`);
   }
+  try { window.sessionStorage.removeItem(entryScrollKey()); } catch { /* best effort */ }
   notifyNavigation();
 }
 
@@ -184,7 +196,7 @@ export function useHashNavigation() {
         if (!delta) { commitPath(); return; }
         // A modal Back dismisses the modal; restore the form without opening
         // another discard prompt. Otherwise replay the original traversal.
-        restoring = { delta, blocker: hasOpenModalLayers() ? null : activeNavigationBlocker };
+        restoring = { delta, blocker: (hasOpenModalLayers() || isModalHistoryEvent(event)) ? null : activeNavigationBlocker };
         window.history.go(-delta);
         return;
       }
@@ -213,7 +225,7 @@ export function useRouteScrollRestoration(path: string, ready: boolean, identity
     if (!ready) return;
     const page = document.querySelector<HTMLElement>('.page-wrap');
     if (!page) return;
-    const position = window.history.state?.reppyScroll ?? loadRouteScrollPosition(path);
+    const position = loadEntryScrollPosition() ?? window.history.state?.reppyScroll ?? loadRouteScrollPosition(path);
     let restoring = true;
     let restoreFrame = 0;
     let saveFrame = 0;
@@ -232,7 +244,9 @@ export function useRouteScrollRestoration(path: string, ready: boolean, identity
       if (restoring || saveFrame || hashPath() !== path) return;
       saveFrame = window.requestAnimationFrame(() => {
         saveFrame = 0;
-        if (!restoring && hashPath() === path) saveCurrentScrollPosition();
+        // Scroll state is persisted without spending the browser History API quota.
+        // The current history entry is updated synchronously before app navigation.
+        if (!restoring && hashPath() === path) saveRouteScrollPosition(path);
       });
     };
     page.addEventListener('scroll', scheduleSave, { passive: true });

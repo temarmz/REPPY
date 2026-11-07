@@ -19,9 +19,10 @@ async function edgeHealth(name, body) {
       'content-type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(12000),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`${name}: HTTP ${response.status} ${payload.error ?? ''}`.trim());
+  if (!response.ok) throw new Error(`${name}: HTTP ${response.status} `.trim());
   return payload;
 }
 
@@ -30,14 +31,14 @@ const [telegramAuth, telegramNotifications, outboxResult, accountsResult] = awai
   edgeHealth('telegram-notifications', { action: 'health' }),
   supabase
     .from('telegram_notification_outbox')
-    .select('recipient_profile_id, status, attempts, available_at, processing_started_at, last_error, created_at')
+    .select('recipient_profile_id, status, attempts, available_at, processing_started_at, created_at')
     .neq('status', 'sent')
     .limit(5000),
   supabase.from('telegram_accounts').select('profile_id').limit(5000),
 ]);
 
-if (outboxResult.error) throw new Error(`Очередь Telegram: ${outboxResult.error.message}`);
-if (accountsResult.error) throw new Error(`Telegram-аккаунты: ${accountsResult.error.message}`);
+if (outboxResult.error) throw new Error(`Очередь Telegram: request_failed`);
+if (accountsResult.error) throw new Error(`Telegram-аккаунты: request_failed`);
 
 const now = Date.now();
 const fiveMinutes = 5 * 60 * 1000;
@@ -65,7 +66,7 @@ const report = {
     staleProcessing: staleProcessing.length,
     exhausted: exhausted.length,
     recipientsWithoutTelegram: withoutTelegram.length,
-    recentErrors: [...new Set(retrying.map((row) => row.last_error).filter(Boolean))].slice(0, 5),
+    failedDeliveryCount: retrying.length,
   },
 };
 

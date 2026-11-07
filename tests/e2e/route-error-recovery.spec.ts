@@ -34,8 +34,8 @@ for (const theme of ['dark', 'light'] as const) {
       // History restores a retained screen; selecting a tab starts at its root.
       await page.evaluate(() => { location.hash = '/student/calendar'; });
       await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
-      const errorLog = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-ui-errors-v1') ?? '[]'));
-      expect(errorLog.at(-1)).toMatchObject({ routeArea: 'student/calendar', name: 'Error' });
+      const errorLog = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-persistence-diagnostics-v2') ?? '[]').filter((e: { operation: string }) => e.operation === 'ui.render'));
+      expect(errorLog.at(-1)).toMatchObject({ operation: 'ui.render', outcome: 'error' });
       await page.screenshot({ path: testInfo.outputPath('failed-route.png'), animations: 'disabled' });
       await testInfo.attach('controller-before-recovery', { body: JSON.stringify(await page.evaluate(() => ({
         mounts: window.routeRecoveryQa.mounts, unmounts: window.routeRecoveryQa.unmounts, calls: window.routeRecoveryQa.calls,

@@ -28,9 +28,9 @@ private final class NativeHTTPStub: URLProtocol {
     }
     override func stopLoading() { loadingLock.lock(); stopped = true; let action = cancellation; loadingLock.unlock(); action?() }
     func onCancellation(_ action: @escaping () -> Void) { loadingLock.lock(); cancellation = action; loadingLock.unlock() }
-    func respond(_ value: Any, status: Int = 200) {
+    func respond(_ value: Any, status: Int = 200, headers: [String: String] = [:]) {
         loadingLock.lock(); let stopped = stopped; loadingLock.unlock(); guard !stopped else { return }
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers.merging(["Content-Type": "application/json"]) { _, value in value })!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: try! JSONSerialization.data(withJSONObject: value))
         client?.urlProtocolDidFinishLoading(self)
@@ -135,6 +135,29 @@ private final class NotesTestServer {
 }
 
 @MainActor final class NativeAccountTests: XCTestCase {
+    func testDiagnosticExportCorrelatesFailureWithoutLoggingPayloadOrToken() async throws {
+        let serverID = UUID().uuidString.lowercased()
+        NativeHTTPStub.configure { stub in
+            XCTAssertTrue(stub.request.value(forHTTPHeaderField: "x-client-info")?.contains(" request/") == true)
+            stub.respond(["code": "internal_error", "message": "private-person@example.com bearer-secret"], status: 503, headers: ["x-reppy-operation-id": serverID])
+        }
+        defer { NativeHTTPStub.configure(nil) }
+        let configuration = URLSessionConfiguration.ephemeral; configuration.protocolClasses = [NativeHTTPStub.self]
+        let transport = URLSession(configuration: configuration); defer { transport.invalidateAndCancel() }
+        let api = SupabaseAPI(configuration: AppConfiguration(url: URL(string: "https://example.com")!, key: "sb_publishable_test"), transport: transport, vault: MemorySessionVault())
+        do { _ = try await api.request("functions/v1/telegram-auth", authenticated: false); XCTFail("Expected server failure") } catch { }
+        let file = try ActivityLog.export(); defer { try? FileManager.default.removeItem(at: file) }
+        let bytes = try Data(contentsOf: file)
+        let text = String(decoding: bytes, as: UTF8.self)
+        XCTAssertFalse(text.contains("private-person")); XCTAssertFalse(text.contains("bearer-secret")); XCTAssertFalse(text.contains("https://example.com"))
+        let report = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+        let operations = try XCTUnwrap(report["operations"] as? [[String: Any]])
+        let event = try XCTUnwrap(operations.last { $0["requestId"] as? String == serverID })
+        XCTAssertEqual(event["requestId"] as? String, serverID); XCTAssertEqual(event["status"] as? Int, 503)
+        XCTAssertEqual(event["outcome"] as? String, "error"); XCTAssertNotNil(event["operationId"])
+        XCTAssertEqual(report["release"] as? String, ActivityLog.release)
+    }
+
     func testProgressCacheInvalidatesOnNestedChangesAndAccountReset() throws {
         let store = AppStore(configuration: nil, observeChanges: false)
         store.data = try TestFixtures.load()

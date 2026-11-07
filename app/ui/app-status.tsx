@@ -1,6 +1,6 @@
 import { UI_ASSETS } from './assets';
 import { Aside, Inline, Strong, Small, Page, Image, PageTitle, Paragraph } from './elements';
-import { Component, createContext, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, createContext, useEffect, useState, type ReactNode } from 'react';
 import type { PersistencePhase } from '../use-reppy-data';
 import Icon, { type IconName } from './icon';
 import { ActionButton, Button } from './controls';
@@ -122,10 +122,8 @@ export class AppErrorBoundary extends Component<{ children: ReactNode; onFailure
     return { failed: true };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    // Keep the original error in the console for remote Web Inspector debugging.
-    console.error('REPPY render failed', error, info.componentStack);
-    recordUiError(error, info.componentStack ?? '');
+  componentDidCatch() {
+    recordUiError();
     this.props.onFailure?.();
   }
 

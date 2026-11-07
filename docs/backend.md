@@ -19,7 +19,7 @@ Frontend подключается к Supabase Auth, если заданы `VITE_
 | --- | --- | --- |
 | Local | разработка и автоматические проверки | локальный Supabase через Docker |
 | Preview | интеграционные и E2E-проверки | отдельный hosted-проект без production-данных |
-| Production | рабочее приложение | hosted-проект; еженедельный проверяемый backup в GitHub Actions artifacts и локальный restore-drill настроены; перед релизом нужны шифрование и S3 |
+| Production | рабочее приложение | hosted-проект; еженедельный шифруемый backup в GitHub Actions artifacts и локальный restore-drill настроены; перед релизом нужны шифрование и S3 |
 
 ### Hosted preview
 
@@ -170,13 +170,14 @@ npm run backup:verify
 - `data.sql` — полный экспорт данных, включая Auth и метаданные Storage;
 - `application-data.sql` — переносимый срез `public/private` для локальных restore-drill;
 - `storage/` — сами объекты всех Storage buckets;
+- `platform-hooks.sql` (format v2) — прикладной Auth trigger и четыре Storage policies, не входящие в стандартный dump;
 - `manifest.json` — размеры и SHA-256 каждого файла.
 
 Перед экспортом скрипт проверяет, что project ref из `SUPABASE_URL` совпадает с проектом, связанным через `supabase link`. В CI та же проверка выполняется по project ref из `SUPABASE_DB_URL`. Это не позволяет случайно объединить database dump одного окружения со Storage другого.
 
 `.backups` исключена из Git. После создания скопируйте весь каталог в зашифрованное хранилище вне рабочего компьютера; локальная копия не защищает от потери или поломки Mac. Значение `REPPY_BACKUP_DIR` позволяет сразу выбрать подключённый зашифрованный диск или синхронизируемую защищённую папку.
 
-На этапе тестирования workflow `Backup production Supabase` запускается по понедельникам в 05:23 по Москве и вручную. Он создаёт production-backup, проверяет контрольные суммы manifest и загружает закрытй GitHub Actions artifact со сроком хранения 35 дней, что даёт около пяти последовательных копий. Workflow использует environment `production-ops`; кроме переменных health-check в нём нужен secret `PRODUCTION_SUPABASE_DB_URL` с PostgreSQL connection string проекта Supabase. Artifact — временное операционное решение: перед релизом его нужно заменить клиентским шифрованием и внешним S3-совместимым хранилищем.
+На этапе тестирования workflow `Backup production Supabase` запускается по понедельникам в 05:23 по Москве и вручную. Он создаёт production-backup, проверяет контрольные суммы manifest и загружает зашифрованный AES-256-GCM GitHub Actions artifact со сроком хранения 35 дней, что даёт около пяти последовательных копий. Workflow использует environment `production-ops`; кроме переменных health-check в нём нужен secret `PRODUCTION_SUPABASE_DB_URL` с PostgreSQL connection string проекта Supabase. Artifact — временное операционное решение: перед релизом его нужно заменить внешним S3-совместимым хранилищем с сохранением клиентского шифрования.
 
 Проверка `backup:verify` выбирает последний архив либо принимает путь вторым аргументом и сверяет наличие файлов, размеры и SHA-256. Edge Function secrets не входят в database backup: их перечень и значения нужно хранить отдельно в менеджере паролей (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_OIDC_CLIENT_ID`, `TELEGRAM_OIDC_CLIENT_SECRET`). Код функций и миграции уже находятся в Git.
 
@@ -206,3 +207,7 @@ npm run supabase:stop
 ## Следующий этап
 
 1. Перед релизом шифровать backup на стороне клиента и перенести ежедневные копии из временных GitHub Actions artifacts во внешнее S3-совместимое хранилище.
+
+Операционная готовность массового теста, свежесть backup, пороги задержек, остановка и повторяемые restore/rollback drills: [инструкция](test-operations.md). Для новых тестов нужен backup format v2; архивы v1 не содержат Auth/Storage hooks.
+
+Репозиторий публичный: backup artifact обязательно шифруется до upload через `scripts/encrypt-backup.mjs`. Ключ — отдельный secret `production-ops/PRODUCTION_BACKUP_ENCRYPTION_KEY`, не содержится в архиве/Git. После скачивания: `REPPY_BACKUP_ENCRYPTION_KEY=... node scripts/encrypt-backup.mjs decrypt backup.tar.gz.enc backup.tar.gz`, затем распаковка и `backup:verify`. Значение ключа вводить через защищённое окружение, не сохранять в истории команд.

@@ -33,7 +33,11 @@
     "telegram:delivery:configure": "node scripts/configure-telegram-delivery.mjs",
     "test:stress:preview": "node --experimental-strip-types scripts/stress-preview.mjs --isolated-preview",
     "test:stress:web": "playwright test --config tests/stress/playwright.config.ts",
-    "test:stress:drafts": "node scripts/stress-native-drafts.mjs"
+    "test:stress:drafts": "node scripts/stress-native-drafts.mjs",
+    "ops:restore-drill": "node scripts/drill-backup-restore.mjs",
+    "ops:rollback-drill": "node scripts/drill-pages-rollback.mjs",
+    "test:ops:web": "playwright test --config tests/ops/playwright.config.ts",
+    "ops:metrics": "node scripts/summarize-diagnostics.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

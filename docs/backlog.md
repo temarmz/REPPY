@@ -36,6 +36,7 @@
 - [x] Подключить запуск health-check по расписанию и внешнее оповещение об ошибках. Environment `production-ops` настроен; production-прогон успешен, а дедуплицированный GitHub issue автоматически открывается при сбое и закрывается после восстановления.
 - [x] Добавить логический backup hosted Supabase, экспорт Storage, SHA-256 manifest и провести локальный restore-drill.
 - [x] Автоматизировать еженедельный production-backup с проверкой контрольных сумм и временным хранением в закрытых GitHub Actions artifacts на 35 дней.
+- [x] Подготовить безопасную диагностику v2 с release/operation/request ID, серверные status/duration, restore/rollback drills и стоп-условия массового теста ([инструкция](test-operations.md)). Изменения требуют публикации; hosted restore и реальный Pages rollback проверяются отдельно.
 - [ ] Перед релизом добавить клиентское шифрование и перенести backup-artifacts во внешнее S3-совместимое хранилище.
 - [x] Добавить безопасную операторскую очистку только явно перечисленных тестовых аккаунтов и их данных.
 - [x] Удалить legacy-регистрацию по email/паролю, операторские скрипты и `student_invitations.target_email`; оставить Telegram-only onboarding.

@@ -19,7 +19,7 @@ async function digest(filePath) {
 
 const backupDirectory = process.argv[2] ? path.resolve(process.argv[2]) : await latestBackup();
 const manifest = JSON.parse(await readFile(path.join(backupDirectory, 'manifest.json'), 'utf8'));
-if (manifest.formatVersion !== 1) throw new Error('Неподдерживаемая версия backup.');
+if (![1, 2].includes(manifest.formatVersion)) throw new Error('Неподдерживаемая версия backup.');
 
 const files = [
   ...manifest.database.map((entry) => ({ path: entry.file, bytes: entry.bytes, sha256: entry.sha256 })),
@@ -33,7 +33,9 @@ for (const expected of files) {
   if (await digest(filePath) !== expected.sha256) throw new Error(`SHA-256 ${expected.path} не совпадает с manifest.`);
 }
 
-for (const file of ['roles.sql', 'schema.sql', 'data.sql', 'application-data.sql']) {
+const required = ['roles.sql', 'schema.sql', 'data.sql', 'application-data.sql', ...(manifest.formatVersion === 2 ? ['platform-hooks.sql'] : [])];
+for (const file of required) {
+  if (manifest.database.filter(entry => entry.file === file).length !== 1) throw new Error('Missing or duplicate required file in manifest');
   const sql = await readFile(path.join(backupDirectory, file), 'utf8');
   if (!sql.trim()) throw new Error(`${file} пуст.`);
 }

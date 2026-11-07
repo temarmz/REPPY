@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import ReppyApp from '../../app/reppy-app';
 import { AppErrorBoundary } from '../../app/ui/app-status';
 import '../../app/globals.css';
+import { recordUiError } from '../../app/ui-error-diagnostics';
 import { restoreTelegramCallbackRoute } from '../../app/telegram-login';
 
 restoreTelegramCallbackRoute();
@@ -18,7 +19,7 @@ function AppEntry() {
   return <AppErrorBoundary><ReppyApp /></AppErrorBoundary>;
 }
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById('root')!, { onCaughtError: () => {}, onUncaughtError: () => recordUiError(), onRecoverableError: () => recordUiError() }).render(
   <StrictMode>
     <AppEntry />
   </StrictMode>,

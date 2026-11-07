@@ -1,3 +1,4 @@
+import { recordPersistence } from './persistence-diagnostics.ts';
 export const HISTORY_ENTRY_EVENT = 'reppy:history-entry';
 
 export function historyIndex() {
@@ -14,10 +15,12 @@ export function replaceHistoryEntry(state: Record<string, unknown>, url = window
   if (url === window.location.href) {
     try { if (JSON.stringify(window.history.state) === JSON.stringify(next)) return; } catch { /* Non-JSON history states still use the browser's structured clone. */ }
   }
-  window.history.replaceState(next, '', url);
+  try { window.history.replaceState(next, '', url); }
+  catch (error) { recordPersistence('history.replace', 'error', performance.now()); throw error; }
 }
 
 export function pushHistoryEntry(state: Record<string, unknown>, url = window.location.href) {
-  window.history.pushState({ ...state, reppyIndex: (historyIndex() ?? 0) + 1 }, '', url);
+  try { window.history.pushState({ ...state, reppyIndex: (historyIndex() ?? 0) + 1 }, '', url); }
+  catch (error) { recordPersistence('history.push', 'error', performance.now()); throw error; }
   window.dispatchEvent(new Event(HISTORY_ENTRY_EVENT));
 }

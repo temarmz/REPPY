@@ -77,10 +77,29 @@ struct AppConfiguration {
                  prefer: String? = nil) async throws -> Data {
         let accessToken = authenticated ? try await token() : nil
         let bytes = try body.map { try JSONSerialization.data(withJSONObject: $0, options: [.sortedKeys]) } ?? rawBody
-        let request = try BackendHTTP.request(configuration: configuration.backend, path: path, method: method, query: query,
+        var request = try BackendHTTP.request(configuration: configuration.backend, path: path, method: method, query: query,
             body: bytes, bearer: accessToken, contentType: contentType, prefer: prefer)
-        let (data, response) = try await transport.data(for: request)
-        return try BackendHTTP.validate(data, response: response, requiresSession: authenticated || path == "auth/v1/token")
+        let id = UUID(), started = Date()
+        let operation = path.hasPrefix("auth/") ? "auth.request" : path.hasPrefix("functions/") ? "function.request" : "database.request"
+        request.setValue("reppy/\(ActivityLog.release) request/\(id.uuidString.lowercased())", forHTTPHeaderField: "x-client-info")
+        let watchdog = Task { @MainActor in
+            do { try await Task.sleep(for: .seconds(15)) } catch { return }
+            ActivityLog.operation(operation, id: id, started: started, outcome: "pending")
+        }
+        defer { watchdog.cancel() }
+        var status: Int?, requestID: String?
+        do {
+            let (data, response) = try await transport.data(for: request)
+            let http = response as? HTTPURLResponse
+            status = http?.statusCode
+            requestID = http?.value(forHTTPHeaderField: "x-reppy-operation-id") ?? http?.value(forHTTPHeaderField: "sb-request-id")
+            let validated = try BackendHTTP.validate(data, response: response, requiresSession: authenticated || path == "auth/v1/token")
+            ActivityLog.operation(operation, id: id, started: started, outcome: "success", status: status, requestId: requestID)
+            return validated
+        } catch {
+            ActivityLog.operation(operation, id: id, started: started, outcome: "error", status: status, requestId: requestID)
+            throw error
+        }
     }
     func upload(_ path: String, file: URL, contentType: String) async throws {
         let accessToken = try await token()

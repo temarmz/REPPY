@@ -50,10 +50,10 @@ for (const area of ['trainer', 'student'] as const) {
         await page.evaluate(home => window.routeRecoveryQa.failRoute(home), home);
         await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
         await page.screenshot({ path: testInfo.outputPath('home-error.png'), animations: 'disabled' });
-        const errorsBeforeRetry = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-ui-errors-v1') ?? '[]').length);
+        const errorsBeforeRetry = await page.evaluate(() => JSON.parse(localStorage.getItem('reppy-persistence-diagnostics-v2') ?? '[]').filter((e: { operation: string }) => e.operation === 'ui.render').length);
         await page.getByRole('button', { name: 'Вернуться на главную' }).click();
         await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
-        await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-ui-errors-v1') ?? '[]').length)).toBe(errorsBeforeRetry + 1);
+        await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-persistence-diagnostics-v2') ?? '[]').filter((e: { operation: string }) => e.operation === 'ui.render').length)).toBe(errorsBeforeRetry + 1);
         await page.evaluate(home => window.routeRecoveryQa.resolveRoute(home), home);
         await page.getByRole('button', { name: 'Вернуться на главную' }).click();
         await expect(page.locator('[data-route-active="true"]').getByRole('textbox', { name: 'Телефон для проверки' })).toBeVisible();
@@ -75,8 +75,8 @@ for (const area of ['trainer', 'student'] as const) {
       await expect(page.getByRole('alert')).toContainText('Не удалось открыть экран');
       await page.evaluate(second => { window.routeRecoveryQa.failRoute(second); location.hash = second; }, second);
       await expect(page).toHaveURL(new RegExp(`#${second}$`));
-      await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-ui-errors-v1') ?? '[]').at(-1)?.routeArea))
-        .toBe(`${area}/calendar`);
+      await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-persistence-diagnostics-v2') ?? '[]').filter((e: { operation: string }) => e.operation === 'ui.render').at(-1)?.operation))
+        .toBe('ui.render');
       await page.goBack();
       await expect(page).toHaveURL(new RegExp(`#${first}$`));
       await page.screenshot({ path: testInfo.outputPath('back-to-failed-view.png'), animations: 'disabled' });

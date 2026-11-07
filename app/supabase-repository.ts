@@ -1,3 +1,4 @@
+import { recordPersistence } from './persistence-diagnostics.ts';
 import { mergeProgress } from './merge-progress.ts';
 import { validateAssignedWorkout } from './workout-validation.ts';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -508,9 +509,9 @@ export function createSupabaseRepository(
     // request must not hold up acknowledgement of an already committed command.
     void client.functions.invoke('telegram-notifications', { body: {} })
       .then(({ error }) => {
-        if (error) console.warn('Telegram notification delivery was deferred.', error);
+        if (error) recordPersistence('notification.delivery', 'error', performance.now());
       })
-      .catch((error: unknown) => console.warn('Telegram notification delivery was deferred.', error));
+      .catch(() => recordPersistence('notification.delivery', 'error', performance.now()));
   }
 
   const uncertainProgress = new Map<string, { revision: number; snapshot: Workout; results: Array<{

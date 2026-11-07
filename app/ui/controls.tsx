@@ -13,6 +13,12 @@ export function SegmentedControl({ value, onChange, options, label }: { value: s
 
 /** Native attributes, event types and React 19 refs are preserved by every primitive. */
 export function Button({ type = 'button', onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, ...props }: ButtonProps) {
+  const activate: NonNullable<ButtonProps['onClick']> = event => {
+    // Safari pointer activation does not focus buttons. Modal layers need the
+    // trigger as a stable focus return target, including direct touch activation.
+    if (props['aria-haspopup'] === 'dialog') event.currentTarget.focus({ preventScroll: true });
+    props.onClick?.(event);
+  };
   const touch = useRef<{ identifier: number; x: number; y: number } | null>(null);
   const startTouch = (event: TouchEvent<HTMLButtonElement>) => {
     onTouchStart?.(event);
@@ -39,7 +45,7 @@ export function Button({ type = 'button', onTouchStart, onTouchMove, onTouchEnd,
     // WebKit can omit the compatibility click during momentum scrolling. Run
     // the React activation directly, then consume only its delayed ghost.
     if (!props.onClick) return;
-    props.onClick(event as unknown as Parameters<NonNullable<ButtonProps['onClick']>>[0]);
+    activate(event as unknown as Parameters<NonNullable<ButtonProps['onClick']>>[0]);
     suppressEmulatedClickAt(item.clientX, item.clientY);
   };
   const cancelTouch = (event: TouchEvent<HTMLButtonElement>) => {
@@ -47,7 +53,7 @@ export function Button({ type = 'button', onTouchStart, onTouchMove, onTouchEnd,
     onTouchCancel?.(event);
   };
   return <button type={type} data-ui-control="button" {...props}
-    onTouchStart={startTouch} onTouchMove={moveTouch} onTouchEnd={endTouch} onTouchCancel={cancelTouch} />;
+    onClick={activate} onTouchStart={startTouch} onTouchMove={moveTouch} onTouchEnd={endTouch} onTouchCancel={cancelTouch} />;
 }
 
 export function Input(props: InputProps) {

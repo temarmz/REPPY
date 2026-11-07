@@ -1,0 +1,70 @@
+name: Roll back Pages artifact
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful deploy workflow run containing the retained release
+        required: true
+      attempt:
+        description: Run attempt containing the retained release
+        default: '1'
+        required: true
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-main
+  cancel-in-progress: false
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v8
+        with:
+          name: reppy-release-${{ inputs.run_id }}-${{ inputs.attempt }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: retained-release
+      - name: Verify successful source deployment and restore exact bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          RUN_ATTEMPT: ${{ inputs.attempt }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > source-run.json
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const run = JSON.parse(readFileSync('source-run.json'));
+          assert.equal(run.conclusion, 'success');
+          assert.equal(run.path, '.github/workflows/deploy-pages.yml');
+          assert.equal(run.head_branch, 'main');
+          assert.equal(run.head_repository.full_name, process.env.GITHUB_REPOSITORY);
+          assert.ok(['push', 'workflow_dispatch'].includes(run.event));
+          JS
+          tar -xzf retained-release/reppy-release.tar.gz
+          node scripts/release-artifact.mjs verify pages-dist release-manifest.json
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const run = JSON.parse(readFileSync('source-run.json'));
+          const release = JSON.parse(readFileSync('pages-dist/release.json'));
+          assert.equal(release.revision, run.head_sha);
+          assert.equal(release.release, `${run.head_sha}-${process.env.RUN_ID}-${process.env.RUN_ATTEMPT}`);
+          JS
+          cat pages-dist/release.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: pages-dist
+      - uses: actions/deploy-pages@v5
+        id: deployment

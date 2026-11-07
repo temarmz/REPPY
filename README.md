@@ -74,3 +74,5 @@ Swift/SwiftUI-проект для iPhone с iOS 18+ находится в [`ios/
 - [Backend: стек, схема и локальный запуск](docs/backend.md)
 - [Архив завершённого ТЗ по модели тренировок](docs/archive/training-assignment-model.md)
 - [Архитектура данных и путь к backend](docs/data-architecture.md)
+
+Разбор сбоев перед массовым тестом: [логи, восстановление, откат и стоп-условия](docs/test-operations.md). Локальные репетиции: `npm run ops:restore-drill`, `npm run ops:rollback-drill`; проверки WebKit: `npm run test:ops:web`.

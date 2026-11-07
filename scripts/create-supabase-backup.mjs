@@ -1,3 +1,4 @@
+import { extractPlatformHooks } from './backup-platform-hooks.mjs';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { chmod, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
@@ -19,11 +20,15 @@ if (!supabaseUrl || !serviceRoleKey) {
   throw new Error('Заполните SUPABASE_URL и SUPABASE_SERVICE_ROLE_KEY в .env.admin.local.');
 }
 
-const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+const localDrill = process.argv.includes('--local');
+if (localDrill && new URL(supabaseUrl).origin !== 'http://127.0.0.1:54321') throw new Error('Local backup requires the isolated loopback Supabase');
+const projectRef = localDrill ? 'local-reppy' : new URL(supabaseUrl).hostname.split('.')[0];
 if (!/^[a-z0-9-]+$/i.test(projectRef)) throw new Error('Некорректный SUPABASE_URL.');
 
 let databaseConnectionArgs = ['--linked'];
-if (databaseUrl) {
+if (localDrill) {
+  databaseConnectionArgs = ['--local'];
+} else if (databaseUrl) {
   const parsedDatabaseUrl = normalizeDatabaseUrl(databaseUrl);
   if (!['postgres:', 'postgresql:'].includes(parsedDatabaseUrl.protocol)) {
     throw new Error('SUPABASE_DB_URL должен быть PostgreSQL connection string.');
@@ -155,14 +160,18 @@ try {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const storage = await exportStorage(supabase);
+  const managedSchemaPath = path.join(partialDirectory, '.managed-schema.sql');
+  await run(cli, ['db', 'dump', ...databaseConnectionArgs, '--file', managedSchemaPath, '--schema', 'auth,storage']);
+  await writeFile(path.join(partialDirectory, 'platform-hooks.sql'), extractPlatformHooks(await readFile(managedSchemaPath, 'utf8')), { mode: 0o600 });
+  await rm(managedSchemaPath);
   const databaseFiles = [];
-  for (const file of ['roles.sql', 'schema.sql', 'data.sql', 'application-data.sql']) {
+  for (const file of ['roles.sql', 'schema.sql', 'data.sql', 'application-data.sql', 'platform-hooks.sql']) {
     const fileStat = await stat(path.join(partialDirectory, file));
     databaseFiles.push({ file, bytes: fileStat.size, sha256: await sha256(path.join(partialDirectory, file)) });
   }
 
   const manifest = {
-    formatVersion: 1,
+    formatVersion: 2,
     createdAt: new Date().toISOString(),
     projectRef,
     database: databaseFiles,

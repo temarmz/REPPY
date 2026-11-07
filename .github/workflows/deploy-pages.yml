@@ -32,6 +32,16 @@ jobs:
         run: npm run db:test
       - name: Test two-account Auth workflow
         run: npm run test:integration
+      - name: Restore backup in a disposable isolated database
+        run: npm run ops:restore-drill
+      - name: Preserve restore drill report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: restore-drill-${{ github.run_id }}-${{ github.run_attempt }}
+          path: work/ops-restore-*/report.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop isolated Supabase
         if: always()
         run: npm run supabase:stop
@@ -57,6 +67,10 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Build and run end-to-end tests
         run: npm run test:e2e
+      - name: Check WebKit history and recovery operations
+        run: npm run test:ops:web
+      - name: Rehearse immutable static rollback
+        run: npm run ops:rollback-drill
       - name: Upload browser diagnostics
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
@@ -65,6 +79,9 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            work/ops-browser-artifacts/
+            work/ops-browser-report.json
+            work/ops-rollback/report.json
           if-no-files-found: ignore
           retention-days: 14
 
@@ -91,6 +108,15 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - name: Package immutable rollback artifact
+        run: |
+          node scripts/release-artifact.mjs create pages-dist release-manifest.json
+          tar -czf reppy-release.tar.gz pages-dist release-manifest.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: reppy-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reppy-release.tar.gz
+          retention-days: 35
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -124,6 +150,15 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - name: Package immutable rollback artifact
+        run: |
+          node scripts/release-artifact.mjs create pages-dist release-manifest.json
+          tar -czf reppy-release.tar.gz pages-dist release-manifest.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: reppy-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reppy-release.tar.gz
+          retention-days: 35
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
