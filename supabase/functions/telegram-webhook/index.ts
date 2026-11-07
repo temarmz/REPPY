@@ -1,3 +1,4 @@
+import { observeHandler } from '../_shared/observability.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 type TelegramMessage = {
@@ -31,7 +32,7 @@ async function sendMessage(token: string, chatId: number, text: string): Promise
   if (!response.ok) throw new Error(`Telegram sendMessage failed with ${response.status}`)
 }
 
-Deno.serve(async (request) => {
+Deno.serve(observeHandler('telegram-webhook', async (request) => {
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 })
 
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
@@ -84,4 +85,4 @@ Deno.serve(async (request) => {
   )
 
   return new Response('ok')
-})
+}))

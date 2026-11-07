@@ -1,3 +1,4 @@
+import { observeHandler } from '../_shared/observability.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.1.0'
 import { isAllowedTelegramRedirect } from './redirects.ts'
@@ -99,7 +100,7 @@ async function verifyTelegramIdToken(idToken: string, nonce: string, clientId: s
   }
 }
 
-Deno.serve(async (request) => {
+Deno.serve(observeHandler('telegram-auth', async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
   if (request.method !== 'POST') return failure('method_not_allowed', 'Method not allowed', 405)
 
@@ -123,8 +124,8 @@ Deno.serve(async (request) => {
         { retryAfterSeconds: Math.max(1, Number(rate.retryAfterSeconds) || 60) },
       )
     }
-  } catch (error) {
-    console.error('Telegram auth rate limiter failed', error)
+  } catch {
+    console.error('Telegram auth rate limiter failed')
     return failure('rate_limit_unavailable', 'Вход временно недоступен. Повторите через минуту.', 503)
   }
   if (action === 'config') return json({ clientId, redirectFlowConfigured: Boolean(clientSecret), nativeRedirectConfigured: true })
@@ -155,13 +156,13 @@ Deno.serve(async (request) => {
       })
       const tokenData = await tokenResponse.json() as { id_token?: string; error?: string; error_description?: string }
       if (!tokenResponse.ok || !tokenData.id_token) {
-        console.error('Telegram code exchange failed', tokenResponse.status, tokenData.error)
+        console.error('Telegram code exchange failed', tokenResponse.status)
         return failure('exchange_failed', 'Telegram не завершил вход. Попробуйте ещё раз.', 401)
       }
       await verifyTelegramIdToken(tokenData.id_token, nonce, clientId)
       return json({ idToken: tokenData.id_token })
-    } catch (error) {
-      console.error('Telegram code exchange failed', error)
+    } catch {
+      console.error('Telegram code exchange failed')
       return failure('exchange_failed', 'Telegram не завершил вход. Попробуйте ещё раз.', 401)
     }
   }
@@ -174,8 +175,8 @@ Deno.serve(async (request) => {
   if (!idToken || nonce.length < 32 || nonce.length > 128) return failure('invalid_request', 'Invalid Telegram request', 400)
 
   let telegram: TelegramIdentity
-  try { telegram = await verifyTelegramIdToken(idToken, nonce, clientId) } catch (error) {
-    console.error('Telegram OIDC verification failed', error)
+  try { telegram = await verifyTelegramIdToken(idToken, nonce, clientId) } catch {
+    console.error('Telegram OIDC verification failed')
     return failure('verification_failed', 'Не удалось подтвердить данные Telegram. Закройте окно входа и повторите.', 401)
   }
 
@@ -215,7 +216,7 @@ Deno.serve(async (request) => {
         return failure('invitation_invalid', 'Приглашение недействительно.', 409)
       }
       try { return json({ status: 'authenticated', ...(await sessionFor(linkedAccount.profile_id)) }) }
-      catch (error) { console.error('Student session issue failed', error); return failure('session_failed', 'Связь с тренером создана, но вход не выполнен.', 500) }
+      catch { console.error('Student session issue failed'); return failure('session_failed', 'Связь с тренером создана, но вход не выполнен.', 500) }
     }
     if (action !== 'login' && action !== 'register-trainer') {
       return failure(
@@ -225,7 +226,7 @@ Deno.serve(async (request) => {
       )
     }
     try { return json({ status: 'authenticated', ...(await sessionFor(linkedAccount.profile_id)) }) }
-    catch (error) { console.error('Telegram session issue failed', error); return failure('session_failed', 'Unable to open REPPY account', 500) }
+    catch { console.error('Telegram session issue failed'); return failure('session_failed', 'Unable to open REPPY account', 500) }
   }
 
   if (action === 'login') return json({ code: 'account_not_found', status: 'registration-required', telegram })
@@ -261,7 +262,7 @@ Deno.serve(async (request) => {
       return failure('telegram_already_linked', 'Этот Telegram уже связан с другим аккаунтом REPPY.', 409)
     }
     try { return json({ status: 'authenticated', ...(await sessionFor(created.user.id)) }) }
-    catch (error) { console.error('Trainer session issue failed', error); return failure('session_failed', 'Кабинет создан, но вход не выполнен.', 500) }
+    catch { console.error('Trainer session issue failed'); return failure('session_failed', 'Кабинет создан, но вход не выполнен.', 500) }
   }
 
   if (action === 'accept-student-invitation') {
@@ -287,8 +288,8 @@ Deno.serve(async (request) => {
       return failure('invitation_invalid', 'Приглашение недействительно.', 409)
     }
     try { return json({ status: 'authenticated', ...(await sessionFor(created.user.id)) }) }
-    catch (error) { console.error('Student session issue failed', error); return failure('session_failed', 'Аккаунт создан, но вход не выполнен.', 500) }
+    catch { console.error('Student session issue failed'); return failure('session_failed', 'Аккаунт создан, но вход не выполнен.', 500) }
   }
 
   return failure('unsupported_action', 'Unsupported action', 400)
-})
+}))

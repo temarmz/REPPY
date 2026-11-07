@@ -1,3 +1,4 @@
+import { observeHandler } from '../_shared/observability.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const appOrigin = 'https://temarmz.github.io'
@@ -123,7 +124,7 @@ async function sendMessage(botToken: string, notification: Notification): Promis
   if (!response.ok) throw new Error(`Telegram sendMessage failed with ${response.status}`)
 }
 
-Deno.serve(async (request) => {
+Deno.serve(observeHandler('telegram-notifications', async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
@@ -193,4 +194,4 @@ Deno.serve(async (request) => {
   }
 
   return jsonResponse({ ok: true, claimed: data?.length ?? 0, sent })
-})
+}))
