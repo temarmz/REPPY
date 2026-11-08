@@ -1,6 +1,6 @@
 begin;
 
-select plan(22);
+select plan(27);
 
 insert into auth.users (id)
 values
@@ -199,6 +199,12 @@ reset role;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
 
+select lives_ok($$select public.set_session_charge((select id from public.workout_sessions where assignment_id = '40000000-0000-4000-8000-000000000001'), false)$$, 'refund succeeds');
+select lives_ok($$select public.set_session_charge((select id from public.workout_sessions where assignment_id = '40000000-0000-4000-8000-000000000001'), true)$$, 'recharge succeeds');
+select lives_ok($$select public.set_session_charge((select id from public.workout_sessions where assignment_id = '40000000-0000-4000-8000-000000000001'), true)$$, 'retry charge is idempotent');
+select is((select count(*)::integer from public.subscription_entries where kind = 'session-charge' and relationship_id = '30000000-0000-4000-8000-000000000001'), 2, 'recharge appends a second charge');
+select is((select count(*)::integer from public.subscription_entries where kind = 'session-refund' and relationship_id = '30000000-0000-4000-8000-000000000001'), 1, 'recharge preserves the earlier refund');
+
 select lives_ok(
   $$select public.archive_workout_session(
     (select session.id
@@ -210,7 +216,7 @@ select lives_ok(
 
 select lives_ok(
   $$select public.archive_workout_session(
-    (select entry.session_id
+    (select distinct entry.session_id
      from public.subscription_entries entry
      where entry.kind = 'session-charge'
        and entry.relationship_id = '30000000-0000-4000-8000-000000000001')
@@ -225,8 +231,8 @@ select is(
     where kind = 'session-refund'
       and relationship_id = '30000000-0000-4000-8000-000000000001'
   ),
-  1,
-  'archiving creates exactly one refund'
+  2,
+  'archiving appends one refund after the earlier recharge'
 );
 
 select * from finish();

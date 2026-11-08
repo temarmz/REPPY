@@ -72,3 +72,21 @@ test('ученику возвращаются только последние п
 
   assert.deepEqual(recentSubscriptionPayments(entries, 'artem', 1).map((entry) => entry.occurredAt), ['2026-09-01']);
 });
+
+
+test('повторные списания сохраняют все возвраты и не дублируют текущее состояние', () => {
+  const session = { id: 'history-session', studentId: 'artem' };
+  let entries = [];
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    entries = chargeSubscriptionForSession(entries, session, 'Тест', `2026-11-08T10:0${cycle}:00Z`);
+    assert.equal(subscriptionBalance(entries, 'artem'), -1);
+    const charged = entries;
+    assert.equal(chargeSubscriptionForSession(entries, session, 'Тест', '2026-11-08'), charged);
+    entries = refundSubscriptionForSession(entries, session, 'Тест', `2026-11-08T11:0${cycle}:00Z`);
+    assert.equal(subscriptionBalance(entries, 'artem'), 0);
+    assert.equal(refundSubscriptionForSession(entries, session, 'Тест'), entries);
+  }
+  assert.equal(entries.length, 6);
+  assert.equal(new Set(entries.map(entry => entry.id)).size, 6);
+  assert.equal(entries.filter(entry => entry.kind === 'session-refund').length, 3);
+});

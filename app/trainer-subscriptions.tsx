@@ -105,16 +105,22 @@ export function SubscriptionPaymentForm({
   onDelete?: () => void;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const source = initial ?? defaults;
+  const [baseline, setBaseline] = useState(initial);
+  const source = baseline ?? defaults;
+  const paymentChanged = Boolean(initial && baseline && (initial.revision !== baseline.revision || initial.updatedAt !== baseline.updatedAt));
   const draftKey = `subscription:${student.id}:${initial?.id ?? 'new'}`;
-  const [restoredDraft] = useState(() => loadUiDraft(draftKey));
+  const paymentBaseline = baseline?.revision ?? baseline?.updatedAt ?? baseline?.createdAt;
+  const [restoredDraft] = useState(() => {
+    const draft = loadUiDraft(draftKey);
+    return initial && draft?.paymentBaseline !== paymentBaseline ? null : draft;
+  });
   const initialValues = useMemo(() => ({
     lessons: String(source?.lessonDelta ?? 8),
     amountRub: String(source?.amountRub ?? 11400),
     paymentMethod: source?.paymentMethod ?? 'cash' as PaymentMethod,
-    occurredAt: initial?.occurredAt.slice(0, 10) ?? dateKey(),
-    comment: initial?.comment ?? '',
-  }), [initial?.comment, initial?.occurredAt, source?.lessonDelta, source?.amountRub, source?.paymentMethod]);
+    occurredAt: baseline?.occurredAt.slice(0, 10) ?? dateKey(),
+    comment: baseline?.comment ?? '',
+  }), [baseline?.comment, baseline?.occurredAt, source?.lessonDelta, source?.amountRub, source?.paymentMethod]);
   const [lessons, setLessons] = useState(typeof restoredDraft?.lessons === 'string' ? restoredDraft.lessons : initialValues.lessons);
   const [amountRub, setAmountRub] = useState(typeof restoredDraft?.amountRub === 'string' ? restoredDraft.amountRub : initialValues.amountRub);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(restoredDraft?.paymentMethod === 'cash' || restoredDraft?.paymentMethod === 'transfer' ? restoredDraft.paymentMethod : initialValues.paymentMethod);
@@ -125,17 +131,24 @@ export function SubscriptionPaymentForm({
   useEffect(() => {
     const current = JSON.stringify({ lessons, amountRub, paymentMethod, occurredAt, comment });
     if (current === JSON.stringify(initialValues)) clearUiDraft(draftKey);
-    else saveUiDraft(draftKey, { lessons, amountRub, paymentMethod, occurredAt, comment });
-  }, [amountRub, comment, draftKey, initialValues, lessons, occurredAt, paymentMethod]);
+    else saveUiDraft(draftKey, { lessons, amountRub, paymentMethod, occurredAt, comment, paymentBaseline });
+  }, [amountRub, comment, draftKey, initialValues, lessons, occurredAt, paymentMethod, paymentBaseline]);
 
+  const loadLatest = () => {
+    if (!initial) return;
+    setBaseline(initial); setLessons(String(initial.lessonDelta)); setAmountRub(String(initial.amountRub ?? 0));
+    setPaymentMethod(initial.paymentMethod ?? 'cash'); setOccurredAt(initial.occurredAt.slice(0, 10));
+    setComment(initial.comment ?? ''); setError(''); clearUiDraft(draftKey);
+  };
   const save = () => {
+    if (paymentChanged) return setError('Платёж изменён в другом клиенте. Загрузи актуальное пополнение перед сохранением.');
     const parsedLessons = Number(lessons);
     const parsedAmount = Number(amountRub);
     if (!Number.isInteger(parsedLessons) || parsedLessons <= 0) return setError('Укажи целое количество занятий больше нуля.');
     if (!Number.isFinite(parsedAmount) || parsedAmount < 0) return setError('Укажи корректную стоимость.');
     if (!occurredAt) return setError('Укажи дату оплаты.');
     clearUiDraft(draftKey);
-    onSave({ lessons: parsedLessons, amountRub: parsedAmount, paymentMethod, occurredAt, comment });
+    onSave({ expectedRevision: baseline?.revision, lessons: parsedLessons, amountRub: parsedAmount, paymentMethod, occurredAt, comment });
   };
   return (
     <Page className="content-page narrow-page subscription-payment-page">
@@ -154,6 +167,7 @@ export function SubscriptionPaymentForm({
         </Fieldset>
         <DatePickerField label="Дата оплаты" value={occurredAt} onChange={(value) => { setOccurredAt(value); setError(''); }} />
         <Field label={<>Комментарий <Small>необязательно</Small></>} ><Textarea maxLength={240} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: второе пополнение за месяц" /><Italic>{comment.length}/240</Italic></Field>
+        {paymentChanged && <><FormError>Платёж изменён в другом клиенте. Локальные изменения ещё не сохранены.</FormError><ActionButton variant="secondary" icon="history" onClick={loadLatest}>Загрузить актуальное пополнение</ActionButton></>}
         {error && <FormError>{error}</FormError>}
         <ActionButton icon="check" onClick={save}>{initial ? 'Сохранить изменения' : 'Добавить пополнение'}</ActionButton>
         {initial && onDelete && <ActionButton variant="danger" icon="trash" onClick={() => setDeleteOpen(true)}>Удалить это пополнение</ActionButton>}

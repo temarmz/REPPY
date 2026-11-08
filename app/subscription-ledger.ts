@@ -6,6 +6,7 @@ import {
 } from './reppy-data.ts';
 
 export type PaymentInput = {
+  expectedRevision?: number;
   lessons: number;
   amountRub: number;
   paymentMethod: PaymentMethod;
@@ -90,14 +91,10 @@ export function chargeSubscriptionForSession(
   occurredAt: string,
   trainerId = TRAINER_ID,
 ) {
-  const alreadyRecorded = entries.some((entry) => (
-    entry.kind === 'session-charge'
-    && entry.sessionId === session.id
-    && entry.trainerId === trainerId
-  ));
-  if (alreadyRecorded) return entries;
+  if (isSessionCharged(entries, session.id, trainerId)) return entries;
+  const previousCharges = entries.filter(entry => entry.sessionId === session.id && entry.trainerId === trainerId && entry.kind === 'session-charge').length;
   return [...entries, {
-    id: `subscription-charge-${session.id}`,
+    id: `subscription-charge-${session.id}${previousCharges ? `-${previousCharges + 1}` : ''}`,
     trainerId,
     studentId: session.studentId,
     kind: 'session-charge' as const,
@@ -116,19 +113,10 @@ export function refundSubscriptionForSession(
   occurredAt = new Date().toISOString(),
   trainerId = TRAINER_ID,
 ) {
-  const charge = entries.find((entry) => (
-    entry.kind === 'session-charge'
-    && entry.sessionId === session.id
-    && entry.trainerId === trainerId
-  ));
-  const alreadyRefunded = entries.some((entry) => (
-    entry.kind === 'session-refund'
-    && entry.sessionId === session.id
-    && entry.trainerId === trainerId
-  ));
-  if (!charge || alreadyRefunded) return entries;
+  if (!isSessionCharged(entries, session.id, trainerId)) return entries;
+  const previousRefunds = entries.filter(entry => entry.sessionId === session.id && entry.trainerId === trainerId && entry.kind === 'session-refund').length;
   return [...entries, {
-    id: `subscription-refund-${session.id}`,
+    id: `subscription-refund-${session.id}${previousRefunds ? `-${previousRefunds + 1}` : ''}`,
     trainerId,
     studentId: session.studentId,
     kind: 'session-refund' as const,
@@ -141,6 +129,6 @@ export function refundSubscriptionForSession(
 }
 
 export function isSessionCharged(entries: SubscriptionEntry[], sessionId: string, trainerId = TRAINER_ID) {
-  return entries.some((entry) => entry.kind === 'session-charge' && entry.sessionId === sessionId && entry.trainerId === trainerId)
-    && !entries.some((entry) => entry.kind === 'session-refund' && entry.sessionId === sessionId && entry.trainerId === trainerId);
+  return entries.reduce((total, entry) => entry.sessionId === sessionId && entry.trainerId === trainerId
+    ? total + entry.lessonDelta : total, 0) < 0;
 }

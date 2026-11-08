@@ -456,6 +456,7 @@ export function createSupabaseRepository(
         occurredAt: entry.occurred_at,
         createdAt: entry.created_at,
         updatedAt: entry.updated_at ?? undefined,
+        revision: entry.revision,
         amountRub: numberOrUndefined(entry.amount_rub),
         paymentMethod: entry.payment_method ?? undefined,
         comment: entry.comment ?? undefined,
@@ -563,7 +564,7 @@ export function createSupabaseRepository(
   }
 
   async function updateRevisionedRow(table: 'assignments' | 'subscription_entries', localId: string, remoteId: string,
-    values: Record<string, unknown>, revisions: Map<string, number>, entity: string) {
+    values: Record<string, unknown>, revisions: Map<string, number>, entity: string, baselineRevision?: number) {
     const key = `${table}:${localId}`;
     const uncertain = uncertainUpdates.get(key);
     if (uncertain) {
@@ -583,7 +584,7 @@ export function createSupabaseRepository(
       }
       if (row.revision !== uncertain.revision) throw revisionConflict(entity);
     }
-    const expectedRevision = revisions.get(localId);
+    const expectedRevision = baselineRevision ?? revisions.get(localId);
     try {
       let query = client.from(table).update(values).eq('id', remoteId);
       if (expectedRevision !== undefined) query = query.eq('revision', expectedRevision);
@@ -948,7 +949,7 @@ export function createSupabaseRepository(
           amount_rub: values.amount_rub,
           payment_method: values.payment_method,
           comment: values.comment,
-        }, subscriptionRevision, 'Платёж');
+        }, subscriptionRevision, 'Платёж', command.expectedRevision);
       }
     }
 

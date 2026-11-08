@@ -96,6 +96,7 @@ export type PaymentMethod = 'cash' | 'transfer';
 
 export type SubscriptionEntry = {
   id: string;
+  revision?: number;
   relationshipId?: string;
   trainerName?: string;
   trainerId: string;

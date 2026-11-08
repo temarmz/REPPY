@@ -159,7 +159,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           student={student}
           initial={payment}
           onSave={(input) => {
-            dispatch({ type: 'subscription.payment.update', entry: updateSubscriptionPayment(payment, input) });
+            dispatch({ type: 'subscription.payment.update', entry: updateSubscriptionPayment(payment, input), expectedRevision: input.expectedRevision });
             go(`/trainer/clients/${student.id}/subscription`, true);
           }}
           onDelete={() => {

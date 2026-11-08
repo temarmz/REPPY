@@ -6,6 +6,22 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testChargeHistoryUsesNetAmountAfterMultipleRefunds() throws {
+        var data = try TestFixtures.load()
+        let assignment = try XCTUnwrap(data.assignments.first)
+        var session = try XCTUnwrap(data.sessions.first); session.assignment_id = assignment.id
+        data.sessions = [session]
+        var entry = try XCTUnwrap(data.subscriptions.first)
+        entry.relationship_id = assignment.relationship_id; entry.session_id = session.id
+        data.subscriptions = []
+        for delta in [-1, 1, -1, 1] {
+            entry.id = UUID().uuidString; entry.lesson_delta = delta
+            entry.kind = delta < 0 ? "session-charge" : "session-refund"
+            data.subscriptions.append(entry)
+            XCTAssertEqual(data.isSessionCharged(session.id), delta < 0)
+        }
+    }
+
     func testAssignmentStatusUsesSessionStateAndScheduledDate() throws {
         let data = try TestFixtures.load()
         let assignment = try XCTUnwrap(data.assignments.first)

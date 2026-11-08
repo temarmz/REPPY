@@ -38,7 +38,7 @@ export type ReppyCommand =
   | { type: 'session.feedback'; sessionId: string; mood: WorkoutSession['mood']; comment: string }
   | { type: 'session.archive'; session: WorkoutSession; workoutName: string }
   | { type: 'subscription.payment.create'; entry: SubscriptionEntry }
-  | { type: 'subscription.payment.update'; entry: SubscriptionEntry }
+  | { type: 'subscription.payment.update'; entry: SubscriptionEntry; expectedRevision?: number }
   | { type: 'subscription.payment.delete'; entryId: string }
   | { type: 'subscription.clear'; studentId: string };
 
@@ -137,10 +137,10 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
     case 'session.charge': {
       const session = state.sessions.find((item) => item.id === command.sessionId);
       if (!session?.completedAt) return state;
-      const entries = command.charged ? state.subscriptionEntries.filter((entry) => entry.sessionId !== session.id || entry.kind !== 'session-refund') : refundSubscriptionForSession(state.subscriptionEntries, session, session.workoutSnapshot.name);
+      const entries = command.charged ? state.subscriptionEntries : refundSubscriptionForSession(state.subscriptionEntries, session, session.workoutSnapshot.name);
       return { ...state,
         sessions: state.sessions.map((item) => item.id === session.id ? { ...item, subscriptionChargeStatus: command.charged ? 'charged' as const : 'waived' as const } : item),
-        subscriptionEntries: command.charged ? chargeSubscriptionForSession(entries, session, session.workoutSnapshot.name, session.completedAt) : entries,
+        subscriptionEntries: command.charged ? chargeSubscriptionForSession(entries, session, session.workoutSnapshot.name, new Date().toISOString()) : entries,
       };
     }
     case 'session.feedback':

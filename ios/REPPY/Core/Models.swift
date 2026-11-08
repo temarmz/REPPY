@@ -231,7 +231,7 @@ public struct AppData: Codable, ReppySendable {
     public func isSessionCharged(_ sessionID: String) -> Bool {
         guard let session = sessions.first(where: { $0.id == sessionID }), let assignment = assignments.first(where: { $0.id == session.assignment_id }) else { return false }
         let entries = subscriptions.filter { $0.relationship_id == assignment.relationship_id && $0.session_id == sessionID }
-        return entries.contains { $0.kind == "session-charge" } && !entries.contains { $0.kind == "session-refund" }
+        return entries.reduce(0) { $0 + $1.lesson_delta } < 0
     }
     public func session(for assignmentID: String) -> WorkoutSession? { sessions.first { $0.assignment_id == assignmentID } }
     public func sessionResults(_ sessionID: String) -> [SetResult] { results.filter { $0.session_id == sessionID } }
