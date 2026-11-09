@@ -9,7 +9,7 @@ final class WorkoutExecutionTests: XCTestCase {
     func testUnfilledWebPlanCanSaveProgressButCannotCompleteAnEmptySet() throws {
         var workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot
         workout.exercises[0].plannedSets.append(SetPlan(targetReps: 0))
-        XCTAssertNotNil(ReppyValidation.workout(workout))
+        XCTAssertNil(ReppyValidation.workout(workout))
         XCTAssertNil(ReppyValidation.workout(workout, allowUnfilledSets: true))
         var results = WorkoutExecution.initialResults(sessionID: "session", workout: workout)
         XCTAssertTrue(WorkoutExecution.validate(sessionID: "session", workout: workout, results: results))
@@ -49,10 +49,10 @@ final class WorkoutExecutionTests: XCTestCase {
             XCTAssertEqual(plan.exercises.map { $0.plannedSets }, repeatPlan.exercises.map { $0.plannedSets })
         }
     }
-    func testNewExercisesStartWithNoUnrequestedSets() throws {
+    func testNewExercisesStartWithOneZeroSet() throws {
         let definition = try XCTUnwrap(TestFixtures.load().definitions.first)
         let exercise = WorkoutExercise(definition: definition)
-        XCTAssertTrue(exercise.plannedSets.isEmpty)
+        XCTAssertEqual(exercise.plannedSets, [SetPlan(targetReps: 0, targetWeight: 0)])
     }
     func testResultValidationRejectsDuplicatesWrongSessionAndMissingSets() throws {
         let workout = try XCTUnwrap(TestFixtures.load().assignments.first).workout_snapshot

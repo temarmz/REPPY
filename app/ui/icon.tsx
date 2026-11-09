@@ -1,5 +1,6 @@
 import { Inline } from './elements';
 export type IconName =
+  | 'grip'
   | 'home'
   | 'users'
   | 'user'
@@ -31,6 +32,7 @@ export type IconName =
   | 'success';
 
 const iconFiles: Record<IconName, string> = {
+  grip: 'icon-grip.svg',
   home: 'icon-home-reppy.svg',
   users: 'icon-users-list.svg',
   user: 'icon-user.svg',

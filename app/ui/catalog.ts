@@ -1,3 +1,4 @@
+import ExerciseOrderEditor from './exercise-order-editor';
 import ProgressChart from './progress-chart';
 import * as elements from './elements';
 import * as controls from './controls';
@@ -26,5 +27,5 @@ export const UI_COMPONENTS = {
   AppShell, AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, MonthDatePicker, WorkoutScheduleFields,
   DatePickerField, ReadOnlyExerciseList, ActiveExerciseCard, PlanExerciseCard,
   ExerciseInstructionModal,
-  NoteDayCard,
+  NoteDayCard, ExerciseOrderEditor,
 };

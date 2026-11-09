@@ -166,7 +166,7 @@ export function ExercisePicker({
               <Box className="picker-quantity" role="group" aria-label={exercise.name}>
                 <Button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></Button>
                 <Inline aria-live="polite">{count}</Inline>
-                <Button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
+                <Button className={count > 0 ? 'selected' : ''} type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
               </Box>
             </Box>
           </Box>;

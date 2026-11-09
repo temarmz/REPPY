@@ -36,9 +36,11 @@ struct SessionResultScreen: View {
                     }
                 }
                 if session.mood != nil || !(session.comment ?? "").isEmpty { ReppyFeedbackSummary(mood: session.mood, comment: session.comment) }
-                if !store.isTrainer {
+                Group {
                     ReppyButton(title: session.mood == nil && (session.comment ?? "").isEmpty ? "Как прошла тренировка?" : "Изменить отзыв", icon: "square.and.pencil", compact: true) { feedbackEditing = true }
-                } else if let assignment {
+                }
+                if store.isTrainer, let assignment {
+                        ReppyLink(title: "Исправить результат", icon: "square.and.pencil") { ActiveWorkoutScreen(sessionID: sessionID, editingHistory: true) }
                         ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) }
                 }
                 let progressKeys = Set(assignment.map { store.progressGroups(relationshipIDs: [$0.relationship_id]).map(\.id) } ?? [])
@@ -59,7 +61,7 @@ struct SessionResultScreen: View {
                 NavigationStack {
                     ReppyPage(back: true, title: "Отзыв") {
                         ReppyPicker(title: "Самочувствие", selection: $mood) { ForEach(Mood.allCases, id: \.self) { Text($0.title).tag($0) } }
-                        ReppyField(title: "Комментарий тренеру", text: $comment, multiline: true)
+                        ReppyField(title: "Комментарий", text: $comment, multiline: true)
 
                     }.reppyFormActions(saveLabel: "Сохранить обратную связь", busy: store.busy, hasChanges: mood != (store.data.sessions.first { $0.id == sessionID }?.mood ?? .good) || comment != (store.data.sessions.first { $0.id == sessionID }?.comment ?? ""), save: {Task {
                             guard let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
@@ -82,7 +84,7 @@ struct SessionResultScreen: View {
             } message: { Text("Если занятие списано, оно вернётся в абонемент ученика.") }
     }
     private func saveDraft() {
-        guard initialized, !store.isTrainer, feedbackEditing else { return }
+        guard initialized, feedbackEditing else { return }
         do { try DraftStorage.save(FeedbackDraft(mood: mood, comment: comment), account: store.accountKey, key: "feedback:\(sessionID)") } catch { store.present(error) }
     }
 }

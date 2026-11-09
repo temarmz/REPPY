@@ -100,6 +100,7 @@ struct DesignKitScreen: View {
             }
             ReppyStatus(message: "Ошибка сохранения. Повтори попытку.", error: true, actionTitle: "Повторить") {}
             ReppyToast(message: "Не удалось сохранить заметку", actionTitle: "Повторить") {}
+            ReppyWorkoutSuccessArt()
             ReppyEmpty(title: "Пустое состояние", message: "Описание следующего действия")
             NoteDayCard(day: ReppyDate.day(), text: $text)
             NoteDayCard(day: ReppyDate.day(), text: .constant(""), loaded: false)

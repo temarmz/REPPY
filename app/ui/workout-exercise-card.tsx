@@ -153,6 +153,7 @@ type SharedExerciseCardProps = {
   recentlyMoved: boolean;
   onShowInstruction: () => void;
   onShowActions: () => void;
+  onReorder?: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onNoteChange: (note: string) => void;
@@ -169,6 +170,7 @@ export function PlanExerciseCard({
   recentlyMoved,
   onShowInstruction,
   onShowActions,
+  onReorder,
   onMoveUp,
   onMoveDown,
   onNoteChange,
@@ -191,7 +193,7 @@ export function PlanExerciseCard({
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
-      orderControls={<ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
+      orderControls={onReorder ? <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button> : <ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
       {plans.length > 0 && <Section className="active-card-sets plan-card-sets">
@@ -228,6 +230,7 @@ export function ActiveExerciseCard({
   onResultChange,
   onShowInstruction,
   onShowActions,
+  onReorder,
   onAddSet,
   canRemoveSet,
   onRemoveSet,
@@ -250,7 +253,7 @@ export function ActiveExerciseCard({
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
-      orderControls={<ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
+      orderControls={onReorder ? <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button> : <ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
       {results.length > 0 && <Section className="active-card-sets">

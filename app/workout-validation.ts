@@ -6,9 +6,9 @@ export function validateAssignedWorkout(workout: Pick<Workout, 'name' | 'exercis
   if (!workout.exercises.length) throw new Error('Добавь хотя бы одно упражнение.');
   for (const exercise of workout.exercises) {
     for (const set of exercise.plannedSets) {
-      if (!Number.isInteger(set.targetReps) || set.targetReps <= 0
+      if (!Number.isInteger(set.targetReps) || (set.targetReps < 0 || (set.targetReps === 0 && set.targetWeight !== 0))
         || !Number.isFinite(set.targetWeight) || set.targetWeight < 0) {
-        throw new Error('Проверь подходы: количество должно быть больше нуля, вес — неотрицательным.');
+        throw new Error('Проверь подходы: количество и вес должны быть неотрицательными; пустой подход — 0 × 0.');
       }
     }
   }

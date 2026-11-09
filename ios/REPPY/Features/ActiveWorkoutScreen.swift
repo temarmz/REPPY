@@ -7,7 +7,9 @@ struct SessionDraft: Codable {
 }
 struct ActiveWorkoutScreen: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
     var sessionID: String
+    var editingHistory = false
     var onCompleted: (() -> Void)? = nil
     @State private var draft: SessionDraft?
     @State private var baseResults: [SetResult] = []
@@ -21,17 +23,20 @@ struct ActiveWorkoutScreen: View {
     @State private var structure = false
     @State private var picker = false
     @State private var charge = true
+    @State private var feedbackMood = ""
+    @State private var feedbackComment = ""
     @State private var completed = false
     @State private var didFinish = false
     @State private var instruction: WorkoutExercise?
     @State private var confirmReload = false
     @State private var draftAccount = ""
-    private var draftKey: String { "active:\(sessionID)" }
+    private var draftKey: String { "\(editingHistory ? "correction" : "active"):\(sessionID)" }
     var body: some View {
         ReppyPage(back: true, onConflictReload: { Task { await loadServerVersion() } }) {
             if let value = draft {
                 if let assignment = store.data.assignments.first(where: { $0.id == value.session.assignment_id }) { ReppyCaption(text: "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)") }
-                ReppyTitle(text: value.workout.name)
+                if editingHistory { ReppyField(title: "Название тренировки", text: Binding(get: { draft?.workout.name ?? "" }, set: { draft?.workout.name = $0 })) }
+                else { ReppyTitle(text: value.workout.name) }
                 if store.conflict {
                     ReppyButton(title: "Загрузить актуальную тренировку", icon: "arrow.clockwise", disabled: saving || store.busy) { confirmReload = true }
                 }
@@ -53,7 +58,9 @@ struct ActiveWorkoutScreen: View {
                             if let position = draft?.workout.exercises.firstIndex(where: { $0.id == exercise.id }) { draft?.workout.exercises[position].coachNote = note }
                         })
                 }
-                ReppyButton(title: "Завершить тренировку", icon: "checkmark", kind: .primary, disabled: saving || store.busy) { finish = true }
+                ReppyButton(title: editingHistory ? "Сохранить исправления" : "Завершить тренировку", icon: "checkmark", kind: .primary, disabled: saving || store.busy) {
+                    if editingHistory { Task { await flush(); if revision == savedRevision { dismiss() } } } else { finish = true }
+                }
             } else { ReppyEmpty(title: "Не удалось открыть тренировку", message: "Вернись к плану и обнови данные.") }
         }.toolbar {
             ToolbarItem(placement: .principal) { ReppyWorkoutSaveState(status: status, saving: saving) }
@@ -84,11 +91,17 @@ struct ActiveWorkoutScreen: View {
             .sheet(isPresented: $finish) {
                 NavigationStack {
                     ReppyPage(back: true) {
+                        ReppyWorkoutSuccessArt()
                         ReppyTitle(text: "Завершить тренировку?")
                         if let draft {
                             ReppyText(text: "Выполнено \(draft.results.filter(\.completed).count) из \(draft.results.count) подходов. Остальные останутся невыполненными.", tone: .secondary)
                         }
                         if store.isTrainer { ReppyToggle(title: "Списать одно занятие", value: $charge) }
+                        ReppyPicker(title: "Как прошла тренировка?", selection: $feedbackMood) {
+                            Text("Без оценки").tag("")
+                            ForEach(Mood.allCases, id: \.self) { Text($0.title).tag($0.rawValue) }
+                        }
+                        ReppyField(title: "Комментарий", text: $feedbackComment, multiline: true)
                         ReppyButton(title: "Подтвердить завершение", kind: .primary, disabled: saving || store.busy) { Task { await complete(); if completed { finish = false } } }
                         ReppyButton(title: "Продолжить тренировку", disabled: saving || store.busy) { finish = false }
                     }
@@ -119,8 +132,7 @@ struct ActiveWorkoutScreen: View {
     private var relationshipID: String { store.data.assignments.first { $0.id == draft?.session.assignment_id }?.relationship_id ?? "" }
     private func addSet(to id: String) {
         guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }) else { return }
-        let last = draft!.workout.exercises[index].plannedSets.last ?? SetPlan()
-        draft?.workout.exercises[index].plannedSets.append(SetPlan(targetReps: last.targetReps, targetWeight: last.targetWeight))
+        draft?.workout.exercises[index].plannedSets.append(SetPlan())
     }
     private func removeLastSet(from id: String) {
         guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
@@ -142,7 +154,7 @@ struct ActiveWorkoutScreen: View {
         draft = SessionDraft(session: session, workout: session.workout_snapshot, results: results)
         baseResults = results
         status = "Все изменения сохранены"
-        if session.completed_at != nil { completed = true }
+        if session.completed_at != nil && !editingHistory { completed = true }
     }
     private func loadServerVersion() async {
         guard !saving, !store.busy else { return }
@@ -156,7 +168,7 @@ struct ActiveWorkoutScreen: View {
         baseResults = results
         revision = 0; savedRevision = 0; status = "Все изменения сохранены"
         do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
-        if session.completed_at != nil { completed = true }
+        if session.completed_at != nil && !editingHistory { completed = true }
     }
     private func resultBinding(_ fallback: SetResult) -> Binding<SetResult> {
         Binding(get: { draft?.results.first { $0.id == fallback.id } ?? fallback }, set: { result in
@@ -166,7 +178,7 @@ struct ActiveWorkoutScreen: View {
     private func initialize() {
         guard draft == nil, let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
         draftAccount = store.accountKey
-        if session.completed_at != nil { completed = true; return }
+        if session.completed_at != nil && !editingHistory { completed = true; return }
         baseResults = store.data.sessionResults(sessionID)
         if let restored: SessionDraft = store.restoreDraft(key: draftKey) {
             draft = restored; revision = 1; savedRevision = 0
@@ -181,7 +193,7 @@ struct ActiveWorkoutScreen: View {
         if next.results != value.results { draft?.results = next.results }
     }
     private func changed() {
-        guard let draft, draft.session.completed_at == nil, !completed else { return }
+        guard let draft, (draft.session.completed_at == nil || editingHistory), !completed else { return }
         if let saved = store.data.sessions.first(where: { $0.id == sessionID }), draft.workout == saved.workout_snapshot,
            draft.results.sorted(by: { $0.id < $1.id }) == store.data.sessionResults(sessionID).sorted(by: { $0.id < $1.id }) {
             savedRevision = revision; status = "Все изменения сохранены"; return
@@ -189,6 +201,7 @@ struct ActiveWorkoutScreen: View {
         revision += 1; status = "Есть несохранённые изменения"
         do { try DraftStorage.save(draft, account: store.accountKey, key: draftKey) } catch { store.present(error) }
         debounce?.cancel()
+        guard !editingHistory else { return }
         debounce = Task { try? await Task.sleep(for: .milliseconds(700)); guard !Task.isCancelled else { return }; await flush() }
     }
     private func flush() async {
@@ -225,7 +238,9 @@ struct ActiveWorkoutScreen: View {
     private func complete() async {
         await flush()
         guard savedRevision == revision, let session = store.data.sessions.first(where: { $0.id == sessionID }), !saving else { return }
-        if await store.run({ try await store.completeSession(session, charge: charge) }) {
+        if await store.run({ try await store.completeSession(session, charge: charge)
+            if let mood = Mood(rawValue: feedbackMood) { try await store.saveFeedback(session, mood: mood, comment: feedbackComment) }
+            else if !feedbackComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { try await store.saveFeedback(session, mood: nil, comment: feedbackComment) } }) {
             do { try DraftStorage.remove(account: store.accountKey, key: draftKey) } catch { store.present(error) }
             didFinish = true
             if let onCompleted { onCompleted() } else { completed = true }

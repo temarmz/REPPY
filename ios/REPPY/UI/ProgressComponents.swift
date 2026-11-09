@@ -5,13 +5,27 @@ struct ExerciseProgressSummary: View {
     var relationshipID: String? = nil
     var relationshipIDs: Set<String>? = nil
     var hideEmpty = false
+    @State private var search = ""
+    @State private var muscle = "Все мышцы"
     var body: some View {
         let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
         let groups = store.progressGroups(relationshipIDs: scope)
         if !hideEmpty || !groups.isEmpty {
             ReppyHeading(text: "Прогресс по упражнениям")
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
-            ForEach(groups) { group in
+            if !groups.isEmpty {
+                ReppySearch(text: $search)
+                ReppyPicker(title: "Мышечная группа", selection: $muscle) {
+                    Text("Все мышцы").tag("Все мышцы")
+                    ForEach(Array(Set(groups.flatMap { $0.exercise.muscleGroups ?? [$0.exercise.primaryMuscle ?? "Другое"] })).sorted(), id: \.self) { Text($0).tag($0) }
+                }
+            }
+            let visible = groups.filter { group in
+                (muscle == "Все мышцы" || (group.exercise.muscleGroups ?? [group.exercise.primaryMuscle ?? "Другое"]).contains(muscle)) &&
+                (search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || "\(group.exercise.name) \(group.exercise.equipment ?? "")".localizedCaseInsensitiveContains(search.trimmingCharacters(in: .whitespacesAndNewlines)))
+            }
+            if !groups.isEmpty && visible.isEmpty { ReppyEmpty(title: "Ничего не найдено", message: "Измени поиск или мышечную группу.") }
+            ForEach(visible) { group in
                 ReppyProgressComparisonLink(group: group, relationshipIDs: scope)
             }
         }

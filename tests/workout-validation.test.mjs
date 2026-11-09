@@ -9,9 +9,19 @@ test('invalid submission creates nothing; correcting and retrying creates exactl
   assignment.id = crypto.randomUUID();
   assignment.workoutSnapshot.exercises[0].plannedSets[0].targetReps = 0;
   const command = { type: 'assignment.create', assignment };
-  assert.throws(() => applyReppyCommand(state, command), /больше нуля/);
+  assert.throws(() => applyReppyCommand(state, command), /неотрицательными/);
   assert.equal(state.assignments.some(a => a.id === assignment.id), false);
   assignment.workoutSnapshot.exercises[0].plannedSets[0] = { targetReps: 8, targetWeight: 0 };
   const saved = applyReppyCommand(state, command);
   assert.equal(applyReppyCommand(saved, command).assignments.filter(a => a.id === assignment.id).length, 1);
+});
+
+
+test('a zero default set can be published and started without fabricating repetitions', () => {
+  const state = createInitialState();
+  const assignment = structuredClone(state.assignments[0]);
+  assignment.id = crypto.randomUUID();
+  assignment.workoutSnapshot.exercises[0].plannedSets = [{ targetReps: 0, targetWeight: 0 }];
+  const saved = applyReppyCommand(state, { type: 'assignment.create', assignment });
+  assert.deepEqual(saved.assignments.find(a => a.id === assignment.id).workoutSnapshot.exercises[0].plannedSets, [{ targetReps: 0, targetWeight: 0 }]);
 });

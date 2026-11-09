@@ -101,7 +101,7 @@ extension AppStore {
         return session.id
     }
     func saveProgress(_ session: WorkoutSession, workout: Workout, results: [SetResult], baseResults: [SetResult]? = nil) async throws {
-        guard session.completed_at == nil else { throw APIError.message("Завершённая тренировка доступна только для просмотра.") }
+        guard session.completed_at == nil || isTrainer else { throw APIError.message("Завершённая тренировка доступна только для просмотра.") }
         if let message = ReppyValidation.workout(workout, allowUnfilledSets: true) { throw APIError.message(message) }
         guard WorkoutExecution.validate(sessionID: session.id, workout: workout, results: results) else { throw APIError.message("Проверь фактические значения подходов.") }
         var saved = session; saved.workout_snapshot = workout
@@ -172,9 +172,13 @@ extension AppStore {
             if let index = data.sessions.firstIndex(where: { $0.id == session.id }) { data.sessions[index].charge_status = charged ? "charged" : "waived" }
         }
     }
-    func saveFeedback(_ session: WorkoutSession, mood: Mood, comment: String) async throws {
-        if !isDemo, let api { try await api.call("save_session_feedback", ["p_session_id": session.id, "p_mood": mood.rawValue, "p_comment": comment.trimmingCharacters(in: .whitespacesAndNewlines)]) }
-        if let index = data.sessions.firstIndex(where: { $0.id == session.id }) { data.sessions[index].mood = mood; data.sessions[index].comment = comment }
+    func saveFeedback(_ session: WorkoutSession, mood: Mood?, comment: String) async throws {
+        if !isDemo, let api {
+            let saved: WorkoutSession = try await api.rpc("save_session_feedback", ["p_session_id": session.id, "p_mood": mood?.rawValue as Any? ?? NSNull(), "p_comment": comment.trimmingCharacters(in: .whitespacesAndNewlines)])
+            data.sessions.removeAll { $0.id == saved.id }; data.sessions.append(saved)
+        } else if let index = data.sessions.firstIndex(where: { $0.id == session.id }) {
+            data.sessions[index].mood = mood; data.sessions[index].comment = comment; data.sessions[index].revision += 1
+        }
     }
     func saveStudent(_ student: Student) async throws {
         if let error = ReppyValidation.student(student) { throw APIError.message(error) }

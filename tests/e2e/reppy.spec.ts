@@ -705,7 +705,7 @@ test('новая тренировка сохраняется только в н�
   await expect(exercisePicker.getByText('В тренировке: 2')).toBeVisible();
   await exercisePicker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(2);
-  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(0);
+  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(2);
   await expect(page.getByRole('button', { name: 'Назначить тренировку' })).toBeEnabled();
   await page.getByRole('button', { name: 'Назначить тренировку' }).click();
 
@@ -714,7 +714,7 @@ test('новая тренировка сохраняется только в н�
   expect(saved).not.toHaveProperty('workouts');
   expect(saved).not.toHaveProperty('studentWorkoutVersions');
   expect(saved.assignments.at(-1).workoutSnapshot.name).toBe('Персональная тренировка Марии');
-  expect(saved.assignments.at(-1).workoutSnapshot.exercises.every((exercise: { plannedSets: unknown[] }) => exercise.plannedSets.length === 0)).toBe(true);
+  expect(saved.assignments.at(-1).workoutSnapshot.exercises.every((exercise: { plannedSets: unknown[] }) => exercise.plannedSets.length === 1)).toBe(true);
   expect(saved.assignments.at(-1)).not.toHaveProperty('workoutId');
   expect(saved.assignments.at(-1)).not.toHaveProperty('source');
 });
@@ -745,7 +745,7 @@ test('упражнение можно добавить повторно и уб�
   await expect(picker.getByRole('group', { name: 'Жим лёжа', exact: true })).toContainText('1');
   await picker.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.plan-exercise-card')).toHaveCount(1);
-  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(0);
+  await expect(page.locator('.plan-exercise-card .set-card')).toHaveCount(2);
   await expect(page.getByRole('button', { name: 'Добавить подход — Жим лёжа' })).toBeVisible();
   const submit = page.getByRole('button', { name: 'Назначить тренировку' });
   await submit.scrollIntoViewIfNeeded();
@@ -824,9 +824,8 @@ test('онлайн-тренировка переиспользует назна�
 
   await page.getByRole('button', { name: 'Начать тренировку' }).click();
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
-  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить тренировку' }).click();
-  await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
-  await page.getByRole('button', { name: 'Сохранить результат' }).click();
+  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Подтвердить завершение' }).click();
+
   await expect(page.getByRole('main').getByText('Осталось 10 занятий')).toBeVisible();
 });
 
@@ -975,7 +974,7 @@ test('тренер может завершить занятие в долг и �
   const finishDialog = page.getByRole('dialog', { name: 'Завершение тренировки' });
   await expect(finishDialog).toContainText('Абонемент закончился');
   await expect(finishDialog).toContainText('1 занятие в долг');
-  await finishDialog.getByRole('button', { name: 'Завершить и списать занятие' }).click();
+  await finishDialog.getByRole('button', { name: 'Подтвердить завершение' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
   await expect(page.getByRole('main').getByText('Одно занятие списано')).toBeVisible();
@@ -1061,7 +1060,7 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(firstSquatSetButton).toHaveCSS('color', 'rgb(151, 157, 149)');
   await expect(firstSquatSetButton.locator('.ui-icon')).toHaveAttribute('style', /icon-checkmark\.svg/);
   const controlHeights = await Promise.all([
-    squatCard.getByRole('button', { name: 'Опустить Приседания ниже' }),
+    squatCard.getByRole('button', { name: 'Порядок упражнений' }),
     squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }),
     squatCard.getByRole('button', { name: 'Действия — Приседания' }),
   ].map(async (control) => (await control.boundingBox())?.height));
@@ -1114,9 +1113,11 @@ test('тренер ведёт занятие, правит его в момен�
   await expect(page.locator('.active-exercise-card').nth(3)).toContainText('Молотковые сгибания');
   await expect(page.locator('.active-exercise-card').nth(4)).toContainText('Сгибание рук с гантелями');
   await expect(page.locator('.active-exercise-card').nth(4)).toHaveClass(/recently-moved/);
-  await page.getByRole('button', { name: 'Опустить Молотковые сгибания ниже' }).click();
+  await page.locator('.active-exercise-card:visible').nth(3).getByRole('button', { name: 'Порядок упражнений' }).click();
+  const orderSheet = page.getByRole('dialog', { name: 'Порядок упражнений' });
+  await orderSheet.getByRole('button', { name: 'Переместить Молотковые сгибания' }).press('ArrowDown');
+  await orderSheet.getByRole('button', { name: 'Готово' }).click();
   await expect(page.locator('.active-exercise-card').nth(4)).toContainText('Молотковые сгибания');
-  await expect(page.locator('.active-exercise-card').nth(4)).toHaveClass(/recently-moved/);
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const customPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
@@ -1180,7 +1181,8 @@ test('тренер ведёт занятие, правит его в момен�
 
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
   await expect(page.getByRole('dialog', { name: 'Завершение тренировки' })).toBeVisible();
-  await page.getByRole('button', { name: 'Не списывать занятие' }).click();
+  await page.getByRole('switch', { name: 'Списать одно занятие' }).click();
+  await page.getByRole('button', { name: 'Подтвердить завершение' }).click();
 
   await expect(page).toHaveURL(/#\/trainer\/sessions\/session-/);
   await expect(page.getByText('РЕЗУЛЬТАТ ЗАПОЛНИЛ')).toHaveCount(0);

@@ -55,7 +55,7 @@ public struct SetPlan: Codable, Equatable, Identifiable, ReppySendable {
     public var targetWeight: Double
     enum CodingKeys: String, CodingKey { case targetReps, targetWeight }
     public static func == (lhs: SetPlan, rhs: SetPlan) -> Bool { lhs.targetReps == rhs.targetReps && lhs.targetWeight == rhs.targetWeight }
-    public init(targetReps: Int = 10, targetWeight: Double = 0) {
+    public init(targetReps: Int = 0, targetWeight: Double = 0) {
         self.targetReps = targetReps; self.targetWeight = targetWeight
     }
 }
@@ -78,7 +78,7 @@ public struct WorkoutExercise: Codable, Identifiable, Equatable, ReppySendable {
         id = UUID().uuidString.lowercased(); exerciseId = definition.id; name = definition.name
         primaryMuscle = definition.primary_muscle; muscleGroups = definition.muscle_groups
         equipment = definition.equipment; loadMode = definition.load_mode; measureType = definition.measure_type
-        plannedSets = []
+        plannedSets = [SetPlan()]
     }
 }
 public struct Workout: Codable, Identifiable, Equatable, ReppySendable {
@@ -294,7 +294,7 @@ public enum ReppyValidation {
         if workout.exercises.isEmpty { return "Добавь хотя бы одно упражнение." }
         for exercise in workout.exercises {
             for set in exercise.plannedSets {
-                if set.targetReps < (allowUnfilledSets ? 0 : 1) || !set.targetWeight.isFinite || set.targetWeight < 0 { return "Проверь подходы: количество должно быть больше нуля, вес — неотрицательным." }
+                if (set.targetReps < 0 || (!allowUnfilledSets && set.targetReps == 0 && set.targetWeight != 0)) || !set.targetWeight.isFinite || set.targetWeight < 0 { return "Проверь подходы: количество должно быть больше нуля, вес — неотрицательным." }
             }
         }
         return nil

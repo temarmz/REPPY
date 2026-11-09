@@ -138,7 +138,7 @@ test('результат нового занятия появляется в п�
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить и списать занятие' }).click();
+  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Подтвердить завершение' }).click();
   await page.goto('/#/trainer/clients/artem/progress');
   await expect(progressSection(page)).not.toContainText('Первый результат');
   await expect(progressSection(page).locator('.progress-trend')).toHaveCount(0);

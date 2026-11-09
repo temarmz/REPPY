@@ -1,3 +1,4 @@
+import SessionCorrection from './session-correction';
 import { type ComponentType, type ReactNode } from 'react';
 import {
   createWorkoutSession,
@@ -69,6 +70,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
     const scheduleCopyMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/copy\/([^/]+)$/);
     const scheduleNewMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)\/new$/);
     const scheduleStudentMatch = path.match(/^\/trainer\/schedule\/(\d{4}-\d{2}-\d{2})\/([^/]+)$/);
+    const sessionEditMatch = path.match(/^\/trainer\/sessions\/([^/]+)\/edit$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
     if (path === '/trainer/design-kit') {
@@ -291,7 +293,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
     } else if (assignmentMatch) {
       const assignment = data.assignments.find((item) => item.id === assignmentMatch[1]);
       const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
-      content = completedSession ? <SessionResult data={data} session={completedSession} trainerView
+      content = completedSession ? <SessionResult data={data} session={completedSession} onFeedback={(mood, comment) => dispatch({ type: 'session.feedback', sessionId: completedSession.id, mood, comment })} trainerView
         onChargeChange={(charged) => dispatch({ type: 'session.charge', sessionId: completedSession.id, charged })}
         onRepeat={() => go(`/trainer/assignments/${completedSession.assignmentId}/repeat`)}
         onDelete={() => {
@@ -322,7 +324,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
       const workout = assignment && (session ? findSessionWorkout(data, session) : findAssignmentWorkout(data, assignment));
       content = completedSession ? <SessionResult
         data={data}
-        session={completedSession}
+        session={completedSession} onFeedback={(mood, comment) => dispatch({ type: 'session.feedback', sessionId: completedSession.id, mood, comment })}
         trainerView
         onChargeChange={(charged) => dispatch({ type: 'session.charge', sessionId: completedSession.id, charged })}
         onRepeat={() => go(`/trainer/assignments/${completedSession.assignmentId}/repeat`)}
@@ -351,18 +353,22 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
           }}
           onUpdate={(sessionId, results) => dispatch({ type: 'session.progress', sessionId, results })}
           onWorkoutUpdate={(sessionId, nextWorkout) => dispatch({ type: 'session.progress', sessionId, workoutSnapshot: nextWorkout })}
-          onFinish={(sessionId, { chargeSubscription }) => {
+          onFinish={(sessionId, { chargeSubscription, mood, comment }) => {
             const completedAt = new Date().toISOString();
             dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt, chargeSubscription, workoutName: workout.name });
+            if (mood || comment?.trim()) dispatch({ type: 'session.feedback', sessionId, mood, comment: comment ?? '' });
             go(`/trainer/sessions/${sessionId}`, true);
           }}
         />
       ) : <NotFound />;
+    } else if (sessionEditMatch) {
+      const session = data.sessions.find((item) => item.id === sessionEditMatch[1] && item.completedAt);
+      content = session ? <SessionCorrection data={data} session={session} dispatch={dispatch} /> : <NotFound />;
     } else if (sessionMatch) {
       const session = data.sessions.find((item) => item.id === sessionMatch[1]);
       content = session ? <SessionResult
         data={data}
-        session={session}
+        session={session} onFeedback={(mood, comment) => dispatch({ type: 'session.feedback', sessionId: session.id, mood, comment })}
         trainerView
         onChargeChange={(charged) => dispatch({ type: 'session.charge', sessionId: session.id, charged })}
         onRepeat={() => go(`/trainer/assignments/${session.assignmentId}/repeat`)}

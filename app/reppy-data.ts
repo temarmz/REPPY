@@ -754,7 +754,7 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
       .filter((result) => result.exerciseId === exercise.id)
       .map((result) => result.setNumber));
     const plannedSets = getExerciseSetPlans(exercise);
-    const fallback = plannedSets.at(-1) ?? { targetReps: 10, targetWeight: 0 };
+    const fallback = plannedSets.at(-1) ?? { targetReps: 0, targetWeight: 0 };
     while (plannedSets.length < highestCompletedSet) plannedSets.push({ ...fallback });
     return withExerciseSetPlans(exercise, plannedSets);
   });
@@ -765,7 +765,7 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
         .filter((result) => result.exerciseId === exercise.id)
         .map((result) => result.setNumber));
       const plannedSets = getExerciseSetPlans(exercise);
-      const fallback = plannedSets.at(-1) ?? { targetReps: 10, targetWeight: 0 };
+      const fallback = plannedSets.at(-1) ?? { targetReps: 0, targetWeight: 0 };
       while (plannedSets.length < highestCompletedSet) plannedSets.push({ ...fallback });
       return withExerciseSetPlans(exercise, plannedSets);
     });

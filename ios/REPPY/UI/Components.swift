@@ -298,10 +298,12 @@ struct ReppyEmpty: View {
     var message: String
     var icon = "dumbbell"
     var body: some View {
-        ReppyCard {
-            Image(systemName: icon).font(.largeTitle).foregroundStyle(ReppyTheme.muted).accessibilityHidden(true)
-            ReppyHeading(text: title); ReppyText(text: message, tone: .secondary)
-        }
+        VStack(spacing: ReppyMetrics.space16) {
+            Image(systemName: icon).font(.title2).foregroundStyle(ReppyTheme.lime).accessibilityHidden(true)
+            ReppyHeading(text: title)
+            ReppyText(text: message, tone: .secondary)
+        }.multilineTextAlignment(.center).padding((ReppyMetrics.space16 * 2))
+            .frame(maxWidth: .infinity, minHeight: 220)
     }
 }
 struct ReppyStatus: View {
@@ -330,8 +332,10 @@ struct ReppyHeaderBrand: View {
 }
 struct ReppyToolbarIcon: View {
     var icon: String
+    var selected = false
     var body: some View {
         Image(systemName: icon).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
+            .foregroundStyle(selected ? ReppyTheme.lime : ReppyTheme.text)
             .frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
             .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
     }
@@ -471,5 +475,13 @@ struct ReppyActionGroup<Content: View>: View {
                 VStack(spacing: ReppyMetrics.space12, content: content)
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+}
+
+struct ReppyWorkoutSuccessArt: View {
+    var body: some View {
+        Image("WorkoutSuccess").resizable().scaledToFit()
+            .frame(height: (ReppyMetrics.space16 * 2) * 4).frame(maxWidth: .infinity)
+            .accessibilityLabel("Динозавр показывает большой палец")
     }
 }

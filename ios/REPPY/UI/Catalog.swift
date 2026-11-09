@@ -7,6 +7,7 @@ enum NativeComponentCatalog {
         ("NotesHeader", ReppyNotesHeader.self), ("InstructionMedia", ReppyInstructionMedia.self), ("InstructionEquipment", ReppyInstructionEquipment.self), ("InstructionEditor", InstructionEditorScreen.self),
         ("ConnectedList", ReppyConnectedList<SubscriptionEntry, EmptyView>.self), ("LedgerSummary", ReppyLedgerSummary<EmptyView>.self),
         ("PaymentMethodPicker", ReppyPaymentMethodPicker.self), ("InvitationReady", ReppyInvitationReady.self),
+        ("WorkoutSuccessArt", ReppyWorkoutSuccessArt.self),
         ("ChargeSummary", ReppyChargeSummary.self),
         ("SetSummaryRow", ReppySetSummaryRow.self), ("WorkoutOverview", ReppyWorkoutOverview.self), ("FeedbackSummary", ReppyFeedbackSummary.self),
         ("StudentLink", ReppyStudentLink<EmptyView>.self), ("StudentContext", ReppyStudentContext.self), ("FormatPicker", ReppyFormatPicker.self),

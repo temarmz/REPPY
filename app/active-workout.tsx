@@ -1,5 +1,6 @@
+import ExerciseOrderEditor from './ui/exercise-order-editor';
 import { ProgressBar, Badge } from './ui/patterns';
-import { Page, Box, Header, Inline, Strong, Time, Bold, Section, PageTitle, Footer, Small } from './ui/elements';
+import { Page, Box, Header, Inline, Strong, Time, Bold, Section, PageTitle, Footer, Image, Paragraph } from './ui/elements';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
   cloneWorkout,
@@ -9,6 +10,7 @@ import {
   normalizeWorkoutExercise,
   withExerciseSetPlans,
   type SetResult,
+  type MoodRating,
   type ExerciseDefinition,
   type Student,
   type TrainingFormat,
@@ -18,9 +20,13 @@ import {
   type WorkoutSession,
 } from './reppy-data';
 import Icon from './ui/icon';
+import { UI_ASSETS } from './ui/assets';
+import { MOODS } from './mood';
+import { SelectOption } from './ui/elements';
+import { Field } from './ui/patterns';
 import { ActiveExerciseCard } from './ui/workout-exercise-card';
 import ModalFrame from './ui/modal-frame';
-import { ActionButton, Button } from './ui/controls';
+import { ActionButton, Button, Select, Textarea, TextField, Switch } from './ui/controls';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
 import { goBack, useRoutePath } from './navigation';
@@ -36,12 +42,12 @@ import {
 import {
   exerciseMetadata,
   formatElapsedTime,
-  subscriptionBalanceLabel,
-  subscriptionTone,
 } from './workout-display';
 
 type WorkoutFinishOptions = {
   chargeSubscription: boolean;
+  mood?: MoodRating;
+  comment?: string;
 };
 
 export default function ActiveWorkout({
@@ -57,7 +63,7 @@ export default function ActiveWorkout({
   onWorkoutUpdate,
   onFinish,
   trainerCanWaiveCharge = false,
-  balance = 0,
+  editingHistory = false,
   customExercises = [],
   onCreateCustomExercise,
   onUpdateCustomExercise,
@@ -74,6 +80,7 @@ export default function ActiveWorkout({
   onWorkoutUpdate: (sessionId: string, workout: Workout) => void;
   onFinish: (sessionId: string, options: WorkoutFinishOptions) => void;
   trainerCanWaiveCharge?: boolean;
+  editingHistory?: boolean;
   balance?: number;
   customExercises?: ExerciseDefinition[];
   onCreateCustomExercise?: (definition: ExerciseDefinition) => void;
@@ -89,6 +96,7 @@ export default function ActiveWorkout({
     const stored = loadUiDraft(`instruction:${pickerPersistenceKey}`);
     return workout.exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
   });
+  const [orderOpen, setOrderOpen] = useState(false);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
@@ -130,7 +138,7 @@ export default function ActiveWorkout({
 
   const completed = session.results.filter((result) => result.completed).length;
   const progress = Math.round((completed / Math.max(session.results.length, 1)) * 100);
-  const elapsed = formatElapsedTime(session.startedAt, currentTime);
+  const elapsed = formatElapsedTime(session.startedAt, editingHistory && session.completedAt ? new Date(session.completedAt).getTime() : currentTime);
   const unfinishedCount = session.results.filter((result) => !result.completed).length;
 
   const updateWorkout = (exercises: WorkoutExercise[]) => {
@@ -190,7 +198,7 @@ export default function ActiveWorkout({
       equipment: definition.equipment,
       loadMode,
       measureType: definition.measureType ?? 'reps',
-      plannedSets: [],
+      plannedSets: [{ targetReps: 0, targetWeight: 0 }],
       coachNote: '',
     });
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
@@ -234,7 +242,7 @@ export default function ActiveWorkout({
       </Box>
 
       <Section className="active-workout-overview">
-        <PageTitle>{workout.name}</PageTitle>
+        {editingHistory ? <TextField id="correction-workout-name" label="Название тренировки" value={workout.name} onChange={(event) => onWorkoutUpdate(session.id, { ...workout, name: event.target.value })} /> : <PageTitle>{workout.name}</PageTitle>}
       </Section>
 
       <Section className="active-exercise-list">
@@ -254,6 +262,7 @@ export default function ActiveWorkout({
               onResultChange={(setNumber, patch) => updateResult(exercise.id, setNumber, patch)}
               onShowInstruction={() => setInstructionExercise(exercise)}
               onShowActions={() => setActionExerciseId(exercise.id)}
+            onReorder={() => setOrderOpen(true)}
               onAddSet={() => updateExerciseSets(exercise.id, (plans) => [...plans, { targetReps: 0, targetWeight: 0 }])}
               canRemoveSet={exerciseResults.length > minimumSets}
               onRemoveSet={() => updateExerciseSets(exercise.id, (plans) => plans.slice(0, -1))}
@@ -264,6 +273,7 @@ export default function ActiveWorkout({
         })}
       </Section>
 
+      {orderOpen && <ExerciseOrderEditor exercises={workout.exercises} onChange={updateWorkout} onClose={() => setOrderOpen(false)} />}
       {pickerAfterId && <ExercisePicker persistenceKey={`picker:${pickerPersistenceKey}`} exercises={workout.exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
@@ -283,7 +293,6 @@ export default function ActiveWorkout({
         }}
       />}
       {finishOpen && <FinishWorkoutModal
-        balance={balance}
         unfinishedCount={unfinishedCount}
         canWaiveCharge={trainerCanWaiveCharge}
         onClose={() => setFinishOpen(false)}
@@ -294,24 +303,26 @@ export default function ActiveWorkout({
       />}
 
       <Footer className="exercise-navigation single-action">
-        <Button className="finish-workout" type="button" onClick={() => setFinishOpen(true)}><Icon name="check" /> Завершить тренировку</Button>
+        <Button className="finish-workout" type="button" disabled={editingHistory && !workout.name.trim()} onClick={() => editingHistory ? onFinish(session.id, { chargeSubscription: false }) : setFinishOpen(true)}><Icon name="check" /> {editingHistory ? 'Сохранить исправления' : 'Завершить тренировку'}</Button>
       </Footer>
     </Page>
   );
 }
 
-function FinishWorkoutModal({ balance, unfinishedCount, canWaiveCharge, onClose, onFinish }: { balance: number; unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (options: WorkoutFinishOptions) => void }) {
+function FinishWorkoutModal({ unfinishedCount, canWaiveCharge, onClose, onFinish }: { unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (options: WorkoutFinishOptions) => void }) {
+  const [chargeSubscription, setCharge] = useState(true);
+  const [mood, setMood] = useState<MoodRating | ''>('');
+  const [comment, setComment] = useState('');
   return (
-    <ModalFrame title="Завершить тренировку" eyebrow={canWaiveCharge ? 'АБОНЕМЕНТ' : undefined} className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
-      {unfinishedCount > 0 && <Box className="finish-incomplete-warning"><Icon name="minus" /><Box><Strong>Есть незавершённые подходы</Strong><Small>Не отмечено: {unfinishedCount}. Результат сохранится в текущем виде.</Small></Box></Box>}
-      {canWaiveCharge && <Box className={`finish-balance-preview ${subscriptionTone(balance)}`}>
-        <Inline>СЕЙЧАС</Inline><Strong>{subscriptionBalanceLabel(balance)}</Strong>
-        <Icon name="arrow-right" />
-        <Inline>ПОСЛЕ</Inline><Strong>{subscriptionBalanceLabel(balance - 1)}</Strong>
-      </Box>}
+    <ModalFrame title="Завершить тренировку?" className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
+      <Image className="finish-illustration" src={UI_ASSETS.success} alt="Динозавр показывает большой палец" />
+      {unfinishedCount > 0 && <Paragraph>Не отмечено подходов: {unfinishedCount}. Они останутся невыполненными.</Paragraph>}
+      {canWaiveCharge && <Switch checked={chargeSubscription} onCheckedChange={setCharge}>Списать одно занятие</Switch>}
+      <Field label="Как прошла тренировка?"><Select aria-label="Как прошла тренировка?" value={mood} onChange={(event) => setMood(event.target.value as MoodRating | '')}><SelectOption value="">Без оценки</SelectOption>{MOODS.map((item) => <SelectOption key={item.value} value={item.value}>{item.label}</SelectOption>)}</Select></Field>
+      <Field label="Комментарий"><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>
       <Box className="finish-subscription-actions">
-        <ActionButton icon="check" onClick={() => onFinish({ chargeSubscription: true })}>{canWaiveCharge ? 'Завершить и списать занятие' : 'Завершить тренировку'}</ActionButton>
-        {canWaiveCharge && <ActionButton variant="secondary" icon="minus" onClick={() => onFinish({ chargeSubscription: false })}>Не списывать занятие</ActionButton>}
+        <ActionButton icon="check" onClick={() => onFinish({ chargeSubscription, mood: mood || undefined, comment })}>Подтвердить завершение</ActionButton>
+        <ActionButton variant="secondary" onClick={onClose}>Продолжить тренировку</ActionButton>
       </Box>
     </ModalFrame>
   );

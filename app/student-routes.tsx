@@ -241,7 +241,7 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
   if (assignmentDetailsMatch) {
     const assignment = data.assignments.find((item) => item.id === assignmentDetailsMatch[1] && item.studentId === data.activeStudentId);
     const completedSession = assignment && data.sessions.find((item) => item.assignmentId === assignment.id && item.completedAt);
-    if (completedSession) return <SessionResult data={data} session={completedSession} />;
+    if (completedSession) return <SessionResult data={data} session={completedSession} onFeedback={(mood, comment) => dispatch({ type: 'session.feedback', sessionId: completedSession.id, mood, comment })} />;
     return assignment ? <StudentAssignmentDetails
       data={data}
       assignment={assignment}
@@ -272,9 +272,10 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
       }}
       onUpdate={(sessionId, results) => dispatch({ type: 'session.progress', sessionId, results })}
       onWorkoutUpdate={(sessionId, workoutSnapshot) => dispatch({ type: 'session.progress', sessionId, workoutSnapshot })}
-      onFinish={(sessionId, { chargeSubscription }) => {
+      onFinish={(sessionId, { chargeSubscription, mood, comment }) => {
         dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt: new Date().toISOString(), chargeSubscription, workoutName: workout.name });
-        go(`${menuRoot}/finish/${sessionId}`);
+        if (mood || comment?.trim()) dispatch({ type: 'session.feedback', sessionId, mood, comment: comment ?? '' });
+        go(`${menuRoot}/success/${sessionId}`);
       }}
     />;
   }
@@ -291,7 +292,7 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
   }
   if (resultMatch) {
     const session = data.sessions.find((item) => item.id === resultMatch[1] && item.studentId === data.activeStudentId);
-    return session ? <SessionResult data={data} session={session} /> : <NotFound />;
+    return session ? <SessionResult data={data} session={session} onFeedback={(mood, comment) => dispatch({ type: 'session.feedback', sessionId: session.id, mood, comment })} /> : <NotFound />;
   }
   if (path === '/student') return <StudentHome data={data} onOpen={(assignmentId) => go(`/student/assignments/${assignmentId}`)} />;
   return <NotFound />;

@@ -1,6 +1,31 @@
 import XCTest
 
 final class ScreenAuditTests: XCTestCase {
+    @MainActor func testUnifiedFinishAndHistoryCorrection() {
+        for (role, theme) in [("trainer", "dark"), ("student", "light")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-" + role, "-appearance", theme, "--audit-screen", "active", "--audit-namespace", UUID().uuidString]
+            app.launch()
+            let finish = app.buttons["Завершить тренировку"]
+            for _ in 0..<18 { if finish.exists && finish.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(finish.waitForExistence(timeout: 10)); finish.tap()
+            XCTAssertTrue(app.images["Динозавр показывает большой палец"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Как прошла тренировка?"].exists)
+            XCTAssertEqual(app.switches["Списать одно занятие"].exists, role == "trainer")
+            capture(app, "unified-finish-" + role + "-" + theme)
+            app.terminate()
+        }
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo-trainer", "--audit-screen", "result", "--audit-namespace", UUID().uuidString]
+        app.launch()
+        let edit = app.buttons["Исправить результат"]
+        for _ in 0..<10 { if edit.exists && edit.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(edit.waitForExistence(timeout: 10)); edit.tap()
+        XCTAssertTrue(app.textFields["Название тренировки"].waitForExistence(timeout: 5))
+        capture(app, "history-correction")
+        app.terminate()
+    }
+
     @MainActor func testServerValueReplacesFocusedNumericText() {
         for theme in ["dark", "light"] {
             let app = XCUIApplication()

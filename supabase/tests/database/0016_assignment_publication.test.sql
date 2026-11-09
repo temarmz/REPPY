@@ -37,8 +37,8 @@ select is((select count(*)::int from public.assignments), 0, 'invalid publicatio
 
 select throws_ok($$insert into public.assignments(relationship_id, scheduled_for, scheduled_time, workout_snapshot)
 values ('30000000-0000-4000-8000-000000000001', current_date, '18:00',
-'{"name":"Draft","exercises":[{"id":"50000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":0,"targetWeight":0}]}]}')$$,
-'22023', 'Количество должно быть больше нуля, вес — неотрицательным.', 'zero reps cannot publish a half-filled set');
+'{"name":"Draft","exercises":[{"id":"50000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":0,"targetWeight":10}]}]}')$$,
+'22023', 'Количество должно быть больше нуля, вес — неотрицательным.', 'zero reps with nonzero weight cannot publish a half-filled set');
 
 insert into public.assignments(id, relationship_id, scheduled_for, scheduled_time, workout_snapshot)
 values ('40000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', current_date, '18:00',

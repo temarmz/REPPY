@@ -1,9 +1,11 @@
+import { useState } from 'react';
+import { Input, Select } from './ui/controls';
 import ProgressChart from './ui/progress-chart';
 import { ListRow } from './ui/patterns';
 import { SectionHeading } from './ui/patterns';
-import { Box, Small, Inline, Section, Paragraph, Strong, Italic, Page } from './ui/elements';
+import { Box, Small, Inline, Section, Paragraph, Strong, Italic, Page, SelectOption } from './ui/elements';
 
-import type { DemoState, WorkoutExercise } from './reppy-data';
+import { exerciseMuscleGroups, type DemoState, type WorkoutExercise, type MuscleGroup } from './reppy-data';
 import { collectExerciseProgress, compareProgress, filterProgressPeriod, progressHref, progressSetLabel } from './exercise-progress';
 import Icon from './ui/icon';
 import PageHeader from './ui/page-header';
@@ -21,12 +23,21 @@ function progressGroups(data: DemoState, studentId: string) {
 }
 
 export function StudentExerciseProgress({ data, studentId, go, area = 'trainer', hideEmpty = false }: Pick<Props, 'data' | 'studentId' | 'go' | 'area'> & { hideEmpty?: boolean }) {
+  const [search, setSearch] = useState('');
+  const [muscle, setMuscle] = useState<'all' | MuscleGroup>('all');
   const groups = progressGroups(data, studentId);
+  const muscles = [...new Set(groups.flatMap((group) => exerciseMuscleGroups(group.exercise)))];
+  const visible = groups.filter(({ exercise }) => (muscle === 'all' || exerciseMuscleGroups(exercise).includes(muscle)) && `${exercise.name} ${exercise.equipment ?? ''} ${exerciseMuscleGroups(exercise).join(' ')}`.toLocaleLowerCase('ru').includes(search.trim().toLocaleLowerCase('ru')));
   if (hideEmpty && !groups.length) return null;
   return <Section className="section-block student-exercise-progress" aria-label="Прогресс по упражнениям">
     <SectionHeading title="Прогресс по упражнениям" />
+    {groups.length > 0 && <Box className="progress-filters">
+      <Input type="search" aria-label="Поиск в прогрессе" placeholder="Поиск упражнения" value={search} onChange={(event) => setSearch(event.target.value)} />
+      <Select aria-label="Мышечная группа" value={muscle} onChange={(event) => setMuscle(event.target.value as 'all' | MuscleGroup)}><SelectOption value="all">Все мышцы</SelectOption>{muscles.map((item) => <SelectOption key={item} value={item}>{item}</SelectOption>)}</Select>
+    </Box>}
+    {groups.length > 0 && !visible.length && <EmptyState icon="history" title="Ничего не найдено" text="Измени поиск или мышечную группу." />}
     {groups.length ? <Box className="progress-card-list">
-      {groups.map((group) => {
+      {visible.map((group) => {
         const comparison = compareProgress(group.entries)!;
         return <ListRow className="workout-row" type="button" key={group.key} onClick={() => go(progressHref(studentId, group.exercise, area))}>
         <Inline><Strong>{group.exercise.name}</Strong>

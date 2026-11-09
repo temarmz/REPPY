@@ -34,7 +34,7 @@ struct ExercisePickerScreen: View {
                             if let index = exercises.wrappedValue.lastIndex(where: { $0.exerciseId == definition.id }) { exercises.wrappedValue.remove(at: index) }
                         } label: { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0).accessibilityLabel("Убрать \(definition.name)")
                         Text("\(count)").monospacedDigit().frame(minWidth: 20).accessibilityLabel("Добавлено: \(count)")
-                        Button { add(definition) } label: { ReppyToolbarIcon(icon: "plus") }.accessibilityLabel("Добавить \(definition.name)")
+                        Button { add(definition) } label: { ReppyToolbarIcon(icon: "plus", selected: count > 0) }.accessibilityLabel("Добавить \(definition.name)")
                     }.disabled(store.busy)
                 } else { ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { add(definition) }.disabled(store.busy) }
             }

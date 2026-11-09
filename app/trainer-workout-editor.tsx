@@ -1,3 +1,4 @@
+import ExerciseOrderEditor from './ui/exercise-order-editor';
 import { validateAssignedWorkout } from './workout-validation';
 import { SectionHeading } from './ui/patterns';
 import { Fieldset, Legend, Box, Paragraph, Page, Section, Inline, Strong, Heading, Time, Small } from './ui/elements';
@@ -356,6 +357,7 @@ function WorkoutExerciseEditor({
     const stored = loadUiDraft(`instruction:${persistenceKey}`);
     return exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
   });
+  const [orderOpen, setOrderOpen] = useState(false);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const highlightTimer = useRef<number | null>(null);
@@ -393,7 +395,7 @@ function WorkoutExerciseEditor({
       equipment: choice.equipment,
       loadMode,
       measureType: choice.measureType ?? 'reps',
-      plannedSets: [],
+      plannedSets: [{ targetReps: 0, targetWeight: 0 }],
       coachNote: '',
     });
     const next = exercises.map((exercise) => ({ ...exercise }));
@@ -446,6 +448,7 @@ function WorkoutExerciseEditor({
             recentlyMoved={recentlyMovedId === exercise.id}
             onShowInstruction={() => setInstructionExercise(exercise)}
             onShowActions={() => setActionExerciseId(exercise.id)}
+            onReorder={() => setOrderOpen(true)}
             onMoveUp={() => moveExercise(index, index - 1)}
             onMoveDown={() => moveExercise(index, index + 1)}
             onNoteChange={(coachNote) => updateExercise(exercise.id, (current) => ({ ...current, coachNote }))}
@@ -464,6 +467,7 @@ function WorkoutExerciseEditor({
         ))}
       </Box>
 
+      {orderOpen && <ExerciseOrderEditor exercises={exercises} onChange={onChange} onClose={() => setOrderOpen(false)} />}
       {pickerAfterId && <ExercisePicker persistenceKey={`picker:${persistenceKey}`} exercises={exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}

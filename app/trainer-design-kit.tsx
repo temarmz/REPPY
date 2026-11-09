@@ -1,3 +1,4 @@
+import ExerciseOrderEditor from './ui/exercise-order-editor';
 import ProgressChart from './ui/progress-chart';
 import { collectExerciseProgress } from './exercise-progress';
 import { UI_COMPONENTS } from './ui/catalog';
@@ -33,6 +34,7 @@ export default function DesignKitScreen() {
   const [scheduledFor, setScheduledFor] = useState(dateKey());
   const [scheduledTime, setScheduledTime] = useState('18:00');
   const [toggleActive, setToggleActive] = useState(true);
+  const [orderOpen, setOrderOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [instructionOpen, setInstructionOpen] = useState(false);
   const [note, setNote] = useState('Анна: обсудить самочувствие\n• Проверить технику приседа\n• Уточнить удобное время');
@@ -47,6 +49,8 @@ export default function DesignKitScreen() {
   return (
     <Page className="content-page narrow-page design-kit-page">
       <PageHeader back="/trainer" eyebrow="Внутренний экран" title="ДИЗАЙН-КИТ" />
+      <ActionButton variant="secondary" onClick={() => setOrderOpen(true)}>Порядок упражнений</ActionButton>
+      {orderOpen && <ExerciseOrderEditor exercises={[exercise]} onChange={(next) => setExercise(next[0])} onClose={() => setOrderOpen(false)} />}
       <Paragraph className="design-kit-intro">Библиотека компонентов REPPY. Здесь используются те же контролы, карточки и стили, что на экранах тренера и ученика. Переключи тему в верхней панели, чтобы проверить оба оформления.</Paragraph>
 
       <Section className="design-kit-section" aria-labelledby="kit-colors-title">
@@ -185,7 +189,9 @@ export default function DesignKitScreen() {
 
       <Section className="design-kit-section" aria-labelledby="kit-inventory-title">
         <SectionHeading title="Состав библиотеки" titleId="kit-inventory-title"><Small>{Object.keys(UI_COMPONENTS).length} компонентов</Small></SectionHeading>
-        <Paragraph className="design-kit-intro">Общий источник оформления — папка app/ui. Этот список строится из зарегистрированных компонентов библиотеки.</Paragraph>
+        <ActionButton variant="secondary" onClick={() => setOrderOpen(true)}>Порядок упражнений</ActionButton>
+      {orderOpen && <ExerciseOrderEditor exercises={[exercise]} onChange={(next) => setExercise(next[0])} onClose={() => setOrderOpen(false)} />}
+      <Paragraph className="design-kit-intro">Общий источник оформления — папка app/ui. Этот список строится из зарегистрированных компонентов библиотеки.</Paragraph>
         <Box className="ui-component-inventory">{Object.keys(UI_COMPONENTS).sort().map((name) => <Inline key={name}>{name}</Inline>)}</Box>
       </Section>
 

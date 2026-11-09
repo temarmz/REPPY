@@ -115,10 +115,8 @@ test('после завершения из календаря кнопка Го�
   await page.locator('[data-route-active="true"] .agenda-list button').first().click();
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Завершить тренировку' }).click();
-  await expect(page).toHaveURL(/#\/student\/calendar\/finish\//);
-  await page.getByRole('button', { name: /Хорошо.*Рабочий темп/ }).click();
-  await page.getByRole('button', { name: 'Сохранить результат' }).click();
+  await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Подтвердить завершение' }).click();
+
   await expect(page).toHaveURL(/#\/student\/calendar\/success\//);
   await page.getByRole('button', { name: 'Готово', exact: true }).click();
   await expect(page).toHaveURL(/#\/student\/calendar$/);

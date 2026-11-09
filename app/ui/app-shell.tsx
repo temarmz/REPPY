@@ -70,7 +70,7 @@ export default function AppShell({
   const activeRoute = canonicalNavigationRoute(area, path);
   const stopPageMomentum = () => { const page = document.querySelector<HTMLElement>('.page-wrap'); if (page) page.scrollTo({ top: page.scrollTop, behavior: 'instant' }); };
   const navigateTab = (route: string) => { stopPageMomentum(); onNavigateTab(route); };
-  const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/');
+  const focusMode = /^\/student\/(?:calendar\/)?(workout|finish|success)\//.test(path) || path.startsWith('/trainer/workout/') || /^\/trainer\/sessions\/[^/]+\/edit$/.test(path);
 
   useLayoutEffect(() => observeWorkoutFieldFocus(window, document), []);
 

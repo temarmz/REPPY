@@ -806,19 +806,19 @@
           "measureType": "reps",
           "plannedSets": [
             {
-              "targetReps": 10,
+              "targetReps": 0,
               "targetWeight": 0
             },
             {
-              "targetReps": 10,
+              "targetReps": 0,
               "targetWeight": 0
             },
             {
-              "targetReps": 10,
+              "targetReps": 0,
               "targetWeight": 0
             },
             {
-              "targetReps": 10,
+              "targetReps": 0,
               "targetWeight": 0
             }
           ]
@@ -887,7 +887,7 @@
         "session_id": "contract-session",
         "exercise_instance_id": "legs-squat",
         "set_number": 1,
-        "actual_reps": 10,
+        "actual_reps": 0,
         "actual_weight": 0,
         "completed": false
       },
@@ -895,7 +895,7 @@
         "session_id": "contract-session",
         "exercise_instance_id": "legs-squat",
         "set_number": 2,
-        "actual_reps": 10,
+        "actual_reps": 0,
         "actual_weight": 0,
         "completed": false
       },
@@ -903,7 +903,7 @@
         "session_id": "contract-session",
         "exercise_instance_id": "legs-squat",
         "set_number": 3,
-        "actual_reps": 10,
+        "actual_reps": 0,
         "actual_weight": 0,
         "completed": false
       },

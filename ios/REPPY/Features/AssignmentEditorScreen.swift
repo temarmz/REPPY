@@ -23,7 +23,6 @@ struct StudentAssignmentPickerScreen: View {
             if let relationship = store.data.relationships.first(where: { $0.id == relationshipID }), relationship.status == "active",
                let student = store.data.students.first(where: { $0.id == relationship.student_id }) {
                 ReppyCaption(text: "\(student.name) · \(ReppyDate.display(ReppyDate.day(initialDate)))")
-                ReppyText(text: "Повтори одну из тренировок \(student.name) или собери новую с нуля.", tone: .secondary)
                 ReppyLink(title: "Создать тренировку", icon: "plus", kind: .primary) { AssignmentEditorScreen(relationshipID: relationshipID, initialDate: initialDate) }
                 if assignments.isEmpty { ReppyEmpty(title: "Предыдущих тренировок нет", message: "Создай первую тренировку для этого ученика — позже её можно будет повторять на новые даты.", icon: "clock.arrow.circlepath") }
                 if !assignments.isEmpty && matches.isEmpty { ReppyEmpty(title: "Ничего не найдено", message: "Измени название в поиске.") }

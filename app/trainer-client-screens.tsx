@@ -143,7 +143,6 @@ export function StudentWorkoutHistory({
   return (
     <Page className="content-page workout-picker-page schedule-workout-picker-page">
       <PageHeader back={backPath} eyebrow={`${student.name} · ${formatScheduleDay(scheduledFor)}`} preserveEyebrowCase title="ВЫБРАТЬ ТРЕНИРОВКУ" />
-      <Paragraph className="page-lead">Повтори одну из тренировок {student.name} или собери новую с нуля.</Paragraph>
       <Button className="list-primary-action" type="button" onClick={() => go(`${routeBase}/new`)}><Icon name="plus" /> {COPY.createWorkout}</Button>
       {previousAssignments.length ? (
         <>
