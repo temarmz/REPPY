@@ -57,6 +57,7 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
     }
     const focusInitialControl = () => {
       const root = layerRef.current;
+      if (root?.contains(document.activeElement)) return;
       const target = root?.querySelector<HTMLElement>('[data-modal-initial-focus]')
         ?? root?.querySelector<HTMLElement>('[autofocus]')
         ?? root?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])');

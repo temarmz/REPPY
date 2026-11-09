@@ -49,7 +49,7 @@ async function auditTouchTargets(page: Page) {
     const bounds = element.getBoundingClientRect();
     const centerX = bounds.left + bounds.width / 2;
     const centerY = bounds.top + bounds.height / 2;
-    if (centerX < 0 || centerX > innerWidth || centerY < 0 || centerY > innerHeight) return [];
+    if (centerX < 0 || centerX >= innerWidth || centerY < 0 || centerY >= innerHeight) return [];
     const page = element.closest('.page-wrap');
     const pageBounds = page?.getBoundingClientRect();
     if (pageBounds && (centerY < pageBounds.top || centerY > pageBounds.bottom)) return [];

@@ -302,7 +302,7 @@ struct ReppyFeedbackSummary: View {
     var comment: String?
     var body: some View {
         ReppyCard {
-            ReppyCaption(text: "ОБРАТНАЯ СВЯЗЬ УЧЕНИКА")
+            ReppyCaption(text: "КАК ПРОШЛА ТРЕНИРОВКА")
             if let mood { Label(mood.title, systemImage: "sun.max").reppyTypography(.heading) }
             if let comment, !comment.isEmpty { ReppyText(text: comment, tone: .secondary) }
         }

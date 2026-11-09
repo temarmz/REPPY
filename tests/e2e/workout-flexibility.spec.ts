@@ -23,6 +23,15 @@ for (const theme of ['dark', 'light']) {
       const order = page.getByRole('dialog', { name: 'Порядок упражнений' });
       await order.getByRole('button', { name: 'Переместить Жим лёжа', exact: true }).press('ArrowDown');
       await expect(order.locator('.exercise-order-row').first()).toContainText('Планка');
+      if (width === 1280) {
+        const handle = await order.getByRole('button', { name: 'Переместить Планка', exact: true }).boundingBox();
+        const target = await order.locator('.exercise-order-row').nth(1).boundingBox();
+        await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 6 });
+        await page.mouse.up();
+        await expect(order.locator('.exercise-order-row').first()).toContainText('Жим лёжа');
+      }
       await page.screenshot({ path: info.outputPath('order.png') });
       await order.getByRole('button', { name: 'Готово' }).click();
       await page.getByRole('button', { name: 'Назначить тренировку', exact: true }).click();

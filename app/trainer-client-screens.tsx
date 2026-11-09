@@ -29,8 +29,8 @@ function workoutForRepeat(data: DemoState, assignment: Assignment) {
 
 function exercisePreview(workout?: Workout, withPlan = false) {
   if (!workout?.exercises.length) return 'Упражнения не добавлены';
-  const preview = workout.exercises.slice(0, 3).map((exercise) => withPlan ? exercise.name + ' · ' + getExerciseSetPlans(exercise).length + ' подх.' : exercise.name).join(' · ');
-  return workout.exercises.length > 3 ? `${preview} · …` : preview;
+  const preview = workout.exercises.slice(0, withPlan ? workout.exercises.length : 3).map((exercise) => withPlan ? exercise.name + ' · ' + getExerciseSetPlans(exercise).length + ' подх.' : exercise.name).join(' · ');
+  return !withPlan && workout.exercises.length > 3 ? `${preview} · …` : preview;
 }
 
 export function InviteStudent({
