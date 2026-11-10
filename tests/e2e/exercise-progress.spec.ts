@@ -28,7 +28,7 @@ async function seedProgress(page: Page, count = 3, route = '/trainer/clients/art
 test('ученик открывает свой прогресс с главной и результата тренировки', async ({ page }) => {
   await seedProgress(page, 3, '/student');
   const section = progressSection(page);
-  await expect(section).toContainText('Было: 77,5 кг × 8 повт.');
+  await expect(section).toContainText('+2,5 кг');
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
   await expect(page).toHaveURL(/#\/student\/progress\/bench-press/);
   await expect(page.locator('.bottom-nav').getByRole('button', { name: 'Главная', exact: true })).toHaveAttribute('aria-current', 'page');
@@ -262,3 +262,44 @@ test('размер подписей кнопок одинаков на осно�
     }
   }
 });
+
+for (const [count, gains] of [[8, 0], [15, 4], [2, 0]]) {
+  test(`главная показывает до шести из ${count} упражнений, улучшения первыми (${gains})`, async ({ page }) => {
+    const state = createInitialState();
+    state.loggedIn = true;
+    state.role = 'student';
+    const assignment = state.assignments.find((item) => item.id === 'assignment-artem-push-today')!;
+    const exercises = Array.from({ length: count }, (_, index) => ({
+      ...assignment.workoutSnapshot.exercises[0],
+      id: `instance-${index}`,
+      exerciseId: `definition-${index}`,
+      name: `Упражнение ${index + 1}`,
+      plannedSets: [{ targetWeight: 20, targetReps: 8 }],
+    }));
+    const workout = { ...assignment.workoutSnapshot, exercises };
+    const latest = createWorkoutSession(assignment, workout, 'student');
+    latest.completedAt = new Date(Date.now() - 3600_000).toISOString();
+    latest.results = latest.results.map((set, index) => ({ ...set, completed: true, actualWeight: index >= count - gains ? 25 : 20 }));
+    state.sessions = [latest];
+    if (gains) {
+      const previous = createWorkoutSession(assignment, workout, 'student');
+      previous.completedAt = new Date(Date.now() - 86_400_000).toISOString();
+      previous.results = previous.results.map((set) => ({ ...set, completed: true }));
+      state.sessions.push(previous);
+    }
+    await page.addInitScript((value) => localStorage.setItem('reppy-demo-v0', JSON.stringify(value)), state);
+    await page.goto('/#/student');
+    const section = progressSection(page);
+    const tiles = section.locator('.progress-tile');
+    await expect(tiles).toHaveCount(Math.min(6, count));
+    const expected = [...exercises.slice(count - gains), ...exercises.slice(0, count - gains)].slice(0, 6);
+    await expect(tiles.locator('strong')).toHaveText(expected.map((exercise) => exercise.name));
+    await section.getByRole('button', { name: 'Все упражнения' }).click();
+    await expect(progressSection(page).locator('.workout-row')).toHaveCount(count);
+    await expect(page.getByRole('combobox', { name: 'Мышечная группа' })).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Поиск в прогрессе' }).fill(`Упражнение ${count}`);
+    await expect(progressSection(page).locator('.workout-row')).toHaveCount(1);
+    await progressSection(page).locator('.workout-row').click();
+    await expect(page.locator('.progress-chart')).toBeVisible();
+  });
+}

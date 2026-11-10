@@ -154,7 +154,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
         </Section>
       ) : <EmptyState icon="sun" title="Две недели свободны" text={STUDENT_COPY.emptyAssignments} />}
 
-      <StudentExerciseProgress data={data} studentId={data.activeStudentId} go={go} area="student" hideEmpty />
+      <StudentExerciseProgress data={data} studentId={data.activeStudentId} go={go} area="student" hideEmpty compact />
 
       {laterAssignments.length > 0 && <Section className="student-upcoming">
         <SectionHeading title="Следующие тренировки" />
@@ -224,7 +224,7 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
   const resultMatch = path.match(/^\/student\/(?:history|calendar\/sessions)\/([^/]+)$/);
   const successMatch = path.match(/^\/student\/(?:calendar\/)?success\/([^/]+)$/);
   const finishMatch = path.match(/^\/student\/(?:calendar\/)?finish\/([^/]+)$/);
-  const progressMatch = progressPath.match(/^\/student\/progress\/([^/]+)$/);
+  const progressMatch = progressPath.match(/^\/student\/progress(?:\/([^/]+))?$/);
 
   if (progressMatch) {
     return <ExerciseProgressView

@@ -87,3 +87,18 @@ export function compareProgress(entries: ProgressEntry[]) {
   const trend = !weight && !amount ? 'flat' : weight >= 0 && amount >= 0 ? 'up' : weight <= 0 && amount <= 0 ? 'down' : 'mixed';
   return { latest, previous, label, trend };
 }
+
+export function orderProgressGroups(groups: ProgressGroup[], prioritizeGains = false): ProgressGroup[] {
+  return groups.map((group) => {
+    const latest = group.entries[0];
+    return {
+      group, latest,
+      gain: prioritizeGains && compareProgress(group.entries)?.trend === 'up' ? 1 : 0,
+      position: latest.session.workoutSnapshot.exercises.findIndex((exercise) => exercise.id === latest.blocks.find((block) => block.sets.some((set) => set.valid))?.exercise.id),
+    };
+  }).sort((a, b) => b.gain - a.gain
+    || b.latest.timestamp - a.latest.timestamp
+    || b.latest.session.id.localeCompare(a.latest.session.id)
+    || a.position - b.position
+    || a.group.key.localeCompare(b.group.key)).map(({ group }) => group);
+}

@@ -68,7 +68,7 @@ struct DashboardScreen: View {
                 }
                 if let first = studentUpcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }
-                ExerciseProgressSummary(relationshipIDs: store.ownRelationshipIDs, hideEmpty: true)
+                ExerciseProgressSummary(relationshipIDs: store.ownRelationshipIDs, hideEmpty: true, compact: true)
                 if studentUpcoming.count > 1 {
                     ReppyHeading(text: "Следующие тренировки")
                     ForEach(Array(studentUpcoming.dropFirst())) { AssignmentAgendaRow(assignment: $0) }

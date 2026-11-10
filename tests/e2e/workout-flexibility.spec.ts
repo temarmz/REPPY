@@ -57,10 +57,12 @@ test('student can filter progress and finish with feedback in one sheet', async 
   const data = createInitialState(); data.loggedIn = true; data.role = 'student';
   await page.addInitScript(data => localStorage.setItem('reppy-demo-v0', JSON.stringify(data)), data);
   await page.goto('/#/student');
+  await page.getByRole('button', { name: 'Все упражнения' }).click();
   await page.getByRole('searchbox', { name: 'Поиск в прогрессе' }).fill('zzzzzzz');
   await expect(page.getByText('Ничего не найдено', { exact: true })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Поиск в прогрессе' }).fill('Жим');
   await expect(page.locator('.progress-card-list:visible')).toContainText('Жим');
+  await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await page.getByRole('button', { name: 'Посмотреть тренировку', exact: true }).first().click();
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
