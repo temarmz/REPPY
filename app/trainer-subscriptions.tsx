@@ -92,12 +92,14 @@ export function SubscriptionHistory({ data, student, onDelete }: { data: DemoSta
 }
 
 export function SubscriptionPaymentForm({
+  draftIdentity,
   student,
   initial,
   defaults,
   onSave,
   onDelete,
 }: {
+  draftIdentity: string;
   student: Student;
   initial?: SubscriptionEntry;
   defaults?: SubscriptionEntry;
@@ -108,7 +110,7 @@ export function SubscriptionPaymentForm({
   const [baseline, setBaseline] = useState(initial);
   const source = baseline ?? defaults;
   const paymentChanged = Boolean(initial && baseline && (initial.revision !== baseline.revision || initial.updatedAt !== baseline.updatedAt));
-  const draftKey = `subscription:${student.id}:${initial?.id ?? 'new'}`;
+  const draftKey = `subscription:${draftIdentity}:${student.id}:${initial?.id ?? 'new'}`;
   const paymentBaseline = baseline?.revision ?? baseline?.updatedAt ?? baseline?.createdAt;
   const [restoredDraft] = useState(() => {
     const draft = loadUiDraft(draftKey);
