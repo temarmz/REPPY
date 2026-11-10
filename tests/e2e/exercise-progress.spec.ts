@@ -22,7 +22,7 @@ async function seedProgress(page: Page, count = 3, route = '/trainer/clients/art
   await page.evaluate((value) => localStorage.setItem('reppy-demo-v0', JSON.stringify(value)), state);
   await page.goto('/#' + route);
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Прогресс по упражнениям' })).toBeVisible();
+  await expect(page.getByRole('region', { name: /^(Прогресс по упражнениям|Последний прогресс)$/ })).toBeVisible();
 }
 
 test('ученик открывает свой прогресс с главной и результата тренировки', async ({ page }) => {
@@ -43,7 +43,7 @@ test('ученик открывает свой прогресс с главно�
   await expect(page.locator('.progress-chart')).toBeVisible();
 });
 
-const progressSection = (page: Page) => page.getByRole('region', { name: 'Прогресс по упражнениям' });
+const progressSection = (page: Page) => page.getByRole('region', { name: /^(Прогресс по упражнениям|Последний прогресс)$/ });
 
 test('прогресс встроен внизу профиля, упражнение открывается одним нажатием', async ({ page }) => {
   await seedProgress(page, 25);
@@ -292,6 +292,9 @@ for (const [count, gains] of [[8, 0], [15, 4], [2, 0]]) {
     const section = progressSection(page);
     const tiles = section.locator('.progress-tile');
     await expect(tiles).toHaveCount(Math.min(6, count));
+    await expect(section.getByRole('heading', { name: 'Последний прогресс' })).toBeVisible();
+    const heights = await tiles.evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+    expect(new Set(heights).size).toBe(1);
     const expected = [...exercises.slice(count - gains), ...exercises.slice(0, count - gains)].slice(0, 6);
     await expect(tiles.locator('strong')).toHaveText(expected.map((exercise) => exercise.name));
     await section.getByRole('button', { name: 'Все упражнения' }).click();

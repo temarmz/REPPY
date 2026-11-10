@@ -14,11 +14,10 @@ struct ExerciseProgressSummary: View {
         let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
         let groups = ExerciseProgress.orderedGroups(store.progressGroups(relationshipIDs: scope), prioritizeGains: compact)
         if !hideEmpty || !groups.isEmpty {
-            if showHeading { ReppyHeading(text: "Прогресс по упражнениям") }
+            if showHeading { ReppyHeading(text: compact ? "Последний прогресс" : "Прогресс по упражнениям") }
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
             if compact && !groups.isEmpty {
-                let columns = Array(repeating: GridItem(.flexible(), spacing: ReppyMetrics.cardGap), count: typeSize.isAccessibilitySize ? 1 : 2)
-                LazyVGrid(columns: columns, alignment: .leading, spacing: ReppyMetrics.cardGap) {
+                ProgressTileLayout(columns: typeSize.isAccessibilitySize ? 1 : 2) {
                     ForEach(groups.prefix(6)) { group in
                         ReppyProgressComparisonLink(group: group, relationshipIDs: scope, compact: true)
                     }
@@ -44,6 +43,33 @@ struct ExerciseProgressSummary: View {
         }
     }
 }
+private struct ProgressTileLayout: Layout {
+    let columns: Int
+    private let spacing = ReppyMetrics.cardGap
+
+    private func tileSize(width: CGFloat, subviews: Subviews) -> CGSize {
+        let tileWidth = max(0, (width - CGFloat(columns - 1) * spacing) / CGFloat(columns))
+        let height = subviews.map { $0.sizeThatFits(ProposedViewSize(width: tileWidth, height: nil)).height }.max() ?? 0
+        return CGSize(width: tileWidth, height: height)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.replacingUnspecifiedDimensions().width
+        let rows = (subviews.count + columns - 1) / columns
+        let tile = tileSize(width: width, subviews: subviews)
+        return CGSize(width: width, height: CGFloat(rows) * tile.height + CGFloat(max(0, rows - 1)) * spacing)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let tile = tileSize(width: bounds.width, subviews: subviews)
+        for (index, subview) in subviews.enumerated() {
+            let origin = CGPoint(x: bounds.minX + CGFloat(index % columns) * (tile.width + spacing),
+                                 y: bounds.minY + CGFloat(index / columns) * (tile.height + spacing))
+            subview.place(at: origin, anchor: .topLeading, proposal: ProposedViewSize(tile))
+        }
+    }
+}
+
 struct ReppyProgressComparisonLink: View {
     var group: ProgressGroup
     var relationshipIDs: Set<String>
@@ -54,7 +80,12 @@ struct ReppyProgressComparisonLink: View {
         } label: {
             ReppyRow {
                 ReppyStack(compact: true) {
-                    ReppyHeading(text: group.exercise.name)
+                    if compact {
+                        Text(group.exercise.name).font(.footnote.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        ReppyHeading(text: group.exercise.name)
+                    }
                     if let comparison = ProgressComparison(group) {
                         if !compact, let previous = comparison.previous { ReppyCaption(text: "Было: \(setLabel(previous))") }
                         ReppyCaption(text: "\(compact || comparison.previous == nil ? "" : "Стало: ")\(setLabel(comparison.latest))")
@@ -64,7 +95,10 @@ struct ReppyProgressComparisonLink: View {
                     }
                 }
                 if !compact { Image(systemName: "chevron.right").foregroundStyle(ReppyTheme.muted).accessibilityHidden(true) }
-            }.padding(compact ? ReppyMetrics.space12 : ReppyMetrics.space16).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
+            }
+            .padding(compact ? ReppyMetrics.space12 : ReppyMetrics.space16)
+            .frame(maxWidth: compact ? .infinity : nil, maxHeight: compact ? .infinity : nil, alignment: .topLeading)
+            .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
         }.buttonStyle(.plain).accessibilityIdentifier("progress-summary-" + group.id)
     }
     private var unit: String { group.exercise.measureType == .duration ? "сек." : "повт." }

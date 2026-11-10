@@ -29,8 +29,9 @@ export function StudentExerciseProgress({ data, studentId, go, area = 'trainer',
   const muscles = [...new Set(groups.flatMap((group) => exerciseMuscleGroups(group.exercise)))];
   const visible = compact ? groups.slice(0, 6) : groups.filter(({ exercise }) => (muscle === 'all' || exerciseMuscleGroups(exercise).includes(muscle)) && `${exercise.name} ${exercise.equipment ?? ''} ${exerciseMuscleGroups(exercise).join(' ')}`.toLocaleLowerCase('ru').includes(search.trim().toLocaleLowerCase('ru')));
   if (hideEmpty && !groups.length) return null;
-  return <Section className="section-block student-exercise-progress" aria-label="Прогресс по упражнениям">
-    {showHeading && <SectionHeading title="Прогресс по упражнениям" />}
+  const title = compact ? "Последний прогресс" : "Прогресс по упражнениям";
+  return <Section className="section-block student-exercise-progress" aria-label={title}>
+    {showHeading && <SectionHeading title={title} />}
     {!compact && groups.length > 0 && <Box className="progress-filters">
       <Input type="search" aria-label="Поиск в прогрессе" placeholder="Поиск упражнения" value={search} onChange={(event) => setSearch(event.target.value)} />
       <Select aria-label="Мышечная группа" value={muscle} onChange={(event) => setMuscle(event.target.value as 'all' | MuscleGroup)}><SelectOption value="all">Все мышцы</SelectOption>{muscles.map((item) => <SelectOption key={item} value={item}>{item}</SelectOption>)}</Select>

@@ -36,10 +36,10 @@ for (const theme of ['dark', 'light']) for (const width of [360, 390, 1280]) {
   await page.goto('/#/student');
   await expect(nav.getByRole('button')).toHaveCount(3);
   await expect(nav.getByRole('button', { name: 'Главная', exact: true })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Прогресс по упражнениям' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Последний прогресс' })).toBeVisible();
   await page.screenshot({ animations: 'disabled', path: `work/nav-student-${theme}-${width}.png` });
   await page.locator('.topbar').getByRole('button', { name: 'Профиль', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Прогресс по упражнениям' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Последний прогресс' })).toHaveCount(0);
  });
 }
 
@@ -47,7 +47,7 @@ test('пустой прогресс скрыт на главной ученик�
  const data = createInitialState(); data.loggedIn = true; data.sessions = [];
  await page.goto('/'); await page.evaluate((data) => { localStorage.clear(); localStorage.setItem('reppy-demo-v0', JSON.stringify(data)); }, data);
  await page.goto('/#/student'); await page.reload();
- await expect(page.getByRole('region', { name: 'Прогресс по упражнениям' })).toHaveCount(0);
+ await expect(page.getByRole('region', { name: 'Последний прогресс' })).toHaveCount(0);
  await page.goto('/#/trainer/clients/invite'); await page.getByLabel('Имя ученика').fill('Новый ученик');
  await page.getByRole('button', { name: 'Продолжить', exact: true }).click();
  const output = page.locator('.invite-ready output'); await expect(output).toBeVisible();
