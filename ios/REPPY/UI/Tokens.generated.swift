@@ -16,6 +16,7 @@ enum ReppyTheme {
     static let secondary = adaptive(0xc8ccc5, 0x465043, darkAlpha: 1, lightAlpha: 1)
     static let muted = adaptive(0x979d95, 0x687067, darkAlpha: 1, lightAlpha: 1)
     static let lime = adaptive(0xb7e85a, 0xacd957, darkAlpha: 1, lightAlpha: 1)
+    static let limeStrong = adaptive(0xb7e85a, 0x4f7111, darkAlpha: 1, lightAlpha: 1)
     static let error = adaptive(0xdc7d73, 0xa84336, darkAlpha: 1, lightAlpha: 1)
     static let warning = adaptive(0xffd166, 0x86492d, darkAlpha: 1, lightAlpha: 1)
     static let button = adaptive(0xffffff, 0x192317, darkAlpha: 0.07, lightAlpha: 0.08)
@@ -42,6 +43,11 @@ enum ReppyMetrics {
     static let exerciseTitle: CGFloat = 18
     static let pageInset: CGFloat = 20
     static let iconSize: CGFloat = 20
+    static let calendarMarker: CGFloat = 7
+    static let addExerciseIcon: CGFloat = 27
+    static let emptyIcon: CGFloat = 24
+    static let emptyInset: CGFloat = 32
+    static let emptyMinHeight: CGFloat = 220
     static let notesGap: CGFloat = 16
     static let notesPadding: CGFloat = 12
     static let notesMinHeight: CGFloat = 208

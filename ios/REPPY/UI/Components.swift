@@ -299,11 +299,19 @@ struct ReppyEmpty: View {
     var icon = "dumbbell"
     var body: some View {
         VStack(spacing: ReppyMetrics.space16) {
-            Image(systemName: icon).font(.title2).foregroundStyle(ReppyTheme.lime).accessibilityHidden(true)
+            Image(systemName: icon)
+                .font(.system(size: ReppyMetrics.emptyIcon))
+                .foregroundStyle(ReppyTheme.limeStrong)
+                .accessibilityHidden(true)
             ReppyHeading(text: title)
-            ReppyText(text: message, tone: .secondary)
-        }.multilineTextAlignment(.center).padding((ReppyMetrics.space16 * 2))
-            .frame(maxWidth: .infinity, minHeight: 220)
+            ReppyCaption(text: message)
+        }
+        .multilineTextAlignment(.center)
+        .padding(ReppyMetrics.emptyInset)
+        .frame(maxWidth: .infinity, minHeight: ReppyMetrics.emptyMinHeight, alignment: .center)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 struct ReppyStatus: View {
