@@ -5,7 +5,7 @@ import EmptyState from './ui/empty-state';
 import type { AuthProfile, InvitationPreview } from './reppy-auth';
 import type { PendingTelegramRegistration } from './telegram-login';
 import { hasTelegramRedirectCallback, resetTelegramRedirect } from './telegram-login';
-import { ActionButton, FormError, TextField, Button } from './ui/controls';
+import { ActionButton, FormError, TextField } from './ui/controls';
 import { LoadingScreen } from './onboarding-screens';
 
 function AuthBrand() {
@@ -104,7 +104,7 @@ export function AccountScreen({
           {pending.username && <Paragraph className="form-notice">Telegram: @{pending.username}</Paragraph>}
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="check" type="submit" disabled={busy || displayName.trim().length < 2}>{busy ? 'Создаём кабинет…' : 'Создать кабинет тренера'}</ActionButton>
-          <Button className="auth-text-button" type="button" disabled={busy} onClick={() => { setPending(null); setError(''); }}>Использовать другой Telegram</Button>
+          <ActionButton variant="secondary" disabled={busy} onClick={() => { setPending(null); setError(''); }}>Использовать другой Telegram</ActionButton>
         </Form>}
         <ActionButton variant="secondary" icon="home" onClick={onHome}>На главную</ActionButton>
       </Section>

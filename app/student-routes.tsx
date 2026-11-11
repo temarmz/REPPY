@@ -137,14 +137,13 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const laterAssignments = assignments.slice(1);
   const balance = subscriptionBalance(data.subscriptionEntries, data.activeStudentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, data.activeStudentId).length > 0;
-  const trainerCount = new Set([...data.assignments, ...data.subscriptionEntries].filter((item) => item.studentId === data.activeStudentId).map((item) => item.relationshipId).filter(Boolean)).size;
+  const trainerCount = new Set([...(data.trainerConnections ?? []).filter((item) => item.studentId === data.activeStudentId).map((item) => item.relationshipId), ...[...data.assignments, ...data.subscriptionEntries].filter((item) => item.studentId === data.activeStudentId).map((item) => item.relationshipId).filter(Boolean)]).size;
 
   return (
     <Page className="content-page student-page">
-      {(data.trainerConnections?.length ?? 0) > 0 && <Section className="section-block"><SectionHeading title="Мои тренеры" />{data.trainerConnections?.filter((connection) => connection.studentId === data.activeStudentId).map((connection) => <Paragraph key={connection.relationshipId}>{connection.trainerName}</Paragraph>)}</Section>}
-      {hasSubscription && <Button type="button" className={`student-subscription-status ${trainerCount > 1 ? '' : subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
+      {(hasSubscription || trainerCount > 1) && <Button type="button" className={`student-subscription-status ${trainerCount > 1 ? '' : subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
         <Inline><Icon name={trainerCount > 1 ? 'users' : balance > 0 ? 'check' : 'minus'} /></Inline>
-        <Box><Small>АБОНЕМЕНТ</Small><Strong>{trainerCount > 1 ? 'По тренерам' : subscriptionBalanceLabel(balance)}</Strong></Box>
+        <Box><Small>АБОНЕМЕНТ</Small><Strong>{trainerCount > 1 ? `${balance} занятий у ${trainerCount} тренеров` : subscriptionBalanceLabel(balance)}</Strong></Box>
       </Button>}
       {mainAssignment ? (
         <Section className="student-focus-card">

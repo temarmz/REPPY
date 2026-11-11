@@ -46,7 +46,9 @@ test('настройки интерфейса сохраняются отдел�
 
   assert.equal(loadAllDaysPreference(), true);
   assert.equal(loadThemePreference(), 'light');
-  assert.equal(loadLastRoute('trainer', 'trainer-1'), '/trainer/clients/student-1');
+  assert.equal(loadLastRoute('trainer', 'trainer-1'), '/trainer');
+  saveLastRoute('/trainer/clients', 'trainer-1');
+  assert.equal(loadLastRoute('trainer', 'trainer-1'), '/trainer/clients');
   assert.equal(loadLastRoute('student', 'trainer-1'), '/student');
 }));
 

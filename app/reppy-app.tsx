@@ -339,7 +339,7 @@ export default function ReppyApp() {
       key="unified-auth"
       initialError={auth.error}
       onTelegramSignIn={auth.signInWithTelegram}
-      onCompleteRegistration={auth.finishTelegramTrainerRegistration}
+      onCompleteRegistration={async (pending, name) => { await auth.finishTelegramTrainerRegistration(pending, name); go('/trainer', true); }}
       onResumeTelegram={auth.resumeTelegramRedirect}
       onHome={() => go('/', true)}
     />;
@@ -358,7 +358,7 @@ export default function ReppyApp() {
       key="unified-auth"
       initialError={auth.error}
       onTelegramSignIn={auth.signInWithTelegram}
-      onCompleteRegistration={auth.finishTelegramTrainerRegistration}
+      onCompleteRegistration={async (pending, name) => { await auth.finishTelegramTrainerRegistration(pending, name); go('/trainer', true); }}
       onResumeTelegram={auth.resumeTelegramRedirect}
       onHome={() => go('/', true)}
     />;

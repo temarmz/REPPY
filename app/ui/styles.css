@@ -1445,7 +1445,7 @@ body.modal-open .bottom-nav { display: none; }
 .reschedule-request-card h2 { margin: 0; font-size: var(--font-size-20); letter-spacing: normal; }
 .reschedule-request-card p { display: flex; align-items: baseline; gap: var(--space-8); margin: var(--space-3) 0 0; color: var(--palette-dce0d8); font-size: var(--font-size-14); }
 .reschedule-request-card time { color: var(--lime); font-weight:var(--font-weight-900); }
-.reschedule-request-actions { display: grid; grid-template-columns: 1fr 1.15fr; gap: var(--space-9); }
+.reschedule-request-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-9); }
 .student-reschedule-button, .student-start-button { margin-top: var(--space-12); }
 .student-assignment-page .page-header { margin-bottom: var(--space-14); }
 .student-assignment-meta { display: flex; align-items: center; gap: var(--space-7); margin: 0 0 var(--space-24); color: var(--muted); font-size: var(--font-size-13); font-weight:var(--font-weight-750); }
@@ -1468,7 +1468,7 @@ body.modal-open .bottom-nav { display: none; }
 .assignment-edit-person strong { font-size: var(--font-size-23); letter-spacing: normal; }
 .assignment-edit-person p { margin: 0; color: var(--muted); font-size: var(--font-size-13); }
 .assignment-edit-card .form-section-heading { margin-top: var(--space-30); }
-.assignment-edit-actions { display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--space-10); margin-top: var(--space-26); }
+.assignment-edit-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-10); margin-top: var(--space-26); }
 .danger-button { display: inline-flex; min-height: var(--control-height-large); align-items: center; justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); background: var(--button-bg); color: var(--error-color); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-800); padding: var(--space-8) var(--space-16); }
 .danger-button .ui-icon { width: calc(var(--size-16) * var(--ui-icon-scale)); height: calc(var(--size-16) * var(--ui-icon-scale)); }
 .exercise-editor-head button:disabled { cursor: not-allowed; opacity: .35; }
@@ -1655,7 +1655,7 @@ body.modal-open .bottom-nav { display: none; }
 .picker-list .custom-exercise-builder .custom-exercise-option .ui-icon { width: calc(var(--size-18) * var(--ui-icon-scale)); height: calc(var(--size-18) * var(--ui-icon-scale)); }
 .exercise-plan-list p { line-height: 1.55; }
 
-.session-result-actions { display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--space-10); margin-bottom: var(--space-20); }
+.session-result-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-10); margin-bottom: var(--space-20); }
 .session-result-actions .wide-secondary { min-height: var(--control-height-large); }
 .result-exercises header > div { display: grid; min-width: 0; gap: var(--space-6); }
 .result-coach-note { display: flex; align-items: flex-start; gap: var(--space-6); color: var(--muted); font-size: var(--font-size-11); line-height: 1.45; }
@@ -1810,7 +1810,7 @@ body.modal-open .bottom-nav { display: none; }
 /* Shared workout detail and planning patterns */
 .assignment-detail-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-10);
   margin-bottom: var(--space-28);
 }
@@ -2055,7 +2055,7 @@ body.modal-open .bottom-nav { display: none; }
 .recent-payments > div { display: grid; gap: var(--space-4); }
 .recent-payments strong { font-size: var(--font-size-14); }
 .recent-payments small { color: var(--muted); font-size: var(--font-size-12); line-height: 1.45; }
-.subscription-actions { display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--space-10); margin-top: var(--space-22); }
+.subscription-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-10); margin-top: var(--space-22); }
 .subscription-actions .primary-button, .subscription-actions .wide-secondary { min-height: var(--control-height-large); }
 
 .student-subscription-status { width: 100%; color: var(--text-primary); text-align: left; cursor: pointer; display: grid; min-height: var(--size-76); grid-template-columns: auto minmax(0,1fr); align-items: center; gap: var(--space-13); margin-bottom: var(--space-16); border: 0; border-radius: var(--card-radius); padding: var(--space-14) var(--space-17); background: var(--surface); }

@@ -58,17 +58,7 @@ struct DashboardScreen: View {
                     NavigationLink { ProfileScreen() } label: { ReppyBalanceSummary(balance: store.ownBalance) }.buttonStyle(.plain).accessibilityLabel("Абонемент: открыть профиль")
                 }
                 if store.ownRelationshipIDs.count > 1 {
-                    ReppyCard {
-                        ReppyCaption(text: "АБОНЕМЕНТЫ ПО ТРЕНЕРАМ")
-                        ForEach(store.data.relationships.filter { store.ownRelationshipIDs.contains($0.id) }) { relationship in
-                            ReppyStack(compact: true) {
-                                ReppyHeading(text: store.data.trainerName(for: relationship.id) ?? "Тренер")
-                                ReppyText(text: ReppySubscriptionSummary.balanceLabel(store.data.balance(relationship.id),
-                                    hasEntries: store.data.subscriptions.contains { $0.relationship_id == relationship.id }))
-                            }
-                        }
-                        ReppyLink(title: "Подробнее", icon: "chevron.right") { ProfileScreen() }
-                    }
+                    ReppyLink(title: "\(store.ownBalance) занятий у \(store.ownRelationshipIDs.count) тренеров", icon: "person.2") { ProfileScreen() }
                 }
                 if let first = studentUpcoming.first { AssignmentCard(assignment: first, focus: true) }
                 else { ReppyEmpty(title: "Две недели свободны", message: "На ближайшие две недели тренер пока ничего не назначил.", icon: "sun.max") }

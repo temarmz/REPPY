@@ -141,7 +141,8 @@ export function saveThemePreference(theme: AppTheme) {
 export function loadLastRoute(role: 'trainer' | 'student', identity: string) {
   try {
     const route = window.localStorage.getItem(storageKey(LAST_ROUTE_PREFERENCE, identity));
-    return route?.startsWith(`/${role}`) ? route : `/${role}`;
+    const tabs = role === 'trainer' ? ['/trainer', '/trainer/calendar', '/trainer/clients', '/trainer/notes', '/trainer/profile'] : ['/student', '/student/calendar', '/student/notes', '/student/profile'];
+    return route && tabs.includes(route) ? route : `/${role}`;
   } catch {
     return `/${role}`;
   }
