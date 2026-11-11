@@ -31,6 +31,7 @@ colors.focusMeta = '--focus-meta';
 colors.divider = '--divider';
 const dimensions = { control: '--control-height-large', compact: '--control-height-medium', small: '--control-height-small', radius: '--control-radius', cardRadius: '--card-radius', modalRadius: '--modal-radius', cardGap: '--card-list-gap', exerciseTitle: '--exercise-title-font-size', pageInset: '--space-20' };
 dimensions.iconSize = '--size-20';
+dimensions.quantityWidth = '--size-20';
 Object.assign(dimensions, { calendarMarker: '--size-7', addExerciseIcon: '--size-27', emptyIcon: '--size-24', emptyInset: '--space-32', emptyMinHeight: '--size-220' });
 Object.assign(dimensions, { notesGap: '--notes-grid-gap', notesPadding: '--notes-card-padding', notesMinHeight: '--notes-day-min-height', notesFont: '--notes-editor-font-size', mediaMinHeight: '--size-150' });
 Object.assign(dimensions, { focusTitleFont: '--font-size-44', focusInset: '--space-22', focusMinHeight: '--size-310' });

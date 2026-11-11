@@ -145,7 +145,7 @@ struct ReppyButton: View {
     var action: () -> Void
     var body: some View {
         Button(action: action) { if let icon, !typeSize.isAccessibilitySize { Label(title, systemImage: icon) } else { Text(title) } }
-            .buttonStyle(ReppyButtonStyle(kind: kind, compact: compact)).disabled(disabled)
+            .buttonStyle(ReppyButtonStyle(kind: kind, compact: compact)).disabled(disabled).listRowSeparator(.hidden)
     }
 }
 struct ReppyLink<Destination: View>: View {

@@ -44,6 +44,7 @@ enum ReppyMetrics {
     static let exerciseTitle: CGFloat = 18
     static let pageInset: CGFloat = 20
     static let iconSize: CGFloat = 20
+    static let quantityWidth: CGFloat = 20
     static let calendarMarker: CGFloat = 7
     static let addExerciseIcon: CGFloat = 27
     static let emptyIcon: CGFloat = 24

@@ -62,6 +62,25 @@ struct ReppyExerciseSectionHeader: View {
     }
 }
 
+struct ReppyExerciseQuantityRow: View {
+    var name: String
+    var equipment: String
+    var count: Int
+    var onRemove: () -> Void
+    var onAdd: () -> Void
+    var body: some View {
+        HStack(spacing: ReppyMetrics.space12) {
+            VStack(alignment: .leading, spacing: ReppyMetrics.space8) {
+                Text(name).reppyTypography(.body)
+                Text(equipment).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0).accessibilityLabel("Убрать \(name)")
+            Text("\(count)").monospacedDigit().frame(minWidth: ReppyMetrics.quantityWidth).accessibilityLabel("Добавлено: \(count)")
+            Button(action: onAdd) { ReppyToolbarIcon(icon: "plus") }.accessibilityLabel("Добавить \(name)")
+        }.buttonStyle(.plain).listRowBackground(count > 0 ? ReppyTheme.brandSoft : ReppyTheme.surface)
+    }
+}
+
 struct ReppyExerciseHeader<Actions: View>: View {
     var exercise: WorkoutExercise
     var number: Int? = nil

@@ -4,6 +4,7 @@ final class SafariTests: XCTestCase {
   continueAfterFailure = false
   let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari"); safari.activate()
   if safari.buttons["Done"].exists { safari.buttons["Done"].firstMatch.tap() }
+  else if safari.buttons["selected"].exists { safari.buttons["selected"].firstMatch.tap() }
   let address = safari.textFields["Address"]
   if !address.exists { safari.swipeDown(); safari.swipeDown() }
   XCTAssertTrue(address.waitForExistence(timeout: 15), safari.debugDescription)
