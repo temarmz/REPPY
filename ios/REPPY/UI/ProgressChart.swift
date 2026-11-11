@@ -57,8 +57,6 @@ struct ReppyProgressChart: View {
             ForEach(selected.results.sorted { $0.exercise_instance_id == $1.exercise_instance_id ? $0.set_number < $1.set_number : $0.exercise_instance_id < $1.exercise_instance_id }) { result in
                 ReppyText(text: "\(result.set_number). " + (selected.exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(selected.exercise.unit)")
             }
-            let planned = selected.session.workout_snapshot.exercises.filter { $0.progressKey == selected.exercise.progressKey }.reduce(0) { $0 + $1.plannedSets.count }
-            if selected.results.count < planned { ReppyCaption(text: "Выполнено \(selected.results.count) из \(planned)") }
             ReppyLink(title: "Открыть тренировку") { SessionResultScreen(sessionID: selected.session.id) }
         }
         if points.count == 1 { ReppyCaption(text: "Для динамики нужно ещё одно занятие.") }

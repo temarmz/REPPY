@@ -1,6 +1,6 @@
 import ModalFrame from './ui/modal-frame';
 import { Field } from './ui/patterns';
-import { Page, DefinitionList, Box, DefinitionTerm, DefinitionValue, Section, Inline, Small, Strong, Paragraph, Card, Header, Heading, Italic, SelectOption } from './ui/elements';
+import { Page, DefinitionList, Box, DefinitionTerm, DefinitionValue, Section, Inline, Small, Strong, Paragraph, Card, Header, Heading, SelectOption } from './ui/elements';
 import { useState } from 'react';
 import { findSessionWorkout, formatDay, type DemoState, type WorkoutSession } from './reppy-data';
 import Icon from './ui/icon';
@@ -42,7 +42,6 @@ export default function SessionResult({
   const [comment, setComment] = useState(session.comment ?? '');
   const [deleteOpen, setDeleteOpen] = useState(false);
   if (!workout) return <NotFound />;
-  const completedSets = session.results.filter((result) => result.completed).length;
   const sessionState = session.completedAt ? 'Завершённая тренировка' : 'Незавершённая тренировка';
   const progressKeys = new Set(collectExerciseProgress(data.sessions, session.studentId).map((group) => group.key));
   const elapsed = session.completedAt ? formatElapsedTime(session.startedAt, new Date(session.completedAt).getTime()).label : '—';
@@ -52,11 +51,10 @@ export default function SessionResult({
       <Paragraph>{assignment ? assignmentScheduleLabel(assignment) : formatDay(session.completedAt ?? session.startedAt)}</Paragraph>
       <DefinitionList className="session-summary" aria-label="Итоги тренировки">
         <Box><DefinitionTerm>ДЛИТЕЛЬНОСТЬ</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
-        <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{completedSets} из {session.results.length}</DefinitionValue></Box>
+        <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{session.results.length}</DefinitionValue></Box>
         <Box><DefinitionTerm>УПРАЖНЕНИЯ</DefinitionTerm><DefinitionValue>{workout.exercises.length}</DefinitionValue></Box>
       </DefinitionList>
       {session.autoCompleted && <Paragraph>Тренировка завершена автоматически.</Paragraph>}
-      {session.completedAt && completedSets === 0 && <Paragraph>Тренировка завершена без отмеченных подходов.</Paragraph>}
       {trainerView && chargeStatus && <Section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><Inline><Small>АБОНЕМЕНТ</Small><Strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</Strong></Inline></Section>}
       {(session.mood || session.comment) && <Section className="session-feedback"><Inline>КАК ПРОШЛА ТРЕНИРОВКА</Inline>{session.mood && <Strong><Icon name="sun" /> {moodLabel(session.mood)}</Strong>}{session.comment && <Paragraph>{session.comment}</Paragraph>}</Section>}
       {onFeedback && <ActionButton variant="secondary" icon="edit" onClick={() => { setMood(session.mood ?? ''); setComment(session.comment ?? ''); setFeedbackOpen(true); }}>{session.mood || session.comment ? 'Изменить отзыв' : 'Как прошла тренировка?'}</ActionButton>}
@@ -77,7 +75,7 @@ export default function SessionResult({
           return (
             <Card key={exercise.id}>
               <Header><Inline>{String(index + 1).padStart(2, '0')}</Inline><Box><Heading>{exercise.name}</Heading><Small className="result-exercise-meta">{exerciseMetadata(exercise)}</Small>{exercise.coachNote && <Small className="result-coach-note"><Icon name="edit" /> {exercise.coachNote}</Small>}</Box></Header>
-              <Box>{results.map((result) => <Paragraph className={result.completed ? '' : 'not-completed'} key={result.setNumber}><Inline>Подход {result.setNumber}</Inline><Strong>{actualSetLabel(exercise, result)}</Strong><Italic><Icon name={result.completed ? 'check' : 'minus'} /></Italic></Paragraph>)}</Box>
+              <Box>{results.map((result) => <Paragraph key={result.setNumber}><Inline>Подход {result.setNumber}</Inline><Strong>{actualSetLabel(exercise, result)}</Strong></Paragraph>)}</Box>
               {progressKeys.has(progressKey(exercise)) && <ActionButton variant="secondary" className="exercise-progress-button" icon="history" onClick={() => go(progressHref(session.studentId, exercise, trainerView ? 'trainer' : 'student'))}>Прогресс упражнения</ActionButton>}
             </Card>
           );

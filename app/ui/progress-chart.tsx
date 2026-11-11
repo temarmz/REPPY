@@ -19,7 +19,6 @@ function ResultSets({ entry }: { entry: ProgressEntry }) {
         {visible.map((set) => <Inline className="progress-set" key={set.number}><Inline className="progress-set-number">{set.number}.</Inline> {progressSetLabel(block.exercise, set.result!)}</Inline>)}
       </Box>;
     })}
-    {entry.completed < entry.total && <Small className="progress-muted">Выполнено {entry.completed} из {entry.total}</Small>}
   </Box>;
 }
 export default function ProgressChart({ entries, exercise, go, sessionHref = (sessionId) => `/trainer/sessions/${sessionId}` }: { entries: ProgressEntry[]; exercise: WorkoutExercise; go: (path: string) => void; sessionHref?: (sessionId: string) => string }) {

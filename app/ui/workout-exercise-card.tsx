@@ -71,7 +71,6 @@ function ExerciseCardFrame({
   exercise,
   index,
   metadata,
-  completed = false,
   recentlyChanged,
   orderControls,
   children,
@@ -83,7 +82,6 @@ function ExerciseCardFrame({
   exercise: WorkoutExercise;
   index: number;
   metadata: string;
-  completed?: boolean;
   recentlyChanged: boolean;
   orderControls: ReactNode;
   children: ReactNode;
@@ -94,7 +92,6 @@ function ExerciseCardFrame({
   const className = [
     'active-exercise-card',
     mode === 'plan' ? 'plan-exercise-card' : '',
-    completed ? 'completed' : '',
     recentlyChanged ? 'recently-moved' : '',
   ].filter(Boolean).join(' ');
 
@@ -241,7 +238,6 @@ export function ActiveExerciseCard({
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
-  const allCompleted = results.length > 0 && results.every((result) => result.completed);
 
   return (
     <ExerciseCardFrame
@@ -249,14 +245,13 @@ export function ActiveExerciseCard({
       exercise={exercise}
       index={index}
       metadata={metadata}
-      completed={allCompleted}
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
       orderControls={onReorder ? <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button> : <ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
-      {results.length > 0 && <Section className="active-card-sets">
+      {results.length > 0 && <Section className="active-card-sets plan-card-sets">
         <Box className="set-columns" aria-hidden="true">
           <Inline>№</Inline>
           <Box className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
@@ -265,19 +260,12 @@ export function ActiveExerciseCard({
           </Box>
         </Box>
         {results.map((result) => (
-          <Card className={'set-card ' + (result.completed ? 'completed' : '')} key={result.setNumber}>
+          <Card className="set-card plan-set-card" key={result.setNumber}>
             <Box className="set-number"><Strong>{result.setNumber}</Strong></Box>
             <Box className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
               {exercise.loadMode !== 'bodyweight' && <Field label={<>КГ</>} ><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" emptyWhenZero onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></Field>}
               <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={result.actualReps} inputMode="numeric" emptyWhenZero onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></Field>
             </Box>
-            <Button
-              type="button"
-              disabled={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0))}
-              title={!result.completed && (result.actualReps <= 0 || (exercise.loadMode !== 'bodyweight' && result.actualWeight <= 0)) ? 'Сначала заполни повторы и вес' : undefined}
-              onClick={() => onResultChange(result.setNumber, { completed: !result.completed })}
-              aria-label={(result.completed ? 'Отменить подход ' : 'Завершить подход ') + result.setNumber + ' — ' + exercise.name}
-            ><Icon name="check" /></Button>
           </Card>
         ))}
       </Section>}

@@ -49,11 +49,11 @@ struct ActiveWorkoutScreen: View {
                         onInstruction: { instruction = exercise },
                         onAddSet: { addSet(to: exercise.id) },
                         onRemoveSet: { removeLastSet(from: exercise.id) },
-                        canRemoveSet: exercise.plannedSets.count > 0 && !value.results.contains { $0.exercise_instance_id == exercise.id && $0.set_number == exercise.plannedSets.count && $0.completed },
+                        canRemoveSet: exercise.plannedSets.count > 0,
                         onMoveUp: { moveExercise(exercise.id, by: -1) }, onMoveDown: { moveExercise(exercise.id, by: 1) }, onEditPlan: { structure = true },
                         canMoveUp: index > 0, canMoveDown: index + 1 < value.workout.exercises.count,
                         onDelete: { draft?.workout.exercises.removeAll { $0.id == exercise.id } },
-                        canDelete: !value.results.contains { $0.exercise_instance_id == exercise.id && $0.completed },
+                        canDelete: true,
                         onNoteChange: { note in
                             if let position = draft?.workout.exercises.firstIndex(where: { $0.id == exercise.id }) { draft?.workout.exercises[position].coachNote = note }
                         })
@@ -93,9 +93,6 @@ struct ActiveWorkoutScreen: View {
                     ReppyPage(back: true) {
                         ReppyWorkoutSuccessArt()
                         ReppyTitle(text: "Завершить тренировку?")
-                        if let draft {
-                            ReppyText(text: "Выполнено \(draft.results.filter(\.completed).count) из \(draft.results.count) подходов. Остальные останутся невыполненными.", tone: .secondary)
-                        }
                         if store.isTrainer { ReppyToggle(title: "Списать одно занятие", value: $charge) }
                         ReppyPicker(title: "Как прошла тренировка?", selection: $feedbackMood) {
                             Text("Без оценки").tag("")
@@ -132,12 +129,12 @@ struct ActiveWorkoutScreen: View {
     private var relationshipID: String { store.data.assignments.first { $0.id == draft?.session.assignment_id }?.relationship_id ?? "" }
     private func addSet(to id: String) {
         guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }) else { return }
-        draft?.workout.exercises[index].plannedSets.append(SetPlan())
+        let last = draft?.results.filter { $0.exercise_instance_id == id }.last
+        draft?.workout.exercises[index].plannedSets.append(SetPlan(targetReps: last?.actual_reps ?? 0, targetWeight: last?.actual_weight ?? 0))
     }
     private func removeLastSet(from id: String) {
         guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
-              let count = draft?.workout.exercises[index].plannedSets.count, count > 0,
-              draft?.results.contains(where: { $0.exercise_instance_id == id && $0.set_number == count && $0.completed }) == false else { return }
+              let count = draft?.workout.exercises[index].plannedSets.count, count > 0 else { return }
         draft?.workout.exercises[index].plannedSets.removeLast()
     }
     private func moveExercise(_ id: String, by offset: Int) {
@@ -236,6 +233,11 @@ struct ActiveWorkoutScreen: View {
         } else { status = "Не сохранено · повтори сохранение" }
     }
     private func complete() async {
+        if var value = draft {
+            value.results = value.results.map { result in var next = result; next.completed = next.actual_reps > 0; return next }
+            draft = value
+            revision += 1
+        }
         await flush()
         guard savedRevision == revision, let session = store.data.sessions.first(where: { $0.id == sessionID }), !saving else { return }
         if await store.run({ try await store.completeSession(session, charge: charge)

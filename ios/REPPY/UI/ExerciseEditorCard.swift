@@ -27,7 +27,8 @@ struct ExerciseEditorCard: View {
                 }
             }
             ReppyButton(title: "Добавить подход", icon: "plus", compact: true) {
-                exercise.plannedSets.append(SetPlan())
+                let last = exercise.plannedSets.last
+                exercise.plannedSets.append(SetPlan(targetReps: last?.targetReps ?? 0, targetWeight: last?.targetWeight ?? 0))
             }
             ReppyDisclosure(title: "Комментарий тренера") {
                 ReppyField(title: "Комментарий тренера", text: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }), multiline: true)

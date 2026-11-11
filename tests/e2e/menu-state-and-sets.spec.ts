@@ -173,7 +173,7 @@ for (const width of [320, 440]) {
     await expect(weight).toHaveValue('');
     await expect(reps).toHaveValue('');
     const complete = card.getByRole('button', { name: /Завершить подход 1/ });
-    await expect(complete).toBeDisabled();
+    await expect(complete).toHaveCount(0);
     // Type one character at a time to exercise the intermediate decimal separator.
     await weight.pressSequentially('2.5');
     await weight.press('Enter');
@@ -183,28 +183,22 @@ for (const width of [320, 440]) {
     await expect(weight).toHaveValue('2.5');
     await reps.fill('8');
     await reps.press('Enter');
-    await expect(complete).toBeEnabled();
-    await complete.click();
-    await expect(card.locator('.set-card.completed')).toHaveCount(1);
+    await expect(card.locator('.set-card.completed')).toHaveCount(0);
     const layout = await card.locator('.active-card-sets').evaluate((element) => {
       const row = element.querySelector('.set-card')!;
       const headerCells = [...element.querySelectorAll('.set-columns span')];
       const number = row.querySelector('.set-number')!.getBoundingClientRect();
       const inputs = [...row.querySelectorAll('input')].map((input) => input.getBoundingClientRect());
-      const check = row.querySelector('button')!.getBoundingClientRect();
       const centerX = (rect: DOMRect) => rect.x + rect.width / 2;
       return { columns: headerCells.map((cell) => centerX(cell.getBoundingClientRect())),
-        fields: [centerX(number), ...inputs.map(centerX)], inputY: inputs[0].y, checkY: check.y,
-        inputHeight: inputs[0].height, checkHeight: check.height, gap: inputs[0].x - number.right };
+        fields: [centerX(number), ...inputs.map(centerX)], gap: inputs[0].x - number.right };
     });
     for (const [index, center] of layout.columns.entries()) expect(Math.abs(center - layout.fields[index])).toBeLessThanOrEqual(1);
-    expect(layout.inputY).toBe(layout.checkY);
-    expect(layout.inputHeight).toBe(layout.checkHeight);
     expect(layout.gap).toBeGreaterThanOrEqual(8);
     await card.getByRole('button', { name: /Добавить подход/ }).click();
     await expect(card.locator('.set-card')).toHaveCount(2);
-    await expect(card.locator('.set-card').last().getByLabel('КГ')).toHaveValue('');
-    await expect(card.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('');
+    await expect(card.locator('.set-card').last().getByLabel('КГ')).toHaveValue('2.5');
+    await expect(card.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('8');
     await expect(card.locator('.set-card').first().getByLabel('КГ')).toHaveValue('2.5');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 440) await page.screenshot({ path: 'test-results/sets-aligned.png', fullPage: false });

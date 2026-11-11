@@ -47,8 +47,7 @@ for (const theme of ['dark', 'light'] as const) {
           await page.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
           await expect(page).not.toHaveURL(new RegExp(`${assignmentId}/edit$`));
         } else {
-          await card.getByRole('button', { name: /Завершить подход 1/ }).click();
-          await expect(card.locator('.set-card.completed')).toHaveCount(1);
+          await expect(card.getByRole('button', { name: /Завершить подход/ })).toHaveCount(0);
         }
         await expect.poll(() => page.evaluate(({ assignmentId, mode }) => {
           const data = JSON.parse(localStorage.getItem('reppy-demo-v0')!);

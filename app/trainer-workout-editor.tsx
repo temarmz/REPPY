@@ -458,7 +458,7 @@ function WorkoutExerciseEditor({
             })}
             onAddSet={() => updateExercise(exercise.id, (current) => {
               const plannedSets = getExerciseSetPlans(current);
-              plannedSets.push({ targetReps: 0, targetWeight: 0 });
+              plannedSets.push({ ...(plannedSets.at(-1) ?? { targetReps: 0, targetWeight: 0 }) });
               return withExerciseSetPlans(current, plannedSets);
             })}
             canRemoveSet={getExerciseSetPlans(exercise).length > (minSetsByExerciseId[exercise.id] ?? 0)}

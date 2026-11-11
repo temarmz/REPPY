@@ -33,7 +33,7 @@ values (
 select throws_ok($$insert into public.assignments(relationship_id, scheduled_for, scheduled_time, workout_snapshot)
 values ('30000000-0000-4000-8000-000000000001', current_date, '18:00', '{"name":"Draft","exercises":[]}')$$,
 '22023', 'Добавь хотя бы одно упражнение.', 'an empty composer draft cannot be published');
-select is((select count(*)::int from public.assignments), 0, 'invalid publication creates no calendar entry');
+select is((select count(*)::int from public.assignments where relationship_id='30000000-0000-4000-8000-000000000001'), 0, 'invalid publication creates no calendar entry');
 
 select throws_ok($$insert into public.assignments(relationship_id, scheduled_for, scheduled_time, workout_snapshot)
 values ('30000000-0000-4000-8000-000000000001', current_date, '18:00',
@@ -43,7 +43,7 @@ values ('30000000-0000-4000-8000-000000000001', current_date, '18:00',
 insert into public.assignments(id, relationship_id, scheduled_for, scheduled_time, workout_snapshot)
 values ('40000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', current_date, '18:00',
 '{"name":"Ready","exercises":[{"id":"50000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[{"targetReps":8,"targetWeight":0}]}]}');
-select is((select count(*)::int from public.assignments), 1, 'corrected submission publishes once and zero weight is valid');
+select is((select count(*)::int from public.assignments where relationship_id='30000000-0000-4000-8000-000000000001'), 1, 'corrected submission publishes once and zero weight is valid');
 
 -- Simulate a legacy empty assignment without modifying production records.
 alter table public.assignments disable trigger assignments_validate_published_workout;

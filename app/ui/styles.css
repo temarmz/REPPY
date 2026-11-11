@@ -919,7 +919,7 @@ body.modal-open .bottom-nav { display: none; }
 .result-exercises header { display: flex; min-height: var(--size-70); align-items: center; gap: var(--space-13); border-bottom: 0; padding: var(--space-13) var(--space-18); }
 .result-exercises header span { color: var(--lime); font-family: var(--app-font-mono); font-size: var(--font-size-10); font-weight:var(--font-weight-900); }
 .result-exercises h2 { margin: 0; font-size: var(--exercise-title-font-size); }
-.result-exercises p { display: grid; min-height: var(--size-53); grid-template-columns: 1fr auto 25px; align-items: center; gap: var(--space-10); margin: 0; border-bottom: 0; padding: var(--space-8) var(--space-18); }
+.result-exercises p { display: grid; min-height: var(--size-53); grid-template-columns: 1fr auto; align-items: center; gap: var(--space-10); margin: 0; border-bottom: 0; padding: var(--space-8) var(--space-18); }
 .result-exercises p:last-child { border-bottom: 0; }
 .result-exercises p > span { color: var(--muted); font-size: var(--font-size-11); }
 .result-exercises p strong { font-size: var(--font-size-13); }
@@ -1217,6 +1217,11 @@ body.modal-open .bottom-nav { display: none; }
 .field-label{
   font-size: var(--font-size-14);
 }
+[data-ui-element="field"] { display: grid; gap: var(--space-8); }
+[data-ui-element="field"] > span { color: var(--text-secondary); font-size: var(--font-size-14); font-weight: var(--font-weight-700); }
+[data-ui-element="field"] > :is(select, textarea) { width: 100%; min-height: var(--control-height-large); border: 1px solid var(--field-outline); border-radius: var(--control-radius); padding: var(--space-12); background: var(--field-bg); color: var(--text-primary); font: inherit; font-size: var(--font-size-16); }
+[data-ui-element="field"] > textarea { resize: vertical; }
+.bottom-sheet > [data-ui-element="field"] { margin-block: var(--space-16); }
 
 .add-exercise,
 .exercise-navigation button,
@@ -1655,7 +1660,7 @@ body.modal-open .bottom-nav { display: none; }
 .picker-list .custom-exercise-builder .custom-exercise-option .ui-icon { width: calc(var(--size-18) * var(--ui-icon-scale)); height: calc(var(--size-18) * var(--ui-icon-scale)); }
 .exercise-plan-list p { line-height: 1.55; }
 
-.session-result-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-10); margin-bottom: var(--space-20); }
+.session-result-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-10); margin-block: var(--space-20); }
 .session-result-actions .wide-secondary { min-height: var(--control-height-large); }
 .result-exercises header > div { display: grid; min-width: 0; gap: var(--space-6); }
 .result-coach-note { display: flex; align-items: flex-start; gap: var(--space-6); color: var(--muted); font-size: var(--font-size-11); line-height: 1.45; }
@@ -2135,7 +2140,7 @@ body.modal-open .bottom-nav { display: none; }
 .date-picker-sheet .calendar-picker-card { border: 0; border-radius: 0; padding: 0; background: transparent; }
 .date-picker-sheet > .primary-button { margin-top: var(--space-18); }
 
-.finish-workout-sheet { overflow-y: auto; }
+.finish-workout-sheet { overflow-y: auto; scroll-padding-block: var(--space-20); }
 .finish-balance-preview { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: var(--space-12); border: 0; border-radius: var(--card-radius); padding: 0; background: transparent; }
 .finish-balance-preview > span { grid-row: 1; color: var(--muted); font-size: var(--font-size-9); font-weight:var(--font-weight-900); letter-spacing: .1em; }
 .finish-balance-preview > span:nth-of-type(2) { grid-column: 3; }

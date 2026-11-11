@@ -748,31 +748,8 @@ export function createWorkoutSession(
 }
 
 export function updateSessionWorkout(session: WorkoutSession, workout: Workout): WorkoutSession {
-  const completedResults = session.results.filter((result) => result.completed);
-  const nextExerciseIds = new Set(workout.exercises.map((exercise) => exercise.id));
-  const adjustedExercises = workout.exercises.map((exercise) => {
-    const highestCompletedSet = Math.max(0, ...completedResults
-      .filter((result) => result.exerciseId === exercise.id)
-      .map((result) => result.setNumber));
-    const plannedSets = getExerciseSetPlans(exercise);
-    const fallback = plannedSets.at(-1) ?? { targetReps: 0, targetWeight: 0 };
-    while (plannedSets.length < highestCompletedSet) plannedSets.push({ ...fallback });
-    return withExerciseSetPlans(exercise, plannedSets);
-  });
-  const preservedExercises = session.workoutSnapshot.exercises
-    .filter((exercise) => !nextExerciseIds.has(exercise.id) && completedResults.some((result) => result.exerciseId === exercise.id))
-    .map((exercise) => {
-      const highestCompletedSet = Math.max(getExerciseSetPlans(exercise).length, ...completedResults
-        .filter((result) => result.exerciseId === exercise.id)
-        .map((result) => result.setNumber));
-      const plannedSets = getExerciseSetPlans(exercise);
-      const fallback = plannedSets.at(-1) ?? { targetReps: 0, targetWeight: 0 };
-      while (plannedSets.length < highestCompletedSet) plannedSets.push({ ...fallback });
-      return withExerciseSetPlans(exercise, plannedSets);
-    });
   const nextWorkout: Workout = {
     ...cloneWorkout(workout),
-    exercises: [...adjustedExercises, ...preservedExercises],
     updatedAt: new Date().toISOString(),
   };
 
@@ -783,7 +760,7 @@ export function updateSessionWorkout(session: WorkoutSession, workout: Workout):
       const setNumber = index + 1;
       const previousPlan = previousPlans[index];
       const existing = session.results.find((result) => result.exerciseId === exercise.id && result.setNumber === setNumber);
-      if (!existing || existing.completed) {
+      if (!existing) {
         return existing ?? {
           exerciseId: exercise.id,
           setNumber,

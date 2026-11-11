@@ -1,6 +1,6 @@
 begin;
 
-select plan(11);
+select plan(12);
 
 insert into auth.users (id)
 values
@@ -39,6 +39,7 @@ set local role authenticated;
 select lives_ok($$select public.start_workout_session_with_id('40000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001')$$,'zero set starts');
 select is((select actual_reps from public.set_results),0,'default has no invented repetitions');
 select public.complete_workout_session('60000000-0000-4000-8000-000000000001',true);
+select is((select completed from public.set_results where session_id='60000000-0000-4000-8000-000000000001'),false,'completion never invents repetitions in an empty set');
 select lives_ok($$select public.save_session_progress('60000000-0000-4000-8000-000000000001',
 (select revision from public.workout_sessions where id='60000000-0000-4000-8000-000000000001'),
 (select workout_snapshot from public.workout_sessions where id='60000000-0000-4000-8000-000000000001'),

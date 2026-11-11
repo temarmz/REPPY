@@ -60,14 +60,12 @@ for (const theme of ['dark', 'light'] as const) {
     await expect(active.locator('h2').first()).toHaveCSS('font-size', previewTitle);
     await expect(page.locator('.active-workout-overview h1')).toHaveCSS('font-size', previewPageTitle);
     await expectVisibleButtonSurfaces(page);
-    const done = active.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true });
-    const heights = await Promise.all([active.getByLabel('КГ').first(), active.getByLabel('ПОВТОРЫ').first(), done].map(async (control) => {
+    const heights = await Promise.all([active.getByLabel('КГ').first(), active.getByLabel('ПОВТОРЫ').first()].map(async (control) => {
       await expect(control).toBeVisible();
       return (await control.boundingBox())!.height;
     }));
-    expect(heights).toEqual([44, 44, 44]);
-    await done.click();
-    await expect(active.getByRole('button', { name: 'Отменить подход 1 — Жим лёжа', exact: true })).toBeVisible();
+    expect(heights).toEqual([44, 44]);
+    await expect(active.getByRole('button', { name: /Завершить подход|Отменить подход/ })).toHaveCount(0);
     await expect(active.locator('.set-card').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await page.screenshot({ path: `test-results/design-refresh/exercise-active-${theme}.png` });
 

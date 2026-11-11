@@ -20,8 +20,8 @@ export function observeMobileViewport(target: Window, root: HTMLElement) {
     restingHeight = Math.max(restingHeight, height);
     const keyboardOpen = editing && restingHeight - height > 100;
     root.toggleAttribute?.('data-keyboard-open', keyboardOpen);
-    if (keyboardOpen && root.classList.contains('app-viewport-locked') && target.scrollY) target.scrollTo({ top: 0, behavior: 'instant' });
-    const rawTop = keyboardOpen ? 0 : viewport?.offsetTop ?? 0;
+    if (keyboardOpen && !target.document.querySelector('.modal-layer-root') && root.classList.contains('app-viewport-locked') && target.scrollY) target.scrollTo({ top: 0, behavior: 'instant' });
+    const rawTop = keyboardOpen && !target.document.querySelector('.modal-layer-root') ? 0 : viewport?.offsetTop ?? 0;
     const top = Number.isFinite(rawTop)
       ? Math.max(0, Math.min(rawTop, target.innerHeight - height))
       : 0;

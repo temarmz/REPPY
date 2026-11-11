@@ -136,7 +136,7 @@ test('результат нового занятия появляется в п�
   const progressButtons = page.getByRole('button', { name: 'Прогресс упражнения' });
   await expect(progressButtons).toHaveCount(0);
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
-  await page.getByRole('button', { name: 'Завершить подход 1 — Жим лёжа', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Завершить подход/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
   await page.getByRole('dialog', { name: 'Завершение тренировки' }).getByRole('button', { name: 'Подтвердить завершение' }).click();
   await page.goto('/#/trainer/clients/artem/progress');
@@ -146,7 +146,7 @@ test('результат нового занятия появляется в п�
   await expect(page.locator('svg g[role="button"]')).toHaveCount(1);
   await expect(page.locator('.progress-point-hitarea')).toHaveAttribute('r', '22');
   await expect(page.getByText('Для динамики нужно ещё одно занятие.')).toBeVisible();
-  await expect(page.locator('.progress-selected')).toContainText('Выполнено 1 из 4');
+  await expect(page.locator('.progress-selected')).not.toContainText('Выполнено');
 });
 
 test('мобильный и широкий экран используют общие контролы без переполнения', async ({ page }) => {

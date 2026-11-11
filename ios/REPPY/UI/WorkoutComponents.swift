@@ -32,7 +32,7 @@ struct ReppySessionSummary: View {
     var body: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 3), alignment: .leading, spacing: ReppyMetrics.space16) {
             item("Длительность", elapsed)
-            item("Подходы", "\(results.filter(\.completed).count) из \(results.count)")
+            item("Подходы", "\(results.count)")
             item("Упражнения", String(session.workout_snapshot.exercises.count))
         }
     }
@@ -178,9 +178,7 @@ struct ReppyWorkoutFocus<Destination: View>: View {
             Spacer(minLength: ReppyMetrics.cardGap)
             Text(name).font(.system(size: titleSize, weight: .bold)).foregroundStyle(ReppyTheme.focusText).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
             Text(preview).reppyTypography(.body).foregroundStyle(ReppyTheme.focusSecondary).fixedSize(horizontal: false, vertical: true)
-            if let progress {
-                ProgressView(value: Double(progress.completed), total: Double(max(1, progress.total))).tint(ReppyTheme.focusAccent)
-                    .accessibilityLabel("Выполнено \(progress.completed) из \(progress.total) подходов")
+            if progress != nil {
                 Text("Тренировка начата").reppyTypography(.caption).foregroundStyle(ReppyTheme.focusSecondary)
             }
             NavigationLink(destination: destination) { Label(completed ? "Посмотреть результат" : "Посмотреть тренировку", systemImage: "calendar") }
@@ -224,17 +222,7 @@ struct ActiveSetRow: View {
                 ReppyNumericField(title: "Фактический вес подхода \(result.set_number), кг", value: $result.actual_weight)
             }
             if typeSize.isAccessibilitySize { ReppyCaption(text: exercise.unit) }
-            ReppyNumericField(title: "Фактически, \(exercise.unit), подход \(result.set_number)", value: Binding(get: { Double(result.actual_reps) }, set: { result.actual_reps = ReppyValidation.integer($0) }), integer: true)
-            Button {
-                result.completed.toggle(); UISelectionFeedbackGenerator().selectionChanged(); onChange()
-            } label: {
-                Image(systemName: result.completed ? "checkmark" : "circle").font(.system(size: 20, weight: .semibold))
-                    .frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
-                    .foregroundStyle(result.completed ? ReppyTheme.selectedText : ReppyTheme.secondary)
-                    .background(result.completed ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
-            }.buttonStyle(.plain).accessibilityLabel("Подход \(result.set_number): \(result.completed ? "выполнен" : "не выполнен")")
-                .accessibilityHint("\(exercise.name). \(result.completed ? "Снять отметку выполнения." : "Отметить подход выполненным.")")
-                .accessibilityAddTraits(result.completed ? .isSelected : [])
+            ReppyNumericField(title: "Фактически, \(exercise.unit), подход \(result.set_number)", value: Binding(get: { Double(result.actual_reps) }, set: { result.actual_reps = ReppyValidation.integer($0); result.completed = false }), integer: true)
         }
     }
 }
@@ -281,7 +269,6 @@ struct ReppySetSummaryRow: View {
             ReppyCaption(text: "Подход \(number)")
             Spacer(minLength: 0)
             Text(value).reppyTypography(.setNumber).monospacedDigit().fixedSize(horizontal: false, vertical: true)
-            if let completed { Image(systemName: completed ? "checkmark" : "minus").foregroundStyle(completed ? ReppyTheme.trendUp : ReppyTheme.muted).accessibilityLabel(completed ? "Выполнено" : "Не выполнено") }
         }.frame(minHeight: ReppyMetrics.small).accessibilityElement(children: .combine)
     }
 }
@@ -300,9 +287,7 @@ struct ReppyWorkoutOverview: View {
             ReppyRow {
                 Label(elapsed, systemImage: "timer").reppyTypography(.heading).monospacedDigit().accessibilityLabel("Время тренировки: \(elapsed)")
                 Spacer(minLength: 0)
-                ReppyCaption(text: "\(total > 0 ? Int(Double(completed) / Double(total) * 100) : 0)% · \(completed) из \(total) подходов")
             }
-            ReppyProgressBar(completed: completed, total: total)
         }
     }
 }

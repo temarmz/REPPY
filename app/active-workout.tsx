@@ -1,6 +1,6 @@
 import ExerciseOrderEditor from './ui/exercise-order-editor';
-import { ProgressBar, Badge } from './ui/patterns';
-import { Page, Box, Header, Inline, Strong, Time, Bold, Section, PageTitle, Footer, Image, Paragraph } from './ui/elements';
+import { Badge } from './ui/patterns';
+import { Page, Box, Header, Inline, Strong, Time, Section, PageTitle, Footer, Image } from './ui/elements';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
   cloneWorkout,
@@ -136,10 +136,7 @@ export default function ActiveWorkout({
     return <LoadingScreen message="Готовим тренировку…" />;
   }
 
-  const completed = session.results.filter((result) => result.completed).length;
-  const progress = Math.round((completed / Math.max(session.results.length, 1)) * 100);
   const elapsed = formatElapsedTime(session.startedAt, editingHistory && session.completedAt ? new Date(session.completedAt).getTime() : currentTime);
-  const unfinishedCount = session.results.filter((result) => !result.completed).length;
 
   const updateWorkout = (exercises: WorkoutExercise[]) => {
     if (!exercises.length) return;
@@ -164,7 +161,7 @@ export default function ActiveWorkout({
   const updateResult = (exerciseId: string, setNumber: number, patch: Partial<SetResult>) => {
     const current = session.results.find((result) => result.exerciseId === exerciseId && result.setNumber === setNumber);
     if (!current || Object.entries(patch).every(([key, value]) => current[key as keyof SetResult] === value)) return;
-    onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch } : result));
+    onUpdate(session.id, session.results.map((result) => result.exerciseId === exerciseId && result.setNumber === setNumber ? { ...result, ...patch, completed: Boolean(session.completedAt) && (patch.actualReps ?? result.actualReps) > 0 } : result));
   };
 
   const focusExercise = (exerciseId: string) => {
@@ -211,21 +208,16 @@ export default function ActiveWorkout({
   const actionExercise = workout.exercises.find((exercise) => exercise.id === actionExerciseId);
   const canRemovePickedExercise = (exerciseId: string) => {
     const item = workout.exercises.findLast((exercise) => exercise.exerciseId === exerciseId);
-    return Boolean(item && workout.exercises.length > 1 && !session.results.some((result) => result.exerciseId === item.id && result.completed));
+    return Boolean(item && workout.exercises.length > 1);
   };
   const removePickedExercise = (exerciseId: string) => {
     const index = workout.exercises.findLastIndex((exercise) => exercise.exerciseId === exerciseId);
     if (index < 0 || workout.exercises.length <= 1) return;
     const item = workout.exercises[index];
-    if (session.results.some((result) => result.exerciseId === item.id && result.completed)) return;
     updateWorkout(workout.exercises.filter((_, current) => current !== index));
     if (pickerAfterId === item.id) setPickerAfterId(workout.exercises[index - 1]?.id ?? workout.exercises.find((exercise) => exercise.id !== item.id)?.id ?? null);
   };
-  const actionResults = actionExercise ? session.results.filter((result) => result.exerciseId === actionExercise.id) : [];
-  const actionMinimumSets = Math.max(0, ...actionResults.filter((result) => result.completed).map((result) => result.setNumber));
-  const actionDeleteDisabledReason = actionMinimumSets > 0
-    ? 'Сначала отмени выполненные подходы'
-    : workout.exercises.length <= 1
+  const actionDeleteDisabledReason = workout.exercises.length <= 1
       ? 'В тренировке должно остаться хотя бы одно упражнение'
       : undefined;
 
@@ -236,9 +228,8 @@ export default function ActiveWorkout({
           <Button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></Button>
           <Box className="active-header-copy"><Inline>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</Inline><Strong><Badge as="i" className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</Badge></Strong></Box>
           <Button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
-          <Box className="active-timing"><Time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</Time><Bold>{progress}%</Bold></Box>
+          <Box className="active-timing"><Time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</Time></Box>
         </Header>
-        <ProgressBar className="active-progress" value={progress} />
       </Box>
 
       <Section className="active-workout-overview">
@@ -248,7 +239,6 @@ export default function ActiveWorkout({
       <Section className="active-exercise-list">
         {workout.exercises.map((exercise, index) => {
           const exerciseResults = session.results.filter((result) => result.exerciseId === exercise.id);
-          const minimumSets = Math.max(0, ...exerciseResults.filter((result) => result.completed).map((result) => result.setNumber));
           return (
             <ActiveExerciseCard
               key={exercise.id}
@@ -263,8 +253,8 @@ export default function ActiveWorkout({
               onShowInstruction={() => setInstructionExercise(exercise)}
               onShowActions={() => setActionExerciseId(exercise.id)}
             onReorder={() => setOrderOpen(true)}
-              onAddSet={() => updateExerciseSets(exercise.id, (plans) => [...plans, { targetReps: 0, targetWeight: 0 }])}
-              canRemoveSet={exerciseResults.length > minimumSets}
+              onAddSet={() => updateExerciseSets(exercise.id, (plans) => { const last = exerciseResults.at(-1); return [...plans, last ? { targetReps: last.actualReps, targetWeight: last.actualWeight } : { targetReps: 0, targetWeight: 0 }]; })}
+              canRemoveSet={exerciseResults.length > 0}
               onRemoveSet={() => updateExerciseSets(exercise.id, (plans) => plans.slice(0, -1))}
               onMoveUp={() => moveExercise(index, index - 1)}
               onMoveDown={() => moveExercise(index, index + 1)}
@@ -293,7 +283,6 @@ export default function ActiveWorkout({
         }}
       />}
       {finishOpen && <FinishWorkoutModal
-        unfinishedCount={unfinishedCount}
         canWaiveCharge={trainerCanWaiveCharge}
         onClose={() => setFinishOpen(false)}
         onFinish={(options) => {
@@ -309,14 +298,13 @@ export default function ActiveWorkout({
   );
 }
 
-function FinishWorkoutModal({ unfinishedCount, canWaiveCharge, onClose, onFinish }: { unfinishedCount: number; canWaiveCharge: boolean; onClose: () => void; onFinish: (options: WorkoutFinishOptions) => void }) {
+function FinishWorkoutModal({ canWaiveCharge, onClose, onFinish }: { canWaiveCharge: boolean; onClose: () => void; onFinish: (options: WorkoutFinishOptions) => void }) {
   const [chargeSubscription, setCharge] = useState(true);
   const [mood, setMood] = useState<MoodRating | ''>('');
   const [comment, setComment] = useState('');
   return (
     <ModalFrame title="Завершить тренировку?" className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
       <Image className="finish-illustration" src={UI_ASSETS.success} alt="Динозавр показывает большой палец" />
-      {unfinishedCount > 0 && <Paragraph>Не отмечено подходов: {unfinishedCount}. Они останутся невыполненными.</Paragraph>}
       {canWaiveCharge && <Switch checked={chargeSubscription} onCheckedChange={setCharge}>Списать одно занятие</Switch>}
       <Field label="Как прошла тренировка?"><Select aria-label="Как прошла тренировка?" value={mood} onChange={(event) => setMood(event.target.value as MoodRating | '')}><SelectOption value="">Без оценки</SelectOption>{MOODS.map((item) => <SelectOption key={item.value} value={item.value}>{item.label}</SelectOption>)}</Select></Field>
       <Field label="Комментарий"><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>

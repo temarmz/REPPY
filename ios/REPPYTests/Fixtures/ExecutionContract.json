@@ -308,36 +308,6 @@
               "targetWeight": 80
             }
           ]
-        },
-        {
-          "id": "legs-squat",
-          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
-          "name": "Приседания",
-          "primaryMuscle": "Квадрицепс",
-          "muscleGroups": [
-            "Квадрицепс"
-          ],
-          "equipment": "Штанга",
-          "loadMode": "external",
-          "measureType": "reps",
-          "plannedSets": [
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            },
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            },
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            },
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            }
-          ]
         }
       ],
       "updatedAt": "2026-10-29T09:00:00.000Z"
@@ -397,38 +367,6 @@
         "set_number": 3,
         "actual_reps": 8,
         "actual_weight": 80,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 1,
-        "actual_reps": 8,
-        "actual_weight": 75.25,
-        "completed": true
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 2,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 3,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 4,
-        "actual_reps": 8,
-        "actual_weight": 70,
         "completed": false
       }
     ],
@@ -804,24 +742,7 @@
           "equipment": "Штанга",
           "loadMode": "external",
           "measureType": "reps",
-          "plannedSets": [
-            {
-              "targetReps": 0,
-              "targetWeight": 0
-            },
-            {
-              "targetReps": 0,
-              "targetWeight": 0
-            },
-            {
-              "targetReps": 0,
-              "targetWeight": 0
-            },
-            {
-              "targetReps": 0,
-              "targetWeight": 0
-            }
-          ]
+          "plannedSets": []
         },
         {
           "id": "legs-press",
@@ -883,38 +804,6 @@
       "updatedAt": "2026-10-29T09:00:00.000Z"
     },
     "expectedResults": [
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 1,
-        "actual_reps": 0,
-        "actual_weight": 0,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 2,
-        "actual_reps": 0,
-        "actual_weight": 0,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 3,
-        "actual_reps": 0,
-        "actual_weight": 0,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 4,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": true
-      },
       {
         "session_id": "contract-session",
         "exercise_instance_id": "legs-press",
@@ -3971,74 +3860,10 @@
       "id": "legs",
       "name": "Ноги",
       "createdAt": "2026-10-29T09:00:00.000Z",
-      "exercises": [
-        {
-          "id": "legs-squat",
-          "exerciseId": "23cbac05-5b22-4a03-82cc-8d25ef1adf56",
-          "name": "Приседания",
-          "primaryMuscle": "Квадрицепс",
-          "muscleGroups": [
-            "Квадрицепс"
-          ],
-          "equipment": "Штанга",
-          "loadMode": "external",
-          "measureType": "reps",
-          "plannedSets": [
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            },
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            },
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            },
-            {
-              "targetReps": 8,
-              "targetWeight": 70
-            }
-          ]
-        }
-      ],
+      "exercises": [],
       "updatedAt": "2026-10-29T09:00:00.000Z"
     },
-    "expectedResults": [
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 1,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": true
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 2,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 3,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": false
-      },
-      {
-        "session_id": "contract-session",
-        "exercise_instance_id": "legs-squat",
-        "set_number": 4,
-        "actual_reps": 8,
-        "actual_weight": 70,
-        "completed": false
-      }
-    ],
+    "expectedResults": [],
     "expectedRepeatPlan": {
       "id": "legs",
       "name": "Ноги",

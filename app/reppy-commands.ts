@@ -116,6 +116,7 @@ export function applyReppyCommand(state: DemoState, command: ReppyCommand): Demo
       const completedSession = session ? {
         ...session,
         completedAt: command.completedAt,
+        results: session.results.map((result) => ({ ...result, completed: result.actualReps > 0 })),
         subscriptionChargeStatus: command.chargeSubscription ? 'charged' as const : 'waived' as const,
       } : undefined;
       return {

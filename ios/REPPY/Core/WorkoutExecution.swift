@@ -15,31 +15,13 @@ public enum WorkoutExecution {
 
     public static func reconcile(sessionID: String, previous: Workout, proposed: Workout, results: [SetResult]) -> ExecutionSnapshot {
         let previousResults = results.filter { $0.session_id == sessionID }
-        let completed = previousResults.filter { $0.completed }
-        let proposedIDs = Set(proposed.exercises.map { $0.id })
-        func retainingCompletedSets(_ exercise: WorkoutExercise) -> WorkoutExercise {
-            var exercise = exercise
-            let last = completed.filter { $0.exercise_instance_id == exercise.id }.map { $0.set_number }.max() ?? 0
-            let fallback = exercise.plannedSets.last ?? SetPlan()
-            while exercise.plannedSets.count < last {
-                exercise.plannedSets.append(SetPlan(targetReps: fallback.targetReps, targetWeight: fallback.targetWeight))
-            }
-            return exercise
-        }
-        var workout = proposed
-        workout.exercises = proposed.exercises.map(retainingCompletedSets)
-        // Removing an unfinished exercise is fine. Completed work remains in the
-        // snapshot, even if a stale editor submits a structure without it.
-        workout.exercises += previous.exercises.filter { exercise in
-            !proposedIDs.contains(exercise.id) && completed.contains { $0.exercise_instance_id == exercise.id }
-        }.map(retainingCompletedSets)
+        let workout = proposed
         let reconciled = workout.exercises.flatMap { exercise -> [SetResult] in
             let old = previous.exercises.first { $0.id == exercise.id }
             return exercise.plannedSets.enumerated().map { index, plan in
                 guard var result = previousResults.first(where: { $0.exercise_instance_id == exercise.id && $0.set_number == index + 1 }) else {
                     return makeResult(sessionID: sessionID, exercise: exercise, number: index + 1, plan: plan)
                 }
-                guard !result.completed else { return result }
                 let previousPlan = old.flatMap { $0.plannedSets.indices.contains(index) ? $0.plannedSets[index] : nil }
                 // User-entered facts survive plan edits; untouched defaults follow
                 // the new plan, just like the web client's reducer.

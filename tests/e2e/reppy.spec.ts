@@ -1053,8 +1053,7 @@ test('тренер ведёт занятие, правит его в момен�
   const squatCard = page.locator('.active-exercise-card').filter({ hasText: 'Приседания' });
   await expect(squatCard.getByText('Квадрицепс · Штанга')).toBeVisible();
   const firstSquatSetButton = page.getByRole('button', { name: 'Завершить подход 1 — Приседания' });
-  await expect(firstSquatSetButton).toHaveCSS('color', 'rgb(151, 157, 149)');
-  await expect(firstSquatSetButton.locator('.ui-icon')).toHaveAttribute('style', /icon-checkmark\.svg/);
+  await expect(firstSquatSetButton).toHaveCount(0);
   const controlHeights = await Promise.all([
     squatCard.getByRole('button', { name: 'Порядок упражнений' }),
     squatCard.getByRole('button', { name: 'Как выполнять — Приседания' }),
@@ -1159,21 +1158,19 @@ test('тренер ведёт занятие, правит его в момен�
   await personalPicker.getByRole('button', { name: 'Готово' }).click();
 
   await expect(squatCard.locator('.set-card')).toHaveCount(5);
-  await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('');
-  await expect(squatCard.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('');
+  await expect(squatCard.locator('.set-card').last().getByLabel('КГ')).toHaveValue('70');
+  await expect(squatCard.locator('.set-card').last().getByLabel('ПОВТОРЫ')).toHaveValue('8');
   await squatCard.getByLabel('КГ').first().fill('72.5');
   await squatCard.getByLabel('КГ').first().press('Enter');
   await squatCard.getByLabel('ПОВТОРЫ').first().fill('6');
   await squatCard.getByLabel('ПОВТОРЫ').first().press('Enter');
-  await page.getByRole('button', { name: 'Завершить подход 1 — Приседания' }).click();
   await squatCard.getByRole('button', { name: 'Действия — Приседания' }).click();
   actionsDialog = page.getByRole('dialog', { name: 'Действия — Приседания' });
-  await expect(actionsDialog.getByRole('button', { name: /Удалить упражнение/ })).toBeDisabled();
+  await expect(actionsDialog.getByRole('button', { name: /Удалить упражнение/ })).toBeEnabled();
   await actionsDialog.getByRole('button', { name: 'Закрыть действия' }).click();
 
   const legPressCard = page.locator('.active-exercise-card').filter({ hasText: 'Жим ногами' });
-  await page.getByRole('button', { name: 'Завершить подход 1 — Жим ногами' }).click();
-  await expect(legPressCard.locator('.set-card.completed')).toHaveCount(1);
+  await expect(legPressCard.locator('.set-card.completed')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Завершить тренировку' }).click();
   await expect(page.getByRole('dialog', { name: 'Завершение тренировки' })).toBeVisible();

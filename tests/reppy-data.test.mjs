@@ -251,8 +251,8 @@ test('тренер может начать сессию и безопасно м
 
   const withoutCompletedExercise = { ...edited, exercises: edited.exercises.slice(1) };
   const protectedUpdate = updateSessionWorkout(updated, withoutCompletedExercise);
-  assert.ok(protectedUpdate.workoutSnapshot.exercises.some((exercise) => exercise.id === edited.exercises[0].id));
-  assert.ok(protectedUpdate.results.some((result) => result.exerciseId === edited.exercises[0].id && result.completed));
+  assert.equal(protectedUpdate.workoutSnapshot.exercises.some((exercise) => exercise.id === edited.exercises[0].id), false);
+  assert.equal(protectedUpdate.results.some((result) => result.exerciseId === edited.exercises[0].id), false);
 });
 
 test('каждый плановый подход задаёт собственные повторы и вес в новой сессии', () => {

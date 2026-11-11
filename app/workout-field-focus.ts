@@ -21,7 +21,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     frame = 0;
     const field = document.activeElement;
     if (!(field instanceof HTMLElement) || !field.matches('input:not([type="checkbox"]):not([type="file"]), textarea')
-      || !field.closest('[data-workout-composer], .active-workout-page, .athlete-form, .notes-page') || !field.getClientRects().length) {
+      || !field.closest('[data-workout-composer], .active-workout-page, .athlete-form, .notes-page, .bottom-sheet') || !field.getClientRects().length) {
       document.documentElement.style.removeProperty('--workout-keyboard-space');
       return;
     }
@@ -30,7 +30,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     const visibleTop = viewport?.offsetTop ?? 0;
     let top = visibleTop;
     let bottom = visibleTop + (viewport?.height ?? target.innerHeight);
-    const page = field.closest<HTMLElement>('.page-wrap');
+    const page = field.closest<HTMLElement>('.bottom-sheet, .page-wrap');
     const scrollsPage = page && /auto|scroll/.test(target.getComputedStyle(page).overflowY);
     if (scrollsPage) {
       const rect = page.getBoundingClientRect();

@@ -1,7 +1,7 @@
 import { UI_ASSETS } from './ui/assets';
 import { ListRow } from './ui/patterns';
-import { SectionHeading, Field, ProgressBar } from './ui/patterns';
-import { Page, Paragraph, Inline, Time, Section, Box, Strong, Small, Heading, Bold, Fieldset, Legend, Italic, Image, PageTitle, LineBreak } from './ui/elements';
+import { SectionHeading, Field } from './ui/patterns';
+import { Page, Paragraph, Inline, Time, Section, Box, Strong, Small, Heading, Fieldset, Legend, Italic, Image, PageTitle, LineBreak } from './ui/elements';
 import { useEffect, useState } from 'react';
 import {
   createWorkoutSession,
@@ -132,8 +132,6 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
   const mainAssignment = assignments[0];
   const mainSession = mainAssignment && data.sessions.find((item) => item.assignmentId === mainAssignment.id && !item.completedAt);
   const mainWorkout = mainAssignment && (mainSession ? findSessionWorkout(data, mainSession) : findAssignmentWorkout(data, mainAssignment));
-  const mainCompletedSets = mainSession?.results.filter((item) => item.completed).length ?? 0;
-  const mainProgress = mainSession ? Math.round((mainCompletedSets / Math.max(mainSession.results.length, 1)) * 100) : 0;
   const laterAssignments = assignments.slice(1);
   const balance = subscriptionBalance(data.subscriptionEntries, data.activeStudentId);
   const hasSubscription = subscriptionEntriesFor(data.subscriptionEntries, data.activeStudentId).length > 0;
@@ -147,9 +145,8 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
       </Button>}
       {mainAssignment ? (
         <Section className="student-focus-card">
-          <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}{mainAssignment.trainerName ? ` · ${mainAssignment.trainerName}` : ''}</Small></Time>{mainSession && <Bold>{mainProgress}%</Bold>}</Box>
+          <Box className="student-card-top"><Time dateTime={assignmentDateTime(mainAssignment)}><Strong>{formatScheduleDay(mainAssignment.scheduledFor)}</Strong><Small>{assignmentTimeLabel(mainAssignment)}{mainAssignment.trainerName ? ` · ${mainAssignment.trainerName}` : ''}</Small></Time></Box>
           <Box><Heading>{mainWorkout?.name}</Heading><Paragraph>{exercisePreview(mainWorkout)}</Paragraph></Box>
-          {mainSession && <ProgressBar value={mainProgress} />}
           <Button type="button" onClick={() => onOpen(mainAssignment.id)}><Icon name="calendar" /> Посмотреть тренировку</Button>
         </Section>
       ) : <EmptyState icon="sun" title="Две недели свободны" text={STUDENT_COPY.emptyAssignments} />}
