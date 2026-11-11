@@ -17,6 +17,7 @@ enum ReppyTheme {
     static let muted = adaptive(0x979d95, 0x687067, darkAlpha: 1, lightAlpha: 1)
     static let lime = adaptive(0xb7e85a, 0xacd957, darkAlpha: 1, lightAlpha: 1)
     static let limeStrong = adaptive(0xb7e85a, 0x4f7111, darkAlpha: 1, lightAlpha: 1)
+    static let brandSoft = adaptive(0xb7e85a, 0x5d8012, darkAlpha: 0.11, lightAlpha: 0.1)
     static let error = adaptive(0xdc7d73, 0xa84336, darkAlpha: 1, lightAlpha: 1)
     static let warning = adaptive(0xffd166, 0x86492d, darkAlpha: 1, lightAlpha: 1)
     static let button = adaptive(0xffffff, 0x192317, darkAlpha: 0.07, lightAlpha: 0.08)

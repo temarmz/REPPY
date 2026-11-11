@@ -5,6 +5,13 @@ import { useState, type ReactNode } from 'react';
 import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from '../reppy-data';
 import Icon from './icon';
 
+export function ExerciseSectionHeader({ onReorder, onAdd }: { onReorder?: () => void; onAdd: () => void }) {
+  return <Box className="form-section-heading"><Heading>Упражнения</Heading><Box className="exercise-section-actions">
+    {onReorder && <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button>}
+    <Button className="plan-exercise-add" type="button" onClick={onAdd} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
+  </Box></Box>;
+}
+
 function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric', emptyWhenZero = false }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal'; emptyWhenZero?: boolean }) {
   const [draft, setDraft] = useState<string | null>(null);
   const displayValue = emptyWhenZero && value === 0 ? '' : String(value);
@@ -72,7 +79,6 @@ function ExerciseCardFrame({
   index,
   metadata,
   recentlyChanged,
-  orderControls,
   children,
   footer,
   onShowInstruction,
@@ -83,7 +89,6 @@ function ExerciseCardFrame({
   index: number;
   metadata: string;
   recentlyChanged: boolean;
-  orderControls: ReactNode;
   children: ReactNode;
   footer: ReactNode;
   onShowInstruction: () => void;
@@ -106,31 +111,15 @@ function ExerciseCardFrame({
         <Inline className="active-exercise-number">{String(index + 1).padStart(2, '0')}</Inline>
         <Box><Heading>{exercise.name}</Heading><Small className="active-exercise-meta">{metadata}</Small></Box>
         <Box className="active-exercise-corner-actions">
-          {orderControls}
           <Box className="exercise-info-controls">
           <Button className="exercise-help" type="button" aria-haspopup="dialog" onClick={onShowInstruction} aria-label={'Как выполнять — ' + exercise.name}><Icon name="help" /></Button>
-          <Button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={(mode === 'plan' ? 'Удалить упражнение — ' : 'Действия — ') + exercise.name}><Icon name={mode === 'plan' ? 'trash' : 'more'} /></Button>
+          <Button className="exercise-menu" type="button" aria-haspopup="dialog" onClick={onShowActions} aria-label={'Действия — ' + exercise.name}><Icon name="more" /></Button>
           </Box>
         </Box>
       </Header>
       {children}
       {footer}
     </Card>
-  );
-}
-
-function ExerciseOrderControls({ exercise, index, totalExercises, onMoveUp, onMoveDown }: {
-  exercise: WorkoutExercise;
-  index: number;
-  totalExercises: number;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-}) {
-  return (
-      <Box className="exercise-order-controls" role="group" aria-label={'Порядок — ' + exercise.name}>
-        <Button className="move-up" type="button" disabled={index === 0} onClick={onMoveUp} aria-label={'Поднять ' + exercise.name + ' выше'}><Icon name="move-up" /></Button>
-        <Button className="move-down" type="button" disabled={index === totalExercises - 1} onClick={onMoveDown} aria-label={'Опустить ' + exercise.name + ' ниже'}><Icon name="move-down" /></Button>
-      </Box>
   );
 }
 
@@ -163,13 +152,9 @@ export function PlanExerciseCard({
   exercise,
   metadata,
   index,
-  totalExercises,
   recentlyMoved,
   onShowInstruction,
   onShowActions,
-  onReorder,
-  onMoveUp,
-  onMoveDown,
   onNoteChange,
   onSetChange,
   onAddSet,
@@ -190,7 +175,6 @@ export function PlanExerciseCard({
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
-      orderControls={onReorder ? <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button> : <ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
       {plans.length > 0 && <Section className="active-card-sets plan-card-sets">
@@ -220,19 +204,15 @@ export function ActiveExerciseCard({
   exercise,
   metadata,
   index,
-  totalExercises,
   results,
   recentlyMoved,
   onNoteChange,
   onResultChange,
   onShowInstruction,
   onShowActions,
-  onReorder,
   onAddSet,
   canRemoveSet,
   onRemoveSet,
-  onMoveUp,
-  onMoveDown,
 }: SharedExerciseCardProps & {
   results: SetResult[];
   onResultChange: (setNumber: number, patch: Partial<SetResult>) => void;
@@ -248,7 +228,6 @@ export function ActiveExerciseCard({
       recentlyChanged={recentlyMoved}
       onShowInstruction={onShowInstruction}
       onShowActions={onShowActions}
-      orderControls={onReorder ? <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button> : <ExerciseOrderControls exercise={exercise} index={index} totalExercises={totalExercises} onMoveUp={onMoveUp} onMoveDown={onMoveDown} />}
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={results.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
       {results.length > 0 && <Section className="active-card-sets plan-card-sets">

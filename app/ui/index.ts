@@ -15,7 +15,7 @@ export { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError } from
 export { default as MonthDatePicker } from './month-date-picker';
 export { default as WorkoutScheduleFields, DatePickerField } from './workout-schedule-fields';
 export { default as ReadOnlyExerciseList } from './read-only-exercise-list';
-export { PlanExerciseCard, ActiveExerciseCard } from './workout-exercise-card';
+export { PlanExerciseCard, ActiveExerciseCard, ExerciseSectionHeader } from './workout-exercise-card';
 export { default as ExerciseInstructionModal } from './exercise-instruction-modal';
 export { default as ProgressChart } from './progress-chart';
 export { default as NoteDayCard } from './note-day-card';

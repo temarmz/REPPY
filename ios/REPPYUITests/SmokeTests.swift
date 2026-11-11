@@ -86,7 +86,7 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Тренер пока не добавил видео"].waitForExistence(timeout: 5)); capture(app, "instruction-" + suffix)
         revealAndTap(app.buttons["Закрыть"], in: app)
         if role == "trainer" {
-            revealAndTap(app.buttons["Редактировать план"], in: app)
+            revealAndTap(app.buttons["Редактировать"], in: app)
             revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
             XCTAssertTrue(app.buttons["Сохранить инструкцию"].waitForExistence(timeout: 5)); capture(app, "instruction-editor-" + suffix)
             let text = app.textFields["Подробное описание упражнения"]
@@ -292,7 +292,7 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
         revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
         revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Грудь и плечи")).firstMatch, in: app)
-        revealAndTap(app.buttons["Редактировать план"], in: app)
+        revealAndTap(app.buttons["Редактировать"], in: app)
         revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
         let field = app.textFields["Подробное описание упражнения"]
         revealAndTap(field, in: app); field.typeText(" нативная проверка")

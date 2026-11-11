@@ -14,7 +14,7 @@ import { AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError } from
 import MonthDatePicker from './month-date-picker';
 import WorkoutScheduleFields, { DatePickerField } from './workout-schedule-fields';
 import ReadOnlyExerciseList from './read-only-exercise-list';
-import { ActiveExerciseCard, PlanExerciseCard } from './workout-exercise-card';
+import { ActiveExerciseCard, PlanExerciseCard, ExerciseSectionHeader } from './workout-exercise-card';
 import ExerciseInstructionModal from './exercise-instruction-modal';
 import NoteDayCard from './note-day-card';
 
@@ -25,7 +25,7 @@ export const UI_COMPONENTS = {
   ...patterns,
   ProgressChart, Icon, Avatar, InitialsAvatar, PageHeader, ModalFrame, ConfirmationModal, EmptyState,
   AppShell, AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, MonthDatePicker, WorkoutScheduleFields,
-  DatePickerField, ReadOnlyExerciseList, ActiveExerciseCard, PlanExerciseCard,
+  DatePickerField, ReadOnlyExerciseList, ActiveExerciseCard, PlanExerciseCard, ExerciseSectionHeader,
   ExerciseInstructionModal,
   NoteDayCard, ExerciseOrderEditor,
 };

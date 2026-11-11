@@ -34,6 +34,9 @@ struct StudentScreen: View {
     var studentID: String
     @State private var section = "data"
     @State private var confirmDelete = false
+    private var studentAvailable: Bool {
+        store.data.students.contains(where: { $0.id == studentID }) && store.data.relationship(for: studentID) != nil
+    }
     var body: some View {
         ReppyPage(back: true) {
             if let student = store.data.students.first(where: { $0.id == studentID }), let relationship = store.data.relationship(for: studentID) {
@@ -65,12 +68,18 @@ struct StudentScreen: View {
                     ReppyButton(title: "Удалить ученика", icon: "trash", kind: .danger, disabled: store.busy) { confirmDelete = true }
                 }
                 }
-            } else { ReppyEmpty(title: "Ученик не найден", message: "Обнови данные и вернись к списку.") }
+            }
         }
+        .onAppear { returnToListIfMissing() }
+        .onChange(of: studentAvailable) { _, _ in returnToListIfMissing() }
+        .onChange(of: store.busy) { _, _ in returnToListIfMissing() }
         .confirmationDialog("Удалить приглашённого ученика? Ссылка перестанет действовать.", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Удалить ученика", role: .destructive) { Task { if await store.run({ try await store.deletePendingStudent(studentID) }) { presentation.wrappedValue.dismiss() } } }.accessibilityIdentifier("confirm-delete-pending-student")
             Button("Отмена", role: .cancel) {}
         }
+    }
+    private func returnToListIfMissing() {
+        if !studentAvailable && !store.busy && !store.loading && store.error == nil { presentation.wrappedValue.dismiss() }
     }
 }
 struct StudentDetailsCard: View {

@@ -4,6 +4,7 @@ struct ReppyPage<Content: View>: View {
     var back = false
     var nativeList = false
     var lazyContent = false
+    var compactList = false
     var title: String? = nil
     var onConflictReload: (() -> Void)? = nil
     @EnvironmentObject private var store: AppStore
@@ -13,6 +14,7 @@ struct ReppyPage<Content: View>: View {
         Group {
             if nativeList {
                 List { pageContent }.scrollContentBackground(.hidden)
+                    .contentMargins(.top, compactList ? ReppyMetrics.space8 : ReppyMetrics.space16, for: .scrollContent)
             } else if lazyContent {
                 ScrollView { LazyVStack(alignment: .leading, spacing: ReppyMetrics.cardGap) { pageContent }
                     .frame(maxWidth: .infinity, alignment: .leading).padding(ReppyMetrics.pageInset) }
@@ -182,11 +184,12 @@ struct ReppyField: View {
     var multiline = false
     var keyboard: UIKeyboardType = .default
     var error: String? = nil
+    var placeholder: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField(title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
+                TextField(placeholder ?? title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
             } else { TextField(title, text: $text).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
             if let error { ReppyText(text: error, tone: .error) }
         }
@@ -323,7 +326,7 @@ struct ReppyStatus: View {
         VStack(alignment: .leading, spacing: 12) {
             Label(message, systemImage: error ? "exclamationmark.triangle" : "info.circle").font(.body).foregroundStyle(error ? ReppyTheme.error : ReppyTheme.secondary)
             if let actionTitle, let action { ReppyButton(title: actionTitle, compact: true, action: action) }
-        }.padding(16).frame(maxWidth: .infinity, alignment: .leading).background(ReppyTheme.surface)
+        }.padding(ReppyMetrics.space16).frame(maxWidth: .infinity, alignment: .leading).background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
             .accessibilityElement(children: .contain)
     }
 }

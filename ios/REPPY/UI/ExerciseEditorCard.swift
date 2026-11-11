@@ -8,6 +8,7 @@ struct ExerciseEditorCard: View {
     var onDelete: () -> Void
     @State private var instructionOpen = false
     @State private var replacement = false
+    @State private var commentOpen = false
     var body: some View {
         ReppyCard {
             ReppyExerciseHeader(exercise: exercise) {
@@ -23,16 +24,15 @@ struct ExerciseEditorCard: View {
             ReppyStack(compact: true) {
                 if !exercise.plannedSets.isEmpty { SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit) }
                 ForEach($exercise.plannedSets) { $set in
-                    PlanSetRow(number: (exercise.plannedSets.firstIndex { $0.id == set.id } ?? 0) + 1, loadMode: exercise.loadMode, unit: exercise.unit, set: $set) { exercise.plannedSets.removeAll { $0.id == set.id } }
+                    PlanSetRow(number: (exercise.plannedSets.firstIndex { $0.id == set.id } ?? 0) + 1, loadMode: exercise.loadMode, unit: exercise.unit, set: $set, showsRemove: false) { exercise.plannedSets.removeAll { $0.id == set.id } }
                 }
             }
-            ReppyButton(title: "Добавить подход", icon: "plus", compact: true) {
+            ReppyExerciseFooter(note: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }), commentOpen: $commentOpen,
+                count: exercise.plannedSets.count, canRemove: !exercise.plannedSets.isEmpty,
+                onRemove: { if !exercise.plannedSets.isEmpty { exercise.plannedSets.removeLast() } }, onAdd: {
                 let last = exercise.plannedSets.last
                 exercise.plannedSets.append(SetPlan(targetReps: last?.targetReps ?? 0, targetWeight: last?.targetWeight ?? 0))
-            }
-            ReppyDisclosure(title: "Комментарий тренера") {
-                ReppyField(title: "Комментарий тренера", text: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }), multiline: true)
-            }
+            })
         }.sheet(isPresented: $instructionOpen) {
             NavigationStack { InstructionEditorScreen(exercise: $exercise, relationshipID: relationshipID) }.presentationCornerRadius(ReppyMetrics.modalRadius)
         }.sheet(isPresented: $replacement) {

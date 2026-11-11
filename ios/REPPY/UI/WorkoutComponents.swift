@@ -53,7 +53,7 @@ struct ReppyExerciseSectionHeader: View {
                     .font(.system(size: ReppyMetrics.addExerciseIcon, weight: .medium))
                     .foregroundStyle(disabled ? ReppyTheme.muted : ReppyTheme.selectedText)
                     .frame(width: ReppyMetrics.control, height: ReppyMetrics.control)
-                    .background(disabled ? ReppyTheme.button : ReppyTheme.lime, in: Circle())
+                    .background(disabled ? ReppyTheme.button : ReppyTheme.lime, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
             }
             .buttonStyle(.plain)
             .disabled(disabled)
@@ -120,6 +120,7 @@ struct ReppyActiveExerciseCard: View {
     var onDelete: () -> Void = {}
     var canDelete = true
     var onNoteChange: (String) -> Void = { _ in }
+    @State private var commentOpen = false
     var body: some View {
         ReppyCard {
             ReppyExerciseHeader(exercise: exercise, number: number) {
@@ -142,13 +143,34 @@ struct ReppyActiveExerciseCard: View {
                 }
                 if !results.contains(where: { $0.exercise_instance_id == exercise.id }) { ReppyCaption(text: "Подходы не заданы") }
             }
-            ReppyDisclosure(title: "Комментарий к упражнению") {
-                ReppyField(title: "Комментарий", text: Binding(get: { exercise.coachNote ?? "" }, set: { onNoteChange($0) }), multiline: true)
-            }
-            HStack(spacing: ReppyMetrics.space8) {
-                ReppyButton(title: "Добавить подход", icon: "plus", compact: true, action: onAddSet)
-                Button(action: onRemoveSet) { ReppyToolbarIcon(icon: "minus") }
-                    .disabled(!canRemoveSet).accessibilityLabel("Удалить последний подход: \(exercise.name)")
+            ReppyExerciseFooter(note: Binding(get: { exercise.coachNote ?? "" }, set: { onNoteChange($0) }), commentOpen: $commentOpen,
+                count: exercise.plannedSets.count, canRemove: canRemoveSet, onRemove: onRemoveSet, onAdd: onAddSet)
+        }
+    }
+}
+
+struct ReppyExerciseFooter: View {
+    @Binding var note: String
+    @Binding var commentOpen: Bool
+    var count: Int
+    var canRemove: Bool
+    var onRemove: () -> Void
+    var onAdd: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
+    var body: some View {
+        ReppyStack(compact: true) {
+            if commentOpen { ReppyField(title: "Комментарий к упражнению", text: $note, multiline: true, placeholder: "Например: держи локти вдоль тела") }
+            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
+            layout {
+                ReppyButton(title: commentOpen ? "Скрыть комментарий" : note.isEmpty ? "Добавить комментарий" : "Показать комментарий", icon: "pencil", compact: true) { commentOpen.toggle() }
+                if count == 0 { ReppyButton(title: "Добавить подход", icon: "plus", compact: true, action: onAdd) }
+                else {
+                    HStack(spacing: ReppyMetrics.space8) {
+                        Text("Подходы").reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
+                        Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.buttonStyle(.plain).disabled(!canRemove).accessibilityLabel("Удалить последний подход")
+                        Button(action: onAdd) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).accessibilityLabel("Добавить подход")
+                    }.fixedSize(horizontal: true, vertical: false)
+                }
             }
         }
     }
@@ -193,6 +215,7 @@ struct PlanSetRow: View {
     var loadMode: LoadMode
     var unit: String
     @Binding var set: SetPlan
+    var showsRemove = true
     var onDelete: () -> Void
     var body: some View {
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
@@ -204,7 +227,7 @@ struct PlanSetRow: View {
             }
             if typeSize.isAccessibilitySize { ReppyCaption(text: unit) }
             ReppyNumericField(title: "Подход \(number), \(unit)", value: Binding(get: { Double(set.targetReps) }, set: { set.targetReps = ReppyValidation.integer($0) }), integer: true)
-            Button(action: onDelete) { ReppyToolbarIcon(icon: "minus") }.buttonStyle(.plain).accessibilityLabel("Удалить подход \(number)")
+            if showsRemove { Button(action: onDelete) { ReppyToolbarIcon(icon: "minus") }.buttonStyle(.plain).accessibilityLabel("Удалить подход \(number)") }
         }
     }
 }

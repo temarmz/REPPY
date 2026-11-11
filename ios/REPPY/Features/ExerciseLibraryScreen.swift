@@ -15,9 +15,12 @@ struct ExercisePickerScreen: View {
         else { onChoose?(definition) }
     }
     var body: some View {
-        ReppyPage(back: true, nativeList: true, title: exercises == nil ? "Упражнение" : "Добавить упражнения") {
+        ReppyPage(back: true, nativeList: true, compactList: true, title: exercises == nil ? "Упражнение" : "Добавить упражнения") {
             ReppyPicker(title: "Мышечная группа", selection: $muscle) { Text("Все").tag("Все"); ForEach(reppyMuscles, id: \.self) { Text($0).tag($0) } }
-            if store.isTrainer { ReppyLink(title: "Создать своё упражнение", icon: "plus") { DefinitionFormScreen(onSaved: add) } }
+            if store.isTrainer {
+                NavigationLink { DefinitionFormScreen(onSaved: add) } label: { Label("Создать своё упражнение", systemImage: "plus") }
+                    .buttonStyle(ReppyButtonStyle()).listRowSeparator(.hidden)
+            }
             let definitions = store.data.definitions.filter { definition in
                 (search.isEmpty || definition.name.localizedCaseInsensitiveContains(search)) && (muscle == "Все" || definition.muscle_groups.contains(muscle) || definition.primary_muscle == muscle)
             }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
@@ -34,8 +37,9 @@ struct ExercisePickerScreen: View {
                             if let index = exercises.wrappedValue.lastIndex(where: { $0.exerciseId == definition.id }) { exercises.wrappedValue.remove(at: index) }
                         } label: { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0).accessibilityLabel("Убрать \(definition.name)")
                         Text("\(count)").monospacedDigit().frame(minWidth: 20).accessibilityLabel("Добавлено: \(count)")
-                        Button { add(definition) } label: { ReppyToolbarIcon(icon: "plus", selected: count > 0) }.accessibilityLabel("Добавить \(definition.name)")
-                    }.disabled(store.busy)
+                        Button { add(definition) } label: { ReppyToolbarIcon(icon: "plus") }.accessibilityLabel("Добавить \(definition.name)")
+                    }.buttonStyle(.plain).disabled(store.busy)
+                        .listRowBackground(exercises.wrappedValue.contains(where: { $0.exerciseId == definition.id }) ? ReppyTheme.brandSoft : ReppyTheme.surface)
                 } else { ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { add(definition) }.disabled(store.busy) }
             }
         }.toolbar { ToolbarItem(placement: .confirmationAction) { Button(exercises == nil ? "Закрыть" : "Готово") { dismiss() } } }

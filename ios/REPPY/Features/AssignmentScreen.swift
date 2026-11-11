@@ -55,7 +55,7 @@ struct AssignmentScreen: View {
                             reschedule = true
                         }
                     }
-                    if store.isTrainer && session == nil { ReppyLink(title: "Редактировать план", icon: "pencil") { AssignmentEditorScreen(original: assignment) } }
+                    if store.isTrainer && session == nil { ReppyLink(title: "Редактировать", icon: "pencil") { AssignmentEditorScreen(original: assignment) } }
                 }
                 if store.isTrainer { ReppyLink(title: "Повторить на другую дату", icon: "doc.on.doc") { AssignmentEditorScreen(repeatAssignment: assignment) } }
                 ReppyHeading(text: "Упражнения")

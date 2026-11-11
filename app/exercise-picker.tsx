@@ -1,9 +1,10 @@
-import { Box, Inline, Strong, Small, Section, Emphasis, Paragraph, Footer } from './ui/elements';
+import { Box, Inline, Strong, Small, Section, Emphasis, Paragraph, Footer, SelectOption } from './ui/elements';
 import { useEffect, useState } from 'react';
 import { exerciseLibrary, exerciseMuscleGroups, makeId, muscleGroups, type ExerciseDefinition, type MuscleGroup, type WorkoutExercise } from './reppy-data';
 import Icon from './ui/icon';
 import ModalFrame from './ui/modal-frame';
-import { ActionButton, Button, Input } from './ui/controls';
+import { ActionButton, Button, Input, Select, TextField } from './ui/controls';
+import { Field } from './ui/patterns';
 import { loadExercisePickerDraft, saveUiDraft } from './ui-persistence';
 
 export type ExercisePickerChoice = {
@@ -21,15 +22,18 @@ export function ExerciseActionsModal({
   deleteDisabledReason,
   onClose,
   onDeleteExercise,
+  onReplaceExercise,
 }: {
   exercise: WorkoutExercise;
   deleteDisabledReason?: string;
   onClose: () => void;
   onDeleteExercise: () => void;
+  onReplaceExercise: () => void;
 }) {
   return (
     <ModalFrame title={exercise.name} className="exercise-actions-sheet" ariaLabel={'Действия — ' + exercise.name} closeLabel="Закрыть действия" onClose={onClose}>
       <Box className="exercise-action-list">
+        <Button type="button" onClick={onReplaceExercise}><Icon name="copy" /><Inline><Strong>Заменить упражнение</Strong><Small>Подходы сохранятся</Small></Inline></Button>
         <Button className="danger" type="button" disabled={Boolean(deleteDisabledReason)} onClick={onDeleteExercise}>
           <Icon name="trash" />
           <Inline><Strong>Удалить упражнение</Strong><Small>{deleteDisabledReason ?? 'Упражнение исчезнет из этой тренировки'}</Small></Inline>
@@ -49,6 +53,7 @@ export function ExercisePicker({
   onUpdateCustom,
   onRemove,
   canRemove,
+  singleChoice = false,
 }: {
   persistenceKey?: string;
   exercises: WorkoutExercise[];
@@ -59,6 +64,7 @@ export function ExercisePicker({
   onUpdateCustom?: (exercise: ExerciseDefinition) => void;
   onRemove: (exerciseId: string) => void;
   canRemove: (exerciseId: string) => boolean;
+  singleChoice?: boolean;
 }) {
   const draftKey = persistenceKey ?? 'picker';
   const [restoredDraft] = useState(() => loadExercisePickerDraft(draftKey));
@@ -68,17 +74,19 @@ export function ExercisePicker({
   const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>(restoredDraft?.customMeasureType ?? 'reps');
   const [customMuscleGroups, setCustomMuscleGroups] = useState<MuscleGroup[]>(restoredDraft?.customMuscleGroups ?? []);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
+  const [creatingCustom, setCreatingCustom] = useState(false);
+  const [newName, setNewName] = useState('');
 
   useEffect(() => {
     saveUiDraft(draftKey, { search, selectedMuscle, customLoadMode, customMeasureType, customMuscleGroups });
   }, [customLoadMode, customMeasureType, customMuscleGroups, draftKey, search, selectedMuscle]);
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
-  const customName = search.trim();
+  const customName = creatingCustom ? newName.trim() : search.trim();
   const availableExercises = [...customExercises, ...exerciseLibrary];
   const editingExercise = customExercises.find((exercise) => exercise.id === editingExerciseId);
-  const duplicateName = availableExercises.some((exercise) => exercise.id !== editingExerciseId && exercise.name.trim().toLocaleLowerCase('ru') === normalizedSearch);
+  const duplicateName = availableExercises.some((exercise) => exercise.id !== editingExerciseId && exercise.name.trim().toLocaleLowerCase('ru') === customName.toLocaleLowerCase('ru'));
   const canCreateCustom = Boolean(onCreateCustom) && !editingExercise && customName.length >= 2 && !duplicateName;
-  const showCustomBuilder = Boolean(editingExercise) || canCreateCustom;
+  const showCustomBuilder = Boolean(editingExercise) || creatingCustom || canCreateCustom;
   const canSaveCustom = customName.length >= 2 && customMuscleGroups.length > 0 && !duplicateName;
 
   const filtered = availableExercises.filter((exercise) => {
@@ -109,6 +117,8 @@ export function ExercisePicker({
     } else if (onCreateCustom) {
       onCreateCustom(definition);
       selectExercise(definition, true);
+      setCreatingCustom(false);
+      setNewName('');
     }
     setCustomMuscleGroups([]);
   };
@@ -132,15 +142,14 @@ export function ExercisePicker({
   };
 
   return (
-    <ModalFrame title="Добавить упражнения" className="exercise-picker-sheet" ariaLabel="Добавить упражнения" onClose={onClose}>
+    <ModalFrame title={singleChoice ? 'Заменить упражнение' : 'Добавить упражнения'} className="exercise-picker-sheet" onClose={onClose}>
       <Input className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
-      <Box className="muscle-filter" aria-label="Фильтр по группе мышц">
-        <Button className={selectedMuscle === 'all' ? 'selected' : ''} type="button" onClick={() => setSelectedMuscle('all')} aria-pressed={selectedMuscle === 'all'}>Все</Button>
-        {muscleGroups.map((muscle) => <Button className={selectedMuscle === muscle ? 'selected' : ''} key={muscle} type="button" onClick={() => setSelectedMuscle(muscle)} aria-pressed={selectedMuscle === muscle}>{muscle}</Button>)}
-      </Box>
+      <Field label="Мышечная группа"><Select aria-label="Мышечная группа" value={selectedMuscle} onChange={(event) => setSelectedMuscle(event.target.value as typeof selectedMuscle)}><SelectOption value="all">Все</SelectOption>{muscleGroups.map((muscle) => <SelectOption key={muscle} value={muscle}>{muscle}</SelectOption>)}</Select></Field>
+      {onCreateCustom && !showCustomBuilder && <ActionButton variant="secondary" icon="plus" onClick={() => { setNewName(search.trim()); setCreatingCustom(true); }}>Создать своё упражнение</ActionButton>}
       <Box className="picker-list">
         {showCustomBuilder && <Section className="custom-exercise-builder">
           <Box><Strong>{editingExercise ? `Редактирование «${editingExercise.name}»` : `Новое упражнение «${customName}»`}</Strong><Small>Выбери все группы мышц, которые участвуют в упражнении</Small></Box>
+          {creatingCustom && <TextField id="custom-exercise-name" label="Название упражнения" value={newName} onChange={(event) => setNewName(event.target.value)} />}
           <Box className="custom-muscle-groups" role="group" aria-label="Группы мышц упражнения">
             {muscleGroups.map((muscle) => <Button className={customMuscleGroups.includes(muscle) ? 'selected' : ''} key={muscle} type="button" onClick={() => toggleCustomMuscle(muscle)} aria-pressed={customMuscleGroups.includes(muscle)}>{muscle}</Button>)}
           </Box>
@@ -159,15 +168,15 @@ export function ExercisePicker({
           const count = exercises.filter((item) => item.exerciseId === exercise.id).length;
           const isCustom = customExercises.some((item) => item.id === exercise.id);
           const groups = exerciseMuscleGroups(exercise);
-          return <Box className="picker-exercise-row" key={exercise.id}>
+          return <Box className={'picker-exercise-row' + (count > 0 ? ' added' : '')} key={exercise.id}>
             <Box><Strong>{exercise.name}{isCustom && <Emphasis className="personal-exercise-label">Моё</Emphasis>}</Strong><Small>{groups.length ? groups.join(', ') : 'Другое'} · {exercise.equipment}</Small></Box>
             <Box className="picker-row-actions">
               {isCustom && onUpdateCustom && <Button className="picker-edit-exercise" type="button" onClick={() => editCustomExercise(exercise)} aria-label={`Редактировать ${exercise.name}`}><Icon name="edit" /></Button>}
-              <Box className="picker-quantity" role="group" aria-label={exercise.name}>
+              {singleChoice ? <ActionButton variant="secondary" onClick={() => selectExercise(exercise)}>Выбрать</ActionButton> : <Box className="picker-quantity" role="group" aria-label={exercise.name}>
                 <Button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></Button>
                 <Inline aria-live="polite">{count}</Inline>
-                <Button className={count > 0 ? 'selected' : ''} type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
-              </Box>
+                <Button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
+              </Box>}
             </Box>
           </Box>;
         })}

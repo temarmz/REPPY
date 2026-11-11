@@ -110,6 +110,7 @@ struct DesignKitScreen: View {
             ReppyCard { ReppyChoiceRow(title: "Жим лёжа", subtitle: "Штанга") {} }
             ReppyCard { ReppyWorkoutChoiceLink(title: "Повторить тренировку", subtitle: "Завершена · 1 ноября") { ReppyText(text: "Повтор") } }
             ReppyInvitationInput(text: $text)
+            ReppyCard { ReppyExerciseFooter(note: $text, commentOpen: $toggle, count: 2, canRemove: true, onRemove: {}, onAdd: {}) }
             ReppyButton(title: "Порядок упражнений") { orderOpen = true }
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }
             ReppyCard {

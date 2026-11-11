@@ -95,8 +95,8 @@ final class SafariTests: XCTestCase {
   }
   reveal(addSet); addSet.tap()
   let removeSet = safari.buttons["Удалить последний подход — Жим лёжа"]; removeSet.tap()
-  let removeExercise = safari.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Удалить упражнение — Жим лёжа")).firstMatch; reveal(removeExercise); removeExercise.tap()
-  let stay = safari.buttons["Остаться"]; XCTAssertTrue(stay.waitForExistence(timeout: 3)); stay.tap()
+  let removeExercise = safari.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Действия — Жим лёжа")).firstMatch; reveal(removeExercise); removeExercise.tap()
+  let stay = safari.buttons["Закрыть действия"]; XCTAssertTrue(stay.waitForExistence(timeout: 3)); stay.tap()
   XCTAssertTrue(removeExercise.exists)
   let shot = XCTAttachment(screenshot: safari.screenshot()); shot.name = "workout-editor-fields"; shot.lifetime = .keepAlways; add(shot)
   safari.buttons["Назад"].firstMatch.tap()

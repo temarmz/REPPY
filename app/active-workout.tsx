@@ -24,7 +24,7 @@ import { UI_ASSETS } from './ui/assets';
 import { MOODS } from './mood';
 import { SelectOption } from './ui/elements';
 import { Field } from './ui/patterns';
-import { ActiveExerciseCard } from './ui/workout-exercise-card';
+import { ActiveExerciseCard, ExerciseSectionHeader } from './ui/workout-exercise-card';
 import ModalFrame from './ui/modal-frame';
 import { ActionButton, Button, Select, Textarea, TextField, Switch } from './ui/controls';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
@@ -97,6 +97,7 @@ export default function ActiveWorkout({
     return workout.exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
   });
   const [orderOpen, setOrderOpen] = useState(false);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
@@ -167,6 +168,7 @@ export default function ActiveWorkout({
   const focusExercise = (exerciseId: string) => {
     setRecentlyMovedId(exerciseId);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      if (document.querySelector('.modal-layer-root')) return;
       document.querySelector(`[data-active-exercise="${exerciseId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }));
     if (moveHighlightTimer.current) window.clearTimeout(moveHighlightTimer.current);
@@ -183,7 +185,7 @@ export default function ActiveWorkout({
   };
 
   const addExerciseAfter = (definition: ExercisePickerChoice) => {
-    if (!pickerAfterId) return;
+    if (!pickerAfterId && !replacingId) return;
     const afterIndex = workout.exercises.findIndex((exercise) => exercise.id === pickerAfterId);
     const loadMode = definition.loadMode ?? (definition.equipment === 'Свой вес' ? 'bodyweight' : 'external');
     const nextExercise = normalizeWorkoutExercise({
@@ -199,6 +201,13 @@ export default function ActiveWorkout({
       coachNote: '',
     });
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
+    if (replacingId) {
+      const index = next.findIndex((exercise) => exercise.id === replacingId);
+      if (index >= 0) next[index] = withExerciseSetPlans(nextExercise, getExerciseSetPlans(next[index]));
+      updateWorkout(next);
+      setReplacingId(null);
+      return;
+    }
     next.splice(afterIndex + 1, 0, nextExercise);
     updateWorkout(next);
     setPickerAfterId(nextExercise.id);
@@ -227,7 +236,6 @@ export default function ActiveWorkout({
         <Header className="active-header">
           <Button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></Button>
           <Box className="active-header-copy"><Inline>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</Inline><Strong><Badge as="i" className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</Badge></Strong></Box>
-          <Button className="active-header-add" type="button" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? null)} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
           <Box className="active-timing"><Time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</Time></Box>
         </Header>
       </Box>
@@ -235,6 +243,7 @@ export default function ActiveWorkout({
       <Section className="active-workout-overview">
         {editingHistory ? <TextField id="correction-workout-name" label="Название тренировки" value={workout.name} onChange={(event) => onWorkoutUpdate(session.id, { ...workout, name: event.target.value })} /> : <PageTitle>{workout.name}</PageTitle>}
       </Section>
+      <ExerciseSectionHeader onReorder={workout.exercises.length > 1 ? () => setOrderOpen(true) : undefined} onAdd={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? 'start')} />
 
       <Section className="active-exercise-list">
         {workout.exercises.map((exercise, index) => {
@@ -265,6 +274,7 @@ export default function ActiveWorkout({
 
       {orderOpen && <ExerciseOrderEditor exercises={workout.exercises} onChange={updateWorkout} onClose={() => setOrderOpen(false)} />}
       {pickerAfterId && <ExercisePicker persistenceKey={`picker:${pickerPersistenceKey}`} exercises={workout.exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExerciseAfter} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
+      {replacingId && <ExercisePicker singleChoice exercises={workout.exercises} customExercises={customExercises} onClose={() => setReplacingId(null)} onSelect={addExerciseAfter} onRemove={() => {}} canRemove={() => false} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={student?.id}
@@ -275,6 +285,7 @@ export default function ActiveWorkout({
       />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
+        onReplaceExercise={() => { setReplacingId(actionExercise.id); setActionExerciseId(null); }}
         deleteDisabledReason={actionDeleteDisabledReason}
         onClose={() => setActionExerciseId(null)}
         onDeleteExercise={() => {

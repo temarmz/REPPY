@@ -25,7 +25,7 @@ function dimension(token) {
   if (!/^[\d\s.*()+/-]+$/.test(value)) throw new Error(`Not a dimension: ${token}`);
   return Function(`"use strict"; return (${value})`)();
 }
-const colors = { background: '--app-bg', surface: '--surface', field: '--field-bg', text: '--text-primary', secondary: '--text-secondary', muted: '--muted', lime: '--lime', limeStrong: '--lime-strong', error: '--error-color', warning: '--badge-warning-text', button: '--button-bg', outline: '--field-outline' };
+const colors = { background: '--app-bg', surface: '--surface', field: '--field-bg', text: '--text-primary', secondary: '--text-secondary', muted: '--muted', lime: '--lime', limeStrong: '--lime-strong', brandSoft: '--brand-soft', error: '--error-color', warning: '--badge-warning-text', button: '--button-bg', outline: '--field-outline' };
 Object.assign(colors, { navSelected: '--nav-selected-bg', focusSurface: '--focus-surface', focusText: '--focus-text', focusSecondary: '--focus-secondary', focusAccent: '--focus-accent', trendUp: '--trend-up', trendDown: '--trend-down' });
 colors.focusMeta = '--focus-meta';
 colors.divider = '--divider';

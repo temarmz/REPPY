@@ -25,9 +25,6 @@ struct SessionResultScreen: View {
                 let results = store.data.sessionResults(sessionID)
                 ReppySessionSummary(session: session, results: results)
                 if session.auto_completed == true { ReppyCaption(text: "Тренировка завершена автоматически.") }
-                if session.completed_at != nil && !results.contains(where: \.completed) {
-                    ReppyCaption(text: "Тренировка завершена без отмеченных подходов.")
-                }
                 let charged = store.data.isSessionCharged(sessionID)
                 if store.isTrainer, charged || session.charge_status == "waived" {
                     ReppyChargeSummary(charged: charged)

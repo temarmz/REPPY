@@ -21,6 +21,7 @@ struct ActiveWorkoutScreen: View {
     @State private var debounce: Task<Void, Never>?
     @State private var finish = false
     @State private var structure = false
+    @State private var reorder = false
     @State private var picker = false
     @State private var charge = true
     @State private var feedbackMood = ""
@@ -43,7 +44,7 @@ struct ActiveWorkoutScreen: View {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     ReppyWorkoutOverview(elapsed: elapsed(from: value.session.started_at, now: context.date), completed: value.results.filter(\.completed).count, total: value.results.count)
                 }
-                ReppyExerciseSectionHeader(reorder: value.workout.exercises.count > 1 ? { structure = true } : nil) { picker = true }
+                ReppyExerciseSectionHeader(reorder: value.workout.exercises.count > 1 ? { reorder = true } : nil) { picker = true }
                 ForEach(Array(value.workout.exercises.enumerated()), id: \.element.id) { index, exercise in
                     ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1,
                         onInstruction: { instruction = exercise },
@@ -107,6 +108,9 @@ struct ActiveWorkoutScreen: View {
             .sheet(item: $instruction) { exercise in NavigationStack { InstructionScreen(exercise: exercise) } }
             .sheet(isPresented: $structure) {
                 if draft != nil { NavigationStack { ActiveStructureScreen(workout: Binding(get: { draft!.workout }, set: { draft?.workout = $0 }), relationshipID: relationshipID) } }
+            }
+            .sheet(isPresented: $reorder) {
+                NavigationStack { ReppyExerciseOrderEditor(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }
             }
             .sheet(isPresented: $picker) {
                 NavigationStack { ExercisePickerScreen(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }

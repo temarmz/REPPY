@@ -14,7 +14,7 @@ import { SegmentedControl, ActionButton, TextField, Input, Select, Textarea, Swi
 import ConfirmationModal from './ui/confirmation-modal';
 import PageHeader from './route-page-header';
 import ReadOnlyExerciseList from './ui/read-only-exercise-list';
-import { ActiveExerciseCard, PlanExerciseCard } from './ui/workout-exercise-card';
+import { ActiveExerciseCard, PlanExerciseCard, ExerciseSectionHeader } from './ui/workout-exercise-card';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
 import { exerciseMetadata } from './workout-display';
 import NoteDayCard from './ui/note-day-card';
@@ -150,6 +150,7 @@ export default function DesignKitScreen() {
 
       <Section className="design-kit-section" aria-label="Планирование упражнения">
         <SectionHeading title="Планирование упражнения" />
+        <ExerciseSectionHeader onReorder={() => setOrderOpen(true)} onAdd={() => setModalOpen(true)} />
         <PlanExerciseCard {...exerciseProps}
           canRemoveSet={exercise.plannedSets.length > 1}
           onAddSet={() => setExercise((current) => ({ ...current, plannedSets: [...current.plannedSets, { targetWeight: 80, targetReps: 8 }] }))}

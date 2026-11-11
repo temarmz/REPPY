@@ -22,7 +22,7 @@ import {
 import Icon, { type IconName } from './ui/icon';
 import WorkoutScheduleFields from './ui/workout-schedule-fields';
 import { ActionButton, FormError, TextField, Button } from './ui/controls';
-import { PlanExerciseCard } from './ui/workout-exercise-card';
+import { ExerciseSectionHeader, PlanExerciseCard } from './ui/workout-exercise-card';
 import { collectExerciseProgress, progressHref, progressKey } from './exercise-progress';
 import { subscriptionBalance, subscriptionEntriesFor } from './subscription-ledger';
 import ConfirmationModal from './ui/confirmation-modal';
@@ -32,7 +32,7 @@ import PageHeader from './route-page-header';
 import ReadOnlyExerciseList from './ui/read-only-exercise-list';
 import Avatar from './ui/avatar';
 import ExerciseInstructionModal from './ui/exercise-instruction-modal';
-import { ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
+import { ExerciseActionsModal, ExercisePicker, type ExercisePickerChoice } from './exercise-picker';
 import { assignmentScheduleLabel, assignmentStatusLabel, formatScheduleDay } from './schedule-display';
 import { exerciseMetadata, subscriptionBalanceLabel, subscriptionTone } from './workout-display';
 import {
@@ -358,6 +358,7 @@ function WorkoutExerciseEditor({
     return exercises.find((exercise) => exercise.id === stored?.exerciseId) ?? null;
   });
   const [orderOpen, setOrderOpen] = useState(false);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const [actionExerciseId, setActionExerciseId] = useState<string | null>(null);
   const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null);
   const highlightTimer = useRef<number | null>(null);
@@ -378,6 +379,7 @@ function WorkoutExerciseEditor({
   const focusExercise = (exerciseId: string) => {
     setRecentlyMovedId(exerciseId);
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      if (document.querySelector('.modal-layer-root')) return;
       document.querySelector(`[data-plan-exercise="${exerciseId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }));
     if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
@@ -399,6 +401,13 @@ function WorkoutExerciseEditor({
       coachNote: '',
     });
     const next = exercises.map((exercise) => ({ ...exercise }));
+    if (replacingId) {
+      const index = next.findIndex((exercise) => exercise.id === replacingId);
+      if (index >= 0) next[index] = withExerciseSetPlans(nextExercise, getExerciseSetPlans(next[index]));
+      onChange(next);
+      setReplacingId(null);
+      return;
+    }
     const afterIndex = pickerAfterId === 'start' ? -1 : next.findIndex((exercise) => exercise.id === pickerAfterId);
     next.splice(afterIndex + 1, 0, nextExercise);
     onChange(next);
@@ -436,7 +445,7 @@ function WorkoutExerciseEditor({
 
   return (
     <Section className="workout-plan-editor">
-      <Box className="form-section-heading"><Heading>Упражнения</Heading><Button className="plan-exercise-add" type="button" onClick={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} aria-label="Добавить упражнение" title="Добавить упражнение"><Icon name="plus" /></Button></Box>
+      <ExerciseSectionHeader onReorder={exercises.length > 1 ? () => setOrderOpen(true) : undefined} onAdd={() => setPickerAfterId(exercises.at(-1)?.id ?? 'start')} />
       <Box className="active-exercise-list plan-exercise-list">
         {exercises.map((exercise, index) => (
           <PlanExerciseCard
@@ -469,6 +478,7 @@ function WorkoutExerciseEditor({
 
       {orderOpen && <ExerciseOrderEditor exercises={exercises} onChange={onChange} onClose={() => setOrderOpen(false)} />}
       {pickerAfterId && <ExercisePicker persistenceKey={`picker:${persistenceKey}`} exercises={exercises} customExercises={customExercises} onCreateCustom={onCreateCustomExercise} onUpdateCustom={onUpdateCustomExercise} onClose={() => setPickerAfterId(null)} onSelect={addExercise} onRemove={removePickedExercise} canRemove={canRemovePickedExercise} />}
+      {replacingId && <ExercisePicker singleChoice exercises={exercises} customExercises={customExercises} onClose={() => setReplacingId(null)} onSelect={addExercise} onRemove={() => {}} canRemove={() => false} />}
       {instructionExercise && <ExerciseInstructionModal
         exercise={instructionExercise}
         studentId={studentId}
@@ -477,13 +487,12 @@ function WorkoutExerciseEditor({
         onClose={() => setInstructionExercise(null)}
         onSave={(patch) => updateExercise(instructionExercise.id, (current) => ({ ...current, ...patch }))}
       />}
-      {actionExercise && <ConfirmationModal
-        title="Удалить упражнение?"
-        text={actionDeleteDisabledReason || `«${actionExercise.name}» будет удалено из этой тренировки.`}
-        confirmLabel={actionDeleteDisabledReason ? 'Понятно' : 'Удалить упражнение'}
-        danger={!actionDeleteDisabledReason}
+      {actionExercise && <ExerciseActionsModal
+        exercise={actionExercise}
+        deleteDisabledReason={actionDeleteDisabledReason}
+        onReplaceExercise={() => { setReplacingId(actionExercise.id); setActionExerciseId(null); }}
         onClose={() => setActionExerciseId(null)}
-        onConfirm={() => { if (!actionDeleteDisabledReason) onChange(exercises.filter((item) => item.id !== actionExercise.id)); setActionExerciseId(null); }}
+        onDeleteExercise={() => { if (!actionDeleteDisabledReason) onChange(exercises.filter((item) => item.id !== actionExercise.id)); setActionExerciseId(null); }}
       />}
 
     </Section>
@@ -523,7 +532,7 @@ export function AssignmentDetails({
       </Section>}
       <Box className="assignment-detail-actions">
         {assignment.status === 'assigned' && <ActionButton className="assignment-start-button" icon="workout" onClick={() => go(`/trainer/workout/${assignment.id}`)}>{activeSession ? 'Продолжить тренировку' : 'Начать тренировку'}</ActionButton>}
-        {assignment.status === 'assigned' && !activeSession && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать план</ActionButton>}
+        {assignment.status === 'assigned' && !activeSession && <ActionButton variant="secondary" icon="edit" onClick={() => go(`/trainer/assignments/${assignment.id}/edit`)}>Редактировать</ActionButton>}
         <ActionButton variant="secondary" icon="copy" onClick={() => go(`/trainer/assignments/${assignment.id}/repeat`)}>Повторить на другую дату</ActionButton>
       </Box>
       <SectionHeading title={<>Упражнения</>} className="workout-plan-heading"></SectionHeading>

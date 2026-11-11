@@ -3,7 +3,7 @@ import { Button } from './controls';
 import { useEffect, useLayoutEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './icon';
-import { pushHistoryEntry } from '../browser-history';
+import { pushHistoryEntry, replaceHistoryEntry } from '../browser-history';
 
 export const MODAL_LAYER_EVENT = 'reppy:modal-layer';
 const modalHistoryEvents = new WeakSet<Event>();
@@ -11,9 +11,20 @@ export function isModalHistoryEvent(event: Event) { return modalHistoryEvents.ha
 
 let openModalLayers = 0;
 let closingModalLayers = 0;
+let lockedScroll: { x: number; y: number } | null = null;
 
 function applyModalLayerState(modalLayerOpen: boolean) {
+  if (modalLayerOpen && !lockedScroll) {
+    lockedScroll = { x: window.scrollX, y: window.scrollY };
+    document.body.style.setProperty('--modal-scroll-top', `${-lockedScroll.y}px`);
+  }
   document.body.classList.toggle('modal-open', modalLayerOpen);
+  if (!modalLayerOpen && lockedScroll) {
+    const scroll = lockedScroll;
+    lockedScroll = null;
+    document.body.style.removeProperty('--modal-scroll-top');
+    window.scrollTo({ left: scroll.x, top: scroll.y, behavior: 'instant' });
+  }
   document.querySelectorAll<HTMLElement>('.app-shell').forEach((appShell) => {
     appShell.inert = modalLayerOpen;
     if (modalLayerOpen) appShell.setAttribute('aria-hidden', 'true');
@@ -53,7 +64,10 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const currentState = window.history.state && typeof window.history.state === 'object' ? window.history.state : {};
     if (trackHistory && currentState.reppyModal !== modalId) {
-      pushHistoryEntry({ ...currentState, reppyModal: modalId });
+      // Replacing one dialog with another keeps a single Back entry. Nested
+      // dialogs still get their own entry and return to the layer underneath.
+      if (openModalLayers === 1 && currentState.reppyModal) replaceHistoryEntry({ ...currentState, reppyModal: modalId });
+      else pushHistoryEntry({ ...currentState, reppyModal: modalId });
     }
     const focusInitialControl = () => {
       const root = layerRef.current;
@@ -126,6 +140,8 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
         return;
       }
 
+      queueMicrotask(() => {
+      if (openModalLayers > 0 || window.history.state?.reppyModal !== modalId) return;
       closingModalLayers += 1;
       let settled = false;
       const settleHistory = () => {
@@ -139,6 +155,7 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
       const historyFallbackTimer = window.setTimeout(settleHistory, 1500);
       window.addEventListener('popstate', settleHistory, { once: true });
       window.history.back();
+      });
     };
   }, [closeOnHistoryBack, modalId, trackHistory]);
 

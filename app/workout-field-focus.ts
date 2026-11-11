@@ -21,7 +21,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     frame = 0;
     const field = document.activeElement;
     if (!(field instanceof HTMLElement) || !field.matches('input:not([type="checkbox"]):not([type="file"]), textarea')
-      || !field.closest('[data-workout-composer], .active-workout-page, .athlete-form, .notes-page, .bottom-sheet') || !field.getClientRects().length) {
+      || !field.closest('[data-workout-composer], .active-workout-page, .athlete-form, .notes-page, [data-modal-frame]') || !field.getClientRects().length) {
       document.documentElement.style.removeProperty('--workout-keyboard-space');
       return;
     }
@@ -30,7 +30,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     const visibleTop = viewport?.offsetTop ?? 0;
     let top = visibleTop;
     let bottom = visibleTop + (viewport?.height ?? target.innerHeight);
-    const page = field.closest<HTMLElement>('.bottom-sheet, .page-wrap');
+    const page = field.closest<HTMLElement>('[data-modal-frame], .page-wrap');
     const scrollsPage = page && /auto|scroll/.test(target.getComputedStyle(page).overflowY);
     if (scrollsPage) {
       const rect = page.getBoundingClientRect();
@@ -63,6 +63,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
   const blur = () => { clear(); later(350); later(650); };
   document.addEventListener('focusout', blur);
   target.visualViewport?.addEventListener('resize', resize);
+  target.visualViewport?.addEventListener('scroll', resize);
   target.addEventListener('resize', resize);
   schedule();
   return () => {
@@ -71,6 +72,7 @@ export function observeWorkoutFieldFocus(target: Window, document: Document) {
     document.removeEventListener('focusin', focus);
     document.removeEventListener('focusout', blur);
     target.visualViewport?.removeEventListener('resize', resize);
+    target.visualViewport?.removeEventListener('scroll', resize);
     target.removeEventListener('resize', resize);
   };
 }
