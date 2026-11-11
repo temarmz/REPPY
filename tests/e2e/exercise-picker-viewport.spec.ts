@@ -19,12 +19,12 @@ for (const theme of ['dark', 'light']) {
       await page.screenshot({ path: testInfo.outputPath('picker-open.png') });
       const list = await picker.locator('.picker-list').boundingBox();
       expect(list!.height).toBeGreaterThanOrEqual(64);
-      const filters = picker.locator('.muscle-filter');
+      const filters = picker.getByRole('combobox', { name: 'Мышечная группа' });
       const filterBox = await filters.boundingBox();
       expect(filterBox!.height).toBeGreaterThanOrEqual(width <= 800 ? 44 : 34);
-      await filters.getByRole('button', { name: 'Грудь', exact: true }).click();
-      await expect(filters.getByRole('button', { name: 'Грудь', exact: true })).toHaveAttribute('aria-pressed', 'true');
-      await filters.getByRole('button', { name: 'Все', exact: true }).click();
+      await filters.selectOption('Грудь');
+      await expect(filters).toHaveValue('Грудь');
+      await filters.selectOption('all');
       const add = picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true });
       await add.click({ timeout: 4000 });
       await expect(picker.getByText('В тренировке: 1', { exact: true })).toBeVisible();

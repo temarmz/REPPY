@@ -8,6 +8,7 @@ struct ExercisePickerScreen: View {
     var exercises: Binding<[WorkoutExercise]>?
     @State private var search = ""
     @State private var muscle = "Все"
+    @State private var createDefinition = false
     init(onChoose: @escaping (ExerciseDefinition) -> Void) { self.onChoose = onChoose; exercises = nil }
     init(exercises: Binding<[WorkoutExercise]>) { self.exercises = exercises; onChoose = nil }
     private func add(_ definition: ExerciseDefinition) {
@@ -18,8 +19,8 @@ struct ExercisePickerScreen: View {
         ReppyPage(back: true, nativeList: true, compactList: true, title: exercises == nil ? "Упражнение" : "Добавить упражнения") {
             ReppyPicker(title: "Мышечная группа", selection: $muscle) { Text("Все").tag("Все"); ForEach(reppyMuscles, id: \.self) { Text($0).tag($0) } }
             if store.isTrainer {
-                NavigationLink { DefinitionFormScreen(onSaved: add) } label: { Label("Создать своё упражнение", systemImage: "plus") }
-                    .buttonStyle(ReppyButtonStyle()).listRowSeparator(.hidden)
+                ReppyButton(title: "Создать своё упражнение", icon: "plus") { createDefinition = true }
+                    .listRowSeparator(.hidden)
             }
             let definitions = store.data.definitions.filter { definition in
                 (search.isEmpty || definition.name.localizedCaseInsensitiveContains(search)) && (muscle == "Все" || definition.muscle_groups.contains(muscle) || definition.primary_muscle == muscle)
@@ -43,6 +44,7 @@ struct ExercisePickerScreen: View {
                 } else { ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { add(definition) }.disabled(store.busy) }
             }
         }.toolbar { ToolbarItem(placement: .confirmationAction) { Button(exercises == nil ? "Закрыть" : "Готово") { dismiss() } } }
+            .navigationDestination(isPresented: $createDefinition) { DefinitionFormScreen(onSaved: add) }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Поиск")
     }
 }

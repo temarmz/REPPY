@@ -1,6 +1,34 @@
 import XCTest
 
 final class ScreenAuditTests: XCTestCase {
+    @MainActor func testExerciseControlsOpenDirectly() {
+        for (role, theme) in [("trainer", "light"), ("student", "dark")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-" + role, "-appearance", theme, "--audit-screen", "active", "--audit-namespace", UUID().uuidString]
+            app.launch()
+            let reorder = app.buttons["Изменить порядок упражнений"]
+            XCTAssertTrue(reorder.waitForExistence(timeout: 10)); reorder.tap()
+            XCTAssertTrue(app.navigationBars["Порядок упражнений"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.navigationBars["План выполнения"].exists)
+            capture(app, "direct-order-" + role + "-" + theme)
+            app.buttons["Готово"].tap()
+            app.buttons["Добавить упражнение"].tap()
+            let add = app.buttons["Добавить Боковая планка"]
+            XCTAssertTrue(add.waitForExistence(timeout: 5)); add.tap()
+            capture(app, "selected-exercise-" + role + "-" + theme)
+            app.buttons["Готово"].tap()
+            let comment = app.buttons["Добавить комментарий"].firstMatch
+            for _ in 0..<8 { if comment.exists && comment.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(comment.waitForExistence(timeout: 5)); comment.tap()
+            let field = app.textFields["Комментарий к упражнению"]
+            XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap(); field.typeText("Держи локти вдоль тела")
+            capture(app, "exercise-comment-" + role + "-" + theme)
+            app.buttons["dismiss-keyboard"].firstMatch.tap()
+            app.buttons["Скрыть комментарий"].firstMatch.tap()
+            XCTAssertFalse(field.exists)
+            app.terminate()
+        }
+    }
     @MainActor func testUnifiedFinishAndHistoryCorrection() {
         for (role, theme) in [("trainer", "dark"), ("student", "light")] {
             let app = XCUIApplication()

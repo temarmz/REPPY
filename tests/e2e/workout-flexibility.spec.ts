@@ -15,7 +15,7 @@ for (const theme of ['dark', 'light']) {
       await page.getByRole('button', { name: 'Добавить упражнение', exact: true }).click();
       const picker = page.getByRole('dialog', { name: 'Добавить упражнения' });
       await picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true }).click();
-      await expect(picker.locator('.picker-exercise-row').filter({ hasText: 'Жим лёжа' })).toHaveClass(/added/);
+      await expect(picker.locator('.picker-exercise-row').filter({ has: picker.getByRole('button', { name: 'Добавить Жим лёжа', exact: true }) })).toHaveClass(/added/);
       await picker.getByRole('button', { name: 'Добавить Планка', exact: true }).click();
       await picker.getByRole('button', { name: 'Готово', exact: true }).click();
       await expect(page.locator('.plan-set-card:visible')).toHaveCount(2);

@@ -8,13 +8,15 @@ import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--device', required=True, help='Booted iPhone Simulator UUID')
+parser.add_argument('--only-testing', default='REPPYUITests', help='Optional focused XCTest identifier')
+parser.add_argument('--base-url', default='http://127.0.0.1:4173', help='Local demo preview URL')
 args = parser.parse_args()
 root = pathlib.Path(__file__).resolve().parents[1]
 workspace = root / 'work' / 'safari-e2e'
 for folder in ['scripts', 'REPPY/Resources', 'REPPYUITests', 'REPPYTests', 'Config']:
     (workspace / folder).mkdir(parents=True, exist_ok=True)
 shutil.copy(root / 'ios/scripts/generate-project.py', workspace / 'scripts/generate-project.py')
-shutil.copy(root / 'tests/simulator/SafariTests.swift', workspace / 'REPPYUITests/SafariTests.swift')
+(workspace / 'REPPYUITests/SafariTests.swift').write_text((root / 'tests/simulator/SafariTests.swift').read_text().replace('http://127.0.0.1:4173', args.base_url.rstrip('/')))
 for name in ['PrivacyInfo.xcprivacy', 'DemoData.json', 'Info.plist']:
     shutil.copy(root / 'ios/REPPY/Resources' / name, workspace / 'REPPY/Resources' / name)
 shutil.copytree(root / 'ios/REPPY/Resources/Assets.xcassets', workspace / 'REPPY/Resources/Assets.xcassets', dirs_exist_ok=True)
@@ -24,5 +26,5 @@ subprocess.run(['python3', str(workspace / 'scripts/generate-project.py')], chec
 project = workspace / 'REPPY.xcodeproj/project.pbxproj'
 project.write_text(project.read_text().replace('"GENERATE_INFOPLIST_FILE" = "NO";', '"GENERATE_INFOPLIST_FILE" = "YES";'))
 result = root / 'work' / f'safari-{int(time.time())}.xcresult'
-subprocess.run(['xcodebuild', 'test', '-project', str(workspace / 'REPPY.xcodeproj'), '-scheme', 'REPPY', '-destination', f'platform=iOS Simulator,id={args.device}', '-derivedDataPath', str(workspace / 'build'), '-resultBundlePath', str(result), '-only-testing:REPPYUITests', 'CODE_SIGNING_ALLOWED=NO', 'ONLY_ACTIVE_ARCH=YES', 'DEBUG_INFORMATION_FORMAT=dwarf', 'COMPILER_INDEX_STORE_ENABLE=NO'], check=True)
+subprocess.run(['xcodebuild', 'test', '-project', str(workspace / 'REPPY.xcodeproj'), '-scheme', 'REPPY', '-destination', f'platform=iOS Simulator,id={args.device}', '-derivedDataPath', str(workspace / 'build'), '-resultBundlePath', str(result), '-only-testing:' + args.only_testing, 'CODE_SIGNING_ALLOWED=NO', 'ONLY_ACTIVE_ARCH=YES', 'DEBUG_INFORMATION_FORMAT=dwarf', 'COMPILER_INDEX_STORE_ENABLE=NO'], check=True)
 print(result)

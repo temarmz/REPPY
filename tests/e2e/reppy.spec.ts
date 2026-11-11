@@ -998,7 +998,7 @@ test('результат ученика виден тренеру и не мен
   const studentFinishDialog = page.getByRole('dialog', { name: 'Завершение тренировки' });
   await expect(studentFinishDialog).toHaveCount(1);
   await expect(studentFinishDialog).toHaveAttribute('data-modal-frame', 'sheet');
-  await expect(studentFinishDialog).toContainText('Не отмечено подходов');
+  await expect(studentFinishDialog).not.toContainText('Не отмечено подходов');
   await studentFinishDialog.getByLabel('Как прошла тренировка?', { exact: true }).selectOption('good');
   await studentFinishDialog.getByLabel('Комментарий о тренировке').fill('Тестовый результат ученика');
   await studentFinishDialog.getByRole('button', { name: 'Подтвердить завершение' }).click();
@@ -1096,7 +1096,7 @@ test('тренер ведёт занятие, правит его в момен�
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   await expect(page.locator('.exercise-picker-sheet .search-input')).toHaveCSS('font-size', '16px');
   await expect(page.getByRole('searchbox', { name: 'Поиск упражнений' })).toBeVisible();
-  await page.getByRole('button', { name: 'Бицепс', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Мышечная группа' }).selectOption('Бицепс');
   await page.getByRole('button', { name: 'Добавить Молотковые сгибания' }).click();
   const multiPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
   await expect(multiPicker).toBeVisible();
@@ -1152,7 +1152,7 @@ test('тренер ведёт занятие, правит его в момен�
   await editMuscles.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
   await personalPicker.getByRole('button', { name: 'Сохранить изменения' }).click();
   await expect(page.locator('.toast')).toHaveCount(0);
-  await personalPicker.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
+  await personalPicker.getByRole('combobox', { name: 'Мышечная группа' }).selectOption('Квадрицепс');
   await expect(personalPicker.getByText('Тяга полотенца')).toBeVisible();
   await expect(personalPicker.getByText('Спина, Бицепс, Квадрицепс · Другое')).toBeVisible();
   await personalPicker.getByRole('button', { name: 'Готово' }).click();
@@ -1206,7 +1206,7 @@ test('упражнение со своим весом не показывает 
   await page.getByLabel('Название тренировки').fill('Тренировка со своим весом');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
   const initialPicker = page.getByRole('dialog', { name: 'Добавить упражнения' });
-  await initialPicker.getByRole('button', { name: 'Спина', exact: true }).click();
+  await initialPicker.getByRole('combobox', { name: 'Мышечная группа' }).selectOption('Спина');
   await initialPicker.getByRole('button', { name: 'Добавить Подтягивания' }).click();
   await initialPicker.getByRole('button', { name: 'Готово' }).click();
   const pullUpsPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Подтягивания' });
@@ -1217,7 +1217,7 @@ test('упражнение со своим весом не показывает 
   await expect(pullUpsPlan.locator('.active-exercise-meta')).toHaveText('Спина · Свой вес');
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
-  await page.getByRole('button', { name: 'Кор', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Мышечная группа' }).selectOption('Кор');
   await page.getByRole('button', { name: 'Добавить Планка' }).click();
   await page.getByRole('button', { name: 'Готово' }).click();
   const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
@@ -1231,7 +1231,7 @@ test('черновик тренировки и открытый выбор уп�
   await page.goto('/#/trainer/clients/maria/assign/new');
   await page.getByLabel('Название тренировки').fill('Черновик на вечер');
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
-  await page.getByRole('button', { name: 'Квадрицепс', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Мышечная группа' }).selectOption('Квадрицепс');
   await page.getByRole('button', { name: 'Добавить Приседания', exact: true }).click();
 
   const squatPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Приседания' });

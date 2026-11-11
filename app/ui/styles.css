@@ -1481,7 +1481,9 @@ body.modal-open .bottom-nav { display: none; }
 .coach-note-field > span { color: var(--palette-d8dcd4); font-size: var(--font-size-12); font-weight:var(--font-weight-800); }
 .coach-note-field > span small { color: var(--muted); font-weight:var(--font-weight-650); }
 .coach-note-field textarea { width: 100%; min-height: calc(var(--size-78) * var(--ui-control-height-scale)); resize: vertical; border: 1px solid var(--field-outline); border-radius: var(--control-radius); padding: var(--space-12) var(--space-13); background: var(--field-bg); color: var(--text-primary); font: inherit; font-size: var(--font-size-13); line-height: 1.5; }
-.exercise-picker-sheet { display: grid; grid-template-rows: max-content max-content max-content minmax(calc(var(--size-64) * var(--ui-control-height-scale) + var(--space-12)), 1fr) max-content; }
+.exercise-picker-sheet { display: flex; flex-direction: column; }
+.exercise-picker-sheet > :not(.picker-list) { flex-shrink: 0; }
+.exercise-picker-sheet .picker-list { flex: 1 1 auto; min-height: var(--size-64); }
 .exercise-picker-sheet .sheet-title p { margin: var(--space-5) 0 0; color: var(--muted); font-size: var(--font-size-12); line-height: 1.4; }
 .muscle-filter { display: flex; gap: var(--space-7); margin-top: var(--space-12); overflow-x: auto; padding-bottom: var(--space-4); scrollbar-width: none; }
 .muscle-filter::-webkit-scrollbar { display: none; }

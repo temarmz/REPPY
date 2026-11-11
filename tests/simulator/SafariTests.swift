@@ -1,5 +1,38 @@
 import XCTest
 final class SafariTests: XCTestCase {
+ func testFinishModalKeyboard() throws {
+  continueAfterFailure = false
+  let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari"); safari.activate()
+  if safari.buttons["Done"].exists { safari.buttons["Done"].firstMatch.tap() }
+  let address = safari.textFields["Address"]
+  XCTAssertTrue(address.waitForExistence(timeout: 15))
+  let url = "http://127.0.0.1:4173/?keyboard-check=" + UUID().uuidString + "#/trainer/workout/assignment-artem-push-today\n"
+  address.tap(); address.typeText(url)
+  let demo = safari.buttons["Попробовать REPPY"]
+  if demo.waitForExistence(timeout: 2) {
+   demo.tap()
+   address.tap(); address.typeText(url)
+  }
+  let finish = safari.buttons["Завершить тренировку"]
+  XCTAssertTrue(finish.waitForExistence(timeout: 15), safari.debugDescription)
+  for _ in 0..<15 { if finish.isHittable && finish.frame.maxY < safari.frame.maxY - 90 { break }; safari.swipeUp() }
+  finish.tap()
+  let comment = safari.textViews["Комментарий о тренировке"]
+  XCTAssertTrue(comment.waitForExistence(timeout: 5), safari.debugDescription)
+  comment.tap(); comment.typeText("Проверка клавиатуры Safari")
+  XCTAssertTrue(safari.keyboards.firstMatch.waitForExistence(timeout: 5))
+  let visible = NSPredicate { _, _ in
+   comment.frame.minY > 50 && comment.frame.maxY <= safari.keyboards.firstMatch.frame.minY
+  }
+  expectation(for: visible, evaluatedWith: comment); waitForExpectations(timeout: 5)
+  XCTAssertTrue(comment.isHittable)
+  let shot = XCTAttachment(screenshot: safari.screenshot()); shot.name = "finish-keyboard-visible"; shot.lifetime = .keepAlways; add(shot)
+  safari.buttons["Done"].firstMatch.tap()
+  let resume = safari.buttons["Продолжить тренировку"]
+  for _ in 0..<4 { if resume.isHittable { break }; safari.swipeUp() }
+  XCTAssertTrue(resume.waitForExistence(timeout: 5)); resume.tap()
+  XCTAssertFalse(safari.textViews["Комментарий о тренировке"].exists)
+ }
  func testLongSafariNavigation() throws {
   continueAfterFailure = false
   let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")

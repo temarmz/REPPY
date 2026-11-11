@@ -72,3 +72,20 @@ test('pinch zoom не сжимает интерфейс, cleanup снимает 
   fixture.target.dispatchEvent(new Event('pageshow'));
   assert.equal(fixture.callbacks.size, 0);
 });
+
+test('модалка учитывает смещение Safari даже когда innerHeight уменьшился вместе с клавиатурой', () => {
+  const fixture = viewportFixture();
+  fixture.target.innerWidth = 390;
+  fixture.root.toggleAttribute = () => {};
+  fixture.target.document.activeElement = { tagName: 'TEXTAREA' };
+  fixture.target.document.querySelector = () => ({});
+  const stop = observeMobileViewport(fixture.target, fixture.root);
+  fixture.target.innerHeight = 420;
+  fixture.viewport.height = 420;
+  fixture.viewport.offsetTop = 210;
+  fixture.viewport.dispatchEvent(new Event('resize'));
+  fixture.flush();
+  assert.equal(fixture.values.get('--app-visible-height'), '420px');
+  assert.equal(fixture.values.get('--app-visible-top'), '210px');
+  stop();
+});
