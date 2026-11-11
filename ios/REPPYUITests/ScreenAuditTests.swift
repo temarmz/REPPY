@@ -143,7 +143,7 @@ final class ScreenAuditTests: XCTestCase {
         app.buttons["Посмотреть результат"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 5))
         app.terminate(); app.launchArguments += ["--audit-screen", "progress"]; app.launch()
-        XCTAssertTrue(app.navigationBars["Прогресс"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.navigationBars["Все упражнения"].waitForExistence(timeout: 15))
         let exercise = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим ногами")).firstMatch
         XCTAssertTrue(exercise.waitForExistence(timeout: 5)); exercise.tap()
         for _ in 0..<5 { if app.buttons["progress-previous-session"].exists && app.buttons["progress-previous-session"].isHittable { break }; app.swipeUp() }

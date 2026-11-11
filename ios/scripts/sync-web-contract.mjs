@@ -25,12 +25,13 @@ function dimension(token) {
   if (!/^[\d\s.*()+/-]+$/.test(value)) throw new Error(`Not a dimension: ${token}`);
   return Function(`"use strict"; return (${value})`)();
 }
-const colors = { background: '--app-bg', surface: '--surface', field: '--field-bg', text: '--text-primary', secondary: '--text-secondary', muted: '--muted', lime: '--lime', error: '--error-color', warning: '--badge-warning-text', button: '--button-bg', outline: '--field-outline' };
+const colors = { background: '--app-bg', surface: '--surface', field: '--field-bg', text: '--text-primary', secondary: '--text-secondary', muted: '--muted', lime: '--lime', limeStrong: '--lime-strong', error: '--error-color', warning: '--badge-warning-text', button: '--button-bg', outline: '--field-outline' };
 Object.assign(colors, { navSelected: '--nav-selected-bg', focusSurface: '--focus-surface', focusText: '--focus-text', focusSecondary: '--focus-secondary', focusAccent: '--focus-accent', trendUp: '--trend-up', trendDown: '--trend-down' });
 colors.focusMeta = '--focus-meta';
 colors.divider = '--divider';
 const dimensions = { control: '--control-height-large', compact: '--control-height-medium', small: '--control-height-small', radius: '--control-radius', cardRadius: '--card-radius', modalRadius: '--modal-radius', cardGap: '--card-list-gap', exerciseTitle: '--exercise-title-font-size', pageInset: '--space-20' };
 dimensions.iconSize = '--size-20';
+Object.assign(dimensions, { calendarMarker: '--size-7', addExerciseIcon: '--size-27', emptyIcon: '--size-24', emptyInset: '--space-32', emptyMinHeight: '--size-220' });
 Object.assign(dimensions, { notesGap: '--notes-grid-gap', notesPadding: '--notes-card-padding', notesMinHeight: '--notes-day-min-height', notesFont: '--notes-editor-font-size', mediaMinHeight: '--size-150' });
 Object.assign(dimensions, { focusTitleFont: '--font-size-44', focusInset: '--space-22', focusMinHeight: '--size-310' });
 // Native text retains iOS readability and Dynamic Type; geometry comes from web.

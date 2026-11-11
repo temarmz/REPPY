@@ -1972,6 +1972,11 @@ body.modal-open .bottom-nav { display: none; }
 .student-exercise-progress .workout-row { grid-template-columns: minmax(0, 1fr) auto; border: 0; border-radius: var(--card-radius); background: var(--surface); padding: var(--space-18); }
 .student-exercise-progress .workout-row:enabled:hover { background: var(--surface-2); }
 .student-exercise-progress .workout-row strong { white-space: normal; }
+.progress-tile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; margin-bottom: var(--space-12); }
+.student-exercise-progress .progress-tile { grid-template-columns: minmax(0, 1fr); align-content: start; padding: var(--space-12); }
+.student-exercise-progress .progress-tile strong { font-size: var(--font-size-13); overflow-wrap: anywhere; }
+.progress-tile .progress-comparison-values > span { white-space: normal; }
+
 .progress-muted, .progress-period, .progress-chart-unit { color: var(--muted); }
 .progress-period { margin: var(--space-negative-12) 0 var(--space-20); font-size: var(--font-size-13); }
 .progress-sets { min-width: 0; }

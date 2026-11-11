@@ -31,6 +31,24 @@ public struct ProgressGroup: Identifiable, ReppySendable {
     public var points: [ProgressPoint]
 }
 public enum ExerciseProgress {
+    public static func orderedGroups(_ groups: [ProgressGroup], prioritizeGains: Bool = false, now: Date = Date()) -> [ProgressGroup] {
+        let ranked = groups.compactMap { group -> (group: ProgressGroup, latest: ProgressPoint, gain: Bool, position: Int)? in
+            var group = group
+            group.points = group.points.filter { $0.date > .distantPast && $0.date <= now }
+            guard let latest = group.points.first else { return nil }
+            group.exercise = latest.exercise
+            let position = latest.session.workout_snapshot.exercises.firstIndex { $0.id == latest.exercise.id } ?? Int.max
+            return (group, latest, prioritizeGains && ProgressComparison(group)?.trend == .up, position)
+        }
+        return ranked.sorted { a, b in
+            if a.gain != b.gain { return a.gain }
+            if a.latest.date != b.latest.date { return a.latest.date > b.latest.date }
+            if a.latest.session.id != b.latest.session.id { return a.latest.session.id > b.latest.session.id }
+            if a.position != b.position { return a.position < b.position }
+            return a.group.id < b.group.id
+        }.map { $0.group }
+    }
+
     public static func collect(data: AppData, relationshipID: String) -> [ProgressGroup] {
         collect(data: data, relationshipIDs: [relationshipID])
     }

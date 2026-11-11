@@ -45,7 +45,7 @@ struct MonthCalendar: View {
                             VStack(spacing: 2) {
                                 if typeSize.isAccessibilitySize { Text(day.formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "ru_RU")))).font(.caption) }
                                 Text(String(calendar.component(.day, from: day))).font(.body.weight(.semibold))
-                                Circle().fill(counts[ReppyDate.day(day), default: 0] > 0 ? (selected ? ReppyTheme.selectedText : ReppyTheme.lime) : .clear).frame(width: 4, height: 4)
+                                Circle().fill(counts[ReppyDate.day(day), default: 0] > 0 ? (selected ? ReppyTheme.selectedText : ReppyTheme.lime) : .clear).frame(width: ReppyMetrics.calendarMarker, height: ReppyMetrics.calendarMarker)
                             }.frame(maxWidth: .infinity).frame(minHeight: dayHeight)
                                 .foregroundStyle(selected ? ReppyTheme.selectedText : calendar.isDate(day, equalTo: month, toGranularity: .month) ? ReppyTheme.text : ReppyTheme.muted)
                                 .background(selected ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))

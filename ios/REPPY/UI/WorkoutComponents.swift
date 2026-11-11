@@ -48,7 +48,16 @@ struct ReppyExerciseSectionHeader: View {
         HStack(spacing: ReppyMetrics.space12) {
             ReppyHeading(text: "Упражнения").frame(maxWidth: .infinity, alignment: .leading)
             if let reorder { Button(action: reorder) { ReppyToolbarIcon(icon: "arrow.up.arrow.down") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Изменить порядок упражнений") }
-            Button(action: add) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Добавить упражнение")
+            Button(action: add) {
+                Image(systemName: "plus")
+                    .font(.system(size: ReppyMetrics.addExerciseIcon, weight: .medium))
+                    .foregroundStyle(disabled ? ReppyTheme.muted : ReppyTheme.selectedText)
+                    .frame(width: ReppyMetrics.control, height: ReppyMetrics.control)
+                    .background(disabled ? ReppyTheme.button : ReppyTheme.lime, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(disabled)
+            .accessibilityLabel("Добавить упражнение")
         }
     }
 }
