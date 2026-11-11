@@ -37,15 +37,17 @@ export function InviteStudent({
   draftIdentity,
   onCreate,
   onInvite,
+  existing,
 }: {
   draftIdentity: string;
   onCreate: (student: Student) => void;
-  onInvite?: (name: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
+  onInvite?: (name: string, studentId?: string) => Promise<{ student: Student; token: string; expiresAt: string }>;
+  existing?: Student;
 }) {
-  const draftKey = `invite-student:${draftIdentity}`;
+  const draftKey = `invite-student:${draftIdentity}:${existing?.id ?? 'new'}`;
   const [name, setName] = useState(() => {
     const draft = loadUiDraft(draftKey);
-    return typeof draft?.name === 'string' ? draft.name : '';
+    return existing?.name ?? (typeof draft?.name === 'string' ? draft.name : '');
   });
   const [created, setCreated] = useState<{ student: Student; token?: string; expiresAt?: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -69,12 +71,12 @@ export function InviteStudent({
     setError('');
     try {
       if (onInvite) {
-        const invitation = await onInvite(clean);
+        const invitation = await onInvite(clean, existing?.id);
         setCreated(invitation);
         return;
       }
-      const student: Student = { id: makeId('student'), name: clean, status: 'invited', color: 'orange' };
-      onCreate(student);
+      const student: Student = existing ?? { id: makeId('student'), name: clean, status: 'invited', color: 'orange' };
+      if (!existing) onCreate(student);
       setCreated({ student });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось создать приглашение.');
@@ -89,6 +91,7 @@ export function InviteStudent({
       setCopied(true);
     } catch {
       setCopied(false);
+      setError('Не удалось скопировать ссылку. Выдели её в поле выше и скопируй вручную.');
     }
   };
 
@@ -98,7 +101,7 @@ export function InviteStudent({
       {!created ? (
         <Section className="form-card">
           <TextField id="student-name" label="Имя ученика" value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, Сергей" autoFocus />
-          <Paragraph className="field-hint">Мы добавим ученика в список со статусом «Ожидает приглашения».</Paragraph>
+          <Paragraph className="field-hint">{existing ? 'Новая ссылка заменит предыдущую. Отправь её ученику — она подойдёт и для существующего аккаунта REPPY.' : 'Мы добавим ученика в список со статусом «Ожидает приглашения».'}</Paragraph>
           {error && <FormError>{error}</FormError>}
           <ActionButton icon="arrow-right" disabled={busy || !name.trim()} onClick={() => void create()}>{busy ? 'Создаём…' : 'Продолжить'}</ActionButton>
         </Section>
@@ -108,6 +111,7 @@ export function InviteStudent({
           <Heading>{created.student.name} почти в команде</Heading>
           <Paragraph>Отправь эту одноразовую ссылку ученику{created.expiresAt ? ` — она действует до ${new Intl.DateTimeFormat('ru-RU', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(created.expiresAt))}` : ''}.</Paragraph>
           <Output>{inviteUrl}</Output>
+          {error && <FormError>{error}</FormError>}
           <ActionButton icon={copied ? 'check' : 'copy'} onClick={copy}>{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</ActionButton>
           <ActionButton variant="secondary" icon="check" onClick={() => go('/trainer/clients')}>Готово</ActionButton>
         </Section>

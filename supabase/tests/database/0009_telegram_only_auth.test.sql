@@ -1,6 +1,6 @@
 begin;
 
-select plan(14);
+select plan(15);
 
 select ok(
   has_function_privilege(
@@ -136,11 +136,12 @@ insert into public.assignments (
   '{"name":"Existing invitation workout","exercises":[{"id":"59000000-0000-4000-8000-000000000001","exerciseId":"00000000-0000-4000-8000-000000000001","plannedSets":[]}]}'::jsonb
 );
 
-set local role service_role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '15000000-0000-4000-8000-000000000002', true);
 
 select lives_ok(
-  $$select public.accept_existing_student_invitation_from_telegram(repeat('e', 43), 550001)$$,
-  'an existing Telegram student can accept an invitation from another trainer'
+  $$select public.accept_student_invitation(repeat('e', 43))$$,
+  'an already signed-in student can accept an invitation from another trainer'
 );
 
 reset role;
@@ -150,6 +151,14 @@ select is(
   'active',
   'the new trainer relationship becomes active'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '15000000-0000-4000-8000-000000000002', true);
+select lives_ok(
+  $$select public.accept_student_invitation(repeat('e', 43))$$,
+  'an already signed-in student can retry the accepted invitation safely'
+);
+reset role;
 
 select is(
   (select student_id::text from public.trainer_student_relationships where id = '35000000-0000-4000-8000-000000000002'),

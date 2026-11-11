@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { replaceHistoryEntry } from './browser-history.ts';
 
 export type PendingTelegramRegistration = {
+  registrationToken?: string;
   idToken: string;
   nonce: string;
   displayName: string;
@@ -9,6 +10,7 @@ export type PendingTelegramRegistration = {
 };
 
 type TelegramAuthResponse = {
+  registrationToken?: string;
   code?: string;
   status?: 'authenticated' | 'registration-required';
   tokenHash?: string;
@@ -216,6 +218,7 @@ export async function telegramSignIn(client: SupabaseClient) {
   if (result.status === 'registration-required') {
     return {
       ...authorization,
+      registrationToken: result.registrationToken,
       displayName: result.telegram?.displayName || '',
       username: result.telegram?.username ?? null,
     } satisfies PendingTelegramRegistration;
@@ -231,6 +234,7 @@ export async function completeTelegramTrainerRegistration(
 ) {
   const result = await callTelegramAuth(client, {
     action: 'register-trainer',
+    registrationToken: pending.registrationToken,
     idToken: pending.idToken,
     nonce: pending.nonce,
     displayName,
@@ -241,7 +245,7 @@ export async function completeTelegramTrainerRegistration(
 export async function acceptInvitationWithTelegram(client: SupabaseClient, invitationToken: string) {
   if (await redirectFlowEnabled(client)) {
     await beginRedirectAuthorization({ action: 'accept-student-invitation', invitationToken });
-    return;
+    return false;
   }
   const authorization = await authorizeTelegram();
   const result = await callTelegramAuth(client, {
@@ -250,6 +254,7 @@ export async function acceptInvitationWithTelegram(client: SupabaseClient, invit
     ...authorization,
   });
   await applySession(client, result.tokenHash);
+  return true;
 }
 
 let redirectCompletion: { key: string; promise: Promise<PendingTelegramRegistration | null> } | null = null;
@@ -298,7 +303,7 @@ export function completeTelegramRedirect(client: SupabaseClient) {
       : { action: 'accept-student-invitation', invitationToken: pending.invitationToken, ...authorization });
     if (redirectCallback().key !== key) throw new DOMException('Попытка входа изменилась.', 'AbortError');
     const registration = result.status === 'registration-required'
-      ? { ...authorization, displayName: result.telegram?.displayName || '', username: result.telegram?.username ?? null }
+      ? { ...authorization, registrationToken: result.registrationToken, displayName: result.telegram?.displayName || '', username: result.telegram?.username ?? null }
       : null;
     if (!registration) await applySession(client, result.tokenHash);
     if (redirectCallback().key === key) {

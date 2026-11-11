@@ -150,12 +150,27 @@ test('empty data has actionable trainer and student states', async ({ page }, te
   await page.goto('/#/trainer/clients');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Учеников пока нет' })).toBeVisible();
-  const invite = page.getByRole('button', { name: 'Пригласить ученика' }).last();
+  const invite = page.getByRole('button', { name: 'Пригласить ученика', exact: true });
+  await expect(invite).toHaveCount(1);
   await expect(invite).toBeVisible();
   await auditTouchTargets(page);
   await invite.click();
   await expect(page).toHaveURL(/#\/trainer\/clients\/invite$/);
   await expectResponsiveScreen(page);
+
+  await page.goto('/#/trainer');
+  await page.reload();
+  await page.locator('.today-empty').click();
+  await expect(page).toHaveURL(/#\/trainer\/clients\/invite$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Имя ученика').fill('Ричард: тестовая ссылка');
+  await page.getByRole('button', { name: 'Продолжить', exact: true }).click();
+  await page.getByRole('button', { name: 'Готово', exact: true }).click();
+  await page.getByRole('button', { name: /Ричард: тестовая ссылка/ }).click();
+  await page.getByRole('button', { name: 'Создать новую ссылку приглашения' }).click();
+  await page.getByRole('button', { name: 'Продолжить', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Скопировать ссылку' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('reppy-demo-v0')!).students.length)).toBe(1);
 
   await page.evaluate(() => {
     const raw = localStorage.getItem('reppy-demo-v0');

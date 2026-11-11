@@ -64,7 +64,7 @@ export default function WorkoutCalendar({ data, area }: { data: DemoState; area:
 
       <Section className="calendar-agenda">
         <SectionHeading title={<>{selectedTitle}</>} >
-          {area === 'trainer' && isScheduleDate(selectedDay) && <Button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${selectedTitle}`} onClick={() => setAssignDate(selectedDay)}><Icon name="plus" /></Button>}
+          {area === 'trainer' && isScheduleDate(selectedDay) && <Button className="schedule-add-button" type="button" aria-label={`Назначить тренировку на ${selectedTitle}`} onClick={() => data.students.length ? setAssignDate(selectedDay) : go('/trainer/clients/invite')}><Icon name="plus" /></Button>}
         </SectionHeading>
         {selectedAssignments.length ? <Box className="agenda-list">{selectedAssignments.map((assignment) => {
           const student = data.students.find((item) => item.id === assignment.studentId);
@@ -112,7 +112,7 @@ export function ScheduleStudentPicker({ date, students, onClose, onSelect }: { d
           <Inline><Strong>{student.name}</Strong><Small>{student.status === 'invited' ? 'Сначала ученик должен принять приглашение' : 'Выбрать тренировки'}</Small></Inline>
           <Icon name="chevron-right" />
         </Button>
-      ))}</Box> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => go('/trainer/clients/invite')} />}
+      ))}</Box> : <EmptyState icon="plus" title="Сначала добавь ученика" text="Назначить тренировку пока некому." action="Пригласить" onAction={() => { onClose(); go('/trainer/clients/invite'); }} />}
     </ModalFrame>
   );
 }

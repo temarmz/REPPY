@@ -5,10 +5,11 @@ struct StudentsScreen: View {
     @State private var search = ""
     var body: some View {
         ReppyPage {
-            ReppyLink(title: "Пригласить ученика", icon: "plus", kind: .primary) { InviteStudentScreen() }
+            if !store.data.students.isEmpty { ReppyLink(title: "Пригласить ученика", icon: "plus", kind: .primary) { InviteStudentScreen() } }
             if store.data.students.count > 8 { ReppySearch(text: $search) }
             let students = store.data.students.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }
             if students.isEmpty { ReppyEmpty(title: search.isEmpty ? "Учеников пока нет" : "Ничего не найдено", message: search.isEmpty ? "Пригласи первого ученика, чтобы составить ему план тренировок." : "Попробуй другое имя или очисти поиск.", icon: "person.2") }
+            if store.data.students.isEmpty { ReppyLink(title: "Пригласить ученика", icon: "plus", kind: .primary) { InviteStudentScreen() } }
             ForEach(students) { student in
                 if let relationship = store.data.relationship(for: student.id) {
                     ReppyStudentLink(name: student.name, status: status(relationship), balance: store.data.balance(relationship.id), hasSubscription: store.data.subscriptions.contains { $0.relationship_id == relationship.id }) { StudentScreen(studentID: student.id) }

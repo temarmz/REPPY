@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { completeTelegramRedirect, restoreTelegramCallbackRoute, telegramSignIn } from '../app/telegram-login.ts';
+import { completeTelegramTrainerRegistration, completeTelegramRedirect, restoreTelegramCallbackRoute, telegramSignIn } from '../app/telegram-login.ts';
 
 function installTelegramWindow(result = 'telegram-id-token', { replacePopupProxy = false } = {}) {
   const popup = {
@@ -43,6 +43,7 @@ test('единый Telegram-вход принимает ответ после з
       invoke: async (_name, { body }) => body.action === 'config' ? ({ data: { redirectFlowConfigured: false }, error: null }) : ({
         data: {
           status: 'registration-required',
+          registrationToken: 'verified-registration',
           telegram: { displayName: 'Новый тренер', username: 'new_trainer' },
         },
         error: null,
@@ -56,7 +57,26 @@ test('единый Telegram-вход принимает ответ после з
   assert.equal(pending.displayName, 'Новый тренер');
   assert.equal(pending.username, 'new_trainer');
   assert.equal(pending.idToken, 'telegram-id-token');
+  assert.equal(pending.registrationToken, 'verified-registration');
   assert.equal(popup.closed, true);
+});
+
+test('registration keeps verified identity while the trainer edits the name and retries', async () => {
+  const requests = [];
+  let attempts = 0;
+  const client = {
+    functions: { invoke: async (_name, { body }) => {
+      requests.push(body);
+      if (++attempts === 1) return { error: { context: { body: { error: 'Сбой сети' } } } };
+      return { data: { tokenHash: 'session' } };
+    } },
+    auth: { verifyOtp: async () => ({ error: null }) },
+  };
+  const pending = { registrationToken: 'verified-registration', idToken: 'expired-telegram-token', nonce: 'nonce', displayName: 'Richard C.', username: null };
+  await assert.rejects(completeTelegramTrainerRegistration(client, pending, 'Ричард Тестирович'), /Сбой сети/);
+  await completeTelegramTrainerRegistration(client, pending, 'Ричард Тестирович');
+  assert.equal(requests[1].registrationToken, 'verified-registration');
+  assert.equal(requests[1].displayName, 'Ричард Тестирович');
 });
 
 test('единый Telegram-вход сразу применяет сессию существующего аккаунта', async (t) => {

@@ -17,7 +17,7 @@ type ReppyDataController = {
   retryPersistence: () => void;
   reloadCurrentData: () => void;
   reset: () => void;
-  createStudentInvitation: ((name: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
+  createStudentInvitation: ((name: string, studentId?: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
   dispatch: (command: ReppyCommand) => void;
   setData: Dispatch<SetStateAction<DemoState>>;
 };
@@ -274,15 +274,15 @@ export function useReppyData(
     setReloadAttempt((current) => current + 1);
   }, []);
 
-  const createStudentInvitation = useCallback(async (name: string) => {
+  const createStudentInvitation = useCallback(async (name: string, studentId?: string) => {
     if (!repository.createStudentInvitation) throw new Error('Приглашения доступны только в аккаунте тренера.');
     const lifetime = repositoryLifetimeRef.current;
     if (lifetime?.repository !== repository) throw new DOMException('Аккаунт изменился. Повтори действие в текущем аккаунте.', 'AbortError');
-    const invitation = await repository.createStudentInvitation(name);
+    const invitation = await repository.createStudentInvitation(name, studentId);
     if (repositoryLifetimeRef.current !== lifetime) throw new DOMException('Аккаунт изменился. Повтори действие в текущем аккаунте.', 'AbortError');
     // This confirmed RPC bypasses the command queue, so invalidate older reads too.
     saveVersionRef.current += 1;
-    const nextData = applyReppyCommand(dataRef.current, { type: 'student.create', student: invitation.student });
+    const nextData = studentId ? dataRef.current : applyReppyCommand(dataRef.current, { type: 'student.create', student: invitation.student });
     dataRef.current = nextData;
     setData(nextData);
     return invitation;

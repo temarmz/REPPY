@@ -142,9 +142,11 @@ export function useReppyAuth() {
   const acceptStudentInvitationWithTelegram = useCallback(async (token: string) => {
     if (!client) throw new Error('Supabase не настроен.');
     setError('');
-    await acceptInvitationWithTelegram(client, token);
+    const completed = await acceptInvitationWithTelegram(client, token);
+    if (!completed) return false;
     const { data } = await client.auth.getSession();
     await loadProfile(data.session);
+    return true;
   }, [client, loadProfile]);
 
   const resumeTelegramRedirect = useCallback(async () => {

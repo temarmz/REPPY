@@ -2,6 +2,7 @@ import { observeHandler } from '../_shared/observability.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6.1.0'
 import { isAllowedTelegramRedirect } from './redirects.ts'
+import { issueRegistrationToken, verifyRegistrationToken, type TelegramIdentity } from './registration.ts'
 
 const appOrigin = 'https://temarmz.github.io'
 const corsHeaders = {
@@ -9,13 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   Vary: 'Origin',
-}
-
-type TelegramIdentity = {
-  id: number
-  firstName: string
-  displayName: string
-  username: string | null
 }
 
 type RateLimitResult = {
@@ -76,8 +70,9 @@ function serviceRoleKey(): string | null {
   return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 }
 
+const jwks = createRemoteJWKSet(new URL('https://oauth.telegram.org/.well-known/jwks.json'))
+
 async function verifyTelegramIdToken(idToken: string, nonce: string, clientId: string): Promise<TelegramIdentity> {
-  const jwks = createRemoteJWKSet(new URL('https://oauth.telegram.org/.well-known/jwks.json'))
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: 'https://oauth.telegram.org',
     audience: clientId,
@@ -172,11 +167,20 @@ Deno.serve(observeHandler('telegram-auth', async (request) => {
 
   const idToken = typeof body.idToken === 'string' ? body.idToken : ''
   const nonce = typeof body.nonce === 'string' ? body.nonce : ''
-  if (!idToken || nonce.length < 32 || nonce.length > 128) return failure('invalid_request', 'Invalid Telegram request', 400)
+  const registrationToken = typeof body.registrationToken === 'string' ? body.registrationToken : ''
+  if (!registrationToken && (!idToken || nonce.length < 32 || nonce.length > 128)) return failure('invalid_request', 'Invalid Telegram request', 400)
 
   let telegram: TelegramIdentity
-  try { telegram = await verifyTelegramIdToken(idToken, nonce, clientId) } catch {
+  try {
+    if (registrationToken) {
+      if (action !== 'register-trainer') throw new Error('Invalid registration action')
+      telegram = await verifyRegistrationToken(registrationToken, serviceKey, clientId)
+    } else {
+      telegram = await verifyTelegramIdToken(idToken, nonce, clientId)
+    }
+  } catch {
     console.error('Telegram OIDC verification failed')
+    if (registrationToken) return failure('registration_expired', 'Подтверждение регистрации устарело. Нажми «Использовать другой Telegram» и подтверди вход ещё раз.', 401)
     return failure('verification_failed', 'Не удалось подтвердить данные Telegram. Закройте окно входа и повторите.', 401)
   }
 
@@ -229,8 +233,10 @@ Deno.serve(observeHandler('telegram-auth', async (request) => {
     catch { console.error('Telegram session issue failed'); return failure('session_failed', 'Unable to open REPPY account', 500) }
   }
 
-  if (action === 'login') return json({ code: 'account_not_found', status: 'registration-required', telegram })
-  if (action === 'preview-trainer-registration') return json({ status: 'registration-required', telegram })
+  if (action === 'login' || action === 'preview-trainer-registration') {
+    const registrationToken = await issueRegistrationToken(telegram, serviceKey, clientId)
+    return json({ code: 'account_not_found', status: 'registration-required', telegram, registrationToken })
+  }
 
   const syntheticEmail = `telegram-${telegram.id}@users.reppy.invalid`
   const createUser = async (role?: 'trainer') => admin.auth.admin.createUser({

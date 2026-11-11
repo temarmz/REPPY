@@ -473,6 +473,7 @@ export function createSupabaseRepository(
       loggedIn: true,
       role: profile.role,
       activeStudentId: ownStudent ?? students[0]?.id ?? '',
+      trainerConnections: relationships.filter((row) => row.status === 'active').map((row) => ({ relationshipId: row.id, studentId: row.student_id, trainerName: trainerNames.get(row.trainer_id) ?? 'Тренер' })),
       students,
       assignments,
       sessions,
@@ -958,8 +959,16 @@ export function createSupabaseRepository(
     }
   }
 
-  async function createStudentInvitation(name: string) {
+  async function createStudentInvitation(name: string, studentId?: string) {
     if (profile.role !== 'trainer') throw new Error('Только тренер может приглашать учеников.');
+    if (studentId) {
+      const relationshipId = relationshipByStudent.get(studentId);
+      if (!relationshipId) throw new Error('Ученик не найден. Обнови страницу.');
+      const result = await client.rpc('create_student_invitation', { p_relationship_id: relationshipId });
+      throwIfError(result);
+      const link = result.data as { token: string; expiresAt: string };
+      return { student: { id: studentId, name, status: 'invited' as const, color: 'orange' as const }, ...link };
+    }
     const result = await client.rpc('create_student_with_invitation', {
       p_name: name.trim(),
       p_color: 'orange',

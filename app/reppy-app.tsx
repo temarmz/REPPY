@@ -290,16 +290,20 @@ export default function ReppyApp() {
           profile={auth.profile}
           onPreview={auth.previewInvitation}
           onTelegramAccept={async (token) => {
-            await auth.acceptStudentInvitationWithTelegram(token);
+            const completed = await auth.acceptStudentInvitationWithTelegram(token);
+            if (!completed) return;
+            reloadCurrentData();
             go('/student', true);
           }}
           onResumeTelegram={async () => {
             const result = await auth.resumeTelegramRedirect();
+            reloadCurrentData();
             go('/student', true);
             return result;
           }}
           onAccept={async (token) => {
             await auth.acceptInvitation(token);
+            reloadCurrentData();
             go('/student', true);
           }}
           onHome={() => go('/', true)}
@@ -490,7 +494,7 @@ function StudentProfile({ data, studentId, onUpdate, onDeleteInvitation, showPro
 
       {!trainerView && !settings && <AthleteDetails student={student} onSave={onUpdate} alwaysExpanded />}
       {settings}
-      {trainerView && student.status === 'invited' && <Section className="profile-data-stack"><EmptyState icon="users" title="Ожидает подключения" text="Ученик ещё не принял приглашение." /><ActionButton variant="danger" icon="trash" onClick={() => setDeleteInvitation(true)}>Удалить ученика</ActionButton></Section>}
+      {trainerView && student.status === 'invited' && <Section className="profile-data-stack"><EmptyState icon="users" title="Ожидает подключения" text="Ученик ещё не принял приглашение." action="Создать новую ссылку приглашения" onAction={() => go(`/trainer/clients/${student.id}/invite`)} /><ActionButton variant="danger" icon="trash" onClick={() => setDeleteInvitation(true)}>Удалить ученика</ActionButton></Section>}
       </Box>
       {deleteInvitation && <ConfirmationModal title="Удалить ученика?" text={`Приглашение для ${student.name} перестанет действовать. Ученик будет удалён из списка.`} confirmLabel="Удалить ученика" danger onClose={() => setDeleteInvitation(false)} onConfirm={() => { setDeleteInvitation(false); onDeleteInvitation?.(); }} />}
       {trainerView && student.status === 'active' && profileTab === 'progress' && <StudentExerciseProgress data={data} studentId={studentId} go={go} area={trainerView ? 'trainer' : 'student'} />}
@@ -501,10 +505,13 @@ function StudentProfile({ data, studentId, onUpdate, onDeleteInvitation, showPro
 
 function StudentSubscriptionCards({ data, student }: { data: DemoState; student: Student }) {
   const groups = new Map<string, string>();
+  for (const connection of data.trainerConnections ?? []) {
+    if (connection.studentId === student.id) groups.set(connection.relationshipId, connection.trainerName);
+  }
   for (const item of [...data.assignments, ...data.subscriptionEntries]) {
     if (item.studentId === student.id && item.relationshipId) groups.set(item.relationshipId, item.trainerName ?? 'Тренер');
   }
-  if (groups.size <= 1) return <SubscriptionCard data={data} student={student} trainerView={false} />;
+  if (groups.size === 0) return <SubscriptionCard data={data} student={student} trainerView={false} />;
   return <Box>{[...groups].map(([id, name]) => <Box key={id}><SectionHeading title={name} /><SubscriptionCard data={data} student={student} trainerView={false} relationshipId={id} /></Box>)}</Box>;
 }
 

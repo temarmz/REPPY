@@ -141,6 +141,7 @@ function StudentHome({ data, onOpen }: { data: DemoState; onOpen: (assignmentId:
 
   return (
     <Page className="content-page student-page">
+      {(data.trainerConnections?.length ?? 0) > 0 && <Section className="section-block"><SectionHeading title="Мои тренеры" />{data.trainerConnections?.filter((connection) => connection.studentId === data.activeStudentId).map((connection) => <Paragraph key={connection.relationshipId}>{connection.trainerName}</Paragraph>)}</Section>}
       {hasSubscription && <Button type="button" className={`student-subscription-status ${trainerCount > 1 ? '' : subscriptionTone(balance)}`} aria-label="Абонемент: открыть профиль" onClick={() => go('/student/profile')}>
         <Inline><Icon name={trainerCount > 1 ? 'users' : balance > 0 ? 'check' : 'minus'} /></Inline>
         <Box><Small>АБОНЕМЕНТ</Small><Strong>{trainerCount > 1 ? 'По тренерам' : subscriptionBalanceLabel(balance)}</Strong></Box>

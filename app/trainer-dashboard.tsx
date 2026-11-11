@@ -69,7 +69,7 @@ export function TrainerHome({ data }: { data: DemoState }) {
     return { date, assignments: futureAssignments.filter((item) => item.scheduledFor === date) };
   });
   const visibleFutureDays = showAllDays ? futureDays : futureDays.filter((day) => day.assignments.length > 0);
-  const startAssignment = (date: string) => setAssignDate(date);
+  const startAssignment = (date: string) => data.students.length ? setAssignDate(date) : go('/trainer/clients/invite');
   const toggleAllDays = () => setShowAllDays((current) => {
     const next = !current;
     saveAllDaysPreference(next);
@@ -139,7 +139,7 @@ export function TrainerHome({ data }: { data: DemoState }) {
 export function ClientsList({ data }: { data: DemoState }) {
   return (
     <Page className="content-page">
-      <Button className="list-primary-action" type="button" onClick={() => go('/trainer/clients/invite')}><Icon name="plus" /> Пригласить ученика</Button>
+      {data.students.length > 0 && <Button className="list-primary-action" type="button" onClick={() => go('/trainer/clients/invite')}><Icon name="plus" /> Пригласить ученика</Button>}
       <Section className="client-grid">
         {data.students.length ? data.students.map((student) => {
           const subscriptionEntries = subscriptionEntriesFor(data.subscriptionEntries, student.id);

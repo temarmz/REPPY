@@ -28,7 +28,9 @@ struct DashboardScreen: View {
                         ReppyLink(title: assignment.workout_snapshot.name) { AssignmentScreen(assignmentID: assignment.id) }
                     }
                 }
-                ReppyScheduleHeader(date: todayDate, today: true) { AssignmentEditorScreen() }
+                ReppyScheduleHeader(date: todayDate, today: true) {
+                    if store.data.students.isEmpty { InviteStudentScreen() } else { AssignmentEditorScreen() }
+                }
                 if byDay[today, default: []].isEmpty { ReppyCaption(text: "Тренировок нет") }
                 ForEach(byDay[today, default: []]) { AssignmentAgendaRow(assignment: $0, schedule: true) }
                 ReppyRow {
@@ -43,7 +45,9 @@ struct DashboardScreen: View {
                     let planned = byDay[ReppyDate.day(day), default: []]
                     if showAllDays || !planned.isEmpty {
                         ReppyStack {
-                            ReppyScheduleHeader(date: day, actionLabel: "Назначить ученика на \(ReppyDate.display(ReppyDate.day(day)))") { AssignmentEditorScreen(initialDate: day) }
+                            ReppyScheduleHeader(date: day, actionLabel: "Назначить ученика на \(ReppyDate.display(ReppyDate.day(day)))") {
+                                if store.data.students.isEmpty { InviteStudentScreen() } else { AssignmentEditorScreen(initialDate: day) }
+                            }
                             ForEach(planned) { AssignmentAgendaRow(assignment: $0, schedule: true) }
                         }
                     }

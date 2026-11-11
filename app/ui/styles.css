@@ -579,11 +579,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--lime); outl
 .schedule-add-button.on-light { background: var(--button-on-light-bg); color: var(--palette-626961); }
 .schedule-add-button.on-light:hover { background: var(--tint-5f7f18-130); }
 
-.today-empty { display: grid; width: 100%; min-height: calc(var(--size-140) * var(--ui-control-height-scale)); justify-items: center; place-content: center; gap: var(--space-7); border: 0; border-radius: var(--card-radius); background: var(--button-on-light-bg); color: var(--ink); cursor: pointer; text-align: center; }
-.today-empty:hover { background: var(--tint-070908-35); }
-.today-empty .ui-icon { width: calc(var(--size-24) * var(--ui-icon-scale)); height: calc(var(--size-24) * var(--ui-icon-scale)); color: var(--palette-526d19); }
+.today-empty { display: grid; width: 100%; min-height: calc(var(--size-140) * var(--ui-control-height-scale)); justify-items: center; place-content: center; gap: var(--space-7); border: 0; border-radius: var(--card-radius); background: var(--button-bg); color: var(--text-primary); cursor: pointer; text-align: center; }
+.today-empty:hover { background: var(--button-hover-bg); }
+.today-empty .ui-icon { width: calc(var(--size-24) * var(--ui-icon-scale)); height: calc(var(--size-24) * var(--ui-icon-scale)); color: var(--lime-strong); }
 .today-empty strong { font-size: var(--font-size-16); }
-.today-empty small { color: var(--palette-687066); font-size: var(--font-size-11); font-weight:var(--font-weight-750); }
+.today-empty small { color: var(--muted); font-size: var(--font-size-11); font-weight:var(--font-weight-750); }
 
 .future-schedule { margin-top: var(--space-42); }
 .future-schedule-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-18); margin-bottom: var(--space-18); }
@@ -1118,7 +1118,7 @@ body.modal-open .bottom-nav { display: none; }
   border: 0;
   border-radius: var(--control-radius);
   padding: 0 var(--space-16);
-  background: var(--surface-2);
+  background: var(--button-bg);
   color: var(--text-primary);
   font-size: var(--button-font-size);
 }

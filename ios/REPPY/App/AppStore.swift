@@ -31,6 +31,7 @@ struct FailedDraft {
     let api: SupabaseAPI?
     private let authorization = TelegramAuthorization()
     private var pendingTelegram: (idToken: String, nonce: String)?
+    private var pendingRegistrationToken: String?
     private let observeChanges: Bool
     private lazy var refresh = AppRefreshCoordinator(api: api, observeChanges: observeChanges,
         allowed: { [weak self] in guard let self else { return false }; return !self.busy && !self.conflict && !self.isDemo && self.profile != nil },
@@ -106,13 +107,15 @@ struct FailedDraft {
             var body: [String: Any] = ["action": register ? "register-trainer" : (self.invitationToken == nil ? "login" : "accept-student-invitation"),
                 "idToken": credentials.idToken, "nonce": credentials.nonce]
             if register { body["displayName"] = self.registrationName.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if register, let token = self.pendingRegistrationToken { body["registrationToken"] = token }
             if let token = self.invitationToken { body["invitationToken"] = token }
             let response = try await api.request("functions/v1/telegram-auth", method: "POST", body: body, authenticated: false)
-            struct Reply: Decodable { var status: String?; var tokenHash: String?; var telegram: TelegramInfo? }
+            struct Reply: Decodable { var status: String?; var tokenHash: String?; var telegram: TelegramInfo?; var registrationToken: String? }
             struct TelegramInfo: Decodable { var displayName: String? }
             let reply = try JSONDecoder().decode(Reply.self, from: response)
             if reply.status == "registration-required" {
                 self.pendingTelegram = credentials; self.pendingRegistration = true
+                self.pendingRegistrationToken = reply.registrationToken
                 self.registrationName = reply.telegram?.displayName ?? ""; return
             }
             guard let hash = reply.tokenHash else { throw APIError.invalidResponse }
@@ -120,20 +123,32 @@ struct FailedDraft {
             try api.accept(JSONDecoder().decode(AuthSession.self, from: session))
             try await self.loadProfile(); try await self.loadData(); if let account = self.profile?.id { self.refresh.startObserver(account: account) }
             self.pendingTelegram = nil; self.pendingRegistration = false; self.invitation = ""
+            self.pendingRegistrationToken = nil
         }
     }
     var invitationToken: String? {
         InvitationToken.parse(invitation)
     }
+    func acceptPendingInvitation() async {
+        await run {
+            guard self.profile?.role == .student else { throw APIError.message("Приглашение можно принять только в аккаунте ученика.") }
+            guard let api = self.api, let token = self.invitationToken else { throw APIError.message("Проверь ссылку приглашения.") }
+            let _: Relationship = try await api.rpc("accept_student_invitation", ["p_token": token])
+            try await self.loadData()
+            self.invitation = ""
+        }
+    }
     func cancelRegistration() {
         guard !busy else { return }
         pendingTelegram = nil; pendingRegistration = false; registrationName = ""; error = nil
+        pendingRegistrationToken = nil
     }
     func signOut() async {
         await run {
             if !self.isDemo { try await self.api?.signOut() }
             self.refresh.reset()
             self.profile = nil; self.data = AppData(); self.isDemo = false; self.pendingTelegram = nil; self.pendingRegistration = false
+            self.pendingRegistrationToken = nil
             self.failedDraft = nil
         }
     }

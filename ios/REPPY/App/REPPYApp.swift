@@ -38,6 +38,9 @@ struct RootScreen: View {
             }
             else { NavigationStack { SignInScreen() } }
         }
+        .sheet(isPresented: Binding(get: { store.profile != nil && !store.invitation.isEmpty }, set: { if !$0 && !store.busy { store.invitation = "" } })) {
+            NavigationStack { SignInScreen().reppyDismissAction(disabled: store.busy) }
+        }
     }
 }
 struct MainScreen: View {

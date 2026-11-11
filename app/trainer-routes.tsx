@@ -45,7 +45,7 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
   data: DemoState;
   draftIdentity: string;
   dispatch: (command: ReppyCommand) => void;
-  createStudentInvitation: ((name: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
+  createStudentInvitation: ((name: string, studentId?: string) => Promise<{ student: Student; token: string; expiresAt: string }>) | null;
   StudentProfileComponent: ComponentType<{ data: DemoState; studentId: string; onUpdate: (student: Student) => void; onDeleteInvitation?: () => void; showProgress?: boolean; trainerView?: boolean }>;
 }) {
   let content: ReactNode;
@@ -140,10 +140,12 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
         : <NotFound />;
     } else if (path === '/trainer/clients') {
       content = <ClientsList data={data} />;
-    } else if (path === '/trainer/clients/invite') {
+    } else if (path === '/trainer/clients/invite' || /^\/trainer\/clients\/[^/]+\/invite$/.test(path)) {
+      const existing = path === '/trainer/clients/invite' ? undefined : findStudent(data, path.split('/')[3]);
       content = (
         <InviteStudent
-          key={draftIdentity}
+          key={`${draftIdentity}:${existing?.id ?? 'new'}`}
+          existing={existing}
           draftIdentity={draftIdentity}
           onCreate={(student) => dispatch({ type: 'student.create', student })}
           onInvite={createStudentInvitation ?? undefined}

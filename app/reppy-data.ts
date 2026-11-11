@@ -118,6 +118,7 @@ export type DemoState = {
   loggedIn: boolean;
   role: Role;
   activeStudentId: string;
+  trainerConnections?: { relationshipId: string; studentId: string; trainerName: string }[];
   students: Student[];
   assignments: Assignment[];
   sessions: WorkoutSession[];

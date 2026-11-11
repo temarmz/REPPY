@@ -32,7 +32,7 @@ export interface ReppyRepository {
   execute?(command: ReppyCommand, state: DemoState): Promise<void>;
   clear(): Promise<void>;
   subscribe?(onChange: () => void): () => void;
-  createStudentInvitation?(name: string): Promise<{
+  createStudentInvitation?(name: string, studentId?: string): Promise<{
     student: Student;
     token: string;
     expiresAt: string;
