@@ -79,7 +79,7 @@ struct StudentScreen: View {
         }
     }
     private func returnToListIfMissing() {
-        if !studentAvailable && !store.busy && !store.loading && store.error == nil { presentation.wrappedValue.dismiss() }
+        if !studentAvailable && !store.busy && !store.loading { presentation.wrappedValue.dismiss() }
     }
 }
 struct StudentDetailsCard: View {

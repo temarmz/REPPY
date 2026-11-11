@@ -141,7 +141,7 @@ export function ModalLayer({ children, onClose, trackHistory = true, closeOnHist
       }
 
       queueMicrotask(() => {
-      if (openModalLayers > 0 || window.history.state?.reppyModal !== modalId) return;
+      if (window.history.state?.reppyModal !== modalId) return;
       closingModalLayers += 1;
       let settled = false;
       const settleHistory = () => {

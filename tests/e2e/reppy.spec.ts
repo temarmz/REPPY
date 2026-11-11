@@ -735,8 +735,8 @@ test('упражнение можно добавить повторно и уб�
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
-  await expect(add).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.08)');
-  await expect(add).toHaveCSS('color', 'rgb(183, 232, 90)');
+  await expect(add).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.07)');
+  await expect(add).toHaveCSS('color', 'rgb(245, 246, 239)');
   await add.click();
   await add.click();
   await expect(picker.getByRole('group', { name: 'Жим лёжа', exact: true })).toContainText('2');

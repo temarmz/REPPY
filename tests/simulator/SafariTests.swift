@@ -5,7 +5,8 @@ final class SafariTests: XCTestCase {
   let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari"); safari.activate()
   if safari.buttons["Done"].exists { safari.buttons["Done"].firstMatch.tap() }
   let address = safari.textFields["Address"]
-  XCTAssertTrue(address.waitForExistence(timeout: 15))
+  if !address.exists { safari.swipeDown(); safari.swipeDown() }
+  XCTAssertTrue(address.waitForExistence(timeout: 15), safari.debugDescription)
   let url = "http://127.0.0.1:4173/?keyboard-check=" + UUID().uuidString + "#/trainer/workout/assignment-artem-push-today\n"
   address.tap(); address.typeText(url)
   let demo = safari.buttons["Попробовать REPPY"]
@@ -27,7 +28,8 @@ final class SafariTests: XCTestCase {
   expectation(for: visible, evaluatedWith: comment); waitForExpectations(timeout: 5)
   XCTAssertTrue(comment.isHittable)
   let shot = XCTAttachment(screenshot: safari.screenshot()); shot.name = "finish-keyboard-visible"; shot.lifetime = .keepAlways; add(shot)
-  safari.buttons["Done"].firstMatch.tap()
+  if safari.buttons["Done"].exists { safari.buttons["Done"].firstMatch.tap() }
+  else { safari.buttons["selected"].firstMatch.tap() }
   let resume = safari.buttons["Продолжить тренировку"]
   for _ in 0..<4 { if resume.isHittable { break }; safari.swipeUp() }
   XCTAssertTrue(resume.waitForExistence(timeout: 5)); resume.tap()
