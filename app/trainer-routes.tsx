@@ -160,6 +160,8 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
       ));
       content = student && payment ? (
         <SubscriptionPaymentForm
+          key={`${draftIdentity}:${payment.id}`}
+          draftIdentity={draftIdentity}
           student={student}
           initial={payment}
           onSave={(input) => {
@@ -177,6 +179,8 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
       const lastPayment = student ? recentSubscriptionPayments(data.subscriptionEntries, student.id, 1)[0] : undefined;
       content = student ? (
         <SubscriptionPaymentForm
+          key={`${draftIdentity}:${student.id}:new`}
+          draftIdentity={draftIdentity}
           student={student}
           defaults={lastPayment}
           onSave={(input) => {
