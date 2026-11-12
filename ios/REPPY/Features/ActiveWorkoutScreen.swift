@@ -32,7 +32,11 @@ struct ActiveWorkoutScreen: View {
     @State private var confirmReload = false
     @State private var draftAccount = ""
     private var draftKey: String { "\(editingHistory ? "correction" : "active"):\(sessionID)" }
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if completed && !editingHistory { SessionResultScreen(sessionID: sessionID) }
+        else { activeContent }
+    }
+    private var activeContent: some View {
         ReppyPage(back: true, onConflictReload: { Task { await loadServerVersion() } }) {
             if let value = draft {
                 if let assignment = store.data.assignments.first(where: { $0.id == value.session.assignment_id }) { ReppyCaption(text: "\(store.data.student(for: assignment)?.name ?? "Ученик") · \(assignment.scheduleLabel)") }
@@ -44,7 +48,7 @@ struct ActiveWorkoutScreen: View {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     ReppyWorkoutOverview(elapsed: elapsed(from: value.session.started_at, now: context.date), completed: value.results.filter(\.completed).count, total: value.results.count)
                 }
-                ReppyExerciseSectionHeader(reorder: value.workout.exercises.count > 1 ? { reorder = true } : nil) { picker = true }
+                ReppyExerciseSectionHeader(reorder: value.workout.exercises.count > 1 ? { reorder = true } : nil, add: nil)
                 ForEach(Array(value.workout.exercises.enumerated()), id: \.element.id) { index, exercise in
                     ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1,
                         onInstruction: { instruction = exercise },
@@ -66,10 +70,7 @@ struct ActiveWorkoutScreen: View {
         }.toolbar {
             ToolbarItem(placement: .principal) { ReppyWorkoutSaveState(status: status, saving: saving) }
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("Сохранить сейчас", systemImage: "arrow.clockwise") { Task { await flush() } }
-                    Button("Изменить упражнения и подходы", systemImage: "pencil") { structure = true }
-                } label: { ReppyToolbarIcon(icon: "ellipsis") }.disabled(saving || store.busy || draft == nil).accessibilityLabel("Действия тренировки")
+                Button { picker = true } label: { ReppyToolbarIcon(icon: "plus", primary: true) }.buttonStyle(.plain).disabled(saving || store.busy || draft == nil).accessibilityLabel("Добавить упражнение")
             }
         }
             .onAppear { initialize() }
@@ -92,7 +93,6 @@ struct ActiveWorkoutScreen: View {
             .sheet(isPresented: $finish) {
                 NavigationStack {
                     ReppyPage(back: true) {
-                        ReppyWorkoutSuccessArt()
                         ReppyTitle(text: "Завершить тренировку?")
                         if store.isTrainer { ReppyToggle(title: "Списать одно занятие", value: $charge) }
                         ReppyPicker(title: "Как прошла тренировка?", selection: $feedbackMood) {
@@ -115,7 +115,6 @@ struct ActiveWorkoutScreen: View {
             .sheet(isPresented: $picker) {
                 NavigationStack { ExercisePickerScreen(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }
             }
-            .navigationDestination(isPresented: $completed) { SessionResultScreen(sessionID: sessionID) }
             .confirmationDialog("Изменения тренировки отличаются на двух устройствах. Выбери, какой вариант сохранить.", isPresented: $confirmReload, titleVisibility: .visible) {
                 Button("Сохранить мой вариант") { Task {
                     guard let local = draft else { return }

@@ -1,6 +1,6 @@
 import ExerciseOrderEditor from './ui/exercise-order-editor';
 import { Badge } from './ui/patterns';
-import { Page, Box, Header, Inline, Strong, Time, Section, PageTitle, Footer, Image } from './ui/elements';
+import { Page, Box, Header, Inline, Strong, Time, Section, PageTitle, Footer } from './ui/elements';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
   cloneWorkout,
@@ -20,7 +20,6 @@ import {
   type WorkoutSession,
 } from './reppy-data';
 import Icon from './ui/icon';
-import { UI_ASSETS } from './ui/assets';
 import { MOODS } from './mood';
 import { SelectOption } from './ui/elements';
 import { Field } from './ui/patterns';
@@ -236,6 +235,7 @@ export default function ActiveWorkout({
         <Header className="active-header">
           <Button type="button" onClick={() => goBack(backPath)} aria-label="Вернуться назад"><Icon name="chevron-left" /></Button>
           <Box className="active-header-copy"><Inline>{student ? `${student.name} · ${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}` : `${formatCalendarDay(scheduledFor)} · ${format === 'online' ? 'Онлайн' : scheduledTime}`}</Inline><Strong><Badge as="i" className={`save-state ${saveState}`} role="status" aria-live="polite">{saveState === 'error' ? 'Не сохранено' : saveState === 'saving' ? 'Сохраняем…' : 'Сохранено'}</Badge></Strong></Box>
+          <Button className="active-header-add" aria-label="Добавить упражнение" aria-haspopup="dialog" onClick={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? 'start')}><Icon name="plus" /></Button>
           <Box className="active-timing"><Time dateTime={'PT' + elapsed.elapsedSeconds + 'S'} aria-label={'Прошло ' + elapsed.label}>{elapsed.label}</Time></Box>
         </Header>
       </Box>
@@ -243,7 +243,7 @@ export default function ActiveWorkout({
       <Section className="active-workout-overview">
         {editingHistory ? <TextField id="correction-workout-name" label="Название тренировки" value={workout.name} onChange={(event) => onWorkoutUpdate(session.id, { ...workout, name: event.target.value })} /> : <PageTitle>{workout.name}</PageTitle>}
       </Section>
-      <ExerciseSectionHeader onReorder={workout.exercises.length > 1 ? () => setOrderOpen(true) : undefined} onAdd={() => setPickerAfterId(workout.exercises.at(-1)?.id ?? 'start')} />
+      <ExerciseSectionHeader onReorder={workout.exercises.length > 1 ? () => setOrderOpen(true) : undefined} />
 
       <Section className="active-exercise-list">
         {workout.exercises.map((exercise, index) => {
@@ -315,7 +315,6 @@ function FinishWorkoutModal({ canWaiveCharge, onClose, onFinish }: { canWaiveCha
   const [comment, setComment] = useState('');
   return (
     <ModalFrame title="Завершить тренировку?" className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
-      <Image className="finish-illustration" src={UI_ASSETS.success} alt="Динозавр показывает большой палец" />
       {canWaiveCharge && <Switch checked={chargeSubscription} onCheckedChange={setCharge}>Списать одно занятие</Switch>}
       <Field label="Как прошла тренировка?"><Select aria-label="Как прошла тренировка?" value={mood} onChange={(event) => setMood(event.target.value as MoodRating | '')}><SelectOption value="">Без оценки</SelectOption>{MOODS.map((item) => <SelectOption key={item.value} value={item.value}>{item.label}</SelectOption>)}</Select></Field>
       <Field label="Комментарий"><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>

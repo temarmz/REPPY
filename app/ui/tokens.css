@@ -14,7 +14,7 @@
   --radius-8: calc(8px * var(--ui-radius-scale));
   --control-height-small: calc(var(--size-44) * var(--ui-control-height-scale));
   --control-height-medium: calc(var(--size-48) * var(--ui-control-height-scale));
-  --control-height-large: calc(var(--size-56) * var(--ui-control-height-scale));
+  --control-height-large: calc(var(--size-48) * var(--ui-control-height-scale));
   --control-height-hero: calc(var(--size-60) * var(--ui-control-height-scale));
   --control-radius: var(--radius-12);
   --card-radius: var(--radius-20);
@@ -938,7 +938,7 @@ html[data-theme="light"] {
   --text-secondary: var(--palette-465043);
   --ui-outline: var(--tint-192317-120);
   --divider: var(--tint-192317-90);
-  --brand-soft: var(--tint-5d8012-100);
+  --brand-soft: var(--tint-b7e85a-110);
   --lime: var(--palette-acd957);
   --lime-strong: var(--palette-4f7111);
   --nav-selected-bg: var(--lime);

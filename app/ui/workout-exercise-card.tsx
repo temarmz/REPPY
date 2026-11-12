@@ -5,10 +5,10 @@ import { useState, type ReactNode } from 'react';
 import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from '../reppy-data';
 import Icon from './icon';
 
-export function ExerciseSectionHeader({ onReorder, onAdd }: { onReorder?: () => void; onAdd: () => void }) {
+export function ExerciseSectionHeader({ onReorder, onAdd }: { onReorder?: () => void; onAdd?: () => void }) {
   return <Box className="form-section-heading"><Heading>Упражнения</Heading><Box className="exercise-section-actions">
     {onReorder && <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button>}
-    <Button className="plan-exercise-add" type="button" onClick={onAdd} aria-label="Добавить упражнение"><Icon name="plus" /></Button>
+    {onAdd && <Button className="plan-exercise-add" type="button" onClick={onAdd} aria-label="Добавить упражнение"><Icon name="plus" /></Button>}
   </Box></Box>;
 }
 

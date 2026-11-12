@@ -128,7 +128,7 @@ struct ReppyButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.reppyTypography(.button).multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12)
+            .frame(maxWidth: .infinity).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space8)
             .frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.control)
             .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : (kind == .danger ? ReppyTheme.error : ReppyTheme.text))
             .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
@@ -172,7 +172,7 @@ struct ReppyLink<Destination: View>: View {
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if !typeSize.isAccessibilitySize { Image(systemName: icon).accessibilityHidden(true) }
                 }
-            }.padding(16).frame(maxWidth: .infinity, minHeight: ReppyMetrics.control)
+            }.padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space8).frame(maxWidth: .infinity, minHeight: ReppyMetrics.control)
                 .foregroundStyle(kind == .primary ? ReppyTheme.selectedText : ReppyTheme.text)
                 .background(kind == .primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
         }.buttonStyle(.plain)
@@ -344,11 +344,12 @@ struct ReppyHeaderBrand: View {
 struct ReppyToolbarIcon: View {
     var icon: String
     var selected = false
+    var primary = false
     var body: some View {
         Image(systemName: icon).font(.system(size: ReppyMetrics.iconSize, weight: .medium))
-            .foregroundStyle(selected ? ReppyTheme.lime : ReppyTheme.text)
+            .foregroundStyle(primary ? ReppyTheme.selectedText : selected ? ReppyTheme.lime : ReppyTheme.text)
             .frame(width: ReppyMetrics.small, height: ReppyMetrics.small)
-            .background(ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
+            .background(primary ? ReppyTheme.lime : ReppyTheme.button, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
     }
 }
 

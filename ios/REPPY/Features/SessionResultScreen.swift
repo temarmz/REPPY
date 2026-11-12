@@ -14,6 +14,7 @@ struct SessionResultScreen: View {
     var body: some View {
         ReppyPage(back: true, title: "Результат тренировки") {
             if let session = store.data.sessions.first(where: { $0.id == sessionID }) {
+                if session.completed_at != nil { ReppyWorkoutSuccessArt() }
                 let assignment = store.data.assignments.first { $0.id == session.assignment_id }
                 // Keep the header tied to the scheduled workout day. A session may be
                 // completed later when an overdue workout is opened from history.

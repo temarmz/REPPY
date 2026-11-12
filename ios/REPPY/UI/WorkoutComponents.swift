@@ -43,12 +43,12 @@ struct ReppySessionSummary: View {
 struct ReppyExerciseSectionHeader: View {
     var disabled = false
     var reorder: (() -> Void)? = nil
-    var add: () -> Void
+    var add: (() -> Void)?
     var body: some View {
         HStack(spacing: ReppyMetrics.space12) {
             ReppyHeading(text: "Упражнения").frame(maxWidth: .infinity, alignment: .leading)
             if let reorder { Button(action: reorder) { ReppyToolbarIcon(icon: "arrow.up.arrow.down") }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Изменить порядок упражнений") }
-            Button(action: add) {
+            if let add { Button(action: add) {
                 Image(systemName: "plus")
                     .font(.system(size: ReppyMetrics.addExerciseIcon, weight: .medium))
                     .foregroundStyle(disabled ? ReppyTheme.muted : ReppyTheme.selectedText)
@@ -58,6 +58,7 @@ struct ReppyExerciseSectionHeader: View {
             .buttonStyle(.plain)
             .disabled(disabled)
             .accessibilityLabel("Добавить упражнение")
+            }
         }
     }
 }
