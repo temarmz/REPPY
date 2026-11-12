@@ -37,7 +37,7 @@ final class ScreenAuditTests: XCTestCase {
             let finish = app.buttons["Завершить тренировку"]
             for _ in 0..<18 { if finish.exists && finish.isHittable { break }; app.swipeUp() }
             XCTAssertTrue(finish.waitForExistence(timeout: 10)); finish.tap()
-            XCTAssertTrue(app.images["Динозавр показывает большой палец"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.images["Динозавр показывает большой палец"].exists)
             XCTAssertTrue(app.staticTexts["Как прошла тренировка?"].exists)
             XCTAssertEqual(app.switches["Списать одно занятие"].exists, role == "trainer")
             capture(app, "unified-finish-" + role + "-" + theme)

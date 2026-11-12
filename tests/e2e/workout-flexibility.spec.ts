@@ -67,7 +67,7 @@ test('student can filter progress and finish with feedback in one sheet', async 
   await page.getByRole('button', { name: 'Начать тренировку', exact: true }).click();
   await page.getByRole('button', { name: 'Завершить тренировку', exact: true }).click();
   const finish = page.getByRole('dialog', { name: 'Завершение тренировки' });
-  await expect(finish.getByRole('img', { name: 'Динозавр показывает большой палец' })).toBeVisible();
+  await expect(finish.getByRole('img', { name: 'Динозавр показывает большой палец' })).toHaveCount(0);
   await finish.getByLabel('Как прошла тренировка?', { exact: true }).selectOption('good');
   await finish.getByLabel('Комментарий о тренировке').fill('Всё получилось');
   await page.screenshot({ path: info.outputPath('finish.png') });

@@ -272,7 +272,7 @@ export default function StudentRoutes({ path, data, dispatch }: { path: string; 
       onFinish={(sessionId, { chargeSubscription, mood, comment }) => {
         dispatch({ type: 'session.complete', sessionId, assignmentId: assignment.id, completedAt: new Date().toISOString(), chargeSubscription, workoutName: workout.name });
         if (mood || comment?.trim()) dispatch({ type: 'session.feedback', sessionId, mood, comment: comment ?? '' });
-        go(`${menuRoot}/success/${sessionId}`);
+        go(`${menuRoot}/success/${sessionId}`, true);
       }}
     />;
   }
