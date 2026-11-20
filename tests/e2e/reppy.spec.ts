@@ -1213,7 +1213,7 @@ test('упражнение со своим весом не показывает 
   await expect(pullUpsPlan.getByText('Спина · Свой вес')).toBeVisible();
   await expect(pullUpsPlan.getByLabel('КГ')).toHaveCount(0);
   await expect(pullUpsPlan.getByLabel('ПОВТОРЫ')).toHaveCount(1);
-  await expect(pullUpsPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('');
+  await expect(pullUpsPlan.getByLabel('ПОВТОРЫ').first()).toHaveValue('0');
   await expect(pullUpsPlan.locator('.active-exercise-meta')).toHaveText('Спина · Свой вес');
 
   await page.getByRole('button', { name: 'Добавить упражнение' }).click();
@@ -1223,7 +1223,7 @@ test('упражнение со своим весом не показывает 
   const plankPlan = page.locator('.plan-exercise-card').filter({ hasText: 'Планка' });
   await expect(plankPlan.getByLabel('КГ')).toHaveCount(0);
   await expect(plankPlan.getByLabel('СЕКУНДЫ')).toHaveCount(1);
-  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('');
+  await expect(plankPlan.getByLabel('СЕКУНДЫ').first()).toHaveValue('0');
 });
 
 test('черновик тренировки и открытый выбор упражнений восстанавливаются после выгрузки WebView', async ({ page }) => {
