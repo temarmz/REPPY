@@ -1648,17 +1648,17 @@ body.modal-open .bottom-nav { display: none; }
 .plan-submit-button { margin-top: var(--space-22); }
 .assignment-edit-card.plan-context-card { padding: clamp(var(--space-16), 4vw, var(--space-24)); }
 .plan-context-card .assignment-edit-person { margin-bottom: var(--space-22); }
-.custom-exercise-builder { display: grid; gap: var(--space-10); margin: var(--space-10) 0 var(--space-14); border: 0; border-radius: var(--control-radius); padding: var(--space-12); background: var(--surface); }
+.custom-exercise-builder { display: grid; gap: var(--space-10); margin: var(--space-10) 0 var(--space-14); border: 0; border-radius: var(--control-radius); padding: 0; background: transparent; }
 .custom-exercise-builder > div:first-child { display: grid; gap: var(--space-4); }
 .custom-exercise-builder > div:first-child strong { font-size: var(--font-size-14); }
 .custom-exercise-builder > div:first-child small { color: var(--muted); font-size: var(--font-size-11); }
 .custom-muscle-groups { display: flex; flex-wrap: wrap; gap: var(--space-7); }
-.picker-list .custom-muscle-groups button { min-height: calc(var(--size-38) * var(--ui-control-height-scale)); border: 1px solid transparent; border-radius: var(--radius-999); padding: 0 var(--space-11); background: var(--button-bg); color: var(--muted); font-size: var(--font-size-11); font-weight:var(--font-weight-800); }
-.picker-list .custom-muscle-groups button.selected { border-color: var(--tint-c6ff3d-420); background: var(--tint-c6ff3d-120); color: var(--lime); }
-.custom-exercise-hint { color: var(--palette-ff9b77); font-size: var(--font-size-11); }
+.picker-list .custom-muscle-groups button { min-height: var(--control-height-small); border: 1px solid transparent; border-radius: var(--control-radius); padding: var(--space-8) var(--space-11); background: var(--button-bg); color: var(--text-primary); font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
+.picker-list .custom-muscle-groups button.selected { border-color: var(--tint-c6ff3d-420); background: var(--lime); color: var(--ink); }
+.custom-exercise-hint { color: var(--text-secondary); font-size: var(--font-size-14); }
 .picker-list .custom-load-mode { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-7); }
 .picker-list .custom-load-mode button { min-height: var(--control-height-small); justify-content: center; border: 1px solid transparent; border-radius: var(--control-radius); padding: 0 var(--space-10); background: var(--button-bg); color: var(--muted); font-size: var(--button-font-size); text-align: center; }
-.picker-list .custom-load-mode button.selected { border-color: var(--tint-c6ff3d-420); background: var(--tint-c6ff3d-120); color: var(--lime); }
+.picker-list .custom-load-mode button.selected { border-color: var(--tint-c6ff3d-420); background: var(--lime); color: var(--ink); }
 .picker-list .custom-exercise-builder .custom-exercise-option { min-height: var(--control-height-medium); justify-content: center; gap: var(--space-8); border: 0; border-radius: var(--control-radius); padding: 0 var(--space-12); background: var(--lime); color: var(--ink); font-size: var(--button-font-size); font-weight:var(--font-weight-900); text-align: center; }
 .picker-list .custom-exercise-builder .custom-exercise-option:disabled { cursor: not-allowed; opacity: .42; }
 .picker-list .custom-exercise-builder .custom-exercise-option .ui-icon { width: calc(var(--size-18) * var(--ui-icon-scale)); height: calc(var(--size-18) * var(--ui-icon-scale)); }

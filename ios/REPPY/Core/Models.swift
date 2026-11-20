@@ -73,7 +73,7 @@ public struct WorkoutExercise: Codable, Identifiable, Equatable, ReppySendable {
     public var instructionText: String?
     public var instructionVideo: InstructionVideo?
     public var progressKey: String { "\(exerciseId)|\(loadMode.rawValue)|\(measureType.rawValue)" }
-    public var unit: String { measureType == .duration ? "сек." : "повт." }
+    public var unit: String { measureType == .duration ? "сек." : "повторы" }
     public init(definition: ExerciseDefinition) {
         id = UUID().uuidString.lowercased(); exerciseId = definition.id; name = definition.name
         primaryMuscle = definition.primary_muscle; muscleGroups = definition.muscle_groups

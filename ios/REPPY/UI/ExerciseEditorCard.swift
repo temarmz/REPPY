@@ -27,9 +27,10 @@ struct ExerciseEditorCard: View {
                     PlanSetRow(number: (exercise.plannedSets.firstIndex { $0.id == set.id } ?? 0) + 1, loadMode: exercise.loadMode, unit: exercise.unit, set: $set, showsRemove: false) { exercise.plannedSets.removeAll { $0.id == set.id } }
                 }
             }
+            let lastSetID = exercise.plannedSets.last?.id
             ReppyExerciseFooter(note: Binding(get: { exercise.coachNote ?? "" }, set: { exercise.coachNote = $0 }), commentOpen: $commentOpen,
                 count: exercise.plannedSets.count, canRemove: !exercise.plannedSets.isEmpty,
-                onRemove: { if !exercise.plannedSets.isEmpty { exercise.plannedSets.removeLast() } }, onAdd: {
+                onRemove: { exercise.plannedSets.removeAll { $0.id == lastSetID } }, onAdd: {
                 let last = exercise.plannedSets.last
                 exercise.plannedSets.append(SetPlan(targetReps: last?.targetReps ?? 0, targetWeight: last?.targetWeight ?? 0))
             })

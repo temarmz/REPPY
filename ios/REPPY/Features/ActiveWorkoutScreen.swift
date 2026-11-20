@@ -53,7 +53,7 @@ struct ActiveWorkoutScreen: View {
                     ReppyActiveExerciseCard(exercise: exercise, results: Binding(get: { draft?.results ?? [] }, set: { draft?.results = $0 }), number: index + 1,
                         onInstruction: { instruction = exercise },
                         onAddSet: { addSet(to: exercise.id) },
-                        onRemoveSet: { removeLastSet(from: exercise.id) },
+                        onRemoveSet: { removeLastSet(from: exercise.id, setID: exercise.plannedSets.last?.id) },
                         canRemoveSet: exercise.plannedSets.count > 0,
                         onMoveUp: { moveExercise(exercise.id, by: -1) }, onMoveDown: { moveExercise(exercise.id, by: 1) }, onEditPlan: { structure = true },
                         canMoveUp: index > 0, canMoveDown: index + 1 < value.workout.exercises.count,
@@ -135,10 +135,10 @@ struct ActiveWorkoutScreen: View {
         let last = draft?.results.filter { $0.exercise_instance_id == id }.last
         draft?.workout.exercises[index].plannedSets.append(SetPlan(targetReps: last?.actual_reps ?? 0, targetWeight: last?.actual_weight ?? 0))
     }
-    private func removeLastSet(from id: String) {
+    private func removeLastSet(from id: String, setID: String?) {
         guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),
               let count = draft?.workout.exercises[index].plannedSets.count, count > 0 else { return }
-        draft?.workout.exercises[index].plannedSets.removeLast()
+        draft?.workout.exercises[index].plannedSets.removeAll { $0.id == setID }
     }
     private func moveExercise(_ id: String, by offset: Int) {
         guard let index = draft?.workout.exercises.firstIndex(where: { $0.id == id }),

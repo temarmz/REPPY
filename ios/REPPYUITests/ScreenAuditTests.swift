@@ -1,6 +1,22 @@
 import XCTest
 
 final class ScreenAuditTests: XCTestCase {
+    @MainActor func testRemoveSetsOneAtATime() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo-trainer", "--audit-screen", "active", "--audit-namespace", UUID().uuidString]
+        app.launch()
+        let fields = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Фактически, повторы, подход"))
+        XCTAssertTrue(fields.firstMatch.waitForExistence(timeout: 10))
+        let remove = app.buttons["Удалить последний подход"].firstMatch
+        for _ in 0..<8 { if remove.isHittable { break }; app.swipeUp() }
+        for _ in 0..<3 {
+            let before = fields.count
+            remove.tap()
+            XCTAssertEqual(fields.count, before - 1)
+        }
+        capture(app, "one-set-removal")
+        app.terminate()
+    }
     @MainActor func testExerciseControlsOpenDirectly() {
         for (role, theme) in [("trainer", "light"), ("student", "dark")] {
             let app = XCUIApplication()
