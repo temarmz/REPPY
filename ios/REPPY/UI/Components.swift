@@ -189,8 +189,8 @@ struct ReppyField: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField(placeholder ?? title, text: $text, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
-            } else { TextField(title, text: $text).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
+                TextField(title, text: $text, prompt: Text(placeholder ?? title).foregroundStyle(ReppyTheme.secondary), axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
+            } else { TextField(title, text: $text, prompt: Text(placeholder ?? title).foregroundStyle(ReppyTheme.secondary)).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
             if let error { ReppyText(text: error, tone: .error) }
         }
     }
