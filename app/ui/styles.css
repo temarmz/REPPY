@@ -809,6 +809,7 @@ body.modal-open .bottom-nav { display: none; }
 .sheet-title > button { display: grid; width: calc(var(--size-44) * var(--ui-control-width-scale)); height: var(--control-height-small); place-items: center; border: 0; border-radius: var(--control-radius); background: var(--tint-ffffff-60); color: var(--palette-white); cursor: pointer; font-size: var(--font-size-24); }
 .sheet-title > button .ui-icon { width: calc(var(--size-20) * var(--ui-icon-scale)); height: calc(var(--size-20) * var(--ui-icon-scale)); }
 .search-input { height: var(--control-height-medium); font-size: var(--font-size-16); }
+.search-input::placeholder { color: var(--muted); opacity: 1; }
 .picker-list { max-height: 48svh; margin-top: var(--space-12); overflow: auto; }
 .picker-list button { display: flex; width: 100%; min-height: var(--control-height-medium); align-items: center; gap: var(--space-13); border: 0; border-bottom: 1px solid var(--divider); padding: var(--space-8) var(--space-4); background: var(--button-bg); cursor: pointer; font-size: var(--button-font-size); font-weight:var(--font-weight-700); text-align: left; }
 .picker-list button > span { display: grid; width: var(--size-36); height: var(--size-36); flex: 0 0 auto; place-items: center; border-radius: var(--control-radius); background: var(--tint-c6ff3d-100); color: var(--lime); }
@@ -1653,7 +1654,7 @@ body.modal-open .bottom-nav { display: none; }
 .custom-exercise-builder > div:first-child strong { font-size: var(--font-size-14); }
 .custom-exercise-builder > div:first-child small { color: var(--muted); font-size: var(--font-size-11); }
 .custom-muscle-groups { display: flex; flex-wrap: wrap; gap: var(--space-7); }
-.picker-list .custom-muscle-groups button { min-height: var(--control-height-small); border: 1px solid transparent; border-radius: var(--control-radius); padding: var(--space-8) var(--space-11); background: var(--button-bg); color: var(--text-primary); font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
+.picker-list .custom-muscle-groups button { width: auto; min-height: var(--control-height-small); border: 1px solid transparent; border-radius: var(--control-radius); padding: var(--space-8) var(--space-11); background: var(--button-bg); color: var(--text-primary); font-size: var(--button-font-size); font-weight:var(--font-weight-800); }
 .picker-list .custom-muscle-groups button.selected { border-color: var(--tint-c6ff3d-420); background: var(--lime); color: var(--ink); }
 .custom-exercise-hint { color: var(--text-secondary); font-size: var(--font-size-14); }
 .picker-list .custom-load-mode { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-7); }

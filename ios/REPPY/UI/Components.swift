@@ -230,6 +230,8 @@ struct ReppyNumericField: View {
                         guard focused else { return }
                         UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
                     }
+                } else if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    value = 0; text = "0"
                 }
             }
             .onChange(of: text) { _, text in

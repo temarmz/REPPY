@@ -16,6 +16,7 @@ final class ScreenAuditTests: XCTestCase {
         }
         capture(app, "one-set-removal")
         app.terminate()
+        for theme in ["light", "dark"] { captureRoute("definition", role: "trainer", theme: theme) }
     }
     @MainActor func testExerciseControlsOpenDirectly() {
         for (role, theme) in [("trainer", "light"), ("student", "dark")] {
