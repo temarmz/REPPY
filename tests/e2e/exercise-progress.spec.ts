@@ -295,7 +295,8 @@ for (const [count, gains] of [[8, 0], [15, 4], [2, 0]]) {
     await expect(tiles).toHaveCount(Math.min(6, count));
     await expect(section.getByRole('heading', { name: 'Последний прогресс' })).toBeVisible();
     const heights = await tiles.evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
-    expect(new Set(heights).size).toBe(1);
+    // Grid geometry can differ by a fraction of a CSS pixel between rows.
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(0.1);
     const expected = [...exercises.slice(count - gains), ...exercises.slice(0, count - gains)].slice(0, 6);
     await expect(tiles.locator('strong')).toHaveText(expected.map((exercise) => exercise.name));
     await section.getByRole('button', { name: 'Все упражнения' }).click();
