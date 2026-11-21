@@ -192,10 +192,13 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Ожидает подключения"].waitForExistence(timeout: 5)); capture(app, "pending-\(suffix)")
         XCTAssertFalse(app.buttons["Назначить тренировку"].exists)
         revealAndTap(app.buttons["Удалить ученика"], in: app)
-        let confirmRemoval = app.buttons["confirm-delete-pending-student"]
-        let removalTitle = app.sheets.buttons["Удалить ученика"]
-        let confirm = confirmRemoval.waitForExistence(timeout: 2) ? confirmRemoval : removalTitle
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        // The system popover can expose both a wrapper and its button under the same identifier.
+        let confirmations = app.buttons.matching(identifier: "confirm-delete-pending-student")
+        XCTAssertTrue(confirmations.firstMatch.waitForExistence(timeout: 5))
+        guard let confirm = confirmations.allElementsBoundByIndex.last(where: \.isHittable) else {
+            XCTFail("Delete confirmation has no hittable button")
+            return
+        }
         confirm.tap()
         XCTAssertTrue(app.buttons["Пригласить ученика"].waitForExistence(timeout: 5)); XCTAssertFalse(invited.exists)
         app.terminate()

@@ -53,6 +53,7 @@ jobs:
       - name: Wait for iPhone simulator readiness
         run: xcrun simctl bootstatus "$REPPY_SIMULATOR" -b
       - name: Build and run iPhone tests
+        shell: bash
         env:
           TEST_SUITE: ${{ matrix.suite }}
         run: |
@@ -95,11 +96,29 @@ jobs:
               set -- "$@" "-only-testing:$smoke_class/$test"
             fi
           done
-          xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY "$@" \
-            -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO \
-            -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
-            REPPY_RELEASE=ios-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          run_tests() {
+            xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY "$@" \
+              -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO \
+              -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult \
+              CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+              REPPY_RELEASE=ios-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          }
+          test_log="$RUNNER_TEMP/reppy-xcodebuild.log"
+          if run_tests "$@" 2>&1 | tee "$test_log"; then
+            exit 0
+          else
+            test_status=$?
+          fi
+          if ! grep -Fq 'operation never finished bootstrapping' "$test_log" || grep -Eq '^Test (Case|Suite) ' "$test_log"; then
+            exit "$test_status"
+          fi
+          echo "::warning::XCTest runner exited before starting tests. Rebooting the simulator and retrying once."
+          if [ -d ios/TestResults.xcresult ]; then
+            mv ios/TestResults.xcresult ios/TestBootstrapFailure.xcresult
+          fi
+          xcrun simctl shutdown "$REPPY_SIMULATOR"
+          xcrun simctl bootstatus "$REPPY_SIMULATOR" -b
+          run_tests "$@"
       - name: Package simulator demo
         if: matrix.suite == 'core-and-smoke'
         run: ditto -c -k --sequesterRsrc --keepParent ios/DerivedData/Build/Products/Debug-iphonesimulator/REPPY.app ios/REPPY-simulator.zip
@@ -122,5 +141,6 @@ jobs:
           name: ios-test-results-${{ matrix.suite }}
           path: |
             ios/TestResults.xcresult
+            ios/TestBootstrapFailure.xcresult
             ios/TestAttachments
           if-no-files-found: ignore
