@@ -286,6 +286,7 @@ final class ScreenAuditTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["История тренировок"].waitForExistence(timeout: 5))
         app.buttons["Посмотреть результат"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.images["Динозавр показывает большой палец"].exists)
         app.terminate(); app.launchArguments += ["--audit-screen", "progress"]; app.launch()
         XCTAssertTrue(app.navigationBars["Все упражнения"].waitForExistence(timeout: 15))
         let exercise = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Жим ногами")).firstMatch
@@ -299,7 +300,7 @@ final class ScreenAuditTests: XCTestCase {
         XCTAssertTrue(reschedule.waitForExistence(timeout: 5)); XCTAssertLessThan(start.frame.minY, reschedule.frame.minY)
         reschedule.tap(); XCTAssertTrue(app.navigationBars["Перенос"].waitForExistence(timeout: 5))
         capture(app, "flow-reschedule-initial-date")
-        app.navigationBars.buttons["Отмена"].tap(); XCTAssertTrue(start.waitForExistence(timeout: 5)); XCTAssertFalse(app.staticTexts["Запрошен перенос"].exists)
+        app.navigationBars.buttons["form-cancel"].tap(); XCTAssertTrue(start.waitForExistence(timeout: 5)); XCTAssertFalse(app.staticTexts["Запрошен перенос"].exists)
         app.terminate()
     }
     @MainActor func testSmallPhoneKeyScreens() {

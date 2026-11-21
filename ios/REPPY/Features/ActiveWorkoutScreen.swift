@@ -33,7 +33,7 @@ struct ActiveWorkoutScreen: View {
     @State private var draftAccount = ""
     private var draftKey: String { "\(editingHistory ? "correction" : "active"):\(sessionID)" }
     @ViewBuilder var body: some View {
-        if completed && !editingHistory { SessionResultScreen(sessionID: sessionID) }
+        if completed && !editingHistory { SessionResultScreen(sessionID: sessionID, showsSuccessArt: didFinish) }
         else { activeContent }
     }
     private var activeContent: some View {

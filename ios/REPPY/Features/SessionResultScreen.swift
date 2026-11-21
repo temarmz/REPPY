@@ -6,6 +6,7 @@ struct SessionResultScreen: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
     var sessionID: String
+    var showsSuccessArt = false
     @State private var mood: Mood? = nil
     @State private var comment = ""
     @State private var initialized = false
@@ -14,7 +15,7 @@ struct SessionResultScreen: View {
     var body: some View {
         ReppyPage(back: true, title: "Результат тренировки") {
             if let session = store.data.sessions.first(where: { $0.id == sessionID }) {
-                if session.completed_at != nil { ReppyWorkoutSuccessArt() }
+                if showsSuccessArt && session.completed_at != nil { ReppyWorkoutSuccessArt() }
                 let assignment = store.data.assignments.first { $0.id == session.assignment_id }
                 // Keep the header tied to the scheduled workout day. A session may be
                 // completed later when an overdue workout is opened from history.
@@ -63,7 +64,6 @@ struct SessionResultScreen: View {
                             ForEach(Mood.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
                         }
                         ReppyField(title: "Комментарий", text: $comment, multiline: true)
-
                     }.reppyFormActions(saveLabel: "Сохранить обратную связь", busy: store.busy, hasChanges: mood != store.data.sessions.first { $0.id == sessionID }?.mood || comment != (store.data.sessions.first { $0.id == sessionID }?.comment ?? ""), save: {Task {
                             guard let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
                             if await store.run({
