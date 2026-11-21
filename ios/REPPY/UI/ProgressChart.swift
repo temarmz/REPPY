@@ -25,6 +25,14 @@ struct ReppyProgressChart: View {
     private var monthly: Bool { timeline.monthly }
     private var showReps: Bool { points.first?.exercise.loadMode == .external && points.first?.exercise.measureType == .reps }
     private var selected: ProgressPoint? { ordered.first { $0.id == selectedID } ?? ordered.last }
+    @AxisContentBuilder private var dateAxis: some AxisContent {
+        AxisMarks(values: .automatic(desiredCount: 3)) {
+            AxisGridLine()
+            AxisValueLabel(format: monthly ? .dateTime.month(.abbreviated) : .dateTime.day().month(.abbreviated),
+                           anchor: .top, collisionResolution: .greedy)
+        }
+    }
+
     var body: some View {
         let ordered = timeline.points
         let selected = ordered.first { $0.id == selectedID } ?? ordered.last
@@ -32,7 +40,7 @@ struct ReppyProgressChart: View {
         Chart(ordered) { point in
             LineMark(x: .value("Дата", point.date), y: .value(unit, metric == "max" ? point.maximum : point.total)).foregroundStyle(ReppyTheme.trendUp).symbol(.circle)
             if point.id == selected?.id { RuleMark(x: .value("Выбранное занятие", point.date)).foregroundStyle(ReppyTheme.secondary) }
-        }.chartYAxisLabel(unit).frame(height: 180)
+        }.chartXAxis { dateAxis }.chartYAxisLabel(unit).frame(height: 180)
             .chartXSelection(value: $selectedDate)
             .onChange(of: selectedDate) { _, date in
                 if let date { selectedID = ordered.min { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }?.id }
@@ -44,7 +52,7 @@ struct ReppyProgressChart: View {
                 LineMark(x: .value("Дата", point.date), y: .value("Повторы", point.bestSet?.actual_reps ?? 0))
                     .foregroundStyle(ReppyTheme.trendDown).symbol(.circle)
                 if point.id == selected?.id { RuleMark(x: .value("Выбранное занятие", point.date)).foregroundStyle(ReppyTheme.secondary) }
-            }.chartYAxisLabel(MeasureType.reps.label).frame(height: 120)
+            }.chartXAxis { dateAxis }.chartYAxisLabel(MeasureType.reps.label).frame(height: 120)
                 .chartXSelection(value: $selectedDate)
                 .accessibilityLabel("Повторы подхода с показанным весом")
         }
@@ -59,7 +67,7 @@ struct ReppyProgressChart: View {
             }.buttonStyle(.plain)
             if monthly { ReppyCaption(text: selected.date.formatted(date: .abbreviated, time: .shortened)) }
             ForEach(selected.results.sorted { $0.exercise_instance_id == $1.exercise_instance_id ? $0.set_number < $1.set_number : $0.exercise_instance_id < $1.exercise_instance_id }) { result in
-                ReppyText(text: "\(result.set_number). " + (selected.exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(selected.exercise.unit)")
+                ReppySetSummaryRow(number: result.set_number, value: selected.exercise.setLabel(amount: result.actual_reps, weight: result.actual_weight))
             }
             ReppyLink(title: "Открыть тренировку") { SessionResultScreen(sessionID: selected.session.id) }
         }

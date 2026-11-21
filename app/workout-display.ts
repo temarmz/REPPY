@@ -52,14 +52,16 @@ export function repetitionWord(count: number): string {
   return { zero: 'повторов', one: 'повтор', two: 'повтора', few: 'повтора', many: 'повторов', other: 'повтора' }[russianPlurals.select(Math.abs(count))];
 }
 
+function workoutSetLabel(exercise: WorkoutExercise, amount: number, weight: number) {
+  const measurement = exercise.measureType === 'duration' ? `${amount} сек.`
+    : exercise.loadMode === 'bodyweight' ? `${amount} ${repetitionWord(amount)}` : String(amount);
+  return exercise.loadMode === 'external' ? `${weight} кг × ${measurement}` : measurement;
+}
+
 export function plannedSetLabel(exercise: WorkoutExercise, set: WorkoutSetPlan) {
-  if (exercise.measureType === 'duration') return set.targetReps + ' сек.';
-  if (exercise.loadMode === 'bodyweight') return `${set.targetReps} ${repetitionWord(set.targetReps)}`;
-  return set.targetWeight + ' кг × ' + set.targetReps;
+  return workoutSetLabel(exercise, set.targetReps, set.targetWeight);
 }
 
 export function actualSetLabel(exercise: WorkoutExercise, result: SetResult) {
-  if (exercise.measureType === 'duration') return result.actualReps + ' сек.';
-  if (exercise.loadMode === 'bodyweight') return `${result.actualReps} ${repetitionWord(result.actualReps)}`;
-  return result.actualWeight + ' кг × ' + result.actualReps;
+  return workoutSetLabel(exercise, result.actualReps, result.actualWeight);
 }

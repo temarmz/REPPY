@@ -1,4 +1,5 @@
 import SwiftUI
+import AVKit
 
 extension MeasureType {
     var label: String { self == .duration ? "Длительность" : "Повторы" }
@@ -18,7 +19,13 @@ extension MeasureType {
 extension LoadMode {
     var label: String { self == .bodyweight ? "Свой вес" : "С весом" }
 }
-import AVKit
+
+extension WorkoutExercise {
+    func setLabel(amount: Int, weight: Double) -> String {
+        let measurement = "\(amount) \(measureType.amountUnit(amount))"
+        return loadMode == .external ? "\(weight.reppyNumber) кг × \(measurement)" : measurement
+    }
+}
 
 struct ReppyResultExerciseCard: View {
     var exercise: WorkoutExercise
@@ -31,7 +38,7 @@ struct ReppyResultExerciseCard: View {
             if let note = exercise.coachNote, !note.isEmpty { ReppyCaption(text: note) }
             let recorded = results.filter { $0.exercise_instance_id == exercise.id }.sorted { $0.set_number < $1.set_number }
             ForEach(recorded) { result in
-                ReppySetSummaryRow(number: result.set_number, value: (exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(exercise.measureType.amountUnit(result.actual_reps))", completed: result.completed)
+                ReppySetSummaryRow(number: result.set_number, value: exercise.setLabel(amount: result.actual_reps, weight: result.actual_weight), completed: result.completed)
             }
             if recorded.isEmpty { ReppyCaption(text: "Нет записанных подходов") }
             if let relationshipID { ReppyLink(title: "Прогресс упражнения", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationshipID, exerciseKey: exercise.progressKey) } }
@@ -125,14 +132,14 @@ struct ReppyExerciseHeader<Actions: View>: View {
 }
 
 func exerciseMetadata(groups: [String], equipment: String?, isCustom: Bool, loadMode: LoadMode, measureType: MeasureType) -> String {
-    var seen = Set<String>()
-    let muscles = groups.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
-        .joined(separator: ", ")
-    return [isCustom ? "Пользовательское упражнение" : nil, muscles, equipment,
-            loadMode == .bodyweight ? loadMode.label : nil, measureType == .duration ? measureType.label : nil]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
+    func uniqueDetails(_ details: [String?]) -> [String] {
+        var seen = Set<String>()
+        return details.compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
+    }
+    let muscles = uniqueDetails(groups.map(Optional.some)).joined(separator: ", ")
+    return uniqueDetails([isCustom ? "Пользовательское упражнение" : nil, muscles, equipment,
+                          loadMode == .bodyweight ? loadMode.label : nil, measureType == .duration ? measureType.label : nil])
         .joined(separator: " · ")
 }
 
@@ -362,8 +369,7 @@ struct ReadOnlyExerciseCard: View {
             if let note = exercise.coachNote, !note.isEmpty { ReppyText(text: note, tone: .secondary) }
             ForEach(Array(exercise.plannedSets.enumerated()), id: \.offset) { index, plan in
                 let result = results?.first { $0.exercise_instance_id == exercise.id && $0.set_number == index + 1 }
-                let amount = result?.actual_reps ?? plan.targetReps
-                ReppySetSummaryRow(number: index + 1, value: (exercise.loadMode == .external ? "\((result?.actual_weight ?? plan.targetWeight).reppyNumber) кг × " : "") + "\(amount) \(exercise.measureType.amountUnit(amount))", completed: result?.completed)
+                ReppySetSummaryRow(number: index + 1, value: exercise.setLabel(amount: result?.actual_reps ?? plan.targetReps, weight: result?.actual_weight ?? plan.targetWeight), completed: result?.completed)
             }
             if exercise.plannedSets.isEmpty { ReppyCaption(text: "Подходы не заданы") }
             if let relationshipID { ReppyLink(title: "Прогресс упражнения", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationshipID, exerciseKey: exercise.progressKey) } }

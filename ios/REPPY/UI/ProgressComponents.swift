@@ -102,7 +102,7 @@ struct ReppyProgressComparisonLink: View {
         }.buttonStyle(.plain).accessibilityIdentifier("progress-summary-" + group.id)
     }
     private func setLabel(_ set: SetResult) -> String {
-        (group.exercise.loadMode == .external ? "\(set.actual_weight.reppyNumber) кг × " : "") + "\(set.actual_reps) \(group.exercise.measureType.amountUnit(set.actual_reps))"
+        group.exercise.setLabel(amount: set.actual_reps, weight: set.actual_weight)
     }
     private func signed(_ value: Double) -> String { "\(value > 0 ? "+" : "−")\(abs(value).reppyNumber)" }
     private func changeLabel(_ comparison: ProgressComparison) -> String {
