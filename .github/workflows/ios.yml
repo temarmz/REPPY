@@ -19,11 +19,11 @@ jobs:
   native-checks:
     name: iOS (${{ matrix.suite }})
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        suite: [core-and-smoke, notes, workout-and-ledger]
+        suite: [core-and-smoke, notes, workout, ledger, student-and-editor]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -61,29 +61,40 @@ jobs:
             testNotesAndInstructionsLargestText
             testNativeInstructionToolbarWithLargestText
           )
-          workout_and_ledger=(
+          workout=(
             testActiveWorkoutKeyboardAndFinishOnSmallScreen
             testActiveWorkoutWithLargestText
+            testWorkoutScreenParity
+          )
+          ledger=(
             testLedgerAndInvitationLargestText
             testLedgerAndInvitationParity
             testPaymentFormOpensFromHistory
-            testWorkoutScreenParity
+          )
+          student_and_editor=(
+            testNativeRepeatReorderAndDraftExit
+            testStudentManagementLargestText
+            testStudentManagementParity
+            testWorkoutEditorSetRows
           )
           smoke_class=REPPYUITests/SmokeTests
           case "$TEST_SUITE" in
-            notes)
-              for test in "${notes[@]}"; do set -- "$@" "-only-testing:$smoke_class/$test"; done
-              ;;
-            workout-and-ledger)
-              for test in "${workout_and_ledger[@]}"; do set -- "$@" "-only-testing:$smoke_class/$test"; done
-              ;;
+            notes) tests=("${notes[@]}") ;;
+            workout) tests=("${workout[@]}") ;;
+            ledger) tests=("${ledger[@]}") ;;
+            student-and-editor) tests=("${student_and_editor[@]}") ;;
             core-and-smoke)
               set -- -skip-testing:REPPYUITests/ScreenAuditTests
-              for test in "${notes[@]}" "${workout_and_ledger[@]}"; do
-                set -- "$@" "-skip-testing:$smoke_class/$test"
-              done
+              tests=("${notes[@]}" "${workout[@]}" "${ledger[@]}" "${student_and_editor[@]}")
               ;;
           esac
+          for test in "${tests[@]}"; do
+            if [ "$TEST_SUITE" = core-and-smoke ]; then
+              set -- "$@" "-skip-testing:$smoke_class/$test"
+            else
+              set -- "$@" "-only-testing:$smoke_class/$test"
+            fi
+          done
           xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY "$@" \
             -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO \
             -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult \

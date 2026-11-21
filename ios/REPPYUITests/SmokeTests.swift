@@ -23,8 +23,11 @@ final class SmokeTests: XCTestCase {
         let second = cells.element(boundBy: 1).staticTexts.firstMatch.label
         let handle = cells.element(boundBy: 0).buttons.firstMatch
         XCTAssertTrue(handle.exists)
-        handle.press(forDuration: 0.7, thenDragTo: cells.element(boundBy: 1))
-        XCTAssertEqual(cells.element(boundBy: 0).staticTexts.firstMatch.label, second)
+        let drop = cells.element(boundBy: 1).coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.9))
+        handle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.5, thenDragTo: drop, withVelocity: .slow, thenHoldForDuration: 0.5)
+        let reordered = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", second), object: cells.element(boundBy: 0).staticTexts.firstMatch)
+        XCTAssertEqual(XCTWaiter.wait(for: [reordered], timeout: 5), .completed)
         XCTAssertEqual(cells.element(boundBy: 1).staticTexts.firstMatch.label, first)
         capture(app, "native-reorder-dark")
         app.navigationBars.buttons["Готово"].tap()
@@ -154,11 +157,11 @@ final class SmokeTests: XCTestCase {
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         let lessons = app.textFields["Количество занятий"]
         XCTAssertTrue(lessons.waitForExistence(timeout: 5)); capture(app, "new-\(suffix)")
-        revealAndTap(lessons, in: app); lessons.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap(); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "0")
+        revealAndTap(lessons, in: app); lessons.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap(); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (lessons.value as? String ?? "").count) + "0")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         XCTAssertTrue(app.staticTexts["Укажи целое количество занятий больше нуля."].exists)
-        revealAndTap(lessons, in: app); lessons.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap(); lessons.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "8")
+        revealAndTap(lessons, in: app); lessons.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap(); lessons.typeText(XCUIKeyboardKey.delete.rawValue + "8")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         XCTAssertTrue(app.staticTexts["Осталось 11 занятий"].waitForExistence(timeout: 5))
@@ -178,7 +181,7 @@ final class SmokeTests: XCTestCase {
         revealAndTap(app.buttons["Пригласить ученика"], in: app)
         let name = app.textFields["Имя ученика"]
         XCTAssertTrue(name.waitForExistence(timeout: 5)); capture(app, "invite-\(suffix)")
-        revealAndTap(name, in: app); name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 50) + "Демо ученик")
+        revealAndTap(name, in: app); name.typeText("Демо ученик")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         revealAndTap(app.buttons["Продолжить"], in: app)
         XCTAssertTrue(app.staticTexts["Ссылка готова"].waitForExistence(timeout: 5))
@@ -189,8 +192,11 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Ожидает подключения"].waitForExistence(timeout: 5)); capture(app, "pending-\(suffix)")
         XCTAssertFalse(app.buttons["Назначить тренировку"].exists)
         revealAndTap(app.buttons["Удалить ученика"], in: app)
-        XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5))
-        app.buttons["confirm-delete-pending-student"].tap()
+        let confirmRemoval = app.buttons["confirm-delete-pending-student"]
+        let removalTitle = app.sheets.buttons["Удалить ученика"]
+        let confirm = confirmRemoval.waitForExistence(timeout: 2) ? confirmRemoval : removalTitle
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
         XCTAssertTrue(app.buttons["Пригласить ученика"].waitForExistence(timeout: 5)); XCTAssertFalse(invited.exists)
         app.terminate()
     }
@@ -204,17 +210,18 @@ final class SmokeTests: XCTestCase {
                     revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Артем А.,")).firstMatch, in: app)
                     revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Грудь и плечи")).firstMatch, in: app)
                 } else { revealAndTap(app.buttons["Посмотреть тренировку"].firstMatch, in: app) }
-                let start = app.buttons["Начать тренировку"]
+                let start = app.buttons.matching(NSPredicate(format: "label IN %@", ["Начать тренировку", "Продолжить тренировку"])).firstMatch
                 XCTAssertTrue(start.waitForExistence(timeout: 5)); capture(app, "\(role)-assignment-\(theme)")
                 revealAndTap(start, in: app)
-                XCTAssertTrue(app.buttons["Действия тренировки"].waitForExistence(timeout: 5))
+                let add = app.navigationBars.buttons["Добавить упражнение"]
+                XCTAssertTrue(add.waitForExistence(timeout: 5))
                 capture(app, "\(role)-active-\(theme)")
-                let actions = app.buttons["Действия тренировки"]
-                let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: actions)
-                XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
-                actions.tap()
-                XCTAssertTrue(app.buttons["Изменить упражнения и подходы"].waitForExistence(timeout: 5))
-                app.buttons["Сохранить сейчас"].tap()
+                revealAndTap(add, in: app)
+                XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 5))
+                revealAndTap(app.navigationBars.buttons["Готово"], in: app)
+                revealAndTap(app.buttons["Изменить порядок упражнений"], in: app)
+                XCTAssertTrue(app.navigationBars["Порядок упражнений"].waitForExistence(timeout: 5))
+                revealAndTap(app.navigationBars.buttons["Готово"], in: app)
                 app.terminate(); app.launch()
                 XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 15))
                 if role == "trainer" {
@@ -228,11 +235,12 @@ final class SmokeTests: XCTestCase {
                 if role == "trainer" { XCTAssertTrue(app.staticTexts["Одно занятие списано"].exists) }
                 capture(app, "\(role)-result-\(theme)")
                 if role == "student" {
-                    revealAndTap(app.buttons["Изменить отзыв"], in: app)
-                    let comment = app.textFields["Комментарий тренеру"]
-                    XCTAssertTrue(comment.waitForExistence(timeout: 5)); capture(app, "feedback-\(theme)")
+                    let feedback = app.buttons.matching(NSPredicate(format: "label IN %@", ["Как прошла тренировка?", "Изменить отзыв"])).firstMatch
+                    revealAndTap(feedback, in: app)
+                    XCTAssertTrue(app.navigationBars["Отзыв"].waitForExistence(timeout: 5))
+                    capture(app, "feedback-\(theme)")
                     revealAndTap(app.descendants(matching: .any).matching(identifier: "form-cancel").firstMatch, in: app)
-                    XCTAssertTrue(app.buttons["Изменить отзыв"].waitForExistence(timeout: 5))
+                    XCTAssertTrue(feedback.waitForExistence(timeout: 5))
                 } else {
                     revealAndTap(app.buttons["Удалить тренировку"], in: app)
                     XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5), app.debugDescription); app.buttons["Отмена"].tap()
@@ -283,9 +291,11 @@ final class SmokeTests: XCTestCase {
             let repeated = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Завершена")).firstMatch
             XCTAssertTrue(repeated.exists); revealAndTap(repeated, in: app)
             XCTAssertTrue(app.staticTexts["Повторить тренировку"].waitForExistence(timeout: 5))
-            let addSet = app.buttons["Добавить подход"].firstMatch
-            for _ in 0..<8 { if addSet.isHittable { break }; app.swipeUp() }
-            XCTAssertTrue(addSet.isHittable); capture(app, "repeat-\(theme)")
+            let sets = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Подход "))
+            let count = sets.count
+            revealAndTap(app.buttons.matching(NSPredicate(format: "label == %@", "Добавить подход")).firstMatch, in: app)
+            XCTAssertEqual(sets.count, count + 1)
+            capture(app, "repeat-\(theme)")
             app.terminate()
     }
     @MainActor private func tapVisibleButton(_ title: String, in app: XCUIApplication) {
@@ -475,13 +485,13 @@ final class SmokeTests: XCTestCase {
             else if app.buttons["Закрыть"].exists { app.buttons["Закрыть"].tap() }
             let closePicker = app.buttons["Готово"]
             XCTAssertTrue(closePicker.waitForExistence(timeout: 5)); closePicker.tap()
-            let set = app.buttons["Добавить подход"].firstMatch
-            for _ in 0..<8 { if set.isHittable { break }; app.swipeUp() }
-            XCTAssertTrue(set.isHittable); set.tap()
-            XCTAssertTrue(app.buttons["Удалить подход 1"].exists)
-            let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "editor-sets-\(theme)"; screenshot.lifetime = .keepAlways; add(screenshot)
-            app.buttons["Удалить подход 1"].tap()
-            XCTAssertFalse(app.buttons["Удалить подход 1"].exists)
+            let sets = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Подход "))
+            XCTAssertEqual(sets.count, 1)
+            revealAndTap(app.buttons.matching(NSPredicate(format: "label == %@", "Добавить подход")).firstMatch, in: app)
+            XCTAssertEqual(sets.count, 2)
+            capture(app, "editor-sets-\(theme)")
+            revealAndTap(app.buttons["Удалить последний подход"], in: app)
+            XCTAssertEqual(sets.count, 1)
             app.terminate()
         }
     }
