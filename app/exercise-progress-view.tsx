@@ -14,7 +14,7 @@ import EmptyState from './ui/empty-state';
 
 type ProgressArea = 'trainer' | 'student';
 type Props = { data: DemoState; studentId: string; exerciseId?: string; search: string; go: (path: string) => void; back: (fallback: string) => void; area?: ProgressArea };
-const modeLabel = (exercise: WorkoutExercise) => `${exercise.equipment ?? ''} · ${exercise.loadMode === 'bodyweight' ? 'Свой вес' : 'Внешний вес'} · ${exercise.measureType === 'duration' ? 'Время' : 'Повторения'}`;
+const modeLabel = (exercise: WorkoutExercise) => `${exercise.equipment ?? ''} · ${exercise.loadMode === 'bodyweight' ? 'Свой вес' : 'С весом'} · ${exercise.measureType === 'duration' ? 'Длительность' : 'Повторы'}`;
 const sessionCount = (count: number) => `${count} ${{ one: 'занятие', two: 'занятия', few: 'занятия', many: 'занятий', zero: 'занятий', other: 'занятий' }[new Intl.PluralRules('ru').select(count)]}`;
 function progressGroups(data: DemoState, studentId: string) {
   return collectExerciseProgress(data.sessions, studentId)

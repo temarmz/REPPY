@@ -189,8 +189,8 @@ struct ReppyField: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField(title, text: $text, prompt: Text(placeholder ?? title).foregroundStyle(ReppyTheme.secondary), axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
-            } else { TextField(title, text: $text, prompt: Text(placeholder ?? title).foregroundStyle(ReppyTheme.secondary)).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
+                TextField("", text: $text, prompt: placeholder.map { Text($0).foregroundStyle(ReppyTheme.placeholder) }, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
+            } else { TextField("", text: $text, prompt: placeholder.map { Text($0).foregroundStyle(ReppyTheme.placeholder) }).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
             if let error { ReppyText(text: error, tone: .error) }
         }
     }
@@ -201,7 +201,7 @@ private struct FieldModifier: ViewModifier {
     @FocusState private var focused: Bool
     @Environment(\.isEnabled) private var enabled
     func body(content: Content) -> some View {
-        content.reppyTypography(.body).focused($focused).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12).frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.control)
+        content.reppyTypography(.body).focused($focused).padding(.horizontal, ReppyMetrics.controlPadding).padding(.vertical, ReppyMetrics.space12).frame(minHeight: compact ? ReppyMetrics.compact : ReppyMetrics.fieldHeight)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
             .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(invalid ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
             .opacity(enabled ? 1 : 0.4)
@@ -293,6 +293,37 @@ struct ReppyPicker<T: Hashable, Content: View>: View {
         }
     }
 }
+struct ReppyMultiplePicker: View {
+    var title: String
+    var options: [String]
+    @Binding var selection: Set<String>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: ReppyMetrics.space8) {
+            ReppyCaption(text: title)
+            Menu {
+                ForEach(options, id: \.self) { option in
+                    Toggle(option, isOn: Binding(
+                        get: { selection.contains(option) },
+                        set: { selected in
+                            if selected { selection.insert(option) }
+                            else { selection.remove(option) }
+                        }
+                    ))
+                }
+            } label: {
+                HStack {
+                    Text(selection.isEmpty ? "Выбрать" : options.filter(selection.contains).joined(separator: ", "))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.up.chevron.down").font(.caption)
+                }.foregroundStyle(ReppyTheme.text).reppyField()
+            }
+            .menuActionDismissBehavior(.disabled)
+            .accessibilityLabel(title)
+            .accessibilityIdentifier(title)
+        }
+    }
+}
 struct ReppyToggle: View {
     var title: String
     @Binding var value: Bool
@@ -381,7 +412,7 @@ struct ReppyAuthIntro: View {
 }
 struct ReppySearch: View {
     @Binding var text: String
-    var body: some View { TextField("Поиск", text: $text).textInputAutocapitalization(.never).autocorrectionDisabled().reppyField().accessibilityLabel("Поиск") }
+    var body: some View { TextField("Поиск", text: $text, prompt: Text("Поиск").foregroundStyle(ReppyTheme.placeholder)).textInputAutocapitalization(.never).autocorrectionDisabled().reppyField().accessibilityLabel("Поиск") }
 }
 struct ReppyProgressBar: View {
     var completed: Int

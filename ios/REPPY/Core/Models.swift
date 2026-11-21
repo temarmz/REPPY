@@ -274,6 +274,15 @@ public enum ReppyDate {
     }
 }
 public enum ReppyValidation {
+    public static func definition(_ definition: ExerciseDefinition, definitions: [ExerciseDefinition]) -> String? {
+        let name = definition.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !(2...160).contains(name.unicodeScalars.count) { return "Укажи название длиной от 2 до 160 символов." }
+        let equipment = definition.equipment.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !equipment.isEmpty && !(2...100).contains(equipment.unicodeScalars.count) { return "Укажи оборудование длиной от 2 до 100 символов или оставь поле пустым." }
+        if definition.muscle_groups.isEmpty { return "Выбери хотя бы одну группу мышц." }
+        if definitions.contains(where: { $0.id != definition.id && $0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(with: Locale(identifier: "ru_RU")) == name.lowercased(with: Locale(identifier: "ru_RU")) }) { return "Упражнение с таким названием уже есть." }
+        return nil
+    }
     public static func student(_ student: Student) -> String? {
         let name = student.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !(2...120).contains(name.count) { return "Укажи имя длиной от 2 до 120 символов." }

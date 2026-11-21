@@ -461,6 +461,7 @@ function WorkoutExerciseEditor({
             onMoveUp={() => moveExercise(index, index - 1)}
             onMoveDown={() => moveExercise(index, index + 1)}
             onNoteChange={(coachNote) => updateExercise(exercise.id, (current) => ({ ...current, coachNote }))}
+            onModeChange={(patch) => updateExercise(exercise.id, (current) => ({ ...current, ...patch }))}
             onSetChange={(setIndex, patch) => updateExercise(exercise.id, (current) => {
               const plannedSets = getExerciseSetPlans(current).map((set, currentIndex) => currentIndex === setIndex ? { ...set, ...patch } : set);
               return withExerciseSetPlans(current, plannedSets);

@@ -6,6 +6,18 @@ import XCTest
 #endif
 
 final class CoreTests: XCTestCase {
+    func testDefinitionValidationMatchesWebContract() throws {
+        struct ValidationCase: Decodable {
+            var title: String
+            var definition: ExerciseDefinition
+            var definitions: [ExerciseDefinition]
+            var error: String?
+        }
+        let cases = try TestFixtures.load([ValidationCase].self, name: "DefinitionValidation")
+        for entry in cases {
+            XCTAssertEqual(ReppyValidation.definition(entry.definition, definitions: entry.definitions), entry.error, entry.title)
+        }
+    }
     func testChargeHistoryUsesNetAmountAfterMultipleRefunds() throws {
         var data = try TestFixtures.load()
         let assignment = try XCTUnwrap(data.assignments.first)

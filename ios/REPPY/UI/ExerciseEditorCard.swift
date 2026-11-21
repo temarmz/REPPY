@@ -20,7 +20,7 @@ struct ExerciseEditorCard: View {
                     exerciseMenu
                 }
             }
-            ReppyExerciseModes(exercise: $exercise)
+            ReppyExerciseModes(loadMode: $exercise.loadMode, measureType: $exercise.measureType)
             ReppyStack(compact: true) {
                 if !exercise.plannedSets.isEmpty { SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit) }
                 ForEach($exercise.plannedSets) { $set in

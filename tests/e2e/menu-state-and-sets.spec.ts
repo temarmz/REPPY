@@ -170,8 +170,8 @@ for (const width of [320, 440]) {
     await expect(page.locator('[data-route-active="true"] .active-exercise-card').nth(1).locator('.set-card')).toHaveCount(0);
     const weight = card.getByLabel('КГ');
     const reps = card.getByLabel('ПОВТОРЫ');
-    await expect(weight).toHaveValue('');
-    await expect(reps).toHaveValue('');
+    await expect(weight).toHaveValue('0');
+    await expect(reps).toHaveValue('0');
     const complete = card.getByRole('button', { name: /Завершить подход 1/ });
     await expect(complete).toHaveCount(0);
     // Type one character at a time to exercise the intermediate decimal separator.

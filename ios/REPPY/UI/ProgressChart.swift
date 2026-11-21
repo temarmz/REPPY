@@ -13,8 +13,12 @@ struct ReppyProgressChart: View {
         self.points = points; self.metric = metric; self.unit = unit
         let timeline = ProgressTimeline(points: points)
         self.timeline = timeline
-        self.accessibilitySummary = timeline.points.map {
-            "\($0.date.formatted(date: .abbreviated, time: .omitted)): \((metric == "max" ? $0.maximum : $0.total).reppyNumber) \(unit)"
+        self.accessibilitySummary = timeline.points.map { point in
+            let value = metric == "max" ? point.maximum : point.total
+            let unitLabel = unit == MeasureType.reps.label
+                ? MeasureType.reps.amountUnit(ReppyValidation.integer(value))
+                : unit
+            return "\(point.date.formatted(date: .abbreviated, time: .omitted)): \(value.reppyNumber) \(unitLabel)"
         }.joined(separator: "; ")
     }
     private var ordered: [ProgressPoint] { timeline.points }
@@ -40,7 +44,7 @@ struct ReppyProgressChart: View {
                 LineMark(x: .value("Дата", point.date), y: .value("Повторы", point.bestSet?.actual_reps ?? 0))
                     .foregroundStyle(ReppyTheme.trendDown).symbol(.circle)
                 if point.id == selected?.id { RuleMark(x: .value("Выбранное занятие", point.date)).foregroundStyle(ReppyTheme.secondary) }
-            }.chartYAxisLabel("повт.").frame(height: 120)
+            }.chartYAxisLabel(MeasureType.reps.label).frame(height: 120)
                 .chartXSelection(value: $selectedDate)
                 .accessibilityLabel("Повторы подхода с показанным весом")
         }

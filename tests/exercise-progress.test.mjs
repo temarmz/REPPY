@@ -67,9 +67,9 @@ test('свой вес и секунды имеют свои метрики и п
     const entry = collectExerciseProgress([original], 'a')[0].entries[0];
     assert.equal(progressMetric(entry, 'max'), 8);
     assert.equal(progressMetric(entry, 'sum'), 8);
-    assert.equal(progressSetLabel(entry.blocks[0].exercise, original.results[0]), measureType === 'duration' ? '8 сек.' : '8 повт.');
+    assert.equal(progressSetLabel(entry.blocks[0].exercise, original.results[0]), measureType === 'duration' ? '8 сек.' : '8 повторов');
   }
-  assert.equal(progressSetLabel(exercise(), { actualWeight: 77.5, actualReps: 8 }), '77,5 кг × 8 повт.');
+  assert.equal(progressSetLabel(exercise(), { actualWeight: 77.5, actualReps: 8 }), '77,5 кг × 8 повторов');
 });
 
 test('последний снимок задаёт имя; удаление сессии убирает её вклад', () => {
@@ -89,11 +89,11 @@ test('сравнение лучших подходов показывает то
     return compareProgress(group.entries);
   };
   assert.equal(compare(80, 8, 82.5, 8).label, '+2,5 кг при тех же повторах');
-  assert.equal(compare(80, 8, 80, 10).label, '+2 повт.');
-  assert.equal(compare(80, 8, 85, 5).label, '+5 кг, −3 повт.');
+  assert.equal(compare(80, 8, 80, 10).label, '+2 повтора');
+  assert.equal(compare(80, 8, 85, 5).label, '+5 кг, −3 повтора');
   assert.equal(compare(80, 8, 80, 8).label, 'Без изменений');
-  assert.equal(compare(80, 8, 75, 6).label, '−5 кг, −2 повт.');
-  assert.equal(compare(0, 8, 0, 10, { loadMode: 'bodyweight' }).label, '+2 повт.');
+  assert.equal(compare(80, 8, 75, 6).label, '−5 кг, −2 повтора');
+  assert.equal(compare(0, 8, 0, 10, { loadMode: 'bodyweight' }).label, '+2 повтора');
   assert.equal(compare(0, 30, 0, 45, { loadMode: 'bodyweight', measureType: 'duration' }).label, '+15 сек.');
   const entries = collectExerciseProgress([session()], 'a')[0].entries;
   assert.equal(compareProgress(entries).label, '');

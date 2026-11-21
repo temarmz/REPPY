@@ -101,15 +101,14 @@ struct ReppyProgressComparisonLink: View {
             .background(ReppyTheme.surface, in: RoundedRectangle(cornerRadius: ReppyMetrics.cardRadius))
         }.buttonStyle(.plain).accessibilityIdentifier("progress-summary-" + group.id)
     }
-    private var unit: String { group.exercise.measureType == .duration ? "сек." : "повт." }
     private func setLabel(_ set: SetResult) -> String {
-        (group.exercise.loadMode == .external ? "\(set.actual_weight.reppyNumber) кг × " : "") + "\(set.actual_reps) \(unit)"
+        (group.exercise.loadMode == .external ? "\(set.actual_weight.reppyNumber) кг × " : "") + "\(set.actual_reps) \(group.exercise.measureType.amountUnit(set.actual_reps))"
     }
     private func signed(_ value: Double) -> String { "\(value > 0 ? "+" : "−")\(abs(value).reppyNumber)" }
     private func changeLabel(_ comparison: ProgressComparison) -> String {
         let weight = comparison.weightChange, amount = comparison.amountChange
         if weight == 0 && amount == 0 { return "Без изменений" }
         if !compact && weight != 0 && amount == 0 { return "\(signed(weight)) кг при \(group.exercise.measureType == .duration ? "том же времени" : "тех же повторах")" }
-        return [weight != 0 ? "\(signed(weight)) кг" : nil, amount != 0 ? "\(signed(Double(amount))) \(unit)" : nil].compactMap { $0 }.joined(separator: ", ")
+        return [weight != 0 ? "\(signed(weight)) кг" : nil, amount != 0 ? "\(signed(Double(amount))) \(group.exercise.measureType.amountUnit(amount))" : nil].compactMap { $0 }.joined(separator: ", ")
     }
 }

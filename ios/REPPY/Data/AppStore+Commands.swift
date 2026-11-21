@@ -271,7 +271,7 @@ extension AppStore {
     }
     func saveDefinition(_ definition: ExerciseDefinition, isNew: Bool) async throws {
         try requireTrainer()
-        guard !definition.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw APIError.message("Укажи название упражнения.") }
+        if let error = ReppyValidation.definition(definition, definitions: data.definitions) { throw APIError.message(error) }
         if !isDemo, let api {
             let values: [String: Any] = ["name": definition.name.trimmingCharacters(in: .whitespacesAndNewlines), "primary_muscle": definition.muscle_groups.first ?? "Другое",
                 "muscle_groups": definition.muscle_groups, "equipment": definition.equipment, "load_mode": definition.load_mode.rawValue, "measure_type": definition.measure_type.rawValue]

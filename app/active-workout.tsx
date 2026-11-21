@@ -285,6 +285,7 @@ export default function ActiveWorkout({
       />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
+        onModeChange={(patch) => updateWorkout(workout.exercises.map((exercise) => exercise.id === actionExercise.id ? { ...exercise, ...patch } : exercise))}
         onReplaceExercise={() => { setReplacingId(actionExercise.id); setActionExerciseId(null); }}
         deleteDisabledReason={actionDeleteDisabledReason}
         onClose={() => setActionExerciseId(null)}

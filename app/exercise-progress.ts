@@ -1,4 +1,5 @@
 import type { SetResult, WorkoutExercise, WorkoutSession } from './reppy-data';
+import { repetitionWord } from './workout-display.ts';
 
 export type ProgressPeriod = '30' | '90' | 'all';
 export type ProgressBlock = { exercise: WorkoutExercise; sets: { number: number; result?: SetResult; valid: boolean }[] };
@@ -52,7 +53,7 @@ export function progressMetric(entry: ProgressEntry, metric: 'max' | 'sum'): num
 }
 export const progressNumber = (value: number) => value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
 export function progressSetLabel(exercise: WorkoutExercise, result: Pick<SetResult, 'actualReps' | 'actualWeight'>): string {
-  const amount = `${progressNumber(result.actualReps)} ${exercise.measureType === 'duration' ? 'сек.' : 'повт.'}`;
+  const amount = `${progressNumber(result.actualReps)} ${exercise.measureType === 'duration' ? 'сек.' : repetitionWord(result.actualReps)}`;
   return exercise.loadMode === 'external' ? `${progressNumber(result.actualWeight)} кг × ${amount}` : amount;
 }
 export function progressHref(studentId: string, exercise?: WorkoutExercise, area: 'trainer' | 'student' = 'trainer'): string {
@@ -80,7 +81,7 @@ export function compareProgress(entries: ProgressEntry[]) {
   const weight = exercise.loadMode === 'external' ? Number((latest.actualWeight - previous.actualWeight).toFixed(3)) : 0;
   const amount = Number((latest.actualReps - previous.actualReps).toFixed(3));
   const signed = (value: number) => `${value > 0 ? '+' : '−'}${progressNumber(Math.abs(value))}`;
-  const unit = exercise.measureType === 'duration' ? 'сек.' : 'повт.';
+  const unit = exercise.measureType === 'duration' ? 'сек.' : repetitionWord(amount);
   const label = !weight && !amount ? 'Без изменений'
     : weight && !amount ? `${signed(weight)} кг при ${exercise.measureType === 'duration' ? 'том же времени' : 'тех же повторах'}`
     : [weight ? `${signed(weight)} кг` : '', amount ? `${signed(amount)} ${unit}` : ''].filter(Boolean).join(', ');

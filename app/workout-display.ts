@@ -1,4 +1,4 @@
-import { exerciseLibrary, exerciseMuscleGroups, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data';
+import { exerciseLibrary, exerciseMuscleGroups, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from './reppy-data.ts';
 
 export function formatElapsedTime(startedAt: string, currentTime: number) {
   const elapsedSeconds = Math.max(0, Math.floor((currentTime - new Date(startedAt).getTime()) / 1000));
@@ -46,14 +46,20 @@ export function exerciseMetadata(exercise: WorkoutExercise) {
   return muscles || equipment || 'Упражнение';
 }
 
+const russianPlurals = new Intl.PluralRules('ru', { maximumFractionDigits: 3 });
+
+export function repetitionWord(count: number): string {
+  return { zero: 'повторов', one: 'повтор', two: 'повтора', few: 'повтора', many: 'повторов', other: 'повтора' }[russianPlurals.select(Math.abs(count))];
+}
+
 export function plannedSetLabel(exercise: WorkoutExercise, set: WorkoutSetPlan) {
   if (exercise.measureType === 'duration') return set.targetReps + ' сек.';
-  if (exercise.loadMode === 'bodyweight') return set.targetReps + ' повторов';
+  if (exercise.loadMode === 'bodyweight') return `${set.targetReps} ${repetitionWord(set.targetReps)}`;
   return set.targetWeight + ' кг × ' + set.targetReps;
 }
 
 export function actualSetLabel(exercise: WorkoutExercise, result: SetResult) {
   if (exercise.measureType === 'duration') return result.actualReps + ' сек.';
-  if (exercise.loadMode === 'bodyweight') return result.actualReps + ' повторов';
+  if (exercise.loadMode === 'bodyweight') return `${result.actualReps} ${repetitionWord(result.actualReps)}`;
   return result.actualWeight + ' кг × ' + result.actualReps;
 }

@@ -33,7 +33,7 @@ for (const theme of ['dark', 'light'] as const) {
         await expect(weight).toHaveValue('31.25');
         await weight.fill('');
         await weight.press('Tab');
-        await expect(weight).toHaveValue('');
+        await expect(weight).toHaveValue('0');
         await reps.fill('8');
         await reps.press('Enter');
         await weight.fill('47,5');

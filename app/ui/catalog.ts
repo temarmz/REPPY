@@ -17,6 +17,7 @@ import ReadOnlyExerciseList from './read-only-exercise-list';
 import { ActiveExerciseCard, PlanExerciseCard, ExerciseSectionHeader } from './workout-exercise-card';
 import ExerciseInstructionModal from './exercise-instruction-modal';
 import NoteDayCard from './note-day-card';
+import ExerciseModes from './exercise-modes';
 
 /** Actual component references: the design-kit inventory cannot drift from this registry. */
 export const UI_COMPONENTS = {
@@ -27,5 +28,5 @@ export const UI_COMPONENTS = {
   AppShell, AppErrorBoundary, AppErrorScreen, AppStatusBanner, DataLoadError, MonthDatePicker, WorkoutScheduleFields,
   DatePickerField, ReadOnlyExerciseList, ActiveExerciseCard, PlanExerciseCard, ExerciseSectionHeader,
   ExerciseInstructionModal,
-  NoteDayCard, ExerciseOrderEditor,
+  NoteDayCard, ExerciseOrderEditor, ExerciseModes,
 };

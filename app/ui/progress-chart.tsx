@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { WorkoutExercise } from '../reppy-data';
 import { bestProgressSet, progressMetric, progressNumber, progressSetLabel, type ProgressEntry } from '../exercise-progress';
 import Icon from './icon';
+import { repetitionWord } from '../workout-display';
 import { ActionButton, Button } from './controls';
 
 const dateLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -57,15 +58,15 @@ export default function ProgressChart({ entries, exercise, go, sessionHref = (se
     entry,
   }));
   const selectedIndex = visibleEntries.indexOf(selected);
-  const unit = exercise.loadMode === 'external' && exercise.measureType === 'reps' ? 'кг' : exercise.measureType === 'duration' ? 'сек.' : 'повт.';
+  const unit = exercise.loadMode === 'external' && exercise.measureType === 'reps' ? 'кг' : exercise.measureType === 'duration' ? 'сек.' : 'Повторы';
   return <Section className="progress-chart">
     {monthly && <Paragraph className="progress-chart-unit">По месяцам · последнее занятие месяца</Paragraph>}
-    <Box className="progress-chart-legend" aria-hidden="true"><Inline className="metric">{unit}</Inline>{showReps && <Inline className="sets">повт.</Inline>}</Box>
+    <Box className="progress-chart-legend" aria-hidden="true"><Inline className="metric">{unit}</Inline>{showReps && <Inline className="sets">Повторы</Inline>}</Box>
     <Svg ref={svgRef} viewBox={`0 0 ${chartWidth} 240`} role="group" aria-label="График результатов по датам">
       {[0, 0.5, 1].map((fraction) => <SvgGroup key={fraction}><SvgLine x1="45" x2={plotRight} y1={195 - fraction * 155} y2={195 - fraction * 155} stroke="currentColor" opacity=".15" /><SvgText x="38" y={199 - fraction * 155} textAnchor="end">{progressNumber(Math.round(maximum * fraction * 10) / 10)}</SvgText>{showReps && <SvgText className="progress-set-axis" x={chartWidth - 38} y={199 - fraction * 155}>{Math.round(setMaximum * fraction)}</SvgText>}</SvgGroup>)}
       <SvgPolyline className="progress-metric-line" points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
       {showReps && <SvgPolyline className="progress-sets-line" points={points.map((point) => `${point.x},${point.setY}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />}
-      {points.map(({ x, y, setY, entry }, index) => <SvgGroup key={entry.session.id} role="button" tabIndex={0} aria-label={`${dateLabel(entry)} ${timeLabel(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${unit}${showReps ? `, ${setValues[index]} повт.` : ''}`} aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
+      {points.map(({ x, y, setY, entry }, index) => <SvgGroup key={entry.session.id} role="button" tabIndex={0} aria-label={`${dateLabel(entry)} ${timeLabel(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${unit === 'Повторы' ? repetitionWord(values[index]) : unit}${showReps ? `, ${progressNumber(setValues[index])} ${repetitionWord(setValues[index])}` : ''}`} aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
         <SvgCircle className="progress-point-hitarea" cx={x} cy={y} r="22" fill="transparent" /><SvgCircle className="progress-metric-point" cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" />{showReps && <SvgRect className="progress-sets-point" x={x - (selected.session.id === entry.session.id ? 6 : 4)} y={setY - (selected.session.id === entry.session.id ? 6 : 4)} width={selected.session.id === entry.session.id ? 12 : 8} height={selected.session.id === entry.session.id ? 12 : 8} rx="2" fill="currentColor" />}
       </SvgGroup>)}
       <SvgText x="45" y="225">{dateLabel(ordered[0])}</SvgText>{ordered.length > 1 && <SvgText x={chartWidth - 15} y="225" textAnchor="end">{dateLabel(ordered[ordered.length - 1])}</SvgText>}

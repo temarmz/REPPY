@@ -31,9 +31,11 @@ enum ReppyTheme {
     static let trendDown = adaptive(0xff6a35, 0xa8442b, darkAlpha: 1, lightAlpha: 1)
     static let focusMeta = adaptive(0x5f7f18, 0x5f7f18, darkAlpha: 1, lightAlpha: 1)
     static let divider = adaptive(0xffffff, 0x192317, darkAlpha: 0.065, lightAlpha: 0.09)
+    static let placeholder = adaptive(0x979d95, 0x687067, darkAlpha: 1, lightAlpha: 1)
     static let selectedText = Color(red: 7.0 / 255, green: 9.0 / 255, blue: 8.0 / 255)
 }
 enum ReppyMetrics {
+    static let fieldHeight: CGFloat = 56
     static let control: CGFloat = 48
     static let compact: CGFloat = 48
     static let small: CGFloat = 44

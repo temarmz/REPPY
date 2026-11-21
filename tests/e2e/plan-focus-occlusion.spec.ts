@@ -13,7 +13,7 @@ for (const theme of ['dark', 'light'] as const) {
       const weight = card.getByLabel('КГ').first();
       const repeats = card.getByLabel('ПОВТОРЫ').first();
       await weight.fill('7,25');
-      await weight.press('Tab');
+      await weight.press('Shift+Tab');
       await expect(repeats).toBeFocused();
       const overlap = () => repeats.evaluate(element => {
         const field = element.getBoundingClientRect();

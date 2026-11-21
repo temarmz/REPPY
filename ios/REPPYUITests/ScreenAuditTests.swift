@@ -1,6 +1,105 @@
 import XCTest
 
 final class ScreenAuditTests: XCTestCase {
+    @MainActor func testDefinitionRulesAndDraftParity() {
+        for theme in ["light", "dark"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-trainer", "-appearance", theme, "--audit-screen", "definition", "--audit-namespace", UUID().uuidString]
+            app.launch()
+            let name = app.textFields["Название"], equipment = app.textFields["Оборудование"]
+            let save = app.buttons["Сохранить"].firstMatch
+            XCTAssertTrue(name.waitForExistence(timeout: 15))
+            name.tap(); name.typeText("Я")
+            XCTAssertFalse(save.isEnabled)
+            name.typeText(XCUIKeyboardKey.delete.rawValue + "Тяга полотенца для проверки")
+            equipment.tap(); equipment.typeText("Полотенце")
+            app.buttons["dismiss-keyboard"].firstMatch.tap()
+            let groups = app.buttons["Мышечные группы"]
+            for _ in 0..<6 { if groups.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(groups.waitForExistence(timeout: 5)); groups.tap()
+            app.buttons["Грудь"].tap()
+            if !app.buttons["Спина"].exists { groups.tap() }
+            app.buttons["Спина"].tap()
+            if app.buttons["Спина"].exists {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.13)).tap()
+            }
+            XCTAssertTrue(app.staticTexts["Грудь, Спина"].waitForExistence(timeout: 5))
+            let enabled = NSPredicate(format: "enabled == true")
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: enabled, object: save)], timeout: 5), .completed)
+            app.terminate(); app.launch()
+            XCTAssertTrue(name.waitForExistence(timeout: 15))
+            XCTAssertEqual(name.value as? String, "Тяга полотенца для проверки")
+            XCTAssertEqual(equipment.value as? String, "Полотенце")
+            XCTAssertTrue(save.isEnabled)
+            capture(app, "high-definition-draft-" + theme)
+            name.tap()
+            name.coordinate(withNormalizedOffset: CGVector(dx: 0.88, dy: 0.5)).tap()
+            name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Тяга полотенца для проверки".count) + "Жим лёжа")
+            XCTAssertEqual(name.value as? String, "Жим лёжа")
+            XCTAssertFalse(save.isEnabled)
+            app.terminate()
+        }
+    }
+
+    @MainActor func testFeedbackCanClearRatingWithoutChangingComment() {
+        for (role, theme) in [("trainer", "dark"), ("student", "light")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-" + role, "-appearance", theme, "--audit-screen", "result", "--audit-namespace", UUID().uuidString]
+            app.launch()
+            let feedback = app.buttons["Изменить отзыв"]
+            for _ in 0..<8 { if feedback.exists && feedback.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(feedback.waitForExistence(timeout: 15)); feedback.tap()
+            let picker = app.buttons["Самочувствие"]
+            XCTAssertTrue(picker.waitForExistence(timeout: 5)); picker.tap()
+            app.buttons["Без оценки"].tap()
+            let comment = app.textFields["Комментарий"]
+            comment.tap(); comment.typeText("Отзыв без оценки")
+            app.buttons["dismiss-keyboard"].firstMatch.tap()
+            capture(app, "high-feedback-no-rating-" + role)
+            app.buttons["Сохранить обратную связь"].tap()
+            XCTAssertTrue(app.staticTexts["Отзыв без оценки"].waitForExistence(timeout: 5))
+            feedback.tap(); picker.tap()
+            XCTAssertTrue(app.buttons["Без оценки"].exists)
+            capture(app, "high-feedback-reopened-" + role)
+            app.terminate()
+        }
+    }
+
+    @MainActor func testHighPriorityExerciseLayout() {
+        for theme in ["light", "dark"] {
+            for route in ["editor", "active"] { captureRoute(route, role: "trainer", theme: theme) }
+            captureRoute("active", role: "student", theme: theme)
+        }
+    }
+
+    @MainActor func testHighPriorityLargeTextLayout() {
+        for role in ["trainer", "student"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["--demo-" + role, "-appearance", "dark", "--audit-screen", "active", "--audit-namespace", UUID().uuidString,
+                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+            app.launch()
+            let comment = app.buttons["Добавить комментарий"].firstMatch
+            for _ in 0..<18 { if comment.exists && comment.isHittable { break }; app.swipeUp() }
+            XCTAssertTrue(comment.waitForExistence(timeout: 10))
+            XCTAssertTrue(comment.isHittable)
+            XCTAssertGreaterThanOrEqual(comment.frame.height, 44)
+            XCTAssertLessThanOrEqual(comment.frame.maxX, app.frame.width)
+            comment.tap()
+            let field = app.textFields["Комментарий к упражнению"].firstMatch
+            XCTAssertTrue(field.waitForExistence(timeout: 5))
+            for _ in 0..<8 { if field.isHittable { break }; app.swipeUp() }
+            field.tap(); field.typeText("Проверь технику")
+            capture(app, "high-large-text-keyboard-" + role)
+            app.buttons["dismiss-keyboard"].firstMatch.tap()
+            let hide = app.buttons["Скрыть комментарий"].firstMatch
+            for _ in 0..<8 { if hide.isHittable { break }; app.swipeUp() }
+            hide.tap()
+            XCTAssertFalse(field.exists)
+            capture(app, "high-large-text-footer-" + role)
+            app.terminate()
+        }
+    }
+
     @MainActor func testRemoveSetsOneAtATime() {
         let app = XCUIApplication()
         app.launchArguments = ["--demo-trainer", "--audit-screen", "active", "--audit-namespace", UUID().uuidString]

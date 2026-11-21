@@ -4,6 +4,7 @@ struct DesignKitScreen: View {
     @State private var text = "Длинное название упражнения для проверки переноса"
     @State private var number = 75.25
     @State private var toggle = true
+    @State private var selectedMuscles: Set<String> = ["Спина"]
     @State private var date = Date()
     @State private var modal = false
     @State private var orderOpen = false
@@ -35,7 +36,7 @@ struct DesignKitScreen: View {
             ReppyConnectedList(items: Array(store.data.subscriptions.prefix(3))) { ReppySubscriptionEntry(entry: $0, balanceAfter: 11, card: false) }
             ReppyInvitationReady(name: "Демо ученик", link: "https://demo.reppy.invalid/invite/example", expiresAt: nil, demo: true) {}
             ReppyWorkoutOverview(elapsed: "1:02:03", completed: 3, total: 12)
-            ReppySetSummaryRow(number: 1, value: "80 кг × 10 повт.", completed: true)
+            ReppySetSummaryRow(number: 1, value: "80 кг × 10 повторов", completed: true)
             ReppySetSummaryRow(number: 2, value: "45 сек.", completed: false)
             ReppyFeedbackSummary(mood: .great, comment: "Длинный отзыв ученика о прошедшей тренировке.")
             ReppyChargeSummary(charged: true)
@@ -62,7 +63,7 @@ struct DesignKitScreen: View {
             }
             if let entry = store.data.subscriptions.first { ReppySubscriptionEntry(entry: entry, balanceAfter: 3) }
             if let relationship = store.data.relationships.first, let group = store.progressGroups(relationshipIDs: [relationship.id]).first {
-                ReppyCard { ReppyProgressChart(points: group.points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.unit) }
+                ReppyCard { ReppyProgressChart(points: group.points, metric: "max", unit: group.exercise.loadMode == .external && group.exercise.measureType == .reps ? "кг" : group.exercise.measureType == .duration ? "сек." : MeasureType.reps.label) }
             }
             ReppyWorkoutSaveState(status: "Все изменения сохранены", saving: false)
             ReppyWorkoutSaveState(status: "Сохраняем…", saving: true)
@@ -90,6 +91,7 @@ struct DesignKitScreen: View {
                 ReppyField(title: "Поле", text: $text)
                 ReppyNumericField(title: "Вес", value: $number)
                 ReppyToggle(title: "Выбор", value: $toggle)
+                ReppyMultiplePicker(title: "Мышечные группы", options: ["Спина", "Плечи", "Бицепс"], selection: $selectedMuscles)
                 ReppyDateField(title: "Дата", date: $date)
                 ReppyButton(title: "Основное действие", kind: .primary) {}
                 ReppyButton(title: "Вторичное действие") {}
@@ -111,7 +113,7 @@ struct DesignKitScreen: View {
             ReppyCard { ReppyWorkoutChoiceLink(title: "Повторить тренировку", subtitle: "Завершена · 1 ноября") { ReppyText(text: "Повтор") } }
             ReppyInvitationInput(text: $text)
             ReppyCard { ReppyExerciseFooter(note: $text, commentOpen: $toggle, count: 2, canRemove: true, onRemove: {}, onAdd: {}) }
-            ReppyCard { ReppyExerciseQuantityRow(name: "Жим лёжа", equipment: "Штанга", count: 1, onRemove: {}, onAdd: {}) }
+            ReppyCard { ReppyExerciseQuantityRow(name: "Жим лёжа", subtitle: "Грудь, Трицепс · Штанга", count: 1, onRemove: {}, onAdd: {}) }
             ReppyButton(title: "Порядок упражнений") { orderOpen = true }
             if let exercise = store.data.assignments.first?.workout_snapshot.exercises.first { ReadOnlyExerciseCard(exercise: exercise) }
             ReppyCard {

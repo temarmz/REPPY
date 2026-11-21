@@ -6,6 +6,7 @@ import {
   clearWorkoutComposerDraft,
   loadAllDaysPreference,
   loadLastRoute,
+  loadExercisePickerDraft,
   loadThemePreference,
   loadUiDraft,
   loadWorkoutComposerDraft,
@@ -97,3 +98,11 @@ test('недоступный localStorage не ломает интерфейс',
     else globalThis.window = previousWindow;
   }
 });
+
+test('exercise picker restores custom form and rejects corrupt editor state', () => withWindow(() => {
+  const draft = { search: 'Тяга', selectedMuscle: 'all', customLoadMode: 'external', customMeasureType: 'duration', customMuscleGroups: ['Спина'], customEquipment: 'Полотенце', creatingCustom: true, newName: 'Тяга полотенца', editingExerciseId: null };
+  saveUiDraft('picker:account:workout', draft);
+  assert.deepEqual(loadExercisePickerDraft('picker:account:workout'), draft);
+  saveUiDraft('picker:account:workout', { ...draft, newName: {} });
+  assert.equal(loadExercisePickerDraft('picker:account:workout'), null);
+}));

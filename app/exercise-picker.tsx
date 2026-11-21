@@ -1,11 +1,13 @@
-import { Box, Inline, Strong, Small, Section, Emphasis, Paragraph, Footer, SelectOption } from './ui/elements';
-import { useEffect, useState } from 'react';
+import { Box, Inline, Strong, Small, Form, Fieldset, Legend, Emphasis, Paragraph, Footer, SelectOption } from './ui/elements';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { exerciseLibrary, exerciseMuscleGroups, makeId, muscleGroups, type ExerciseDefinition, type MuscleGroup, type WorkoutExercise } from './reppy-data';
 import Icon from './ui/icon';
 import ModalFrame from './ui/modal-frame';
 import { ActionButton, Button, Input, Select, TextField } from './ui/controls';
 import { Field } from './ui/patterns';
 import { loadExercisePickerDraft, saveUiDraft } from './ui-persistence';
+import { exerciseDefinitionError } from './exercise-definition-validation';
+import ExerciseModes, { type ExerciseModePatch } from './ui/exercise-modes';
 
 export type ExercisePickerChoice = {
   id: string;
@@ -23,15 +25,18 @@ export function ExerciseActionsModal({
   onClose,
   onDeleteExercise,
   onReplaceExercise,
+  onModeChange,
 }: {
   exercise: WorkoutExercise;
   deleteDisabledReason?: string;
   onClose: () => void;
   onDeleteExercise: () => void;
   onReplaceExercise: () => void;
+  onModeChange?: (patch: ExerciseModePatch) => void;
 }) {
   return (
     <ModalFrame title={exercise.name} className="exercise-actions-sheet" ariaLabel={'Действия — ' + exercise.name} closeLabel="Закрыть действия" onClose={onClose}>
+      {onModeChange && <ExerciseModes loadMode={exercise.loadMode} measureType={exercise.measureType} onChange={onModeChange} />}
       <Box className="exercise-action-list">
         <Button type="button" onClick={onReplaceExercise}><Icon name="copy" /><Inline><Strong>Заменить упражнение</Strong><Small>Подходы сохранятся</Small></Inline></Button>
         <Button className="danger" type="button" disabled={Boolean(deleteDisabledReason)} onClick={onDeleteExercise}>
@@ -73,21 +78,32 @@ export function ExercisePicker({
   const [customLoadMode, setCustomLoadMode] = useState<'external' | 'bodyweight'>(restoredDraft?.customLoadMode ?? 'external');
   const [customMeasureType, setCustomMeasureType] = useState<'reps' | 'duration'>(restoredDraft?.customMeasureType ?? 'reps');
   const [customMuscleGroups, setCustomMuscleGroups] = useState<MuscleGroup[]>(restoredDraft?.customMuscleGroups ?? []);
-  const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
-  const [creatingCustom, setCreatingCustom] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [customEquipment, setCustomEquipment] = useState(restoredDraft?.customEquipment ?? '');
+  const [editingExerciseId, setEditingExerciseId] = useState<string | null>(restoredDraft?.editingExerciseId ?? null);
+  const [creatingCustom, setCreatingCustom] = useState(restoredDraft?.creatingCustom ?? false);
+  const [newName, setNewName] = useState(restoredDraft?.newName ?? '');
 
-  useEffect(() => {
-    saveUiDraft(draftKey, { search, selectedMuscle, customLoadMode, customMeasureType, customMuscleGroups });
-  }, [customLoadMode, customMeasureType, customMuscleGroups, draftKey, search, selectedMuscle]);
+  useLayoutEffect(() => {
+    saveUiDraft(draftKey, { search, selectedMuscle, customLoadMode, customMeasureType, customMuscleGroups, customEquipment, editingExerciseId, creatingCustom, newName });
+  }, [customLoadMode, customMeasureType, customMuscleGroups, customEquipment, editingExerciseId, creatingCustom, newName, draftKey, search, selectedMuscle]);
   const normalizedSearch = search.trim().toLocaleLowerCase('ru');
-  const customName = creatingCustom ? newName.trim() : search.trim();
+  const customName = newName.trim();
   const availableExercises = [...customExercises, ...exerciseLibrary];
-  const editingExercise = customExercises.find((exercise) => exercise.id === editingExerciseId);
-  const duplicateName = availableExercises.some((exercise) => exercise.id !== editingExerciseId && exercise.name.trim().toLocaleLowerCase('ru') === customName.toLocaleLowerCase('ru'));
-  const canCreateCustom = Boolean(onCreateCustom) && !editingExercise && customName.length >= 2 && !duplicateName;
-  const showCustomBuilder = Boolean(editingExercise) || creatingCustom || canCreateCustom;
-  const canSaveCustom = customName.length >= 2 && customMuscleGroups.length > 0 && !duplicateName;
+  const editingExercise = onUpdateCustom && customExercises.find((exercise) => exercise.id === editingExerciseId);
+  const showCustomBuilder = Boolean(editingExercise || (onCreateCustom && creatingCustom));
+  const customError = exerciseDefinitionError({ id: editingExercise ? editingExercise.id : undefined, name: customName, equipment: customEquipment, muscleGroups: customMuscleGroups }, availableExercises);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const pickerSearch = useRef<HTMLInputElement>(null);
+  const createButton = useRef<HTMLButtonElement>(null);
+  const previousBuilder = useRef(showCustomBuilder);
+  useLayoutEffect(() => {
+    if (previousBuilder.current === showCustomBuilder) return;
+    previousBuilder.current = showCustomBuilder;
+    const target = showCustomBuilder ? nameInput.current : createButton.current ?? pickerSearch.current;
+    const sheet = target?.closest<HTMLElement>('[data-modal-frame]');
+    if (sheet) sheet.scrollTop = 0;
+    target?.focus({ preventScroll: true });
+  }, [showCustomBuilder]);
 
   const filtered = availableExercises.filter((exercise) => {
     const groups = exerciseMuscleGroups(exercise);
@@ -100,31 +116,43 @@ export function ExercisePicker({
     if (custom) setSearch('');
   };
   const saveCustomExercise = () => {
-    if (!canSaveCustom) return;
+    if (customError) return;
+    const orderedGroups = muscleGroups.filter((group) => customMuscleGroups.includes(group));
     const definition: ExerciseDefinition = {
-      id: editingExercise?.id ?? makeId('custom-exercise'),
+      id: editingExercise ? editingExercise.id : makeId('custom-exercise'),
       name: customName,
-      primaryMuscle: customMuscleGroups[0],
-      muscleGroups: customMuscleGroups,
-      equipment: customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое',
+      primaryMuscle: orderedGroups[0],
+      muscleGroups: orderedGroups,
+      equipment: customEquipment.trim() || (customLoadMode === 'bodyweight' ? 'Свой вес' : 'Другое'),
       loadMode: customLoadMode,
       measureType: customMeasureType,
     };
     if (editingExercise) {
       onUpdateCustom?.(definition);
-      setEditingExerciseId(null);
-      setSearch('');
     } else if (onCreateCustom) {
       onCreateCustom(definition);
       selectExercise(definition, true);
-      setCreatingCustom(false);
-      setNewName('');
     }
+    resetCustomForm();
+  };
+  const resetCustomForm = () => {
+    setEditingExerciseId(null);
+    setCreatingCustom(false);
+    setNewName('');
     setCustomMuscleGroups([]);
+    setCustomEquipment('');
+  };
+  const startCustomExercise = () => {
+    setNewName(search.trim());
+    setCustomLoadMode('external');
+    setCustomMeasureType('reps');
+    setCustomMuscleGroups(selectedMuscle === 'all' ? [] : [selectedMuscle]);
+    setCreatingCustom(true);
   };
   const editCustomExercise = (exercise: ExerciseDefinition) => {
     setEditingExerciseId(exercise.id);
-    setSearch(exercise.name);
+    setNewName(exercise.name);
+    setCustomEquipment(exercise.equipment);
     setCustomMuscleGroups(exerciseMuscleGroups(exercise));
     setCustomLoadMode(exercise.loadMode ?? (exercise.equipment === 'Свой вес' ? 'bodyweight' : 'external'));
     setCustomMeasureType(exercise.measureType ?? 'reps');
@@ -134,55 +162,50 @@ export function ExercisePicker({
       ? current.filter((item) => item !== muscle)
       : [...current, muscle]);
   };
-  const updateSearch = (value: string) => {
-    if (!editingExercise && customName.length < 2 && value.trim().length >= 2 && selectedMuscle !== 'all' && !customMuscleGroups.length) {
-      setCustomMuscleGroups([selectedMuscle]);
-    }
-    setSearch(value);
-  };
-
   return (
-    <ModalFrame title={singleChoice ? 'Заменить упражнение' : 'Добавить упражнения'} className="exercise-picker-sheet" onClose={onClose}>
-      <Input className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => updateSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
-      <Field label="Мышечная группа"><Select aria-label="Мышечная группа" value={selectedMuscle} onChange={(event) => setSelectedMuscle(event.target.value as typeof selectedMuscle)}><SelectOption value="all">Все</SelectOption>{muscleGroups.map((muscle) => <SelectOption key={muscle} value={muscle}>{muscle}</SelectOption>)}</Select></Field>
-      {onCreateCustom && !showCustomBuilder && <ActionButton variant="secondary" icon="plus" onClick={() => { setNewName(search.trim()); setCreatingCustom(true); }}>Создать своё упражнение</ActionButton>}
-      <Box className="picker-list">
-        {showCustomBuilder && <Section className="custom-exercise-builder">
-          <Box><Strong>{editingExercise ? `Редактирование «${editingExercise.name}»` : `Новое упражнение «${customName}»`}</Strong><Small>Выбери все группы мышц, которые участвуют в упражнении</Small></Box>
-          {creatingCustom && <TextField id="custom-exercise-name" label="Название упражнения" value={newName} onChange={(event) => setNewName(event.target.value)} />}
-          <Box className="custom-muscle-groups" role="group" aria-label="Группы мышц упражнения">
+    <ModalFrame
+      title={showCustomBuilder ? (editingExercise ? 'Редактирование упражнения' : 'Новое упражнение') : (singleChoice ? 'Заменить упражнение' : 'Добавить упражнения')}
+      className={showCustomBuilder ? undefined : 'exercise-picker-sheet'}
+      onClose={onClose}
+    >
+      {showCustomBuilder ? <Form className="custom-exercise-builder" onSubmit={(event) => { event.preventDefault(); saveCustomExercise(); }}>
+        <Box><TextField ref={nameInput} data-modal-initial-focus id="custom-exercise-name" label="Название упражнения" placeholder="Например, тяга полотенца" value={newName} onChange={(event) => setNewName(event.target.value)} /></Box>
+        <Box><TextField id="custom-exercise-equipment" label="Оборудование" placeholder="Например, гантели" value={customEquipment} onChange={(event) => setCustomEquipment(event.target.value)} /></Box>
+        <Fieldset className="custom-muscle-field" aria-label="Группы мышц упражнения">
+          <Legend>Мышечные группы</Legend>
+          <Box className="custom-muscle-groups">
             {muscleGroups.map((muscle) => <Button className={customMuscleGroups.includes(muscle) ? 'selected' : ''} key={muscle} type="button" onClick={() => toggleCustomMuscle(muscle)} aria-pressed={customMuscleGroups.includes(muscle)}>{muscle}</Button>)}
           </Box>
-          {!customMuscleGroups.length && <Small className="custom-exercise-hint">Выбери хотя бы одну группу мышц</Small>}
-          <Box className="custom-load-mode" aria-label="Тип нагрузки">
-            <Button className={customLoadMode === 'external' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('external')} aria-pressed={customLoadMode === 'external'}>С весом</Button>
-            <Button className={customLoadMode === 'bodyweight' ? 'selected' : ''} type="button" onClick={() => setCustomLoadMode('bodyweight')} aria-pressed={customLoadMode === 'bodyweight'}>Свой вес</Button>
-          </Box>
-          <Box className="custom-load-mode" aria-label="Способ измерения">
-            <Button className={customMeasureType === 'reps' ? 'selected' : ''} type="button" onClick={() => setCustomMeasureType('reps')} aria-pressed={customMeasureType === 'reps'}>Повторы</Button>
-            <Button className={customMeasureType === 'duration' ? 'selected' : ''} type="button" onClick={() => { setCustomMeasureType('duration'); setCustomLoadMode('bodyweight'); }} aria-pressed={customMeasureType === 'duration'}>Секунды</Button>
-          </Box>
-          <Button className="custom-exercise-option" type="button" disabled={!canSaveCustom} onClick={saveCustomExercise}><Icon name={editingExercise ? 'check' : 'plus'} /> {editingExercise ? 'Сохранить изменения' : `Сохранить и добавить «${customName}»`}</Button>
-        </Section>}
-        {filtered.map((exercise) => {
-          const count = exercises.filter((item) => item.exerciseId === exercise.id).length;
-          const isCustom = customExercises.some((item) => item.id === exercise.id);
-          const groups = exerciseMuscleGroups(exercise);
-          return <Box className={'picker-exercise-row' + (count > 0 ? ' added' : '')} key={exercise.id}>
-            <Box><Strong>{exercise.name}{isCustom && <Emphasis className="personal-exercise-label">Моё</Emphasis>}</Strong><Small>{groups.length ? groups.join(', ') : 'Другое'} · {exercise.equipment}</Small></Box>
-            <Box className="picker-row-actions">
-              {isCustom && onUpdateCustom && <Button className="picker-edit-exercise" type="button" onClick={() => editCustomExercise(exercise)} aria-label={`Редактировать ${exercise.name}`}><Icon name="edit" /></Button>}
-              {singleChoice ? <ActionButton variant="secondary" onClick={() => selectExercise(exercise)}>Выбрать</ActionButton> : <Box className="picker-quantity" role="group" aria-label={exercise.name}>
-                <Button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></Button>
-                <Inline aria-live="polite">{count}</Inline>
-                <Button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
-              </Box>}
-            </Box>
-          </Box>;
-        })}
-        {!filtered.length && !canCreateCustom && <Paragraph className="picker-empty">Ничего не найдено. Введи хотя бы два символа, чтобы добавить своё упражнение.</Paragraph>}
-      </Box>
-      <Footer className="picker-footer"><Inline aria-live="polite">В тренировке: {exercises.length}</Inline><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></Footer>
+        </Fieldset>
+        <ExerciseModes loadMode={customLoadMode} measureType={customMeasureType} onChange={(patch) => { if (patch.loadMode) setCustomLoadMode(patch.loadMode); if (patch.measureType) setCustomMeasureType(patch.measureType); }} />
+        {customError && <Small className="custom-exercise-hint" role="status">{customError}</Small>}
+        <ActionButton type="submit" disabled={Boolean(customError)}>{editingExercise ? 'Сохранить изменения' : 'Сохранить и добавить'}</ActionButton>
+        <ActionButton variant="secondary" onClick={resetCustomForm}>К выбору упражнений</ActionButton>
+      </Form> : <>
+        <Input ref={pickerSearch} className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
+        <Field label="Мышечная группа"><Select aria-label="Мышечная группа" value={selectedMuscle} onChange={(event) => setSelectedMuscle(event.target.value as typeof selectedMuscle)}><SelectOption value="all">Все</SelectOption>{muscleGroups.map((muscle) => <SelectOption key={muscle} value={muscle}>{muscle}</SelectOption>)}</Select></Field>
+        {onCreateCustom && <ActionButton variant="secondary" icon="plus" ref={createButton} onClick={startCustomExercise}>Создать своё упражнение</ActionButton>}
+        <Box className="picker-list">
+          {filtered.map((exercise) => {
+            const count = exercises.filter((item) => item.exerciseId === exercise.id).length;
+            const isCustom = customExercises.some((item) => item.id === exercise.id);
+            const groups = exerciseMuscleGroups(exercise);
+            return <Box className={'picker-exercise-row' + (count > 0 ? ' added' : '')} key={exercise.id}>
+              <Box><Strong>{exercise.name}{isCustom && <Emphasis className="personal-exercise-label">Моё</Emphasis>}</Strong><Small>{groups.length ? groups.join(', ') : 'Другое'} · {exercise.equipment}</Small></Box>
+              <Box className="picker-row-actions">
+                {isCustom && onUpdateCustom && <Button className="picker-edit-exercise" type="button" onClick={() => editCustomExercise(exercise)} aria-label={`Редактировать ${exercise.name}`}><Icon name="edit" /></Button>}
+                {singleChoice ? <ActionButton variant="secondary" onClick={() => selectExercise(exercise)}>Выбрать</ActionButton> : <Box className="picker-quantity" role="group" aria-label={exercise.name}>
+                  <Button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></Button>
+                  <Inline aria-live="polite">{count}</Inline>
+                  <Button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
+                </Box>}
+              </Box>
+            </Box>;
+          })}
+          {!filtered.length && <Paragraph className="picker-empty">Ничего не найдено. Измени поиск или выбери другую мышечную группу.</Paragraph>}
+        </Box>
+        <Footer className="picker-footer"><Inline aria-live="polite">В тренировке: {exercises.length}</Inline><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></Footer>
+      </>}
     </ModalFrame>
   );
 }

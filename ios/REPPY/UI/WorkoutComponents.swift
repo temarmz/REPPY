@@ -1,4 +1,23 @@
 import SwiftUI
+
+extension MeasureType {
+    var label: String { self == .duration ? "Длительность" : "Повторы" }
+
+    func amountUnit(_ amount: Int) -> String {
+        guard self == .reps else { return "сек." }
+        let count = amount.magnitude
+        if (11...14).contains(count % 100) { return "повторов" }
+        switch count % 10 {
+        case 1: return "повтор"
+        case 2...4: return "повтора"
+        default: return "повторов"
+        }
+    }
+}
+
+extension LoadMode {
+    var label: String { self == .bodyweight ? "Свой вес" : "С весом" }
+}
 import AVKit
 
 struct ReppyResultExerciseCard: View {
@@ -12,7 +31,7 @@ struct ReppyResultExerciseCard: View {
             if let note = exercise.coachNote, !note.isEmpty { ReppyCaption(text: note) }
             let recorded = results.filter { $0.exercise_instance_id == exercise.id }.sorted { $0.set_number < $1.set_number }
             ForEach(recorded) { result in
-                ReppySetSummaryRow(number: result.set_number, value: (exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(exercise.unit)", completed: result.completed)
+                ReppySetSummaryRow(number: result.set_number, value: (exercise.loadMode == .external ? "\(result.actual_weight.reppyNumber) кг × " : "") + "\(result.actual_reps) \(exercise.measureType.amountUnit(result.actual_reps))", completed: result.completed)
             }
             if recorded.isEmpty { ReppyCaption(text: "Нет записанных подходов") }
             if let relationshipID { ReppyLink(title: "Прогресс упражнения", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationshipID, exerciseKey: exercise.progressKey) } }
@@ -65,7 +84,7 @@ struct ReppyExerciseSectionHeader: View {
 
 struct ReppyExerciseQuantityRow: View {
     var name: String
-    var equipment: String
+    var subtitle: String
     var count: Int
     var onRemove: () -> Void
     var onAdd: () -> Void
@@ -73,7 +92,7 @@ struct ReppyExerciseQuantityRow: View {
         HStack(spacing: ReppyMetrics.space12) {
             VStack(alignment: .leading, spacing: ReppyMetrics.space8) {
                 Text(name).reppyTypography(.body)
-                Text(equipment).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
+                Text(subtitle).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading)
             Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0).accessibilityLabel("Убрать \(name)")
             Text("\(count)").monospacedDigit().frame(minWidth: ReppyMetrics.quantityWidth).accessibilityLabel("Добавлено: \(count)")
@@ -83,36 +102,54 @@ struct ReppyExerciseQuantityRow: View {
 }
 
 struct ReppyExerciseHeader<Actions: View>: View {
+    @EnvironmentObject private var store: AppStore
     var exercise: WorkoutExercise
     var number: Int? = nil
     @ViewBuilder var actions: () -> Actions
     var body: some View {
+        let definition = store.data.definitions.first { $0.id == exercise.exerciseId }
         VStack(alignment: .leading, spacing: ReppyMetrics.space8) {
             HStack(alignment: .top, spacing: ReppyMetrics.space12) {
                 if let number { Text(String(format: "%02d", number)).reppyTypography(.caption).foregroundStyle(ReppyTheme.trendUp) }
                 ReppyHeading(text: exercise.name).frame(maxWidth: .infinity, alignment: .leading)
                 actions()
             }
-            ReppyCaption(text: Self.metadata(for: exercise))
+            let groups = exercise.muscleGroups.flatMap { $0.isEmpty ? nil : $0 }
+                ?? definition.flatMap { $0.muscle_groups.isEmpty ? nil : $0.muscle_groups }
+                ?? [exercise.primaryMuscle ?? definition?.primary_muscle].compactMap { $0 }
+            ReppyCaption(text: exerciseMetadata(groups: groups, equipment: exercise.equipment ?? definition?.equipment,
+                                               isCustom: definition?.owner_id != nil,
+                                               loadMode: exercise.loadMode, measureType: exercise.measureType))
         }
     }
-    static func metadata(for exercise: WorkoutExercise) -> String {
-        var seen = Set<String>()
-        return [exercise.primaryMuscle, exercise.equipment, exercise.loadMode == .bodyweight ? "Свой вес" : nil,
-                exercise.measureType == .duration ? "Длительность" : nil]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
-            .joined(separator: " · ")
-    }
 }
+
+func exerciseMetadata(groups: [String], equipment: String?, isCustom: Bool, loadMode: LoadMode, measureType: MeasureType) -> String {
+    var seen = Set<String>()
+    let muscles = groups.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
+        .joined(separator: ", ")
+    return [isCustom ? "Пользовательское упражнение" : nil, muscles, equipment,
+            loadMode == .bodyweight ? loadMode.label : nil, measureType == .duration ? measureType.label : nil]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty && seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
+        .joined(separator: " · ")
+}
+
 struct ReppyExerciseModes: View {
-    @Binding var exercise: WorkoutExercise
+    @Binding var loadMode: LoadMode
+    @Binding var measureType: MeasureType
+    var compact = true
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
         layout {
-            ReppyPicker(title: "Нагрузка", selection: $exercise.loadMode, compact: true) { Text("Внешний вес").tag(LoadMode.external); Text("Свой вес").tag(LoadMode.bodyweight) }
-            ReppyPicker(title: "Измерение", selection: $exercise.measureType, compact: true) { Text("Повторы").tag(MeasureType.reps); Text("Длительность").tag(MeasureType.duration) }
+            ReppyPicker(title: "Нагрузка", selection: $loadMode, compact: compact) {
+                ForEach(LoadMode.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            ReppyPicker(title: "Измерение", selection: $measureType, compact: compact) {
+                ForEach(MeasureType.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
         }
     }
 }
@@ -177,19 +214,49 @@ struct ReppyExerciseFooter: View {
     var onRemove: () -> Void
     var onAdd: () -> Void
     @Environment(\.dynamicTypeSize) private var typeSize
+    private var commentAction: String { commentOpen ? "Скрыть комментарий" : note.isEmpty ? "Добавить комментарий" : "Показать комментарий" }
+    private var commentButton: some View {
+        ReppyButton(title: "Комментарий", compact: true) { commentOpen.toggle() }
+            .accessibilityLabel(commentAction).accessibilityValue(commentOpen ? "Открыт" : "Скрыт")
+            .fixedSize(horizontal: true, vertical: false)
+    }
+    private var compactCommentButton: some View {
+        Button { commentOpen.toggle() } label: { ReppyToolbarIcon(icon: "pencil") }
+            .buttonStyle(.plain).accessibilityLabel(commentAction).accessibilityValue(commentOpen ? "Открыт" : "Скрыт")
+    }
+    @ViewBuilder private var setControls: some View {
+        if count == 0 { ReppyButton(title: "Добавить подход", icon: "plus", compact: true, action: onAdd).fixedSize(horizontal: !typeSize.isAccessibilitySize, vertical: false) }
+        else {
+            HStack(spacing: ReppyMetrics.space8) {
+                Text("Подходы").reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
+                Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.buttonStyle(.plain).disabled(!canRemove).accessibilityLabel("Удалить последний подход")
+                Button(action: onAdd) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).accessibilityLabel("Добавить подход")
+            }.fixedSize(horizontal: true, vertical: false)
+        }
+    }
     var body: some View {
         ReppyStack(compact: true) {
             if commentOpen { ReppyField(title: "Комментарий к упражнению", text: $note, multiline: true, placeholder: "Например: держи локти вдоль тела") }
-            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
-            layout {
-                ReppyButton(title: commentOpen ? "Скрыть комментарий" : note.isEmpty ? "Добавить комментарий" : "Показать комментарий", icon: "pencil", compact: true) { commentOpen.toggle() }
-                if count == 0 { ReppyButton(title: "Добавить подход", icon: "plus", compact: true, action: onAdd) }
-                else {
+            if typeSize.isAccessibilitySize {
+                ReppyStack(compact: true) {
+                    ViewThatFits(in: .horizontal) {
+                        commentButton
+                        compactCommentButton
+                    }
+                    setControls
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
                     HStack(spacing: ReppyMetrics.space8) {
-                        Text("Подходы").reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
-                        Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.buttonStyle(.plain).disabled(!canRemove).accessibilityLabel("Удалить последний подход")
-                        Button(action: onAdd) { ReppyToolbarIcon(icon: "plus") }.buttonStyle(.plain).accessibilityLabel("Добавить подход")
-                    }.fixedSize(horizontal: true, vertical: false)
+                        commentButton
+                        Spacer(minLength: 0)
+                        setControls
+                    }
+                    HStack(spacing: ReppyMetrics.space8) {
+                        compactCommentButton
+                        Spacer(minLength: 0)
+                        setControls
+                    }
                 }
             }
         }
@@ -276,9 +343,8 @@ struct SetColumnLabels: View {
     var body: some View {
         if !typeSize.isAccessibilitySize { HStack(spacing: 8) {
             Text("№").frame(width: 24)
-            Text(unit).frame(maxWidth: .infinity)
+            Text(unit == "сек." ? unit : MeasureType.reps.label).frame(maxWidth: .infinity)
             if loadMode == .external { Text("кг").frame(maxWidth: .infinity) }
-            Color.clear.frame(width: ReppyMetrics.small, height: 1)
         }.font(.subheadline).foregroundStyle(ReppyTheme.secondary).accessibilityHidden(true) }
     }
 }
@@ -296,7 +362,8 @@ struct ReadOnlyExerciseCard: View {
             if let note = exercise.coachNote, !note.isEmpty { ReppyText(text: note, tone: .secondary) }
             ForEach(Array(exercise.plannedSets.enumerated()), id: \.offset) { index, plan in
                 let result = results?.first { $0.exercise_instance_id == exercise.id && $0.set_number == index + 1 }
-                ReppySetSummaryRow(number: index + 1, value: (exercise.loadMode == .external ? "\((result?.actual_weight ?? plan.targetWeight).reppyNumber) кг × " : "") + "\(result?.actual_reps ?? plan.targetReps) \(exercise.unit)", completed: result?.completed)
+                let amount = result?.actual_reps ?? plan.targetReps
+                ReppySetSummaryRow(number: index + 1, value: (exercise.loadMode == .external ? "\((result?.actual_weight ?? plan.targetWeight).reppyNumber) кг × " : "") + "\(amount) \(exercise.measureType.amountUnit(amount))", completed: result?.completed)
             }
             if exercise.plannedSets.isEmpty { ReppyCaption(text: "Подходы не заданы") }
             if let relationshipID { ReppyLink(title: "Прогресс упражнения", icon: "chart.xyaxis.line") { ProgressScreen(relationshipID: relationshipID, exerciseKey: exercise.progressKey) } }

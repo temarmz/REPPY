@@ -20,7 +20,7 @@ for (const theme of ['dark', 'light']) test(`zero fields and custom exercise ${t
   });
   expect(contrast).toBeGreaterThanOrEqual(4.5);
   await page.screenshot({ path: `/tmp/reppy-custom-${theme}.png` });
-  await dialog.getByRole('button', { name: 'Сохранить и добавить «Моё упражнение»' }).click();
+  await dialog.getByRole('button', { name: 'Сохранить и добавить' }).click();
   await dialog.getByRole('button', { name: 'Готово', exact: true }).click();
   const card = page.locator('.plan-exercise-card');
   await expect(card.locator('input').nth(0)).toHaveValue('0');

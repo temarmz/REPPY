@@ -1,12 +1,12 @@
 import SwiftUI
 
-private struct FeedbackDraft: Codable { var mood: Mood; var comment: String }
+private struct FeedbackDraft: Codable { var mood: Mood?; var comment: String }
 
 struct SessionResultScreen: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
     var sessionID: String
-    @State private var mood = Mood.good
+    @State private var mood: Mood? = nil
     @State private var comment = ""
     @State private var initialized = false
     @State private var feedbackEditing = false
@@ -53,15 +53,18 @@ struct SessionResultScreen: View {
         }.onAppear {
             guard !initialized else { return }; initialized = true
             if let draft: FeedbackDraft = store.restoreDraft(key: "feedback:\(sessionID)") { mood = draft.mood; comment = draft.comment }
-            else if let session = store.data.sessions.first(where: { $0.id == sessionID }) { mood = session.mood ?? .good; comment = session.comment ?? "" }
+            else if let session = store.data.sessions.first(where: { $0.id == sessionID }) { mood = session.mood; comment = session.comment ?? "" }
         }.onChange(of: mood) { _, _ in saveDraft() }.onChange(of: comment) { _, _ in saveDraft() }
             .sheet(isPresented: $feedbackEditing) {
                 NavigationStack {
                     ReppyPage(back: true, title: "Отзыв") {
-                        ReppyPicker(title: "Самочувствие", selection: $mood) { ForEach(Mood.allCases, id: \.self) { Text($0.title).tag($0) } }
+                        ReppyPicker(title: "Самочувствие", selection: $mood) {
+                            Text("Без оценки").tag(nil as Mood?)
+                            ForEach(Mood.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
+                        }
                         ReppyField(title: "Комментарий", text: $comment, multiline: true)
 
-                    }.reppyFormActions(saveLabel: "Сохранить обратную связь", busy: store.busy, hasChanges: mood != (store.data.sessions.first { $0.id == sessionID }?.mood ?? .good) || comment != (store.data.sessions.first { $0.id == sessionID }?.comment ?? ""), save: {Task {
+                    }.reppyFormActions(saveLabel: "Сохранить обратную связь", busy: store.busy, hasChanges: mood != store.data.sessions.first { $0.id == sessionID }?.mood || comment != (store.data.sessions.first { $0.id == sessionID }?.comment ?? ""), save: {Task {
                             guard let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
                             if await store.run({
                                 try await store.saveFeedback(session, mood: mood, comment: comment)
@@ -69,7 +72,7 @@ struct SessionResultScreen: View {
                             }) { feedbackEditing = false }
                         }}, discard: {
                             feedbackEditing = false
-                            if let session = store.data.sessions.first(where: { $0.id == sessionID }) { mood = session.mood ?? .good; comment = session.comment ?? "" }
+                            if let session = store.data.sessions.first(where: { $0.id == sessionID }) { mood = session.mood; comment = session.comment ?? "" }
                             do { try DraftStorage.remove(account: store.accountKey, key: "feedback:\(sessionID)") } catch { store.present(error) }})
                 }.presentationCornerRadius(ReppyMetrics.modalRadius)
             }

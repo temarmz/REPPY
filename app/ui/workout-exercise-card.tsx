@@ -2,13 +2,14 @@ import { Field } from './patterns';
 import { Box, Inline, Card, Header, Heading, Small, Footer, Section, Strong } from './elements';
 import { Button, Input, Textarea } from './controls';
 import { useState, type ReactNode } from 'react';
+import ExerciseModes, { type ExerciseModePatch } from './exercise-modes';
 import { getExerciseSetPlans, type SetResult, type WorkoutExercise, type WorkoutSetPlan } from '../reppy-data';
 import Icon from './icon';
 
 export function ExerciseSectionHeader({ onReorder, onAdd }: { onReorder?: () => void; onAdd?: () => void }) {
   return <Box className="form-section-heading"><Heading>Упражнения</Heading><Box className="exercise-section-actions">
     {onReorder && <Button className="exercise-reorder-button" aria-label="Порядок упражнений" aria-haspopup="dialog" onClick={onReorder}><Icon name="grip" /></Button>}
-    {onAdd && <Button className="plan-exercise-add" type="button" onClick={onAdd} aria-label="Добавить упражнение"><Icon name="plus" /></Button>}
+    {onAdd && <Button className="plan-exercise-add" type="button" onClick={onAdd} aria-label="Добавить упражнение" title="Добавить упражнение" aria-haspopup="dialog"><Icon name="plus" /></Button>}
   </Box></Box>;
 }
 
@@ -157,11 +158,13 @@ export function PlanExerciseCard({
   onShowActions,
   onNoteChange,
   onSetChange,
+  onModeChange,
   onAddSet,
   canRemoveSet,
   onRemoveSet,
 }: SharedExerciseCardProps & {
   onSetChange: (index: number, patch: Partial<WorkoutSetPlan>) => void;
+  onModeChange: (patch: ExerciseModePatch) => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(Boolean(exercise.coachNote));
   const bodyweight = exercise.loadMode === 'bodyweight';
@@ -177,6 +180,7 @@ export function PlanExerciseCard({
       onShowActions={onShowActions}
       footer={<Footer className="active-exercise-footer-actions"><ExerciseCommentButton exercise={exercise} open={commentOpen} onToggle={() => setCommentOpen((current) => !current)} /><SetCountControl exerciseName={exercise.name} count={plans.length} canRemove={canRemoveSet} onRemove={onRemoveSet} onAdd={onAddSet} /></Footer>}
     >
+      <ExerciseModes loadMode={exercise.loadMode} measureType={exercise.measureType} onChange={onModeChange} />
       {plans.length > 0 && <Section className="active-card-sets plan-card-sets">
         <Box className="set-columns" aria-hidden="true">
           <Inline>№</Inline>

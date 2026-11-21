@@ -152,6 +152,7 @@ export default function DesignKitScreen() {
         <SectionHeading title="Планирование упражнения" />
         <ExerciseSectionHeader onReorder={() => setOrderOpen(true)} onAdd={() => setModalOpen(true)} />
         <PlanExerciseCard {...exerciseProps}
+          onModeChange={(patch) => setExercise((current) => ({ ...current, ...patch }))}
           canRemoveSet={exercise.plannedSets.length > 1}
           onAddSet={() => setExercise((current) => ({ ...current, plannedSets: [...current.plannedSets, { targetWeight: 80, targetReps: 8 }] }))}
           onRemoveSet={() => setExercise((current) => ({ ...current, plannedSets: current.plannedSets.slice(0, -1) }))}

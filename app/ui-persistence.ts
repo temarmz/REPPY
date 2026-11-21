@@ -23,6 +23,10 @@ type ExercisePickerDraft = {
   customLoadMode: 'external' | 'bodyweight';
   customMeasureType: 'reps' | 'duration';
   customMuscleGroups?: MuscleGroup[];
+  customEquipment?: string;
+  editingExerciseId?: string | null;
+  creatingCustom?: boolean;
+  newName?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -86,7 +90,10 @@ function isPickerDraft(value: unknown): value is ExercisePickerDraft {
     && (value.selectedMuscle === 'all' || isMuscle(value.selectedMuscle))
     && (value.customLoadMode === 'external' || value.customLoadMode === 'bodyweight')
     && (value.customMeasureType === 'reps' || value.customMeasureType === 'duration')
-    && (value.customMuscleGroups === undefined || (Array.isArray(value.customMuscleGroups) && value.customMuscleGroups.every(isMuscle)));
+    && (value.customMuscleGroups === undefined || (Array.isArray(value.customMuscleGroups) && value.customMuscleGroups.every(isMuscle)))
+    && optionalText(value.customEquipment) && optionalText(value.newName)
+    && (value.creatingCustom === undefined || typeof value.creatingCustom === 'boolean')
+    && (value.editingExerciseId === undefined || value.editingExerciseId === null || typeof value.editingExerciseId === 'string');
 }
 
 type StoredWorkoutComposerDraft = {

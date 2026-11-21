@@ -14,7 +14,8 @@
   --radius-8: calc(8px * var(--ui-radius-scale));
   --control-height-small: calc(var(--size-44) * var(--ui-control-height-scale));
   --control-height-medium: calc(var(--size-48) * var(--ui-control-height-scale));
-  --control-height-large: calc(var(--size-48) * var(--ui-control-height-scale));
+  --control-height-large: calc(var(--size-56) * var(--ui-control-height-scale));
+  --field-height: calc(var(--size-56) * var(--ui-control-height-scale));
   --control-height-hero: calc(var(--size-60) * var(--ui-control-height-scale));
   --control-radius: var(--radius-12);
   --card-radius: var(--radius-20);
@@ -900,6 +901,7 @@
   --button-hover-bg: var(--tint-ffffff-120);
   --button-on-light-bg: var(--tint-192317-80);
   --field-bg: var(--control-bg);
+  --field-placeholder: var(--muted);
   --field-outline: var(--tint-ffffff-120);
   --overlay-surface: var(--palette-171b17);
   --divider: var(--tint-ffffff-65);

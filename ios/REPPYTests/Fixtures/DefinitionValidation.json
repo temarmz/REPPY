@@ -1,0 +1,308 @@
+[
+  {
+    "title": "valid",
+    "definition": {
+      "id": "own",
+      "name": "Тяга полотенца",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": null
+  },
+  {
+    "title": "name is too short",
+    "definition": {
+      "id": "own",
+      "name": " Я ",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": "Укажи название длиной от 2 до 160 символов."
+  },
+  {
+    "title": "long name",
+    "definition": {
+      "id": "own",
+      "name": "ЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯ",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": "Укажи название длиной от 2 до 160 символов."
+  },
+  {
+    "title": "maximum name",
+    "definition": {
+      "id": "own",
+      "name": "ЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯЯ",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": null
+  },
+  {
+    "title": "equipment is optional",
+    "definition": {
+      "id": "own",
+      "name": "Тяга полотенца",
+      "equipment": "",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": null
+  },
+  {
+    "title": "short equipment",
+    "definition": {
+      "id": "own",
+      "name": "Тяга полотенца",
+      "equipment": " А ",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": "Укажи оборудование длиной от 2 до 100 символов или оставь поле пустым."
+  },
+  {
+    "title": "long equipment",
+    "definition": {
+      "id": "own",
+      "name": "Тяга полотенца",
+      "equipment": "ААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААААА",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": "Укажи оборудование длиной от 2 до 100 символов или оставь поле пустым."
+  },
+  {
+    "title": "no muscle groups",
+    "definition": {
+      "id": "own",
+      "name": "Тяга полотенца",
+      "equipment": "Полотенце",
+      "muscle_groups": [],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": "Выбери хотя бы одну группу мышц."
+  },
+  {
+    "title": "duplicate ignores spaces and case",
+    "definition": {
+      "id": "own",
+      "name": " ЖИМ ЛЁЖА ",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": "Упражнение с таким названием уже есть."
+  },
+  {
+    "title": "editing own name is allowed",
+    "definition": {
+      "id": "own",
+      "name": "Жим лёжа",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "reps"
+    },
+    "definitions": [
+      {
+        "id": "own",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": null
+  },
+  {
+    "title": "duration and external load are independent",
+    "definition": {
+      "id": "own",
+      "name": "Тяга полотенца",
+      "equipment": "Полотенце",
+      "muscle_groups": [
+        "Спина"
+      ],
+      "primary_muscle": "Спина",
+      "load_mode": "external",
+      "measure_type": "duration"
+    },
+    "definitions": [
+      {
+        "id": "other",
+        "name": "Жим лёжа",
+        "equipment": "Полотенце",
+        "muscle_groups": [
+          "Спина"
+        ],
+        "primary_muscle": "Спина",
+        "load_mode": "external",
+        "measure_type": "reps"
+      }
+    ],
+    "error": null
+  }
+]

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { createInitialState } from '../../app/reppy-data';
 
 for (const theme of ['dark', 'light']) {
-  for (const [width, height] of [[320, 568], [390, 844], [440, 844], [844, 320], [1280, 800]]) {
+  for (const [width, height] of [[320, 568], [360, 800], [390, 844], [440, 844], [844, 320], [1280, 800]]) {
     test(`exercise picker stays usable: ${theme}, ${width}x${height}`, async ({ page }, testInfo) => {
       const data = createInitialState();
       data.loggedIn = true;
@@ -30,9 +30,20 @@ for (const theme of ['dark', 'light']) {
       await expect(picker.getByText('В тренировке: 1', { exact: true })).toBeVisible();
       await picker.getByRole('button', { name: 'Убрать Жим лёжа', exact: true }).click();
       await expect(picker.getByText('В тренировке: 0', { exact: true })).toBeVisible();
-      await picker.getByRole('searchbox', { name: 'Поиск упражнений' }).fill('Изолированное упражнение с длинным названием');
-      await picker.getByRole('group', { name: 'Группы мышц упражнения' }).getByRole('button', { name: 'Грудь', exact: true }).click();
-      await picker.getByRole('button', { name: /^Сохранить и добавить/ }).click();
+      const name = 'Изолированное упражнение с длинным названием';
+      await picker.getByRole('searchbox', { name: 'Поиск упражнений' }).fill(name);
+      await picker.getByRole('button', { name: 'Создать своё упражнение' }).click();
+      const form = page.getByRole('dialog', { name: 'Новое упражнение' });
+      const nameInput = form.getByLabel('Название упражнения');
+      await expect(nameInput).toHaveValue(name);
+      await expect(nameInput).toBeFocused();
+      await expect(form.getByRole('searchbox')).toHaveCount(0);
+      await expect(form.getByRole('button', { name: 'Готово', exact: true })).toHaveCount(0);
+      const save = form.getByRole('button', { name: 'Сохранить и добавить', exact: true });
+      await expect(save).toBeDisabled();
+      await form.getByRole('group', { name: 'Группы мышц упражнения' }).getByRole('button', { name: 'Грудь', exact: true }).click();
+      await page.screenshot({ path: testInfo.outputPath('custom-exercise.png') });
+      await save.click();
       await expect(picker.getByText('В тренировке: 1', { exact: true })).toBeVisible();
       const done = picker.getByRole('button', { name: 'Готово', exact: true });
       await done.scrollIntoViewIfNeeded();

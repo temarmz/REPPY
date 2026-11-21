@@ -29,7 +29,8 @@ const colors = { background: '--app-bg', surface: '--surface', field: '--field-b
 Object.assign(colors, { navSelected: '--nav-selected-bg', focusSurface: '--focus-surface', focusText: '--focus-text', focusSecondary: '--focus-secondary', focusAccent: '--focus-accent', trendUp: '--trend-up', trendDown: '--trend-down' });
 colors.focusMeta = '--focus-meta';
 colors.divider = '--divider';
-const dimensions = { control: '--control-height-large', compact: '--control-height-medium', small: '--control-height-small', radius: '--control-radius', cardRadius: '--card-radius', modalRadius: '--modal-radius', cardGap: '--card-list-gap', exerciseTitle: '--exercise-title-font-size', pageInset: '--space-20' };
+colors.placeholder = '--field-placeholder';
+const dimensions = { fieldHeight: '--field-height', control: '--control-height-medium', compact: '--control-height-medium', small: '--control-height-small', radius: '--control-radius', cardRadius: '--card-radius', modalRadius: '--modal-radius', cardGap: '--card-list-gap', exerciseTitle: '--exercise-title-font-size', pageInset: '--space-20' };
 dimensions.iconSize = '--size-20';
 dimensions.quantityWidth = '--size-20';
 Object.assign(dimensions, { calendarMarker: '--size-7', addExerciseIcon: '--size-27', emptyIcon: '--size-24', emptyInset: '--space-32', emptyMinHeight: '--size-220' });

@@ -1,6 +1,13 @@
 import SwiftUI
 
 private let reppyMuscles = ["Грудь", "Спина", "Плечи", "Бицепс", "Трицепс", "Квадрицепс", "Ягодицы", "Задняя поверхность бедра", "Икры", "Кор"]
+private extension ExerciseDefinition {
+    var metadata: String {
+        exerciseMetadata(groups: muscle_groups.isEmpty ? [primary_muscle] : muscle_groups, equipment: equipment,
+                         isCustom: owner_id != nil, loadMode: load_mode, measureType: measure_type)
+    }
+}
+
 struct ExercisePickerScreen: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
@@ -27,12 +34,12 @@ struct ExercisePickerScreen: View {
             if definitions.isEmpty { ReppyEmpty(title: "Ничего не найдено", message: "Измени поиск или выбери другую мышечную группу.") }
             ForEach(definitions) { definition in
                 if let exercises {
-                    ReppyExerciseQuantityRow(name: definition.name, equipment: definition.equipment,
+                    ReppyExerciseQuantityRow(name: definition.name, subtitle: definition.metadata,
                         count: exercises.wrappedValue.filter { $0.exerciseId == definition.id }.count,
                         onRemove: {
                             if let index = exercises.wrappedValue.lastIndex(where: { $0.exerciseId == definition.id }) { exercises.wrappedValue.remove(at: index) }
                         }, onAdd: { add(definition) }).disabled(store.busy)
-                } else { ReppyChoiceRow(title: definition.name, subtitle: definition.equipment) { add(definition) }.disabled(store.busy) }
+                } else { ReppyChoiceRow(title: definition.name, subtitle: definition.metadata) { add(definition) }.disabled(store.busy) }
             }
         }.toolbar { ToolbarItem(placement: .confirmationAction) { Button(exercises == nil ? "Закрыть" : "Готово") { dismiss() } } }
             .navigationDestination(isPresented: $createDefinition) { DefinitionFormScreen(onSaved: add) }
@@ -53,7 +60,7 @@ struct ExerciseLibraryScreen: View {
             ForEach(definitions) { definition in
                 ReppyCard {
                     ReppyHeading(text: definition.name)
-                    ReppyCaption(text: "\(definition.equipment) · \(definition.muscle_groups.joined(separator: ", "))")
+                    ReppyCaption(text: definition.metadata)
                     if definition.owner_id == store.profile?.id { ReppyLink(title: "Изменить", icon: "pencil") { DefinitionFormScreen(original: definition) } }
                 }
             }
@@ -77,25 +84,28 @@ struct DefinitionFormScreen: View {
     @State private var initialized = false
     @State private var initialDraft: DefinitionDraft?
     private var formValue: DefinitionDraft { DefinitionDraft(id: id, name: name, equipment: equipment, groups: groups, loadMode: loadMode, measureType: measureType) }
+    private var definition: ExerciseDefinition {
+        let ordered = reppyMuscles.filter { groups.contains($0) }
+        let trimmedEquipment = equipment.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ExerciseDefinition(id: original?.id ?? id, slug: nil, owner_id: store.profile?.id, name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            primary_muscle: ordered.first ?? "Другое", muscle_groups: ordered,
+            equipment: trimmedEquipment.isEmpty ? (loadMode == .bodyweight ? "Свой вес" : "Другое") : trimmedEquipment,
+            measure_type: measureType, load_mode: loadMode, archived_at: nil)
+    }
+    private var validationError: String? { ReppyValidation.definition(definition, definitions: store.data.definitions) }
     private var draftKey: String { "definition:\(original?.id ?? "new")" }
     var body: some View {
         ReppyPage(back: true, title: "Упражнение") {
             ReppyCaption(text: original == nil ? "Своё упражнение" : "Изменить упражнение")
             ReppyCard {
-                ReppyField(title: "Название", text: $name)
-                ReppyField(title: "Оборудование", text: $equipment)
-                ReppyPicker(title: "Нагрузка", selection: $loadMode) { Text("Внешний вес").tag(LoadMode.external); Text("Свой вес").tag(LoadMode.bodyweight) }
-                ReppyPicker(title: "Измерение", selection: $measureType) { Text("Повторы").tag(MeasureType.reps); Text("Длительность").tag(MeasureType.duration) }
-                ReppyHeading(text: "Мышечные группы")
-                ForEach(reppyMuscles, id: \.self) { muscle in
-                    ReppyToggle(title: muscle, value: Binding(get: { groups.contains(muscle) }, set: { if $0 { groups.insert(muscle) } else { groups.remove(muscle) } }))
-                }
+                ReppyField(title: "Название", text: $name, placeholder: "Например: тяга полотенца")
+                ReppyField(title: "Оборудование", text: $equipment, placeholder: "Например: гантели")
+                ReppyExerciseModes(loadMode: $loadMode, measureType: $measureType, compact: false)
+                ReppyMultiplePicker(title: "Мышечные группы", options: reppyMuscles, selection: $groups)
+                if let validationError { ReppyText(text: validationError, tone: .secondary) }
             }
-        }.reppyFormActions(disabled: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, busy: store.busy, hasChanges: initialDraft != nil && initialDraft != formValue, save: {
-                let ordered = reppyMuscles.filter { groups.contains($0) }
-                let definition = ExerciseDefinition(id: original?.id ?? id, slug: nil, owner_id: store.profile?.id, name: name,
-                    primary_muscle: ordered.first ?? "Другое", muscle_groups: ordered, equipment: equipment.isEmpty ? "Другое" : equipment,
-                    measure_type: measureType, load_mode: loadMode, archived_at: nil)
+        }.reppyFormActions(disabled: validationError != nil, busy: store.busy, hasChanges: initialDraft != nil && initialDraft != formValue, save: {
+                let definition = self.definition
                 Task { if await store.run({
                     try await store.saveDefinition(definition, isNew: original == nil)
                     try DraftStorage.remove(account: store.accountKey, key: draftKey)

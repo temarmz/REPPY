@@ -50,9 +50,9 @@ export default function SessionResult({
       <RoutePageHeader back={trainerView ? `/trainer/clients/${session.studentId}` : '/student/calendar'} semanticBack eyebrow={`${trainerView ? `${student?.name} · ` : ''}${sessionState}`} preserveEyebrowCase title={workout.name.toUpperCase()} />
       <Paragraph>{assignment ? assignmentScheduleLabel(assignment) : formatDay(session.completedAt ?? session.startedAt)}</Paragraph>
       <DefinitionList className="session-summary" aria-label="Итоги тренировки">
-        <Box><DefinitionTerm>ДЛИТЕЛЬНОСТЬ</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
-        <Box><DefinitionTerm>ПОДХОДЫ</DefinitionTerm><DefinitionValue>{session.results.length}</DefinitionValue></Box>
-        <Box><DefinitionTerm>УПРАЖНЕНИЯ</DefinitionTerm><DefinitionValue>{workout.exercises.length}</DefinitionValue></Box>
+        <Box><DefinitionTerm>Длительность</DefinitionTerm><DefinitionValue>{elapsed}</DefinitionValue></Box>
+        <Box><DefinitionTerm>Подходы</DefinitionTerm><DefinitionValue>{session.results.length}</DefinitionValue></Box>
+        <Box><DefinitionTerm>Упражнения</DefinitionTerm><DefinitionValue>{workout.exercises.length}</DefinitionValue></Box>
       </DefinitionList>
       {session.autoCompleted && <Paragraph>Тренировка завершена автоматически.</Paragraph>}
       {trainerView && chargeStatus && <Section className={`session-subscription-status ${chargeStatus}`}><Icon name={chargeStatus === 'charged' ? 'check' : 'minus'} /><Inline><Small>АБОНЕМЕНТ</Small><Strong>{chargeStatus === 'charged' ? 'Одно занятие списано' : 'Занятие не списано'}</Strong></Inline></Section>}
