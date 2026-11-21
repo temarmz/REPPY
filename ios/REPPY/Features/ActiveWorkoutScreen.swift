@@ -265,7 +265,7 @@ struct ActiveStructureScreen: View {
     @State private var reorder = false
     var body: some View {
         ReppyPage(back: true, title: "План выполнения") {
-            ReppyExerciseSectionHeader(reorder: workout.exercises.count > 1 ? { reorder = true } : nil) { picker = true }
+            ReppyExerciseSectionHeader(reorder: workout.exercises.count > 1 ? { reorder = true } : nil, add: { picker = true })
             ForEach($workout.exercises) { $exercise in
                 ExerciseEditorCard(exercise: $exercise, relationshipID: relationshipID, onDelete: { workout.exercises.removeAll { $0.id == exercise.id } })
             }

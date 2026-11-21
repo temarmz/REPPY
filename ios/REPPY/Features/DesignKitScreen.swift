@@ -67,7 +67,7 @@ struct DesignKitScreen: View {
             }
             ReppyWorkoutSaveState(status: "Все изменения сохранены", saving: false)
             ReppyWorkoutSaveState(status: "Сохраняем…", saving: true)
-            ReppyExerciseSectionHeader {}.onAppear {
+            ReppyExerciseSectionHeader(add: {}).onAppear {
                 guard sampleExercise == nil, var exercise = store.data.assignments.first?.workout_snapshot.exercises.first else { return }
                 exercise.plannedSets = [SetPlan(targetReps: 8, targetWeight: 75.25), SetPlan(targetReps: 10, targetWeight: 70)]
                 sampleExercise = exercise

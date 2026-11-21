@@ -86,7 +86,7 @@ struct AssignmentEditorScreen: View {
                 ReppyDateField(title: draft.format == .online ? "Рекомендованная дата" : "Дата", date: $draft.date, compact: true)
                 if draft.format == .inPerson { ReppyDateField(title: "Время", date: $timeDate, time: true, compact: true) }
             }
-            ReppyExerciseSectionHeader(disabled: store.busy, reorder: draft.workout.exercises.count > 1 ? { reorder = true } : nil) { picker = true }
+            ReppyExerciseSectionHeader(disabled: store.busy, reorder: draft.workout.exercises.count > 1 ? { reorder = true } : nil, add: { picker = true })
             if draft.workout.exercises.isEmpty { ReppyEmpty(title: "Упражнения не добавлены", message: "Добавь упражнения перед назначением. До назначения черновик виден только тебе.") }
             ForEach($draft.workout.exercises) { $exercise in
                 ExerciseEditorCard(exercise: $exercise, relationshipID: draft.relationshipID,
