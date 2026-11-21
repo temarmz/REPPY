@@ -54,7 +54,11 @@ for (const theme of ['dark', 'light']) {
 }
 
 test('student can filter progress and finish with feedback in one sheet', async ({ page }, info) => {
+  const now = new Date();
+  await page.clock.setFixedTime(now);
+  const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow', dateStyle: 'short' }).format(now);
   const data = createInitialState(); data.loggedIn = true; data.role = 'student';
+  data.assignments.find(assignment => assignment.id === 'assignment-artem-push-today')!.scheduledFor = today;
   await page.addInitScript(data => localStorage.setItem('reppy-demo-v0', JSON.stringify(data)), data);
   await page.goto('/#/student');
   await page.getByRole('button', { name: 'Все упражнения' }).click();
