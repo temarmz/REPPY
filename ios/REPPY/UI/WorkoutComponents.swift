@@ -23,7 +23,7 @@ extension LoadMode {
 extension WorkoutExercise {
     func setLabel(amount: Int, weight: Double) -> String {
         let measurement = "\(amount) \(measureType.amountUnit(amount))"
-        return loadMode == .external ? "\(weight.reppyNumber) кг × \(measurement)" : measurement
+        return loadMode == .external ? "\(measurement) · \(weight.reppyNumber) кг" : measurement
     }
 }
 
@@ -93,6 +93,7 @@ struct ReppyExerciseQuantityRow: View {
     var name: String
     var subtitle: String
     var count: Int
+    var canRemove = true
     var onRemove: () -> Void
     var onAdd: () -> Void
     var body: some View {
@@ -101,7 +102,7 @@ struct ReppyExerciseQuantityRow: View {
                 Text(name).reppyTypography(.body)
                 Text(subtitle).reppyTypography(.caption).foregroundStyle(ReppyTheme.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading)
-            Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0).accessibilityLabel("Убрать \(name)")
+            Button(action: onRemove) { ReppyToolbarIcon(icon: "minus") }.disabled(count == 0 || !canRemove).accessibilityLabel("Убрать \(name)")
             Text("\(count)").monospacedDigit().frame(minWidth: ReppyMetrics.quantityWidth).accessibilityLabel("Добавлено: \(count)")
             Button(action: onAdd) { ReppyToolbarIcon(icon: "plus") }.accessibilityLabel("Добавить \(name)")
         }.buttonStyle(.plain).listRowBackground(count > 0 ? ReppyTheme.brandSoft : ReppyTheme.surface)
@@ -147,6 +148,7 @@ struct ReppyExerciseModes: View {
     @Binding var loadMode: LoadMode
     @Binding var measureType: MeasureType
     var compact = true
+    var measurementLocked = false
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: ReppyMetrics.space8)) : AnyLayout(HStackLayout(spacing: ReppyMetrics.space8))
@@ -156,8 +158,9 @@ struct ReppyExerciseModes: View {
             }
             ReppyPicker(title: "Измерение", selection: $measureType, compact: compact) {
                 ForEach(MeasureType.allCases, id: \.self) { Text($0.label).tag($0) }
-            }
+            }.disabled(measurementLocked)
         }
+        if measurementLocked { ReppyCaption(text: "Чтобы сменить единицу, обнули значения подходов.") }
     }
 }
 struct ReppyDisclosure<Content: View>: View {
@@ -243,7 +246,7 @@ struct ReppyExerciseFooter: View {
     }
     var body: some View {
         ReppyStack(compact: true) {
-            if commentOpen { ReppyField(title: "Комментарий к упражнению", text: $note, multiline: true, placeholder: "Например: держи локти вдоль тела") }
+            if commentOpen { ReppyField(title: "Комментарий к упражнению", text: $note, multiline: true, placeholder: "Например: держи локти вдоль тела", characterLimit: 240) }
             if typeSize.isAccessibilitySize {
                 ReppyStack(compact: true) {
                     ViewThatFits(in: .horizontal) {

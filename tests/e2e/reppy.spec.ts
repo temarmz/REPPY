@@ -566,7 +566,7 @@ test('тренер повторяет назначение тому же уче�
 
   await expect(page).toHaveURL(/#\/trainer\/assignments\/[0-9a-f-]{36}$/);
   await expect(page.getByText('Скопировано из предыдущей тренировки этого ученика')).toHaveCount(0);
-  await expect(page.locator('.readonly-exercise-card:visible').first()).toContainText('82.5 кг × 8');
+  await expect(page.locator('.readonly-exercise-card:visible').first()).toContainText('8 повторов · 82,5 кг');
   await expect(page.getByRole('main').getByText('Держи лопатки сведёнными')).toBeVisible();
 });
 
@@ -576,10 +576,10 @@ test('редактирование одной назначенной трени�
   await page.goto('/#/trainer/assignments/assignment-artem-push-today/edit');
   await setFirstExerciseWeight(page, 95);
   await page.getByRole('button', { name: 'Сохранить изменения' }).click();
-  await expect(page.locator('.readonly-exercise-card').first()).toContainText('95 кг × 8');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('8 повторов · 95 кг');
 
   await page.goto('/#/trainer/assignments/assignment-maria-push-1');
-  await expect(page.locator('.readonly-exercise-card').first()).toContainText('80 кг × 8');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('8 повторов · 80 кг');
 });
 
 test('создание, копирование, редактирование и повтор используют единый редактор плана', async ({ page }) => {
@@ -687,7 +687,7 @@ test('тренер назначает тренировку из профиля �
   await expect(page.locator('.toast')).toHaveCount(0);
   const assigned = page.locator('.profile-schedule .workout-row').filter({ hasText: 'Грудь и плечи' }).first();
   await assigned.click();
-  await expect(page.locator('.readonly-exercise-card:visible').first()).toContainText('62.5 кг × 8');
+  await expect(page.locator('.readonly-exercise-card:visible').first()).toContainText('8 повторов · 62,5 кг');
 });
 
 test('новая тренировка сохраняется только в назначении ученика', async ({ page }) => {
@@ -1027,7 +1027,7 @@ test('результат ученика виден тренеру и не мен
   await expect(page.getByText('Тестовый результат ученика')).toBeVisible();
   await expect(page.locator('.session-summary dt')).toHaveCount(3);
   await expect(page.locator('.session-summary > div').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-  await expect(page.locator('.result-exercises article').first()).toContainText('80 кг × 8');
+  await expect(page.locator('.result-exercises article').first()).toContainText('8 повторов · 80 кг');
 });
 test('тренер ведёт занятие, правит его в моменте и удаляет завершённый результат', async ({ page }) => {
   await openFreshDemo(page);
@@ -1290,7 +1290,7 @@ test('старое сохранённое состояние автоматич�
   await page.goto('/#/trainer/assignments/assignment-maria-legs');
   await page.reload();
   await expect(page.locator('.readonly-exercise-card').first()).toContainText('Приседания');
-  await expect(page.locator('.readonly-exercise-card').first()).toContainText('70 кг × 8');
+  await expect(page.locator('.readonly-exercise-card').first()).toContainText('8 повторов · 70 кг');
   await expect.poll(async () => page.evaluate(() => {
     const saved = JSON.parse(localStorage.getItem('reppy-demo-v0') || '{}');
     return {

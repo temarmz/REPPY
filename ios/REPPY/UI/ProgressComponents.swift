@@ -13,13 +13,14 @@ struct ExerciseProgressSummary: View {
     var body: some View {
         let scope = store.isTrainer ? (relationshipIDs ?? Set(relationshipID.map { [$0] } ?? [])) : store.ownRelationshipIDs
         let groups = ExerciseProgress.orderedGroups(store.progressGroups(relationshipIDs: scope), prioritizeGains: compact)
+        let counts = Dictionary(grouping: groups, by: { $0.exercise.exerciseId }).mapValues(\.count)
         if !hideEmpty || !groups.isEmpty {
             if showHeading { ReppyHeading(text: compact ? "Последний прогресс" : "Прогресс по упражнениям") }
             if groups.isEmpty { ReppyEmpty(title: "Пока нет прогресса", message: "Результаты упражнений появятся после первой завершённой тренировки.") }
             if compact && !groups.isEmpty {
                 ProgressTileLayout(columns: typeSize.isAccessibilitySize ? 1 : 2) {
                     ForEach(groups.prefix(6)) { group in
-                        ReppyProgressComparisonLink(group: group, relationshipIDs: scope, compact: true)
+                        ReppyProgressComparisonLink(group: group, relationshipIDs: scope, compact: true, showsVariant: counts[group.exercise.exerciseId, default: 0] > 1)
                     }
                 }
                 ReppyLink(title: "Все упражнения") { ProgressScreen(relationshipIDs: scope) }
@@ -37,7 +38,7 @@ struct ExerciseProgressSummary: View {
             if !compact && !groups.isEmpty && visible.isEmpty { ReppyEmpty(title: "Ничего не найдено", message: "Измени поиск или мышечную группу.") }
             if !compact {
                 ForEach(visible) { group in
-                    ReppyProgressComparisonLink(group: group, relationshipIDs: scope)
+                    ReppyProgressComparisonLink(group: group, relationshipIDs: scope, showsVariant: counts[group.exercise.exerciseId, default: 0] > 1)
                 }
             }
         }
@@ -74,6 +75,7 @@ struct ReppyProgressComparisonLink: View {
     var group: ProgressGroup
     var relationshipIDs: Set<String>
     var compact = false
+    var showsVariant = false
     var body: some View {
         NavigationLink {
             ProgressScreen(relationshipIDs: relationshipIDs, exerciseKey: group.id)
@@ -85,6 +87,10 @@ struct ReppyProgressComparisonLink: View {
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         ReppyHeading(text: group.exercise.name)
+                    }
+                    if showsVariant {
+                        ReppyCaption(text: [group.exercise.equipment, group.exercise.loadMode.label, group.exercise.measureType.label]
+                            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
                     }
                     if let comparison = ProgressComparison(group) {
                         if !compact, let previous = comparison.previous { ReppyCaption(text: "Было: \(setLabel(previous))") }

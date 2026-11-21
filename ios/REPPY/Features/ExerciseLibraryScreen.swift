@@ -2,6 +2,17 @@ import SwiftUI
 
 private let reppyMuscles = ["Грудь", "Спина", "Плечи", "Бицепс", "Трицепс", "Квадрицепс", "Ягодицы", "Задняя поверхность бедра", "Икры", "Кор"]
 private extension ExerciseDefinition {
+    func matchesSearch(_ search: String) -> Bool {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        let groups = muscle_groups.isEmpty ? [primary_muscle] : muscle_groups
+        return query.isEmpty || ([name] + groups + [equipment]).joined(separator: " ")
+            .range(of: query, options: .caseInsensitive, locale: Locale(identifier: "ru_RU")) != nil
+    }
+    static func ordered(_ first: Self, _ second: Self) -> Bool {
+        let order = first.name.compare(second.name, locale: Locale(identifier: "ru_RU"))
+        return order == .orderedSame ? first.id < second.id : order == .orderedAscending
+    }
+
     var metadata: String {
         exerciseMetadata(groups: muscle_groups.isEmpty ? [primary_muscle] : muscle_groups, equipment: equipment,
                          isCustom: owner_id != nil, loadMode: load_mode, measureType: measure_type)
@@ -13,11 +24,12 @@ struct ExercisePickerScreen: View {
     @Environment(\.dismiss) private var dismiss
     var onChoose: ((ExerciseDefinition) -> Void)?
     var exercises: Binding<[WorkoutExercise]>?
+    var keepLastExercise = false
     @State private var search = ""
     @State private var muscle = "Все"
     @State private var createDefinition = false
     init(onChoose: @escaping (ExerciseDefinition) -> Void) { self.onChoose = onChoose; exercises = nil }
-    init(exercises: Binding<[WorkoutExercise]>) { self.exercises = exercises; onChoose = nil }
+    init(exercises: Binding<[WorkoutExercise]>, keepLastExercise: Bool = false) { self.exercises = exercises; self.keepLastExercise = keepLastExercise; onChoose = nil }
     private func add(_ definition: ExerciseDefinition) {
         if let exercises { exercises.wrappedValue.append(WorkoutExercise(definition: definition)) }
         else { onChoose?(definition) }
@@ -29,14 +41,16 @@ struct ExercisePickerScreen: View {
                 ReppyButton(title: "Создать своё упражнение", icon: "plus") { createDefinition = true }
             }
             let definitions = store.data.definitions.filter { definition in
-                (search.isEmpty || definition.name.localizedCaseInsensitiveContains(search)) && (muscle == "Все" || definition.muscle_groups.contains(muscle) || definition.primary_muscle == muscle)
-            }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+                definition.matchesSearch(search) && (muscle == "Все" || definition.muscle_groups.contains(muscle) || definition.primary_muscle == muscle)
+            }.sorted(by: ExerciseDefinition.ordered)
             if definitions.isEmpty { ReppyEmpty(title: "Ничего не найдено", message: "Измени поиск или выбери другую мышечную группу.") }
             ForEach(definitions) { definition in
                 if let exercises {
                     ReppyExerciseQuantityRow(name: definition.name, subtitle: definition.metadata,
                         count: exercises.wrappedValue.filter { $0.exerciseId == definition.id }.count,
+                        canRemove: !keepLastExercise || exercises.wrappedValue.count > 1,
                         onRemove: {
+                            guard !keepLastExercise || exercises.wrappedValue.count > 1 else { return }
                             if let index = exercises.wrappedValue.lastIndex(where: { $0.exerciseId == definition.id }) { exercises.wrappedValue.remove(at: index) }
                         }, onAdd: { add(definition) }).disabled(store.busy)
                 } else { ReppyChoiceRow(title: definition.name, subtitle: definition.metadata) { add(definition) }.disabled(store.busy) }
@@ -53,7 +67,7 @@ struct ExerciseLibraryScreen: View {
         ReppyPage(back: true, title: "Библиотека упражнений") {
             ReppySearch(text: $search)
             ReppyLink(title: "Создать упражнение", icon: "plus") { DefinitionFormScreen() }
-            let definitions = store.data.definitions.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+            let definitions = store.data.definitions.filter { $0.matchesSearch(search) }.sorted(by: ExerciseDefinition.ordered)
             if definitions.isEmpty {
                 ReppyEmpty(title: search.isEmpty ? "Библиотека пока пуста" : "Ничего не найдено", message: search.isEmpty ? "Создай первое упражнение, чтобы использовать его в тренировках." : "Измени название в поиске или создай своё упражнение.")
             }

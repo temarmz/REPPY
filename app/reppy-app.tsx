@@ -399,6 +399,7 @@ export default function ReppyApp() {
       onReset={resetDemo}
       onSignOut={auth.enabled ? async () => { await auth.signOut(); go('/', true); } : undefined}
       onOpenDesignKit={area === 'trainer' ? () => go('/trainer/design-kit') : undefined}
+      onOpenExerciseLibrary={area === 'trainer' ? () => go('/trainer/exercises') : undefined}
       onConnectTelegram={auth.enabled ? async () => { const link = await auth.createTelegramLink(); window.location.assign(link); } : undefined}
       onLoadTelegramConnection={auth.enabled ? auth.getTelegramConnection : undefined}
     />;
@@ -550,6 +551,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   const [restoredDraft] = useState(() => loadUiDraft(draftKey));
   const [expanded, setExpanded] = useState(typeof restoredDraft?.expanded === 'boolean' ? restoredDraft.expanded : alwaysExpanded);
   const [editing, setEditing] = useState(typeof restoredDraft?.editing === 'boolean' ? restoredDraft.editing : false);
+  const [name, setName] = useState(typeof restoredDraft?.name === 'string' ? restoredDraft.name : student.name);
   const [height, setHeight] = useState(typeof restoredDraft?.height === 'string' ? restoredDraft.height : (student.height ? String(student.height) : ''));
   const [weight, setWeight] = useState(typeof restoredDraft?.weight === 'string' ? restoredDraft.weight : (student.weight ? String(student.weight) : ''));
   const [gender, setGender] = useState<Student['gender']>(restoredDraft?.gender === 'male' || restoredDraft?.gender === 'female' || restoredDraft?.gender === 'not-specified' ? restoredDraft.gender : student.gender ?? 'not-specified');
@@ -558,12 +560,14 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   const [validationAttempted, setValidationAttempted] = useState(false);
   const parsedHeight = Number(height);
   const parsedWeight = Number(weight.replace(',', '.'));
-  const metricError = height.trim() && (!Number.isFinite(parsedHeight) || parsedHeight < 50 || parsedHeight > 260)
+  const nameLength = Array.from(name.trim()).length;
+  const metricError = nameLength < 2 || nameLength > 120 ? 'Укажи имя длиной от 2 до 120 символов.' : height.trim() && (!Number.isFinite(parsedHeight) || parsedHeight < 50 || parsedHeight > 260)
     ? 'Укажи рост от 50 до 260 см.'
     : weight.trim() && (!Number.isFinite(parsedWeight) || parsedWeight < 20 || parsedWeight > 500)
       ? 'Укажи вес от 20 до 500 кг.' : '';
   const genderLabel = gender === 'male' ? 'Мужской' : gender === 'female' ? 'Женский' : 'Не указан';
   const resetFields = () => {
+    setName(student.name);
     setHeight(student.height ? String(student.height) : '');
     setWeight(student.weight ? String(student.weight) : '');
     setGender(student.gender ?? 'not-specified');
@@ -586,14 +590,15 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
       clearUiDraft(draftKey);
       return;
     }
-    saveUiDraft(draftKey, { expanded, editing, height, weight, gender, phone, contraindications });
-  }, [contraindications, draftKey, editing, expanded, gender, height, phone, weight]);
+    saveUiDraft(draftKey, { expanded, editing, name, height, weight, gender, phone, contraindications });
+  }, [contraindications, draftKey, editing, expanded, gender, height, name, phone, weight]);
 
   const save = () => {
     setValidationAttempted(true);
     if (metricError) return;
     onSave({
       ...student,
+      name: name.trim(),
       height: height.trim() ? parsedHeight : undefined,
       weight: weight.trim() ? parsedWeight : undefined,
       gender,
@@ -608,13 +613,14 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
     <Section className={`athlete-details section-block ${compact ? 'athlete-details-compact' : ''} ${alwaysExpanded ? 'always-expanded' : ''}`}>
       {compact ? <Box className="athlete-inline-summary"><Box><Paragraph>{[student.height ? `${student.height} см` : '', student.weight ? `${student.weight} кг` : '', student.gender && student.gender !== 'not-specified' ? genderLabel : '', student.phone].filter(Boolean).join(' · ') || 'Данные ученика не заполнены'}</Paragraph><Paragraph>Ограничения: {student.contraindications || 'не указаны'}</Paragraph></Box><Button type="button" className="wide-secondary athlete-edit-icon" aria-label="Редактировать данные ученика" title="Редактировать данные" aria-expanded={editing} onClick={() => { if (editing) { cancelEdit(); return; } startEdit(); }}><Icon name="edit" /></Button></Box> : <SectionHeading title={<>Данные и ограничения</>} >{alwaysExpanded && !editing ? <Button type="button" className="athlete-heading-edit" onClick={startEdit}><Icon name="edit" /> Редактировать</Button> : !alwaysExpanded && <Button type="button" aria-expanded={expanded} onClick={() => { setExpanded((current) => !current); if (editing) cancelEdit(); }}>{expanded ? 'Скрыть' : 'Показать'}</Button>}</SectionHeading>}
       {(compact ? editing : expanded) && (editing ? <Box className="athlete-form">
+        <Field label="Имя"><Input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" /></Field>
         <Box className="athlete-form-grid">
           <Field label={<>Рост, см</>} ><Input type="number" min="50" max="260" inputMode="numeric" value={height} onChange={(event) => setHeight(event.target.value)} placeholder="182" /></Field>
           <Field label={<>Вес, кг</>} ><Input type="number" min="20" max="500" inputMode="decimal" step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="86" /></Field>
         </Box>
         <Field label={<>Пол</>} ><Select value={gender} onChange={(event) => setGender(event.target.value as Student['gender'])}><SelectOption value="not-specified">Не указан</SelectOption><SelectOption value="male">Мужской</SelectOption><SelectOption value="female">Женский</SelectOption></Select></Field>
         <Field label={<>Мобильный телефон</>} ><Input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+7 999 123-45-67" /></Field>
-        <Field label={<>Противопоказания и особенности</>} ><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /></Field>
+        <Field label="Противопоказания и особенности" characterCount={{ length: contraindications.length, limit: 800 }}><Textarea value={contraindications} onChange={(event) => setContraindications(event.target.value)} maxLength={800} placeholder="Например: протрузия поясничного отдела, грыжа, болит левое запястье…" /></Field>
         {validationAttempted && metricError && <FormError>{metricError}</FormError>}
         <ActionButton icon="check" onPointerDown={keepFieldFocus} onClick={save}>Сохранить данные</ActionButton>
         <ActionButton variant="secondary" onPointerDown={keepFieldFocus} onClick={cancelEdit}>Отмена</ActionButton>
@@ -629,7 +635,7 @@ function AthleteDetails({ student, onSave, alwaysExpanded = false, compact = fal
   );
 }
 
-function ProfileSettings({ details, summary, accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onConnectTelegram, onLoadTelegramConnection }: { details?: ReactNode; summary?: ReactNode; accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
+function ProfileSettings({ details, summary, accountMode, account, theme, onToggleTheme, onSwitchRole, onReset, onSignOut, onOpenDesignKit, onOpenExerciseLibrary, onConnectTelegram, onLoadTelegramConnection }: { details?: ReactNode; summary?: ReactNode; accountMode: boolean; account: { displayName: string; role: 'trainer' | 'student'; email: string }; theme: AppTheme; onToggleTheme: () => void; onSwitchRole?: () => void; onReset: () => void; onSignOut?: () => Promise<void>; onOpenDesignKit?: () => void; onOpenExerciseLibrary?: () => void; onConnectTelegram?: () => Promise<void>; onLoadTelegramConnection?: () => Promise<TelegramConnection> }) {
   const [resetConfirmationOpen, setResetConfirmationOpen] = useState(false);
   const [signOutConfirmation, setSignOutConfirmation] = useState(false);
   const [signOutBusy, setSignOutBusy] = useState(false);
@@ -697,6 +703,7 @@ function ProfileSettings({ details, summary, accountMode, account, theme, onTogg
       <Box className="settings-actions">
         <ActionButton variant="secondary" icon={theme === 'dark' ? 'sun' : 'moon'} onClick={onToggleTheme}>{theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}</ActionButton>
         {onSwitchRole && <ActionButton variant="secondary" icon="change" onClick={onSwitchRole}>Переключиться в роль {account.role === 'trainer' ? 'ученика' : 'тренера'}</ActionButton>}
+        {onOpenExerciseLibrary && <ActionButton variant="secondary" icon="workout" onClick={onOpenExerciseLibrary}>Библиотека упражнений</ActionButton>}
         {onOpenDesignKit && <ActionButton variant="secondary" icon="workout" onClick={onOpenDesignKit}>Открыть дизайн-кит</ActionButton>}
         <ActionButton variant="secondary" icon="history" onClick={downloadActivityLog}>Скачать логи</ActionButton>
         {signOutError && <FormError>{signOutError}</FormError>}

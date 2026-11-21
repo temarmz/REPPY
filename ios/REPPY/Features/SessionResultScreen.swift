@@ -63,7 +63,7 @@ struct SessionResultScreen: View {
                             Text("Без оценки").tag(nil as Mood?)
                             ForEach(Mood.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
                         }
-                        ReppyField(title: "Комментарий", text: $comment, multiline: true)
+                        ReppyField(title: "Комментарий", text: $comment, multiline: true, characterLimit: 280)
                     }.reppyFormActions(saveLabel: "Сохранить обратную связь", busy: store.busy, hasChanges: mood != store.data.sessions.first { $0.id == sessionID }?.mood || comment != (store.data.sessions.first { $0.id == sessionID }?.comment ?? ""), save: {Task {
                             guard let session = store.data.sessions.first(where: { $0.id == sessionID }) else { return }
                             if await store.run({

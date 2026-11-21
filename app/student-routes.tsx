@@ -1,7 +1,7 @@
 import { UI_ASSETS } from './ui/assets';
 import { ListRow } from './ui/patterns';
 import { SectionHeading, Field } from './ui/patterns';
-import { Page, Paragraph, Inline, Time, Section, Box, Strong, Small, Heading, Fieldset, Legend, Italic, Image, PageTitle, LineBreak } from './ui/elements';
+import { Page, Paragraph, Inline, Time, Section, Box, Strong, Small, Heading, Fieldset, Legend, Image, PageTitle, LineBreak } from './ui/elements';
 import { useEffect, useState } from 'react';
 import {
   createWorkoutSession,
@@ -191,7 +191,7 @@ function WorkoutFeedback({ data, session, backPath, onComplete }: { data: DemoSt
             ))}
           </Box>
         </Fieldset>
-        <Field label={<>Комментарий тренеру <Small>необязательно</Small></>} className="comment-field" htmlFor="workout-comment"><Textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /><Italic>{comment.length}/280</Italic></Field>
+        <Field label={<>Комментарий тренеру <Small>необязательно</Small></>} className="comment-field" htmlFor="workout-comment" characterCount={{ length: comment.length, limit: 280 }}><Textarea id="workout-comment" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Например: последние подходы дались тяжело, но технику удержал" /></Field>
         <ActionButton icon="check" disabled={!mood} onClick={() => { if (!mood) return; clearUiDraft(draftKey); onComplete(mood, comment); }}>Сохранить результат</ActionButton>
       </Section>
     </Page>

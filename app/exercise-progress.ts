@@ -1,5 +1,5 @@
 import type { SetResult, WorkoutExercise, WorkoutSession } from './reppy-data';
-import { repetitionWord } from './workout-display.ts';
+import { repetitionWord, workoutSetLabel } from './workout-display.ts';
 
 export type ProgressPeriod = '30' | '90' | 'all';
 export type ProgressBlock = { exercise: WorkoutExercise; sets: { number: number; result?: SetResult; valid: boolean }[] };
@@ -53,8 +53,7 @@ export function progressMetric(entry: ProgressEntry, metric: 'max' | 'sum'): num
 }
 export const progressNumber = (value: number) => value.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
 export function progressSetLabel(exercise: WorkoutExercise, result: Pick<SetResult, 'actualReps' | 'actualWeight'>): string {
-  const amount = `${progressNumber(result.actualReps)} ${exercise.measureType === 'duration' ? 'сек.' : repetitionWord(result.actualReps)}`;
-  return exercise.loadMode === 'external' ? `${progressNumber(result.actualWeight)} кг × ${amount}` : amount;
+  return workoutSetLabel(exercise, result.actualReps, result.actualWeight);
 }
 export function progressHref(studentId: string, exercise?: WorkoutExercise, area: 'trainer' | 'student' = 'trainer'): string {
   const base = area === 'student' ? '/student' : `/trainer/clients/${encodeURIComponent(studentId)}`;

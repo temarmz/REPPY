@@ -36,7 +36,7 @@ struct DesignKitScreen: View {
             ReppyConnectedList(items: Array(store.data.subscriptions.prefix(3))) { ReppySubscriptionEntry(entry: $0, balanceAfter: 11, card: false) }
             ReppyInvitationReady(name: "Демо ученик", link: "https://demo.reppy.invalid/invite/example", expiresAt: nil, demo: true) {}
             ReppyWorkoutOverview(elapsed: "1:02:03", completed: 3, total: 12)
-            ReppySetSummaryRow(number: 1, value: "80 кг × 10 повторов", completed: true)
+            ReppySetSummaryRow(number: 1, value: "10 повторов · 80 кг", completed: true)
             ReppySetSummaryRow(number: 2, value: "45 сек.", completed: false)
             ReppyFeedbackSummary(mood: .great, comment: "Длинный отзыв ученика о прошедшей тренировке.")
             ReppyChargeSummary(charged: true)

@@ -183,6 +183,10 @@ export default function ActiveWorkout({
     focusExercise(moved.id);
   };
 
+  const measurementLocked = (exerciseId: string) => session.results.some(
+    (result) => result.exerciseId === exerciseId && result.actualReps !== 0,
+  );
+
   const addExerciseAfter = (definition: ExercisePickerChoice) => {
     if (!pickerAfterId && !replacingId) return;
     const afterIndex = workout.exercises.findIndex((exercise) => exercise.id === pickerAfterId);
@@ -202,7 +206,14 @@ export default function ActiveWorkout({
     const next = workout.exercises.map((exercise) => ({ ...exercise }));
     if (replacingId) {
       const index = next.findIndex((exercise) => exercise.id === replacingId);
-      if (index >= 0) next[index] = withExerciseSetPlans(nextExercise, getExerciseSetPlans(next[index]));
+      if (index >= 0) {
+        const previous = next[index];
+        if (measurementLocked(previous.id)) nextExercise.measureType = previous.measureType;
+        const sameMeasurement = nextExercise.measureType === previous.measureType;
+        next[index] = withExerciseSetPlans(nextExercise, getExerciseSetPlans(previous).map(
+          (set) => sameMeasurement ? set : { ...set, targetReps: 0 },
+        ));
+      }
       updateWorkout(next);
       setReplacingId(null);
       return;
@@ -285,7 +296,16 @@ export default function ActiveWorkout({
       />}
       {actionExercise && <ExerciseActionsModal
         exercise={actionExercise}
-        onModeChange={(patch) => updateWorkout(workout.exercises.map((exercise) => exercise.id === actionExercise.id ? { ...exercise, ...patch } : exercise))}
+        measurementLocked={measurementLocked(actionExercise.id)}
+        onModeChange={(patch) => {
+          if (patch.measureType && measurementLocked(actionExercise.id)) return;
+          updateWorkout(workout.exercises.map((exercise) => {
+            if (exercise.id !== actionExercise.id) return exercise;
+            const updated = { ...exercise, ...patch };
+            return updated.measureType === exercise.measureType ? updated : withExerciseSetPlans(updated,
+              getExerciseSetPlans(exercise).map((set) => ({ ...set, targetReps: 0 })));
+          }));
+        }}
         onReplaceExercise={() => { setReplacingId(actionExercise.id); setActionExerciseId(null); }}
         deleteDisabledReason={actionDeleteDisabledReason}
         onClose={() => setActionExerciseId(null)}
@@ -318,7 +338,7 @@ function FinishWorkoutModal({ canWaiveCharge, onClose, onFinish }: { canWaiveCha
     <ModalFrame title="Завершить тренировку?" className="finish-workout-sheet" ariaLabel="Завершение тренировки" onClose={onClose}>
       {canWaiveCharge && <Switch checked={chargeSubscription} onCheckedChange={setCharge}>Списать одно занятие</Switch>}
       <Field label="Как прошла тренировка?"><Select aria-label="Как прошла тренировка?" value={mood} onChange={(event) => setMood(event.target.value as MoodRating | '')}><SelectOption value="">Без оценки</SelectOption>{MOODS.map((item) => <SelectOption key={item.value} value={item.value}>{item.label}</SelectOption>)}</Select></Field>
-      <Field label="Комментарий"><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>
+      <Field label="Комментарий" characterCount={{ length: comment.length, limit: 280 }}><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>
       <Box className="finish-subscription-actions">
         <ActionButton icon="check" onClick={() => onFinish({ chargeSubscription, mood: mood || undefined, comment })}>Подтвердить завершение</ActionButton>
         <ActionButton variant="secondary" onClick={onClose}>Продолжить тренировку</ActionButton>

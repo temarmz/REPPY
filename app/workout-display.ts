@@ -52,10 +52,10 @@ export function repetitionWord(count: number): string {
   return { zero: 'повторов', one: 'повтор', two: 'повтора', few: 'повтора', many: 'повторов', other: 'повтора' }[russianPlurals.select(Math.abs(count))];
 }
 
-function workoutSetLabel(exercise: WorkoutExercise, amount: number, weight: number) {
+export function workoutSetLabel(exercise: WorkoutExercise, amount: number, weight: number) {
   const measurement = exercise.measureType === 'duration' ? `${amount} сек.`
-    : exercise.loadMode === 'bodyweight' ? `${amount} ${repetitionWord(amount)}` : String(amount);
-  return exercise.loadMode === 'external' ? `${weight} кг × ${measurement}` : measurement;
+    : `${amount} ${repetitionWord(amount)}`;
+  return exercise.loadMode === 'external' ? `${measurement} · ${weight.toLocaleString('ru-RU', { maximumFractionDigits: 3, useGrouping: false })} кг` : measurement;
 }
 
 export function plannedSetLabel(exercise: WorkoutExercise, set: WorkoutSetPlan) {

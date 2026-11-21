@@ -66,8 +66,15 @@ struct ReppyProgressChart: View {
                     .disabled(selected.id == ordered.last?.id).accessibilityLabel("Следующее занятие").accessibilityIdentifier("progress-next-session")
             }.buttonStyle(.plain)
             if monthly { ReppyCaption(text: selected.date.formatted(date: .abbreviated, time: .shortened)) }
-            ForEach(selected.results.sorted { $0.exercise_instance_id == $1.exercise_instance_id ? $0.set_number < $1.set_number : $0.exercise_instance_id < $1.exercise_instance_id }) { result in
-                ReppySetSummaryRow(number: result.set_number, value: selected.exercise.setLabel(amount: result.actual_reps, weight: result.actual_weight))
+            let blocks = selected.session.workout_snapshot.exercises.filter { $0.progressKey == selected.exercise.progressKey }
+            let resultsByBlock = Dictionary(grouping: selected.results, by: \.exercise_instance_id)
+            ForEach(Array(blocks.enumerated()), id: \.element.id) { index, exercise in
+                if let results = resultsByBlock[exercise.id] {
+                    if blocks.count > 1 { ReppyCaption(text: "Блок \(index + 1)") }
+                    ForEach(results.sorted { $0.set_number < $1.set_number }) { result in
+                        ReppySetSummaryRow(number: result.set_number, value: exercise.setLabel(amount: result.actual_reps, weight: result.actual_weight))
+                    }
+                }
             }
             ReppyLink(title: "Открыть тренировку") { SessionResultScreen(sessionID: selected.session.id) }
         }

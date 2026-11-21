@@ -1,13 +1,13 @@
 import { createElement, type ComponentProps, type ReactNode } from 'react';
-import { Box, Heading, Inline, Label } from './elements';
+import { Box, Heading, Inline, Label, Small } from './elements';
 import { Button } from './controls';
 
 export function SectionHeading({ title, titleId, className = '', children, ...props }: Omit<ComponentProps<'div'>, 'title'> & { title: ReactNode; titleId?: string }) {
   return <Box {...props} className={`section-heading ${className}`.trim()} data-ui-element="section-heading"><Heading id={titleId}>{title}</Heading>{children}</Box>;
 }
 
-export function Field({ label, children, ...props }: ComponentProps<'label'> & { label: ReactNode }) {
-  return <Label {...props} data-ui-element="field"><Inline>{label}</Inline>{children}</Label>;
+export function Field({ label, children, characterCount, ...props }: ComponentProps<'label'> & { label: ReactNode; characterCount?: { length: number; limit: number } }) {
+  return <Label {...props} data-ui-element="field"><Inline>{label}</Inline>{children}{characterCount && <Small className="field-character-count" aria-hidden="true">{characterCount.length}/{characterCount.limit}</Small>}</Label>;
 }
 
 export function Badge({ as = 'span', tone, ...props }: ComponentProps<'span'> & { as?: 'span' | 'b' | 'i'; tone?: 'neutral' | 'success' | 'warning' | 'danger' }) {

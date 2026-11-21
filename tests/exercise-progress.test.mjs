@@ -69,7 +69,7 @@ test('свой вес и секунды имеют свои метрики и п
     assert.equal(progressMetric(entry, 'sum'), 8);
     assert.equal(progressSetLabel(entry.blocks[0].exercise, original.results[0]), measureType === 'duration' ? '8 сек.' : '8 повторов');
   }
-  assert.equal(progressSetLabel(exercise(), { actualWeight: 77.5, actualReps: 8 }), '77,5 кг × 8 повторов');
+  assert.equal(progressSetLabel(exercise(), { actualWeight: 77.5, actualReps: 8 }), '8 повторов · 77,5 кг');
 });
 
 test('последний снимок задаёт имя; удаление сессии убирает её вклад', () => {

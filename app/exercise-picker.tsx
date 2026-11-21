@@ -1,4 +1,4 @@
-import { Box, Inline, Strong, Small, Form, Fieldset, Legend, Emphasis, Paragraph, Footer, SelectOption } from './ui/elements';
+import { Box, Inline, Strong, Small, Section, Heading, Form, Fieldset, Legend, Emphasis, Paragraph, Footer, SelectOption } from './ui/elements';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { exerciseLibrary, exerciseMuscleGroups, makeId, muscleGroups, type ExerciseDefinition, type MuscleGroup, type WorkoutExercise } from './reppy-data';
 import Icon from './ui/icon';
@@ -22,6 +22,7 @@ export type ExercisePickerChoice = {
 export function ExerciseActionsModal({
   exercise,
   deleteDisabledReason,
+  measurementLocked,
   onClose,
   onDeleteExercise,
   onReplaceExercise,
@@ -29,6 +30,7 @@ export function ExerciseActionsModal({
 }: {
   exercise: WorkoutExercise;
   deleteDisabledReason?: string;
+  measurementLocked?: boolean;
   onClose: () => void;
   onDeleteExercise: () => void;
   onReplaceExercise: () => void;
@@ -36,7 +38,7 @@ export function ExerciseActionsModal({
 }) {
   return (
     <ModalFrame title={exercise.name} className="exercise-actions-sheet" ariaLabel={'Действия — ' + exercise.name} closeLabel="Закрыть действия" onClose={onClose}>
-      {onModeChange && <ExerciseModes loadMode={exercise.loadMode} measureType={exercise.measureType} onChange={onModeChange} />}
+      {onModeChange && <ExerciseModes loadMode={exercise.loadMode} measureType={exercise.measureType} measurementLocked={measurementLocked} onChange={onModeChange} />}
       <Box className="exercise-action-list">
         <Button type="button" onClick={onReplaceExercise}><Icon name="copy" /><Inline><Strong>Заменить упражнение</Strong><Small>Подходы сохранятся</Small></Inline></Button>
         <Button className="danger" type="button" disabled={Boolean(deleteDisabledReason)} onClick={onDeleteExercise}>
@@ -59,6 +61,7 @@ export function ExercisePicker({
   onRemove,
   canRemove,
   singleChoice = false,
+  library = false,
 }: {
   persistenceKey?: string;
   exercises: WorkoutExercise[];
@@ -70,6 +73,7 @@ export function ExercisePicker({
   onRemove: (exerciseId: string) => void;
   canRemove: (exerciseId: string) => boolean;
   singleChoice?: boolean;
+  library?: boolean;
 }) {
   const draftKey = persistenceKey ?? 'picker';
   const [restoredDraft] = useState(() => loadExercisePickerDraft(draftKey));
@@ -102,7 +106,7 @@ export function ExercisePicker({
     const target = showCustomBuilder ? nameInput.current : createButton.current ?? pickerSearch.current;
     const sheet = target?.closest<HTMLElement>('[data-modal-frame]');
     if (sheet) sheet.scrollTop = 0;
-    target?.focus({ preventScroll: true });
+    target?.focus({ preventScroll: Boolean(sheet) });
   }, [showCustomBuilder]);
 
   const filtered = availableExercises.filter((exercise) => {
@@ -110,7 +114,7 @@ export function ExercisePicker({
     const matchesMuscle = selectedMuscle === 'all' || groups.includes(selectedMuscle);
     const haystack = (exercise.name + ' ' + groups.join(' ') + ' ' + exercise.equipment).toLocaleLowerCase('ru');
     return matchesMuscle && haystack.includes(normalizedSearch);
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name, 'ru-RU') || a.id.localeCompare(b.id));
   const selectExercise = (exercise: ExercisePickerChoice, custom = false) => {
     onSelect(exercise);
     if (custom) setSearch('');
@@ -131,7 +135,8 @@ export function ExercisePicker({
       onUpdateCustom?.(definition);
     } else if (onCreateCustom) {
       onCreateCustom(definition);
-      selectExercise(definition, true);
+      if (!library) selectExercise(definition, true);
+      else setSearch('');
     }
     resetCustomForm();
   };
@@ -162,13 +167,8 @@ export function ExercisePicker({
       ? current.filter((item) => item !== muscle)
       : [...current, muscle]);
   };
-  return (
-    <ModalFrame
-      title={showCustomBuilder ? (editingExercise ? 'Редактирование упражнения' : 'Новое упражнение') : (singleChoice ? 'Заменить упражнение' : 'Добавить упражнения')}
-      className={showCustomBuilder ? undefined : 'exercise-picker-sheet'}
-      onClose={onClose}
-    >
-      {showCustomBuilder ? <Form className="custom-exercise-builder" onSubmit={(event) => { event.preventDefault(); saveCustomExercise(); }}>
+  const title = showCustomBuilder ? (editingExercise ? 'Редактирование упражнения' : 'Новое упражнение') : (singleChoice ? 'Заменить упражнение' : 'Добавить упражнения');
+  const content = showCustomBuilder ? <Form className="custom-exercise-builder" onSubmit={(event) => { event.preventDefault(); saveCustomExercise(); }}>
         <Box><TextField ref={nameInput} data-modal-initial-focus id="custom-exercise-name" label="Название упражнения" placeholder="Например, тяга полотенца" value={newName} onChange={(event) => setNewName(event.target.value)} /></Box>
         <Box><TextField id="custom-exercise-equipment" label="Оборудование" placeholder="Например, гантели" value={customEquipment} onChange={(event) => setCustomEquipment(event.target.value)} /></Box>
         <Fieldset className="custom-muscle-field" aria-label="Группы мышц упражнения">
@@ -179,8 +179,8 @@ export function ExercisePicker({
         </Fieldset>
         <ExerciseModes loadMode={customLoadMode} measureType={customMeasureType} onChange={(patch) => { if (patch.loadMode) setCustomLoadMode(patch.loadMode); if (patch.measureType) setCustomMeasureType(patch.measureType); }} />
         {customError && <Small className="custom-exercise-hint" role="status">{customError}</Small>}
-        <ActionButton type="submit" disabled={Boolean(customError)}>{editingExercise ? 'Сохранить изменения' : 'Сохранить и добавить'}</ActionButton>
-        <ActionButton variant="secondary" onClick={resetCustomForm}>К выбору упражнений</ActionButton>
+        <ActionButton type="submit" disabled={Boolean(customError)}>{editingExercise ? 'Сохранить изменения' : library ? 'Сохранить упражнение' : 'Сохранить и добавить'}</ActionButton>
+        <ActionButton variant="secondary" onClick={resetCustomForm}>{library ? 'К библиотеке' : 'К выбору упражнений'}</ActionButton>
       </Form> : <>
         <Input ref={pickerSearch} className="text-input search-input" type="search" aria-label="Поиск упражнений" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Упражнение, мышца или инвентарь" />
         <Field label="Мышечная группа"><Select aria-label="Мышечная группа" value={selectedMuscle} onChange={(event) => setSelectedMuscle(event.target.value as typeof selectedMuscle)}><SelectOption value="all">Все</SelectOption>{muscleGroups.map((muscle) => <SelectOption key={muscle} value={muscle}>{muscle}</SelectOption>)}</Select></Field>
@@ -194,18 +194,23 @@ export function ExercisePicker({
               <Box><Strong>{exercise.name}{isCustom && <Emphasis className="personal-exercise-label">Моё</Emphasis>}</Strong><Small>{groups.length ? groups.join(', ') : 'Другое'} · {exercise.equipment}</Small></Box>
               <Box className="picker-row-actions">
                 {isCustom && onUpdateCustom && <Button className="picker-edit-exercise" type="button" onClick={() => editCustomExercise(exercise)} aria-label={`Редактировать ${exercise.name}`}><Icon name="edit" /></Button>}
-                {singleChoice ? <ActionButton variant="secondary" onClick={() => selectExercise(exercise)}>Выбрать</ActionButton> : <Box className="picker-quantity" role="group" aria-label={exercise.name}>
+                {!library && (singleChoice ? <ActionButton variant="secondary" onClick={() => selectExercise(exercise)}>Выбрать</ActionButton> : <Box className="picker-quantity" role="group" aria-label={exercise.name}>
                   <Button type="button" disabled={!canRemove(exercise.id)} onClick={() => onRemove(exercise.id)} aria-label={`Убрать ${exercise.name}`}><Icon name="minus" /></Button>
                   <Inline aria-live="polite">{count}</Inline>
                   <Button type="button" onClick={() => selectExercise(exercise)} aria-label={`Добавить ${exercise.name}`}><Icon name="plus" /></Button>
-                </Box>}
+                </Box>)}
               </Box>
             </Box>;
           })}
           {!filtered.length && <Paragraph className="picker-empty">Ничего не найдено. Измени поиск или выбери другую мышечную группу.</Paragraph>}
         </Box>
-        <Footer className="picker-footer"><Inline aria-live="polite">В тренировке: {exercises.length}</Inline><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></Footer>
-      </>}
-    </ModalFrame>
-  );
+        {!library && <Footer className="picker-footer"><Inline aria-live="polite">В тренировке: {exercises.length}</Inline><ActionButton icon="check" onClick={onClose}>Готово</ActionButton></Footer>}
+      </>;
+  if (library) return <Section className="exercise-library">
+    {showCustomBuilder && <Heading>{title}</Heading>}
+    {content}
+  </Section>;
+  return <ModalFrame title={title} className={showCustomBuilder ? undefined : 'exercise-picker-sheet'} onClose={onClose}>
+    {content}
+  </ModalFrame>;
 }

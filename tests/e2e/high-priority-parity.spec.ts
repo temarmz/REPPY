@@ -67,6 +67,13 @@ for (const role of ['trainer', 'student'] as const) for (const theme of ['light'
     await card.getByRole('button', { name: /^Действия —/ }).click();
     const actions = page.getByRole('dialog');
     await actions.getByLabel('Нагрузка', { exact: true }).selectOption('bodyweight');
+    await expect(actions.getByLabel('Измерение', { exact: true })).toBeDisabled();
+    await actions.getByRole('button', { name: 'Закрыть действия', exact: true }).click();
+    const amounts = card.locator('.set-card input[inputmode="numeric"]');
+    await amounts.first().fill('2.5');
+    await expect(amounts.first()).toHaveAttribute('aria-invalid', 'true');
+    for (const amount of await amounts.all()) await amount.fill('0');
+    await card.getByRole('button', { name: /^Действия —/ }).click();
     await actions.getByLabel('Измерение', { exact: true }).selectOption('duration');
     await actions.getByRole('button', { name: 'Закрыть действия', exact: true }).click();
     await expect(card.locator('.set-card').first().locator('input')).toHaveCount(1);
@@ -82,3 +89,28 @@ for (const role of ['trainer', 'student'] as const) for (const theme of ['light'
     await expect(page.locator('.session-feedback strong')).toHaveCount(0);
   });
 }
+
+test('trainer manages custom exercises from the library and edits the student name', async ({ page }) => {
+  const data = createInitialState();
+  data.loggedIn = true;
+  await page.addInitScript((state) => {
+    if (!localStorage.getItem('reppy-demo-v0')) localStorage.setItem('reppy-demo-v0', JSON.stringify(state));
+  }, data);
+  await page.goto('/#/trainer/profile');
+  await page.getByRole('button', { name: 'Библиотека упражнений' }).click();
+  const search = page.getByRole('searchbox', { name: 'Поиск упражнений' });
+  await search.fill('гантели');
+  await expect(page.locator('.picker-exercise-row').first()).toContainText(/гантел/i);
+  await search.clear();
+  await page.getByRole('button', { name: 'Создать своё упражнение' }).click();
+  await page.getByLabel('Название упражнения').fill('Локальная тяга для библиотеки');
+  await page.getByRole('button', { name: 'Спина', exact: true }).click();
+  await page.getByRole('button', { name: 'Сохранить упражнение', exact: true }).click();
+  await page.getByRole('button', { name: 'Редактировать Локальная тяга для библиотеки' }).click();
+  await expect(page.getByLabel('Название упражнения')).toHaveValue('Локальная тяга для библиотеки');
+  await page.goto('/#/trainer/clients/artem');
+  await page.getByRole('button', { name: 'Редактировать данные ученика' }).click();
+  await page.getByLabel('Имя', { exact: true }).fill('Артем Проверочный');
+  await page.getByRole('button', { name: 'Сохранить данные' }).click();
+  await expect(page.getByRole('heading', { name: 'АРТЕМ ПРОВЕРОЧНЫЙ', exact: true })).toBeVisible();
+});

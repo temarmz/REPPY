@@ -6,9 +6,23 @@ struct ExerciseEditorCard: View {
     @Binding var exercise: WorkoutExercise
     var relationshipID: String
     var onDelete: () -> Void
+    var canDelete = true
+    var measurementLocked = false
+    var isActive = false
     @State private var instructionOpen = false
     @State private var replacement = false
     @State private var commentOpen = false
+    private var measurement: Binding<MeasureType> {
+        Binding(get: { exercise.measureType }, set: { value in
+            guard !measurementLocked, exercise.measureType != value else { return }
+            var updated = exercise
+            updated.measureType = value
+            if isActive {
+                for index in updated.plannedSets.indices { updated.plannedSets[index].targetReps = 0 }
+            }
+            exercise = updated
+        })
+    }
     var body: some View {
         ReppyCard {
             ReppyExerciseHeader(exercise: exercise) {
@@ -20,7 +34,7 @@ struct ExerciseEditorCard: View {
                     exerciseMenu
                 }
             }
-            ReppyExerciseModes(loadMode: $exercise.loadMode, measureType: $exercise.measureType)
+            ReppyExerciseModes(loadMode: $exercise.loadMode, measureType: measurement, measurementLocked: measurementLocked)
             ReppyStack(compact: true) {
                 if !exercise.plannedSets.isEmpty { SetColumnLabels(loadMode: exercise.loadMode, unit: exercise.unit) }
                 ForEach($exercise.plannedSets) { $set in
@@ -39,6 +53,10 @@ struct ExerciseEditorCard: View {
         }.sheet(isPresented: $replacement) {
             NavigationStack { ExercisePickerScreen { definition in
                 var new = WorkoutExercise(definition: definition); new.plannedSets = exercise.plannedSets
+                if measurementLocked { new.measureType = exercise.measureType }
+                if isActive && new.measureType != exercise.measureType {
+                    for index in new.plannedSets.indices { new.plannedSets[index].targetReps = 0 }
+                }
                 exercise = new; replacement = false
             } }
         }
@@ -46,7 +64,7 @@ struct ExerciseEditorCard: View {
     private var exerciseMenu: some View {
         Menu {
             Button("Заменить упражнение", systemImage: "arrow.triangle.2.circlepath") { replacement = true }
-            Button("Удалить упражнение", systemImage: "trash", role: .destructive, action: onDelete)
+            Button("Удалить упражнение", systemImage: "trash", role: .destructive, action: onDelete).disabled(!canDelete)
         } label: { ReppyToolbarIcon(icon: "ellipsis") }.disabled(store.busy).accessibilityLabel("Действия с упражнением: \(exercise.name)")
     }
 }

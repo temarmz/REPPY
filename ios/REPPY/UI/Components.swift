@@ -185,12 +185,30 @@ struct ReppyField: View {
     var keyboard: UIKeyboardType = .default
     var error: String? = nil
     var placeholder: String? = nil
+    var characterLimit: Int? = nil
+    private var limitedText: Binding<String> {
+        Binding(get: { text }, set: { value in
+            // Keep existing long values editable without truncating them on open.
+            guard let limit = characterLimit, value.utf16.count > limit,
+                  value.utf16.count >= text.utf16.count else { text = value; return }
+            if text.utf16.count <= limit {
+                var remaining = limit
+                text = String(value.prefix { character in
+                    remaining -= character.utf16.count
+                    return remaining >= 0
+                })
+            }
+        })
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.subheadline).foregroundStyle(ReppyTheme.secondary)
             if multiline {
-                TextField("", text: $text, prompt: placeholder.map { Text($0).foregroundStyle(ReppyTheme.placeholder) }, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
-            } else { TextField("", text: $text, prompt: placeholder.map { Text($0).foregroundStyle(ReppyTheme.placeholder) }).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
+                TextField("", text: limitedText, prompt: placeholder.map { Text($0).foregroundStyle(ReppyTheme.placeholder) }, axis: .vertical).lineLimit(3...8).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "")
+            } else { TextField("", text: limitedText, prompt: placeholder.map { Text($0).foregroundStyle(ReppyTheme.placeholder) }).reppyField(invalid: error != nil).keyboardType(keyboard).accessibilityLabel(title).accessibilityHint(error ?? "") }
+            if let characterLimit {
+                ReppyCaption(text: "\(text.utf16.count)/\(characterLimit)").frame(maxWidth: .infinity, alignment: .trailing)
+            }
             if let error { ReppyText(text: error, tone: .error) }
         }
     }
@@ -215,13 +233,21 @@ struct ReppyNumericField: View {
     @State private var text = ""
     @FocusState private var focused: Bool
     @ScaledMetric(relativeTo: .body) private var size = ReppyMetrics.setNumberFont
+    private func parse(_ input: String) -> Double? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return 0 }
+        let pattern = integer ? #"^[0-9]+$"# : #"^[0-9]*(?:[.,][0-9]*)?$"#
+        guard trimmed.range(of: pattern, options: .regularExpression) != nil,
+              let number = ReppyValidation.number(trimmed), !integer || number <= Double(Int32.max) else { return nil }
+        return number
+    }
     var body: some View {
         TextField(title, text: $text).font(.system(size: size, weight: .medium)).monospacedDigit().multilineTextAlignment(.center)
             .keyboardType(integer ? .numberPad : .decimalPad).focused($focused).accessibilityLabel(title)
-            .accessibilityHint(value < 0 || !value.isFinite ? "Проверь число: значение не должно быть отрицательным." : integer ? "Введи целое число." : "Можно вводить дробное число с запятой.")
+            .accessibilityHint(parse(text) == nil ? "Проверь число." : integer ? "Введи целое число." : "Можно вводить дробное число с запятой.")
             .padding(.horizontal, ReppyMetrics.space6).frame(minWidth: ReppyMetrics.small, minHeight: ReppyMetrics.small)
             .background(ReppyTheme.field, in: RoundedRectangle(cornerRadius: ReppyMetrics.radius))
-            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(value < 0 || !value.isFinite ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
+            .overlay(RoundedRectangle(cornerRadius: ReppyMetrics.radius).stroke(parse(text) == nil ? ReppyTheme.error : focused ? ReppyTheme.lime : ReppyTheme.outline, lineWidth: focused ? ReppyMetrics.focusWidth : 1))
             .onAppear { if text.isEmpty { text = value.reppyNumber } }
             .onChange(of: focused) { _, active in
                 if active {
@@ -230,18 +256,15 @@ struct ReppyNumericField: View {
                         guard focused else { return }
                         UIApplication.shared.sendAction(#selector(UIResponder.selectAll(_:)), to: nil, from: nil, for: nil)
                     }
-                } else if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    value = 0; text = "0"
-                }
+                } else { text = value.reppyNumber }
             }
             .onChange(of: text) { _, text in
-                let parsed = ReppyValidation.number(text)
-                value = parsed.map { integer ? Double(ReppyValidation.integer($0)) : $0 } ?? -1
+                if let parsed = parse(text), parsed != value { value = parsed }
             }
             .onChange(of: value) { _, value in
                 // Keep local formatting while typing, but always display a new
                 // server value, including when this field still has focus.
-                if value >= 0, ReppyValidation.number(text) != value { text = value.reppyNumber }
+                if value >= 0, parse(text) != value { text = value.reppyNumber }
             }
     }
 }

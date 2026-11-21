@@ -112,7 +112,7 @@ struct StudentFormScreen: View {
                 ReppyPicker(title: "Пол", selection: Binding(get: { student.gender ?? "not-specified" }, set: { student.gender = $0 })) {
                     Text("Не указан").tag("not-specified"); Text("Мужской").tag("male"); Text("Женский").tag("female")
                 }
-                ReppyField(title: "Противопоказания и ограничения", text: Binding(get: { student.contraindications ?? "" }, set: { student.contraindications = $0 }), multiline: true)
+                ReppyField(title: "Противопоказания и ограничения", text: Binding(get: { student.contraindications ?? "" }, set: { student.contraindications = $0 }), multiline: true, characterLimit: 800)
             }
         }.reppyFormActions(busy: store.busy, hasChanges: initialDraft != nil && initialDraft != StudentFormDraft(student: student, height: height, weight: weight), save: {
                 Task {

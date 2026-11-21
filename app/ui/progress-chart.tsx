@@ -1,5 +1,5 @@
-import { Box, Small, Inline, Section, Paragraph, Svg, SvgGroup, SvgLine, SvgText, SvgPolyline, SvgCircle, SvgRect, Subheading } from './elements';
-import { useEffect, useRef, useState } from 'react';
+import { Box, Small, Inline, Section, Paragraph, Svg, SvgGroup, SvgLine, SvgText, SvgPolyline, SvgCircle, Subheading } from './elements';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { WorkoutExercise } from '../reppy-data';
 import { bestProgressSet, progressMetric, progressNumber, progressSetLabel, type ProgressEntry } from '../exercise-progress';
 import Icon from './icon';
@@ -8,7 +8,7 @@ import { ActionButton, Button } from './controls';
 
 const dateLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const timeLabel = (entry: ProgressEntry) => new Date(entry.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-const entryDate = (entry: ProgressEntry, entries: ProgressEntry[]) => `${dateLabel(entry)}${entries.filter((item) => dateLabel(item) === dateLabel(entry)).length > 1 ? ` · ${timeLabel(entry)}` : ''}`;
+const entryDate = (entry: ProgressEntry) => `${dateLabel(entry)} · ${timeLabel(entry)}`;
 function ResultSets({ entry }: { entry: ProgressEntry }) {
   return <Box className="progress-sets">
     {entry.blocks.map((block, index) => {
@@ -25,10 +25,12 @@ function ResultSets({ entry }: { entry: ProgressEntry }) {
 export default function ProgressChart({ entries, exercise, go, sessionHref = (sessionId) => `/trainer/sessions/${sessionId}` }: { entries: ProgressEntry[]; exercise: WorkoutExercise; go: (path: string) => void; sessionHref?: (sessionId: string) => string }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [chartWidth, setChartWidth] = useState(600);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
-    const observer = new ResizeObserver(([entry]) => setChartWidth(Math.max(260, Math.min(600, entry.contentRect.width))));
+    const updateWidth = (width: number) => setChartWidth(Math.max(260, Math.min(600, width)));
+    updateWidth(svg.getBoundingClientRect().width);
+    const observer = new ResizeObserver(([entry]) => updateWidth(entry.contentRect.width));
     observer.observe(svg);
     return () => observer.disconnect();
   }, []);
@@ -44,40 +46,60 @@ export default function ProgressChart({ entries, exercise, go, sessionHref = (se
   const showReps = exercise.loadMode === 'external' && exercise.measureType === 'reps';
   const [selectedId, setSelectedId] = useState(entries[0].session.id);
   const selected = visibleEntries.find((entry) => entry.session.id === selectedId) ?? visibleEntries[0];
-  const values = ordered.map((entry) => progressMetric(entry, 'max'));
-  const maximum = Math.max(1, ...values) * 1.1;
-  const setValues = ordered.map((entry) => bestProgressSet(entry)?.actualReps ?? 0);
-  const setMaximum = Math.max(2, Math.ceil(Math.max(...setValues) / 2) * 2);
+  const selectedIndex = visibleEntries.indexOf(selected);
+  const unit = showReps ? 'кг' : exercise.measureType === 'duration' ? 'сек.' : 'Повторы';
   const minTime = ordered[0].timestamp;
   const maxTime = ordered[ordered.length - 1].timestamp;
-  const plotRight = chartWidth - 45;
-  const points = ordered.map((entry, index) => ({
-    x: maxTime === minTime ? chartWidth / 2 : 45 + (entry.timestamp - minTime) / (maxTime - minTime) * (plotRight - 45),
-    y: 195 - values[index] / maximum * 155,
-    setY: 195 - setValues[index] / setMaximum * 155,
-    entry,
-  }));
-  const selectedIndex = visibleEntries.indexOf(selected);
-  const unit = exercise.loadMode === 'external' && exercise.measureType === 'reps' ? 'кг' : exercise.measureType === 'duration' ? 'сек.' : 'Повторы';
+  const left = 45;
+  const right = chartWidth - 16;
+  const plot = (label: string, values: number[], secondary = false) => {
+    const bottom = secondary ? 109 : 145;
+    const top = 18;
+    const maximum = Math.max(1, Math.ceil(Math.max(...values) * 1.1));
+    const points = ordered.map((entry, index) => ({
+      x: maxTime === minTime ? (left + right) / 2 : left + (entry.timestamp - minTime) / (maxTime - minTime) * (right - left),
+      y: bottom - values[index] / maximum * (bottom - top),
+      entry,
+    }));
+    return <Box>
+      <Box className="progress-chart-legend"><Inline className={secondary ? 'sets' : 'metric'}>{label}</Inline></Box>
+      <Svg ref={secondary ? undefined : svgRef} className={secondary ? 'progress-chart-secondary' : undefined}
+        viewBox={`0 0 ${chartWidth} ${bottom + 36}`} role="group" aria-label={`График результатов · ${label}`}>
+        {[0, 0.5, 1].map((fraction) => {
+          const y = bottom - (bottom - top) * fraction;
+          return <SvgGroup key={fraction}>
+            <SvgLine x1={left} x2={right} y1={y} y2={y} stroke="currentColor" opacity=".15" />
+            <SvgText x={left - 7} y={y + 4} textAnchor="end">{progressNumber(maximum * fraction)}</SvgText>
+          </SvgGroup>;
+        })}
+        {points.filter(({ entry }) => entry.session.id === selected.session.id).map(({ x, entry }) =>
+          <SvgLine key={entry.session.id} x1={x} x2={x} y1={top} y2={bottom} stroke="currentColor" opacity=".25" />)}
+        <SvgPolyline points={points.map(({ x, y }) => `${x},${y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
+        {points.map(({ x, y, entry }, index) => <SvgGroup key={entry.session.id} role="button" tabIndex={0}
+          aria-label={`${entryDate(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${label === 'Повторы' ? repetitionWord(values[index]) : label}`}
+          aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)}
+          onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
+          <SvgCircle className="progress-point-hitarea" cx={x} cy={y} r="22" fill="transparent" />
+          <SvgCircle cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" />
+        </SvgGroup>)}
+        <SvgText x={left} y={bottom + 27}>{dateLabel(ordered[0])}</SvgText>
+        {ordered.length > 1 && <SvgText x={right} y={bottom + 27} textAnchor="end">{dateLabel(ordered[ordered.length - 1])}</SvgText>}
+      </Svg>
+    </Box>;
+  };
+
   return <Section className="progress-chart">
     {monthly && <Paragraph className="progress-chart-unit">По месяцам · последнее занятие месяца</Paragraph>}
-    <Box className="progress-chart-legend" aria-hidden="true"><Inline className="metric">{unit}</Inline>{showReps && <Inline className="sets">Повторы</Inline>}</Box>
-    <Svg ref={svgRef} viewBox={`0 0 ${chartWidth} 240`} role="group" aria-label="График результатов по датам">
-      {[0, 0.5, 1].map((fraction) => <SvgGroup key={fraction}><SvgLine x1="45" x2={plotRight} y1={195 - fraction * 155} y2={195 - fraction * 155} stroke="currentColor" opacity=".15" /><SvgText x="38" y={199 - fraction * 155} textAnchor="end">{progressNumber(Math.round(maximum * fraction * 10) / 10)}</SvgText>{showReps && <SvgText className="progress-set-axis" x={chartWidth - 38} y={199 - fraction * 155}>{Math.round(setMaximum * fraction)}</SvgText>}</SvgGroup>)}
-      <SvgPolyline className="progress-metric-line" points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
-      {showReps && <SvgPolyline className="progress-sets-line" points={points.map((point) => `${point.x},${point.setY}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />}
-      {points.map(({ x, y, setY, entry }, index) => <SvgGroup key={entry.session.id} role="button" tabIndex={0} aria-label={`${dateLabel(entry)} ${timeLabel(entry)}, ${entry.session.workoutSnapshot.name}, ${progressNumber(values[index])} ${unit === 'Повторы' ? repetitionWord(values[index]) : unit}${showReps ? `, ${progressNumber(setValues[index])} ${repetitionWord(setValues[index])}` : ''}`} aria-pressed={selected.session.id === entry.session.id} onClick={() => setSelectedId(entry.session.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedId(entry.session.id); } }}>
-        <SvgCircle className="progress-point-hitarea" cx={x} cy={y} r="22" fill="transparent" /><SvgCircle className="progress-metric-point" cx={x} cy={y} r={selected.session.id === entry.session.id ? 7 : 4} fill="currentColor" />{showReps && <SvgRect className="progress-sets-point" x={x - (selected.session.id === entry.session.id ? 6 : 4)} y={setY - (selected.session.id === entry.session.id ? 6 : 4)} width={selected.session.id === entry.session.id ? 12 : 8} height={selected.session.id === entry.session.id ? 12 : 8} rx="2" fill="currentColor" />}
-      </SvgGroup>)}
-      <SvgText x="45" y="225">{dateLabel(ordered[0])}</SvgText>{ordered.length > 1 && <SvgText x={chartWidth - 15} y="225" textAnchor="end">{dateLabel(ordered[ordered.length - 1])}</SvgText>}
-    </Svg>
+    {plot(unit, ordered.map((entry) => progressMetric(entry, 'max')))}
+    {showReps && plot('Повторы', ordered.map((entry) => bestProgressSet(entry)?.actualReps ?? 0), true)}
     {entries.length === 1 && <Paragraph>Для динамики нужно ещё одно занятие.</Paragraph>}
     <Box className="progress-selected">
       <Box className="progress-selection-heading">
         <Button type="button" className="wide-secondary" aria-label="Предыдущее занятие" disabled={selectedIndex === visibleEntries.length - 1} onClick={() => setSelectedId(visibleEntries[selectedIndex + 1].session.id)}><Icon name="chevron-left" /></Button>
-        <Subheading>{monthly ? new Date(selected.timestamp).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }) : entryDate(selected, entries)}</Subheading>
+        <Subheading>{monthly ? new Date(selected.timestamp).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }) : entryDate(selected)}</Subheading>
         <Button type="button" className="wide-secondary" aria-label="Следующее занятие" disabled={selectedIndex === 0} onClick={() => setSelectedId(visibleEntries[selectedIndex - 1].session.id)}><Icon name="chevron-right" /></Button>
       </Box>
+      {monthly && <Small className="progress-selected-date">{entryDate(selected)}</Small>}
       <ResultSets entry={selected} />
       <ActionButton variant="secondary" onClick={() => go(sessionHref(selected.session.id))}>Открыть тренировку <Icon name="arrow-right" /></ActionButton>
     </Box>

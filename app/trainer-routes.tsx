@@ -1,3 +1,6 @@
+import { ExercisePicker } from './exercise-picker';
+import PageHeader from './ui/page-header';
+import { Page } from './ui/elements';
 import SessionCorrection from './session-correction';
 import { type ComponentType, type ReactNode } from 'react';
 import {
@@ -73,7 +76,14 @@ export default function TrainerRoutes({ path, data, draftIdentity, dispatch, cre
     const sessionEditMatch = path.match(/^\/trainer\/sessions\/([^/]+)\/edit$/);
     const sessionMatch = path.match(/^\/trainer\/sessions\/([^/]+)$/);
 
-    if (path === '/trainer/design-kit') {
+    if (path === '/trainer/exercises') {
+      content = <Page className="content-page narrow-page">
+        <PageHeader title="Библиотека упражнений" onBack={() => goBack('/trainer/profile')} />
+        <ExercisePicker library persistenceKey={`library:${draftIdentity}`} exercises={[]} customExercises={data.customExercises}
+          onCreateCustom={createCustomExercise} onUpdateCustom={updateCustomExercise}
+          onClose={() => goBack('/trainer/profile')} onSelect={() => {}} onRemove={() => {}} canRemove={() => false} />
+      </Page>;
+    } else if (path === '/trainer/design-kit') {
       content = <DesignKitScreen />;
     } else if (progressMatch?.[2]) {
       content = <ExerciseProgressView key={progressPath} data={data} studentId={progressMatch[1]} exerciseId={progressMatch[2]} search={progressSearch} go={go} back={goBack} />;

@@ -60,7 +60,7 @@ export default function SessionResult({
       {onFeedback && <Box className="section-actions"><ActionButton variant="secondary" icon="edit" onClick={() => { setMood(session.mood ?? ''); setComment(session.comment ?? ''); setFeedbackOpen(true); }}>{session.mood || session.comment ? 'Изменить отзыв' : 'Как прошла тренировка?'}</ActionButton></Box>}
       {feedbackOpen && <ModalFrame title="Как прошла тренировка?" onClose={() => setFeedbackOpen(false)}>
         <Field label="Самочувствие"><Select aria-label="Самочувствие" value={mood} onChange={(event) => setMood(event.target.value as typeof mood)}><SelectOption value="">Без оценки</SelectOption>{MOODS.map((item) => <SelectOption key={item.value} value={item.value}>{item.label}</SelectOption>)}</Select></Field>
-        <Field label="Комментарий"><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>
+        <Field label="Комментарий" characterCount={{ length: comment.length, limit: 280 }}><Textarea aria-label="Комментарий о тренировке" maxLength={280} value={comment} onChange={(event) => setComment(event.target.value)} /></Field>
         <ActionButton onClick={() => { onFeedback?.(mood || undefined, comment); setFeedbackOpen(false); }}>Сохранить отзыв</ActionButton>
       </ModalFrame>}
       {trainerView && <Box className="session-result-actions">

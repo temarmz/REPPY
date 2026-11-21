@@ -57,8 +57,8 @@ struct ActiveWorkoutScreen: View {
                         canRemoveSet: exercise.plannedSets.count > 0,
                         onMoveUp: { moveExercise(exercise.id, by: -1) }, onMoveDown: { moveExercise(exercise.id, by: 1) }, onEditPlan: { structure = true },
                         canMoveUp: index > 0, canMoveDown: index + 1 < value.workout.exercises.count,
-                        onDelete: { draft?.workout.exercises.removeAll { $0.id == exercise.id } },
-                        canDelete: true,
+                        onDelete: { if (draft?.workout.exercises.count ?? 0) > 1 { draft?.workout.exercises.removeAll { $0.id == exercise.id } } },
+                        canDelete: value.workout.exercises.count > 1,
                         onNoteChange: { note in
                             if let position = draft?.workout.exercises.firstIndex(where: { $0.id == exercise.id }) { draft?.workout.exercises[position].coachNote = note }
                         })
@@ -99,7 +99,7 @@ struct ActiveWorkoutScreen: View {
                             Text("Без оценки").tag("")
                             ForEach(Mood.allCases, id: \.self) { Text($0.title).tag($0.rawValue) }
                         }
-                        ReppyField(title: "Комментарий", text: $feedbackComment, multiline: true)
+                        ReppyField(title: "Комментарий", text: $feedbackComment, multiline: true, characterLimit: 280)
                         ReppyButton(title: "Подтвердить завершение", kind: .primary, disabled: saving || store.busy) { Task { await complete(); if completed { finish = false } } }
                         ReppyButton(title: "Продолжить тренировку", disabled: saving || store.busy) { finish = false }
                     }
@@ -107,13 +107,14 @@ struct ActiveWorkoutScreen: View {
             }
             .sheet(item: $instruction) { exercise in NavigationStack { InstructionScreen(exercise: exercise) } }
             .sheet(isPresented: $structure) {
-                if draft != nil { NavigationStack { ActiveStructureScreen(workout: Binding(get: { draft!.workout }, set: { draft?.workout = $0 }), relationshipID: relationshipID) } }
+                if draft != nil { NavigationStack { ActiveStructureScreen(workout: Binding(get: { draft!.workout }, set: { draft?.workout = $0 }), relationshipID: relationshipID,
+                    measurementLocked: { id in draft?.results.contains { $0.exercise_instance_id == id && $0.actual_reps != 0 } == true }) } }
             }
             .sheet(isPresented: $reorder) {
                 NavigationStack { ReppyExerciseOrderEditor(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }
             }
             .sheet(isPresented: $picker) {
-                NavigationStack { ExercisePickerScreen(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 })) }
+                NavigationStack { ExercisePickerScreen(exercises: Binding(get: { draft?.workout.exercises ?? [] }, set: { draft?.workout.exercises = $0 }), keepLastExercise: true) }
             }
             .confirmationDialog("Изменения тренировки отличаются на двух устройствах. Выбери, какой вариант сохранить.", isPresented: $confirmReload, titleVisibility: .visible) {
                 Button("Сохранить мой вариант") { Task {
@@ -261,16 +262,19 @@ struct ActiveStructureScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var workout: Workout
     var relationshipID: String
+    var measurementLocked: (String) -> Bool = { _ in false }
     @State private var picker = false
     @State private var reorder = false
     var body: some View {
         ReppyPage(back: true, title: "План выполнения") {
             ReppyExerciseSectionHeader(reorder: workout.exercises.count > 1 ? { reorder = true } : nil, add: { picker = true })
             ForEach($workout.exercises) { $exercise in
-                ExerciseEditorCard(exercise: $exercise, relationshipID: relationshipID, onDelete: { workout.exercises.removeAll { $0.id == exercise.id } })
+                ExerciseEditorCard(exercise: $exercise, relationshipID: relationshipID, onDelete: {
+                    if workout.exercises.count > 1 { workout.exercises.removeAll { $0.id == exercise.id } }
+                }, canDelete: workout.exercises.count > 1, measurementLocked: measurementLocked(exercise.id), isActive: true)
             }
         }.reppyFormActions(saveTitle: "Готово", showsCancel: false, hasChanges: false, save: { dismiss() }, discard: {})
         .sheet(isPresented: $reorder) { NavigationStack { ReppyExerciseOrderEditor(exercises: $workout.exercises) } }
-        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen(exercises: $workout.exercises) } }
+        .sheet(isPresented: $picker) { NavigationStack { ExercisePickerScreen(exercises: $workout.exercises, keepLastExercise: true) } }
     }
 }

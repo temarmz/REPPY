@@ -50,15 +50,16 @@ test('прогресс встроен внизу профиля, упражне�
   const section = progressSection(page);
   await expect(section.locator('.workout-row')).toHaveCount(1);
   expect(await section.evaluate((element) => element === element.parentElement?.lastElementChild)).toBe(true);
-  await expect(section).toContainText('Было: 77,5 кг × 8 повторов');
-  await expect(section).toContainText('Стало: 80 кг × 8 повторов');
+  await expect(section).toContainText('Было: 8 повторов · 77,5 кг');
+  await expect(section).toContainText('Стало: 8 повторов · 80 кг');
   await expect(section).toContainText('+2,5 кг при тех же повторах');
   const backStyle = await page.locator('.back-button:visible').evaluate((element) => {
     const css = getComputedStyle(element);
     return [css.backgroundColor, css.color, css.borderRadius, css.minHeight];
   });
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
-  await expect(page.locator('svg g[role="button"]')).toHaveCount(25);
+  await expect(page.locator('svg:not(.progress-chart-secondary) g[role="button"]')).toHaveCount(25);
+  await expect(page.locator('svg.progress-chart-secondary g[role="button"]')).toHaveCount(25);
   await expect(page.getByText('Всё время · 25 занятий')).toBeVisible();
   await expect(page.getByRole('searchbox')).toHaveCount(0);
   await expect(page.getByRole('combobox')).toHaveCount(0);
@@ -80,7 +81,7 @@ test('график, клавиатура, соседние занятия и п�
   await expect(page.locator('.progress-selected .progress-sets')).toContainText('77,5 кг');
   await page.getByRole('button', { name: 'Следующее занятие' }).click();
   await expect(page.locator('.progress-selected .progress-sets')).toContainText('80 кг');
-  await page.locator('svg g[role="button"]').first().focus();
+  await page.locator('svg:not(.progress-chart-secondary) g[role="button"]').first().focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('.progress-selected .progress-sets')).toContainText('75 кг');
   await page.getByRole('button', { name: 'Открыть тренировку' }).click();
@@ -108,7 +109,7 @@ test('прогресс доступен только у упражнений с 
     return [css.marginTop, css.marginRight, css.marginBottom, css.marginLeft];
   })).toEqual(['14px', '18px', '18px', '18px']);
   await plannedProgressButton.first().click();
-  await expect(page.locator('svg g[role="button"]')).toHaveCount(3);
+  await expect(page.locator('svg:not(.progress-chart-secondary) g[role="button"]')).toHaveCount(3);
   await page.getByRole('button', { name: 'Назад', exact: true }).click();
   await expect(page).toHaveURL(/assignments\/assignment-artem-push-today$/);
 });
@@ -117,7 +118,7 @@ test('старые ссылки показывают всю историю, чу
   await seedProgress(page, 25);
   await page.goto('/#/trainer/clients/artem/progress/bench-press?loadMode=external&measureType=reps&view=table&metric=sum&period=30&q=missing');
   await page.reload();
-  await expect(page.locator('svg g[role="button"]')).toHaveCount(25);
+  await expect(page.locator('svg:not(.progress-chart-secondary) g[role="button"]')).toHaveCount(25);
   await expect(page.locator('.progress-selected .progress-sets')).toContainText('80 кг');
   await page.goto('/#/trainer/clients/maria/progress');
   await expect(progressSection(page).locator('.workout-row')).toHaveCount(0);
@@ -143,8 +144,8 @@ test('результат нового занятия появляется в п�
   await expect(progressSection(page)).not.toContainText('Первый результат');
   await expect(progressSection(page).locator('.progress-trend')).toHaveCount(0);
   await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
-  await expect(page.locator('svg g[role="button"]')).toHaveCount(1);
-  await expect(page.locator('.progress-point-hitarea')).toHaveAttribute('r', '22');
+  await expect(page.locator('svg:not(.progress-chart-secondary) g[role="button"]')).toHaveCount(1);
+  await expect(page.locator('svg:not(.progress-chart-secondary) .progress-point-hitarea')).toHaveAttribute('r', '22');
   await expect(page.getByText('Для динамики нужно ещё одно занятие.')).toBeVisible();
   await expect(page.locator('.progress-selected')).not.toContainText('Выполнено');
 });
@@ -218,10 +219,10 @@ test('при смене веса формат каждого подхода ос
   });
   await page.reload();
   const section = progressSection(page);
-  await expect(section).toContainText('Стало: 82,5 кг × 7 повторов');
+  await expect(section).toContainText('Стало: 7 повторов · 82,5 кг');
   await expect(section).toContainText('+5 кг, −1 повтор');
   await section.getByRole('button', { name: /Жим лёжа/ }).click();
-  await expect(page.locator('.progress-selected .progress-set')).toHaveText(['1. 80 кг × 8 повторов', '2. 82,5 кг × 7 повторов']);
+  await expect(page.locator('.progress-selected .progress-set')).toHaveText(['1. 8 повторов · 80 кг', '2. 7 повторов · 82,5 кг']);
 });
 
 test('цвет текста различает динамику без дополнительных стрелок', async ({ page }) => {
@@ -306,3 +307,15 @@ for (const [count, gains] of [[8, 0], [15, 4], [2, 0]]) {
     await expect(page.locator('.progress-chart')).toBeVisible();
   });
 }
+
+
+test('monthly progress shows the exact selected workout date and time', async ({ page }) => {
+  await seedProgress(page, 27);
+  await progressSection(page).getByRole('button', { name: /Жим лёжа/ }).click();
+  await expect(page.getByText('По месяцам · последнее занятие месяца')).toBeVisible();
+  const date = page.locator('.progress-selected-date');
+  await expect(date).toHaveText(/\d{2}\.\d{2}\.\d{4} · \d{2}:\d{2}/);
+  const latest = await date.textContent();
+  await page.getByRole('button', { name: 'Предыдущее занятие' }).click();
+  await expect(date).not.toHaveText(latest!);
+});

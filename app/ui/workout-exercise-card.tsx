@@ -13,38 +13,26 @@ export function ExerciseSectionHeader({ onReorder, onAdd }: { onReorder?: () => 
   </Box></Box>;
 }
 
-function EditableNumberInput({ value, onChange, min = 0, step = 1, inputMode = 'numeric' }: { value: number; onChange: (value: number) => void; min?: number; step?: number; inputMode?: 'numeric' | 'decimal' }) {
+function EditableNumberInput({ value, onChange, inputMode = 'numeric' }: { value: number; onChange: (value: number) => void; inputMode?: 'numeric' | 'decimal' }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const displayValue = String(value);
-
-  const commit = () => {
-    const nextDraft = draft ?? displayValue;
-    if (!nextDraft.trim()) {
-      setDraft(null);
-      if (value !== 0) onChange(0);
-      return;
-    }
-    const parsed = Number(nextDraft.replace(',', '.'));
-    if (!Number.isFinite(parsed)) {
-      setDraft(null);
-      return;
-    }
-    setDraft(null);
-    const nextValue = Math.max(min, parsed);
-    if (nextValue !== value) onChange(nextValue);
+  const text = draft ?? String(value);
+  const parse = (input: string) => {
+    const trimmed = input.trim();
+    const pattern = inputMode === 'numeric' ? /^\d*$/ : /^\d*(?:[.,]\d*)?$/;
+    const number = Number(trimmed.replace(',', '.'));
+    return pattern.test(trimmed) && Number.isFinite(number) && (inputMode !== 'numeric' || number <= 2_147_483_647) ? number : null;
   };
 
-  return <Input type={inputMode === 'decimal' ? 'text' : 'number'} min={min} step={inputMode === 'decimal' ? 'any' : step} inputMode={inputMode} placeholder="0" value={draft ?? displayValue} onFocus={(event) => { setDraft(displayValue); event.currentTarget.select(); }} onChange={(event) => {
-    const nextDraft = event.target.value;
-    if (inputMode === 'decimal' && !/^\d*(?:[.,]\d*)?$/.test(nextDraft)) return;
-    setDraft(nextDraft);
-    if (!nextDraft.trim()) { if (value !== 0) onChange(0); return; }
-    const parsed = Number(nextDraft.replace(',', '.'));
-    if (nextDraft.trim() && Number.isFinite(parsed)) {
-      const nextValue = Math.max(min, parsed);
-      if (nextValue !== value) onChange(nextValue);
-    }
-  }} onBlur={commit} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
+  return <Input type="text" inputMode={inputMode} placeholder="0" value={text} aria-invalid={parse(text) === null || undefined}
+    title={inputMode === 'numeric' ? 'Введи целое неотрицательное число.' : 'Введи неотрицательное число.'}
+    onFocus={(event) => event.currentTarget.select()}
+    onChange={(event) => {
+      const next = event.target.value;
+      setDraft(next);
+      const number = parse(next);
+      if (number !== null && number !== value) onChange(number);
+    }}
+    onBlur={() => setDraft(null)} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} />;
 }
 
 function SetCountControl({
@@ -129,7 +117,7 @@ function ExerciseCommentButton({ exercise, open, onToggle }: { exercise: Workout
 }
 
 function ExerciseComment({ exercise, onNoteChange }: { exercise: WorkoutExercise; onNoteChange: (note: string) => void }) {
-  return <Field label={<>Комментарий к упражнению</>} className="active-comment-field"><Textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></Field>;
+  return <Field label="Комментарий к упражнению" className="active-comment-field" characterCount={{ length: exercise.coachNote?.length ?? 0, limit: 240 }}><Textarea maxLength={240} value={exercise.coachNote ?? ''} onChange={(event) => onNoteChange(event.target.value)} placeholder="Например: держи локти вдоль тела" autoFocus /></Field>;
 }
 
 type SharedExerciseCardProps = {
@@ -193,8 +181,8 @@ export function PlanExerciseCard({
           <Card className={'set-card plan-set-card ' + (bodyweight ? 'bodyweight' : '')} key={setIndex}>
             <Box className="set-number"><Strong>{setIndex + 1}</Strong></Box>
             <Box className={'set-metrics ' + (bodyweight ? 'single-metric' : '')}>
-              <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={set.targetReps} inputMode="numeric" min={0} onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></Field>
-              {!bodyweight && <Field label={<>КГ</>} ><EditableNumberInput value={set.targetWeight} step={2.5} inputMode="decimal" onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></Field>}
+              <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={set.targetReps} inputMode="numeric" onChange={(targetReps) => onSetChange(setIndex, { targetReps })} /></Field>
+              {!bodyweight && <Field label={<>КГ</>} ><EditableNumberInput value={set.targetWeight} inputMode="decimal" onChange={(targetWeight) => onSetChange(setIndex, { targetWeight })} /></Field>}
             </Box>
           </Card>
         ))}
@@ -247,7 +235,7 @@ export function ActiveExerciseCard({
             <Box className="set-number"><Strong>{result.setNumber}</Strong></Box>
             <Box className={'set-metrics ' + (exercise.loadMode === 'bodyweight' ? 'single-metric' : '')}>
               <Field label={<>{exercise.measureType === 'duration' ? 'СЕКУНДЫ' : 'ПОВТОРЫ'}</>} ><EditableNumberInput value={result.actualReps} inputMode="numeric" onChange={(actualReps) => onResultChange(result.setNumber, { actualReps })} /></Field>
-              {exercise.loadMode !== 'bodyweight' && <Field label={<>КГ</>} ><EditableNumberInput value={result.actualWeight} step={2.5} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></Field>}
+              {exercise.loadMode !== 'bodyweight' && <Field label={<>КГ</>} ><EditableNumberInput value={result.actualWeight} inputMode="decimal" onChange={(actualWeight) => onResultChange(result.setNumber, { actualWeight })} /></Field>}
             </Box>
           </Card>
         ))}

@@ -1221,6 +1221,7 @@ body.modal-open .bottom-nav { display: none; }
 [data-ui-element="field"] > :is(select, textarea) { width: 100%; min-height: var(--field-height); border: 1px solid var(--field-outline); border-radius: var(--control-radius); padding: var(--space-12); background: var(--field-bg); color: var(--text-primary); font: inherit; font-size: var(--font-size-16); }
 [data-ui-element="field"] > select { height: var(--field-height); }
 [data-ui-element="field"] > textarea { resize: vertical; }
+[data-ui-element="field"] > .field-character-count { justify-self: end; color: var(--text-secondary); font-size: var(--font-size-12); }
 .bottom-sheet > [data-ui-element="field"] { margin-block: var(--space-16); }
 
 .add-exercise,
@@ -1480,6 +1481,10 @@ body.modal-open .bottom-nav { display: none; }
 .coach-note-field > span { color: var(--palette-d8dcd4); font-size: var(--font-size-12); font-weight:var(--font-weight-800); }
 .coach-note-field > span small { color: var(--muted); font-weight:var(--font-weight-650); }
 .coach-note-field textarea { width: 100%; min-height: calc(var(--size-78) * var(--ui-control-height-scale)); resize: vertical; border: 1px solid var(--field-outline); border-radius: var(--control-radius); padding: var(--space-12) var(--space-13); background: var(--field-bg); color: var(--text-primary); font: inherit; font-size: var(--font-size-13); line-height: 1.5; }
+.exercise-library { display: grid; gap: var(--space-12); }
+.exercise-library .picker-list { max-height: none; margin-top: 0; overflow: visible; }
+.exercise-library .picker-exercise-row { border-radius: 0; }
+.exercise-library > h2 { margin: 0; }
 .exercise-picker-sheet { display: flex; flex-direction: column; }
 .exercise-picker-sheet > :not(.picker-list) { flex-shrink: 0; }
 .exercise-picker-sheet .picker-list { flex: 1 1 auto; min-height: var(--size-64); }
@@ -1638,6 +1643,7 @@ body.modal-open .bottom-nav { display: none; }
 .plan-exercise-card { background: var(--surface); }
 .exercise-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); margin-bottom: var(--space-12); }
 .exercise-modes > [data-ui-element="field"] { min-width: 0; }
+.exercise-modes-hint { grid-column: 1 / -1; color: var(--text-secondary); }
 .plan-card-sets .plan-set-card { grid-template-columns: 62px minmax(0,1fr); }
 .plan-card-sets .set-columns { grid-template-columns: 62px minmax(0,1fr); }
 .plan-card-sets .set-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -1992,12 +1998,12 @@ body.modal-open .bottom-nav { display: none; }
 .progress-chart-unit { margin: 0 0 var(--space-8); font-size: var(--font-size-13); }
 .progress-chart-legend { display: flex; gap: var(--space-18); margin-bottom: var(--space-2); color: var(--muted); font-size: var(--font-size-11); }
 .progress-chart-legend span { display: inline-flex; align-items: center; gap: var(--space-6); }
-.progress-chart-legend span::before { width: var(--size-14); height: var(--size-3); border-radius: var(--radius-2); background: var(--lime); content: ''; }
-.progress-chart-legend .sets::before { background: var(--orange); }
-.progress-chart svg { display: block; width: 100%; height: auto; max-height: var(--size-280); color: var(--lime); overflow: visible; }
+.progress-chart-legend span::before { width: var(--size-14); height: var(--size-3); border-radius: var(--radius-2); background: var(--lime-strong); content: ''; }
+.progress-chart-legend .sets::before { background: var(--trend-down); }
+.progress-chart svg { display: block; width: 100%; height: auto; max-height: var(--size-280); color: var(--lime-strong); overflow: visible; }
 .progress-chart text { font-size: var(--font-size-12); fill: var(--muted); }
-.progress-chart .progress-set-axis { fill: var(--orange); }
-.progress-chart .progress-sets-line, .progress-chart .progress-sets-point { color: var(--orange); }
+.progress-chart svg.progress-chart-secondary { color: var(--trend-down); }
+.progress-selected-date { color: var(--text-secondary); }
 .progress-chart g[role="button"] { cursor: pointer; }
 .progress-chart g[role="button"]:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
 .progress-chart g[role="button"]:focus-visible circle:last-child { stroke: var(--lime); stroke-width: var(--size-4); }
@@ -2534,7 +2540,7 @@ html[data-theme="light"] .picker-list .picker-quantity button { border-color: va
 html[data-theme="light"] .set-count-control > span { color: var(--muted); }
 html[data-theme="light"] .exercise-navigation { border-top-color: var(--divider); background: var(--tint-fafbf7-940); }
 
-html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .progress-chart svg, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
+html[data-theme="light"] :is(.eyebrow, .side-demo b, .section-heading button:not(.schedule-add-button), .schedule-add-button, .empty-day-plus, .history-date, .reschedule-request-card time, .active-timing b, .active-exercise-number, .active-coach-note small, .bodyweight-set-label strong, .client-subscription, .subscription-card > header span, .subscription-history-summary > span, .recent-payments > span, .success-subscription, .trend-up, .picker-list > button.added small, .readonly-exercise-card > header > span, .result-exercises header span, .result-exercises p i, .design-kit-statuses .completed) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.reschedule-notification-row > span, .empty-state > span, .history-copy-icon, .student-request-status > .ui-icon, .exercise-coach-note .ui-icon, .active-coach-note > .ui-icon, .active-edit-toggle .ui-icon, .exercise-comment-button .ui-icon, .active-exercise-footer-actions button .ui-icon, .result-coach-note .ui-icon, .readonly-coach-note .ui-icon, .student-subscription-status > span, .subscription-entry-delta.positive, .session-subscription-status > .ui-icon, .feedback-intro > span, .success-mood .ui-icon, .session-feedback strong .ui-icon) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.activity-row b, .recent-card span, .empty-state button, .profile-hero div span, .done-badge, .form-section-heading > span, .exercise-editor-head > span, .add-exercise, .picker-list button > span, .exercise-plan-list article > span, .agenda-status, .history-status.completed, .reschedule-request-card > div:first-child > span, .active-exercise-title p, .active-header-copy .save-state, .payment-method-field button.selected) { color: var(--lime-strong); }
 html[data-theme="light"] :is(.readonly-coach-note, .reschedule-request-card p, .student-request-status p, .exercise-coach-note, .active-coach-note strong, .exercise-instruction-body p, .subscription-entry-list p, .confirmation-sheet > p) { color: var(--palette-465043) !important; }
