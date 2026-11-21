@@ -1,0 +1,61 @@
+name: Publish Pages artifact
+
+on:
+  workflow_call:
+    inputs:
+      quick-checks:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: pages-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+        if: inputs.quick-checks
+      - run: npm run typecheck
+        if: inputs.quick-checks
+      - name: Build Supabase-connected Pages artifact
+        run: npm run build:pages
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - name: Package immutable rollback artifact
+        run: |
+          node scripts/release-artifact.mjs create pages-dist release-manifest.json
+          tar -czf reppy-release.tar.gz pages-dist release-manifest.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: reppy-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reppy-release.tar.gz
+          retention-days: 35
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+          path: pages-dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}

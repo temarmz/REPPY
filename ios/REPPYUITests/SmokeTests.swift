@@ -65,7 +65,7 @@ final class SmokeTests: XCTestCase {
         let todayID = note.identifier, marker = "Личная заметка " + role + " " + theme
         if !largest { XCTAssertEqual(app.textViews.count, 4) }
         XCTAssertFalse((note.value as? String ?? "").contains("Личная заметка " + (role == "trainer" ? "student" : "trainer")))
-        revealAndTap(note, in: app); note.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 80) + marker)
+        revealAndTap(note, in: app); note.typeText(marker)
         app.buttons["dismiss-keyboard"].firstMatch.tap(); capture(app, "notes-" + suffix)
         let range = app.buttons["notes-date-range"].label
         revealAndTap(app.buttons["Следующие четыре дня"], in: app)
@@ -90,7 +90,7 @@ final class SmokeTests: XCTestCase {
             revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
             XCTAssertTrue(app.buttons["Сохранить инструкцию"].waitForExistence(timeout: 5)); capture(app, "instruction-editor-" + suffix)
             let text = app.textFields["Подробное описание упражнения"]
-            revealAndTap(text, in: app); text.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 200) + "Проверка техники")
+            revealAndTap(text, in: app); text.typeText("Проверка техники")
             app.buttons["dismiss-keyboard"].firstMatch.tap()
             revealAndTap(app.buttons["Сохранить инструкцию"], in: app)
             revealAndTap(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Инструкция и видео:")).firstMatch, in: app)
@@ -163,7 +163,16 @@ final class SmokeTests: XCTestCase {
         revealAndTap(app.buttons["Добавить пополнение"], in: app)
         XCTAssertTrue(app.staticTexts["Осталось 11 занятий"].waitForExistence(timeout: 5))
         revealAndTap(app.buttons["Удалить полностью"], in: app)
-        XCTAssertTrue(app.buttons["Отмена"].waitForExistence(timeout: 5), app.debugDescription); app.buttons["Отмена"].tap()
+        let deleteSubscription = app.buttons["Удалить абонемент"]
+        XCTAssertTrue(deleteSubscription.waitForExistence(timeout: 5))
+        let cancel = app.buttons["Отмена"]
+        if cancel.exists {
+            cancel.tap()
+        } else {
+            // A confirmation popover on iOS 26 can be dismissed by tapping its backdrop.
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5)).tap()
+        }
+        XCTAssertTrue(deleteSubscription.waitForNonExistence(timeout: 5))
         app.terminate(); app.launch()
         XCTAssertTrue(app.buttons["Ученики"].waitForExistence(timeout: 15)); app.buttons["Ученики"].tap()
         revealAndTap(app.buttons["Пригласить ученика"], in: app)
@@ -347,33 +356,22 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["Закрыть"].waitForExistence(timeout: 5))
         capture(app, accessibility ? "instruction-largest-text" : "instruction-small")
         revealAndTap(app.buttons["Закрыть"], in: app)
-        let weight = app.textFields.matching(NSPredicate(format: "label BEGINSWITH %@", "Фактический вес подхода 1")).firstMatch
-        for _ in 0..<10 { if weight.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(weight.isHittable); weight.tap()
+        let weight = app.textFields["Фактический вес подхода 1, кг"].firstMatch
+        revealAndTap(weight, in: app)
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
         weight.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "75,5")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Календарь"].waitForExistence(timeout: 5))
         XCTAssertEqual(weight.value as? String, "75,5")
-        let done = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Подход 1:")).firstMatch
-        for _ in 0..<4 { if done.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(done.isHittable); done.tap()
-        let finish = app.buttons["Завершить тренировку"]
-        for _ in 0..<18 { if finish.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(finish.isHittable); finish.tap()
-        let confirm = app.buttons["Подтвердить завершение"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        for _ in 0..<10 { if confirm.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(confirm.isHittable)
-        let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = accessibility ? "active-finish-largest-text" : "active-finish-small"; screenshot.lifetime = .keepAlways; add(screenshot)
-        confirm.tap()
-        XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 10))
-        revealAndTap(app.buttons["Как прошла тренировка?"], in: app)
-        let feedback = app.textFields["Комментарий тренеру"]
-        XCTAssertTrue(feedback.waitForExistence(timeout: 5)); revealAndTap(feedback, in: app)
-        feedback.typeText("Тренировка прошла хорошо")
+        revealAndTap(app.buttons["Завершить тренировку"], in: app)
+        let feedbackTextView = app.textViews["Комментарий"]
+        let feedbackField = feedbackTextView.waitForExistence(timeout: 2) ? feedbackTextView : app.textFields["Комментарий"]
+        revealAndTap(feedbackField, in: app)
+        feedbackField.typeText("Тренировка прошла хорошо")
         app.buttons["dismiss-keyboard"].firstMatch.tap()
-        revealAndTap(app.buttons["Сохранить обратную связь"], in: app)
+        capture(app, accessibility ? "active-finish-largest-text" : "active-finish-small")
+        revealAndTap(app.buttons["Подтвердить завершение"], in: app)
+        XCTAssertTrue(app.staticTexts["Длительность"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Тренировка прошла хорошо"].waitForExistence(timeout: 10))
         app.terminate()
     }

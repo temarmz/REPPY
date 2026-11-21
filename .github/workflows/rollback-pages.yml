@@ -46,7 +46,10 @@ jobs:
           import { readFileSync } from 'node:fs';
           const run = JSON.parse(readFileSync('source-run.json'));
           assert.equal(run.conclusion, 'success');
-          assert.equal(run.path, '.github/workflows/deploy-pages.yml');
+          assert.ok([
+            '.github/workflows/deploy-pages.yml',
+            '.github/workflows/publish-pages-now.yml',
+          ].includes(run.path));
           assert.equal(run.head_branch, 'main');
           assert.equal(run.head_repository.full_name, process.env.GITHUB_REPOSITORY);
           assert.ok(['push', 'workflow_dispatch'].includes(run.event));

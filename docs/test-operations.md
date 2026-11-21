@@ -55,7 +55,7 @@ Production workflow шифрует весь архив AES-256-GCM до загр
 
 `backup:create` теперь создаёт format v2: дополнительно `platform-hooks.sql` с триггером `on_auth_user_created` и четырьмя REPPY Storage policies. Стандартный dump их не включает, поскольку они прикреплены к управляемым схемам Auth/Storage. `backup:verify` проверяет наличие обязательных файлов и их SHA-256. Проверка v1 возможна для старых архивов, но для нового массового теста нужен v2. Сами Auth/Storage таблицы на hosted создаёт Supabase, их нельзя заменять самодельной схемой.
 
-В основном deploy workflow локальный restore-drill добавлен после backend integration, WebKit operations и статический rollback-drill — в frontend checks. CI сохраняет отчёты; SQL dumps и backup с данными в эти диагностические artifacts не включаются.
+В Web CI интеграция Supabase с локальным restore-drill, WebKit operations со статическим rollback-drill и две части Playwright выполняются параллельно. Обычная публикация ждёт все эти задачи. При `[publish-now]` за публикацию отвечает отдельный workflow. CI сохраняет диагностические отчёты по отдельным задачам. SQL dumps и backup с данными в отчёты не входят.
 
 Повторяемая локальная репетиция:
 

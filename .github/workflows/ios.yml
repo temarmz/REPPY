@@ -17,20 +17,26 @@ concurrency:
 
 jobs:
   native-checks:
+    name: iOS (${{ matrix.suite }})
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [core-and-smoke, notes, workout-and-ledger]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
+        if: matrix.suite == 'core-and-smoke'
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
       - name: Check shared web contract and generated project
+        if: matrix.suite == 'core-and-smoke'
         run: npm run ios:check
       - name: Select iOS 26 SDK
         run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
       - name: Test native domain
+        if: matrix.suite == 'core-and-smoke'
         run: npm run ios:test
       - name: Select available iPhone simulator
         run: |
@@ -47,10 +53,47 @@ jobs:
       - name: Wait for iPhone simulator readiness
         run: xcrun simctl bootstatus "$REPPY_SIMULATOR" -b
       - name: Build and run iPhone tests
-        run: xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY -skip-testing:REPPYUITests/ScreenAuditTests -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SWIFT_TREAT_WARNINGS_AS_ERRORS=YES REPPY_RELEASE=ios-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          TEST_SUITE: ${{ matrix.suite }}
+        run: |
+          notes=(
+            testNotesAndInstructionParity
+            testNotesAndInstructionsLargestText
+            testNativeInstructionToolbarWithLargestText
+          )
+          workout_and_ledger=(
+            testActiveWorkoutKeyboardAndFinishOnSmallScreen
+            testActiveWorkoutWithLargestText
+            testLedgerAndInvitationLargestText
+            testLedgerAndInvitationParity
+            testPaymentFormOpensFromHistory
+            testWorkoutScreenParity
+          )
+          smoke_class=REPPYUITests/SmokeTests
+          case "$TEST_SUITE" in
+            notes)
+              for test in "${notes[@]}"; do set -- "$@" "-only-testing:$smoke_class/$test"; done
+              ;;
+            workout-and-ledger)
+              for test in "${workout_and_ledger[@]}"; do set -- "$@" "-only-testing:$smoke_class/$test"; done
+              ;;
+            core-and-smoke)
+              set -- -skip-testing:REPPYUITests/ScreenAuditTests
+              for test in "${notes[@]}" "${workout_and_ledger[@]}"; do
+                set -- "$@" "-skip-testing:$smoke_class/$test"
+              done
+              ;;
+          esac
+          xcodebuild test -project ios/REPPY.xcodeproj -scheme REPPY "$@" \
+            -destination "platform=iOS Simulator,id=$REPPY_SIMULATOR" -parallel-testing-enabled NO \
+            -derivedDataPath ios/DerivedData -resultBundlePath ios/TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            REPPY_RELEASE=ios-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Package simulator demo
+        if: matrix.suite == 'core-and-smoke'
         run: ditto -c -k --sequesterRsrc --keepParent ios/DerivedData/Build/Products/Debug-iphonesimulator/REPPY.app ios/REPPY-simulator.zip
       - name: Preserve simulator demo
+        if: matrix.suite == 'core-and-smoke'
         uses: actions/upload-artifact@v7
         with:
           name: ios-simulator-demo
@@ -58,14 +101,14 @@ jobs:
       - name: Export test screenshots
         if: always()
         run: |
-          if [ -d ios/TestResults.xcresult ]; then
+          if [ -f ios/TestResults.xcresult/Info.plist ]; then
             xcrun xcresulttool export attachments --path ios/TestResults.xcresult --output-path ios/TestAttachments
           fi
       - name: Preserve simulator diagnostics
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ios-test-results
+          name: ios-test-results-${{ matrix.suite }}
           path: |
             ios/TestResults.xcresult
             ios/TestAttachments
