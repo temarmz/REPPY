@@ -22,7 +22,7 @@ for (const theme of ['dark', 'light'] as const) {
           const exercise = data.assignments.find((item: { id: string }) => item.id === assignmentId).workoutSnapshot.exercises[0];
           const key = form === 'invite' ? 'invite-student:demo'
             : form === 'profile' ? 'athlete:artem:compact'
-              : form === 'payment' ? 'subscription:artem:new'
+              : form === 'payment' ? 'subscription:demo:artem:new'
                 : form === 'reschedule' ? `reschedule:${assignmentId}`
                   : form === 'feedback' ? `feedback:${sessionId}` : `instruction:${editorRoute}:${exercise.id}`;
           const value = form === 'invite' ? { name: {} }
